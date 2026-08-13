@@ -68,8 +68,12 @@ export function Toolbar({
   }, [tools, onToolChange]);
 
   return (
+    // The toolbar is the last thing above the screen edge, and the app paints
+    // under the home indicator (`viewport-fit=cover`), so it carries the bottom
+    // safe-area inset plus 10px — enough that the swatch row stays a
+    // comfortable thumb reach above the indicator instead of sitting on it.
     <div
-      className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-line bg-surface px-3 py-2"
+      className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-line bg-surface px-3 pt-2 [padding-bottom:calc(env(safe-area-inset-bottom)+10px)]"
       role="toolbar"
       aria-label={t("canvas.toolbar")}
     >

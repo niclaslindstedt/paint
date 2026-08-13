@@ -15,11 +15,13 @@ import type { AppData } from "../src/app/types.ts";
 // device's. Both are pure so they can be pinned without a live adapter.
 
 const blank: AppData = {
+  folders: [],
   drawings: [{ id: "d1", name: "", width: 800, height: 600, strokes: [] }],
   activeDrawingId: "d1",
 };
 
 const drawn: AppData = {
+  folders: [],
   drawings: [
     {
       id: "d1",

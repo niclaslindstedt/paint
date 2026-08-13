@@ -5,12 +5,13 @@ Two ways out, both entirely offline.
 ## PNG
 
 The header's download button (and Settings → Storage) rasterises the open page
-at its document size — 1600 × 1000 by default — and downloads it as
-`<drawing-name>.png`.
+at its document size — 3200 × 2000 by default — and downloads it as
+`<drawing-name>.png`. The whole page is exported however far you happen to be
+zoomed in: the file is the drawing, not the view of it.
 
 The PNG is rendered through the _same_ renderer that paints the screen, so what
-lands in the file is what you saw. The on-screen grid is not part of that render
-(the page element draws it), so it never appears in the export.
+lands in the file is what you saw. The on-screen grid is the one exception — the
+export simply doesn't ask for it, so it never appears in the file.
 
 ## JSON
 

@@ -6,9 +6,128 @@ import { fileURLToPath } from "node:url";
 
 import preact from "@preact/preset-vite";
 import tailwindcss from "@tailwindcss/vite";
-import { defineConfig } from "vite";
+import { defineConfig, type Plugin } from "vite";
 
 import { appPwa } from "./pwa-plugin.ts";
+
+// The canonical production origin. The privacy alias points its canonical /
+// Open Graph URLs here regardless of which deploy slot built it, since the `/`
+// release is the one search engines should index.
+const SITE_URL = "https://paint.niclaslindstedt.se";
+
+// The <head> copy for the standalone privacy page the SPA mounts by pathname
+// (see `src/main.tsx`). The homepage's SEO lives statically in `index.html`;
+// this carries its own title, description, canonical, and social-card copy,
+// spliced into a copy of the built shell by the alias plugin below.
+const PRIVACY_ROUTE = {
+  path: "/privacy/",
+  title: "Privacy — Paint",
+  description:
+    "Paint privacy: local-first by default — no account, no cookies, no " +
+    "analytics, no tracking. Optional Dropbox / Google Drive sync only when " +
+    "you connect it.",
+  ogType: "article",
+} as const;
+
+// HTML-escape a string destined for an attribute value or text node.
+const escapeHtml = (s: string): string =>
+  s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+
+// Rewrite the per-route <head> signals in a copy of the built `index.html`.
+// The homepage shell is the single source of the tag *shape* (asset links,
+// icons, JSON-LD); this only swaps the title / description / canonical / OG /
+// Twitter copy so the alias reads as its own page. Throws loudly if an expected
+// tag is missing rather than silently shipping a page that inherits the
+// homepage's title — a signal that `index.html`'s head was restructured and
+// this splice needs to follow.
+function splicePrivacySeo(html: string): string {
+  const canonical = `${SITE_URL}${PRIVACY_ROUTE.path}`;
+  const title = escapeHtml(PRIVACY_ROUTE.title);
+  const desc = escapeHtml(PRIVACY_ROUTE.description);
+
+  const sub = (re: RegExp, replacement: string, label: string): void => {
+    if (!re.test(html)) {
+      throw new Error(
+        `seo-alias: could not splice ${label} for ${PRIVACY_ROUTE.path} — ` +
+          `did index.html's <head> change shape?`,
+      );
+    }
+    html = html.replace(re, replacement);
+  };
+
+  sub(/<title>[\s\S]*?<\/title>/, `<title>${title}</title>`, "title");
+  sub(
+    /(<meta\s+name="description"\s+content=")[\s\S]*?("\s*\/>)/,
+    `$1${desc}$2`,
+    "description",
+  );
+  sub(
+    /(<link rel="canonical" href=")[^"]*("\s*\/>)/,
+    `$1${canonical}$2`,
+    "canonical",
+  );
+  sub(
+    /(<meta property="og:type" content=")[^"]*("\s*\/>)/,
+    `$1${PRIVACY_ROUTE.ogType}$2`,
+    "og:type",
+  );
+  sub(
+    /(<meta property="og:title" content=")[\s\S]*?("\s*\/>)/,
+    `$1${title}$2`,
+    "og:title",
+  );
+  sub(
+    /(<meta\s+property="og:description"\s+content=")[\s\S]*?("\s*\/>)/,
+    `$1${desc}$2`,
+    "og:description",
+  );
+  sub(
+    /(<meta property="og:url" content=")[^"]*("\s*\/>)/,
+    `$1${canonical}$2`,
+    "og:url",
+  );
+  sub(
+    /(<meta\s+name="twitter:title"\s+content=")[\s\S]*?("\s*\/>)/,
+    `$1${title}$2`,
+    "twitter:title",
+  );
+  sub(
+    /(<meta\s+name="twitter:description"\s+content=")[\s\S]*?("\s*\/>)/,
+    `$1${desc}$2`,
+    "twitter:description",
+  );
+  return html;
+}
+
+// Mirror the built `index.html` to `privacy/index.html` so GitHub Pages serves
+// the SPA from the clean URL `/privacy/` (and `/preview/privacy/`, …).
+// `src/main.tsx` reads `location.pathname` and mounts the policy page there;
+// the copied HTML loads the same origin-absolute hashed asset URLs, so no
+// rewrite is needed — only the <head> copy is re-spliced. Runs late
+// (`enforce: "post"`) so the PWA plugin's manifest / icon tags are already
+// baked into the shell we copy, and after `appPwa` so the alias page stays out
+// of its precache (the service worker's shell fallback already covers it).
+function emitPrivacyAlias(): Plugin {
+  return {
+    name: "emit-privacy-alias",
+    apply: "build",
+    enforce: "post",
+    generateBundle(_options, bundle) {
+      const index = bundle["index.html"];
+      if (index && index.type === "asset") {
+        this.emitFile({
+          type: "asset",
+          fileName: "privacy/index.html",
+          source: splicePrivacySeo(String(index.source)),
+        });
+      }
+    },
+  };
+}
 
 // The base path is injected by the deploy workflow via VITE_BASE, one per
 // release channel on the custom domain (paint.niclaslindstedt.se): the released
@@ -90,5 +209,10 @@ export default defineConfig({
   // app's `import … from "react"` lines and the pre-built framework chunks —
   // which import `react`, `react-dom`, and `react/jsx-runtime` as externals —
   // resolve to Preact. See `docs/architecture.md`.
-  plugins: [preact(), tailwindcss(), appPwa({ base, version, ignorePaths })],
+  plugins: [
+    preact(),
+    tailwindcss(),
+    appPwa({ base, version, ignorePaths }),
+    emitPrivacyAlias(),
+  ],
 });

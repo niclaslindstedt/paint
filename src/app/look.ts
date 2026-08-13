@@ -1,32 +1,25 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 import {
-  DEFAULT_CUSTOM_THEME_COLORS_DARK,
   DEFAULT_THEME_APPEARANCE,
   type ThemeAppearance,
 } from "@niclaslindstedt/oss-framework/theme";
 
-// The pure-black, amber-accent look the app boots in — a Custom theme seeded
-// from the dark palette with the page/surface slots pushed to black. The dark
-// chrome is deliberate: the canvas is a bright page, and a dark frame around it
-// keeps the drawing the brightest thing on screen. The accent is amber rather
-// than the sibling apps' green so the two are told apart at a glance in a tab
-// strip. The Appearance settings tab still swaps to any preset.
+// The look the app boots in: **System** — the framework theme that follows the
+// OS colour scheme, painting dark under `prefers-color-scheme: dark` and light
+// otherwise.
+//
+// It used to boot on a hand-rolled Custom palette (pure black, amber accent).
+// A custom theme is the wrong default: it names no family, so it can't follow
+// the system at all — a phone in light mode still opened a black app — and it
+// silently occupies the one Appearance slot a user's own palette belongs in, so
+// editing "Custom" meant editing the app's shipped look. `system` gives the
+// right first impression on both kinds of device, and the Appearance settings
+// tab still swaps to any preset (or to a Custom palette of the user's own).
+//
+// The canvas follows: `canvasTheme: "auto"` resolves through
+// `isDarkAppearance`, which for `system` asks the OS — so a light phone opens a
+// white page in dark ink and a dark one a dark sheet in light ink.
 export const APP_LOOK: ThemeAppearance = {
   ...DEFAULT_THEME_APPEARANCE,
-  theme: "custom",
-  customTheme: {
-    colors: {
-      ...DEFAULT_CUSTOM_THEME_COLORS_DARK,
-      pageBg: "#000000",
-      surface: "#0b0d10",
-      surface2: "#111418",
-      surface3: "#171b20",
-      fg: "#c9ced6",
-      fgBright: "#ffffff",
-      muted: "#7c828d",
-      line: "#23272e",
-      accent: "#fbbf24",
-      success: "#86efac",
-    },
-  },
+  theme: "system",
 };

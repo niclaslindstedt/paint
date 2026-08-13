@@ -30,8 +30,11 @@ the same [`oss-framework`](https://github.com/niclaslindstedt/oss-framework).
   phone, and a synced copy is readable JSON rather than a blob.
 - **Local-first.** No account, no server, works offline. Sync to a folder,
   Dropbox, or Google Drive only if you ask for it — optionally encrypted.
-- **A page that matches the room.** The canvas follows the app theme: dark app,
-  dark page, light ink — and flipping it re-inks the sketch rather than hiding
+- **A page that matches the room.** The app opens in your device's light or dark
+  setting, and the canvas follows it: dark app, dark page, light ink — flipping
+  it re-inks the sketch rather than hiding it.
+- **Findable when there are many.** Star the ones you keep coming back to, group
+  the rest into folders, and archive what you're done with instead of deleting
   it.
 
 ## Prerequisites
@@ -96,11 +99,14 @@ npm run preview
 
 ### In the app
 
-- **Sidebar** — the drawings in this sketchbook, plus namespaces (separate
-  sketchbooks), undo/redo, settings, and "What's new".
+- **Sidebar** — namespaces (separate sketchbooks), your starred drawings, and
+  the drawing list grouped into folders. The button island at its foot holds new
+  drawing, new folder, the archive, undo, redo, and the cloud sync glyph; the
+  footer below it (foldable behind a chevron) holds Donate, About — What's new,
+  the source, the privacy policy — check for updates, and Settings.
 - **Toolbar** — the enabled tools, the ink colour and width, and the shape-fill
   toggle. Each tool has a single-key shortcut.
-- **Header** — the drawing's name (edit in place), the sync status glyph,
+- **Header** — the drawing's name (edit in place), the favourite star,
   undo/redo, PNG export, and clear.
 
 ## Configuration

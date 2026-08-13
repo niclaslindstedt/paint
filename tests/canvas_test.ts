@@ -13,8 +13,22 @@ import {
   resolveInk,
   resolvePageColor,
 } from "../src/app/canvas.ts";
-import { DEFAULT_THEME_APPEARANCE } from "@niclaslindstedt/oss-framework/theme";
+import {
+  DEFAULT_CUSTOM_THEME_COLORS_DARK,
+  DEFAULT_THEME_APPEARANCE,
+} from "@niclaslindstedt/oss-framework/theme";
 import { APP_LOOK } from "../src/app/look.ts";
+
+// A hand-rolled palette — what a user builds under Appearance → Custom. The app
+// no longer *boots* on one (see `look.ts`), but a custom theme still has to
+// resolve to a page colour, so the rule is pinned against an explicit one.
+const CUSTOM_DARK = {
+  ...DEFAULT_THEME_APPEARANCE,
+  theme: "custom" as const,
+  customTheme: {
+    colors: { ...DEFAULT_CUSTOM_THEME_COLORS_DARK, pageBg: "#000000" },
+  },
+};
 
 // The canvas theme decides what the page is and what reads on it, so these are
 // the rules the screen, the export, and the settings tab all lean on.
@@ -39,14 +53,14 @@ describe("lightness", () => {
 
 describe("isDarkAppearance", () => {
   it("reads a custom theme's page colour", () => {
-    // The app's own look is a black custom palette.
-    expect(isDarkAppearance(APP_LOOK)).toBe(true);
+    // A custom palette names no family, so the page colour it was built from is
+    // the one honest signal about whether it paints dark.
+    expect(isDarkAppearance(CUSTOM_DARK)).toBe(true);
     expect(
       isDarkAppearance({
-        ...APP_LOOK,
+        ...CUSTOM_DARK,
         customTheme: {
-          ...APP_LOOK.customTheme!,
-          colors: { ...APP_LOOK.customTheme!.colors, pageBg: "#fafafa" },
+          colors: { ...CUSTOM_DARK.customTheme.colors, pageBg: "#fafafa" },
         },
       }),
     ).toBe(false);
@@ -62,14 +76,24 @@ describe("isDarkAppearance", () => {
   });
 });
 
+describe("APP_LOOK", () => {
+  // The look the app boots in. It is deliberately *not* a Custom palette: a
+  // custom theme names no family, so it can never follow the OS, and it
+  // occupies the one Appearance slot the user's own palette belongs in.
+  it("follows the system colour scheme rather than pinning a palette", () => {
+    expect(APP_LOOK.theme).toBe("system");
+    expect(APP_LOOK.customTheme).toEqual(DEFAULT_THEME_APPEARANCE.customTheme);
+  });
+});
+
 describe("isDarkCanvas", () => {
   it("pins light and dark regardless of the app theme", () => {
-    expect(isDarkCanvas("light", APP_LOOK)).toBe(false);
-    expect(isDarkCanvas("dark", APP_LOOK)).toBe(true);
+    expect(isDarkCanvas("light", CUSTOM_DARK)).toBe(false);
+    expect(isDarkCanvas("dark", DEFAULT_THEME_APPEARANCE)).toBe(true);
   });
 
   it("follows the app theme on auto", () => {
-    expect(isDarkCanvas("auto", APP_LOOK)).toBe(true);
+    expect(isDarkCanvas("auto", CUSTOM_DARK)).toBe(true);
     expect(
       isDarkCanvas("auto", {
         ...DEFAULT_THEME_APPEARANCE,

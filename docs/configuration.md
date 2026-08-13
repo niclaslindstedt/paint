@@ -35,6 +35,12 @@ gave the app goes in `VITE_DROPBOX_APP_FOLDER`.
 your origins listed as authorized JavaScript origins. The app requests the
 narrow `drive.file` scope, so it can only see files it created itself.
 
+## The sidebar footer
+
+| Variable          | Effect                                                                                                                      |
+| ----------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `VITE_DONATE_URL` | Where the sidebar's **Donate** row points. Defaults to the project's GitHub Sponsors page, so the row is never a dead link. |
+
 ## Deploy-time
 
 | Variable                | Effect                                                                                        |

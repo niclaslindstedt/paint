@@ -5,7 +5,12 @@ import {
 } from "@niclaslindstedt/oss-framework/storage";
 
 import { logStore } from "./log.ts";
-import { DEFAULT_CANVAS, type AppData, type Drawing } from "./types.ts";
+import {
+  DEFAULT_CANVAS,
+  type AppData,
+  type Drawing,
+  type Folder,
+} from "./types.ts";
 
 // The persisted-document migration chain, built on the framework's
 // `createMigrator`. The framework owns the engine (run a parsed document
@@ -20,7 +25,7 @@ import { DEFAULT_CANVAS, type AppData, type Drawing } from "./types.ts";
 
 /** The current persisted-document version. Bump it and add a step below when
  *  the on-disk shape changes — every shipped step stays forever. */
-export const LATEST_VERSION = 1;
+export const LATEST_VERSION = 2;
 
 const migrations = {
   // v0 (pre-versioning / blank) → v1: the bootstrap step. Guarantee the
@@ -54,6 +59,17 @@ const migrations = {
           : ((drawings[0] as Drawing | undefined)?.id ?? ""),
     };
   },
+  // v1 → v2: folders, favorites, and the archive. The document grew a `folders`
+  // array the side menu groups by; a drawing grew `folderId` (which folder it
+  // is filed in) and `favorite` (starred). All three are optional on a drawing,
+  // so an existing document needs nothing rewritten — every drawing simply
+  // reads as ungrouped, unstarred, and live. The step exists to guarantee the
+  // `folders` array itself, which the menu iterates unconditionally.
+  1: (doc: Versioned): Versioned => ({
+    ...doc,
+    version: 2,
+    folders: Array.isArray(doc.folders) ? doc.folders : [],
+  }),
 } as const;
 
 export const migrator = createMigrator({
@@ -68,6 +84,7 @@ export const migrator = createMigrator({
  *  guarantees the fields exist; this just re-asserts the static shape. */
 export function toAppData(doc: Versioned): AppData {
   return {
+    folders: (Array.isArray(doc.folders) ? doc.folders : []) as Folder[],
     drawings: (Array.isArray(doc.drawings) ? doc.drawings : []) as Drawing[],
     activeDrawingId:
       typeof doc.activeDrawingId === "string" ? doc.activeDrawingId : "",

@@ -6,11 +6,11 @@ import {
   DownloadIcon,
   InlineEditField,
   RedoIcon,
+  StarIcon,
   TrashIcon,
   UndoIcon,
 } from "@niclaslindstedt/oss-framework/components";
 import { downloadBlob } from "@niclaslindstedt/oss-framework/files";
-import { SyncStatus } from "@niclaslindstedt/oss-framework/sync";
 
 import { defaultInk, resolvePageColor } from "./canvas.ts";
 import { drawingToPng, exportFileName } from "./export.ts";
@@ -20,12 +20,15 @@ import { PaintCanvas } from "./PaintCanvas.tsx";
 import { Toolbar } from "./Toolbar.tsx";
 import type { AppSettings } from "./useAppSettings.ts";
 import type { PaintStore } from "./usePaintStore.ts";
-import type { SyncEngine } from "./useSyncEngine.ts";
 import * as output from "../output.ts";
 
-// The main screen: a header naming the open drawing (with the framework's sync
-// glyph and the undo/redo/export/clear actions), the page itself, and the
-// toolbar under it.
+// The main screen: a header naming the open drawing (with the favourite star
+// and the undo/redo/export/clear actions), the page itself, and the toolbar
+// under it.
+//
+// The sync glyph is deliberately *not* here: there is one cloud affordance for
+// the whole app and it lives in the side menu's button island, so the header
+// keeps its width for the controls that act on the drawing in front of you.
 //
 // The screen owns no drawing state — the store owns the document, the settings
 // own the ink, and `PaintCanvas` owns the gesture in flight. This component is
@@ -33,7 +36,6 @@ import * as output from "../output.ts";
 
 type Props = {
   store: PaintStore;
-  sync: SyncEngine;
   settings: AppSettings;
   update: <K extends keyof AppSettings>(key: K, value: AppSettings[K]) => void;
   /** The active tool, already resolved against what the toolbar offers. */
@@ -41,20 +43,23 @@ type Props = {
   /** Whether the page is a dark sheet — resolved from the canvas theme and the
    *  app appearance by `App`, so the screen never re-derives it. */
   darkCanvas: boolean;
-  onOpenSyncDetails: () => void;
 };
 
 export function CanvasScreen({
   store,
-  sync,
   settings,
   update,
   tool,
   darkCanvas,
-  onOpenSyncDetails,
 }: Props) {
   const t = useT();
   const [confirmClear, setConfirmClear] = useState(false);
+  // Bumped to ask the canvas to re-fit its view; the live zoom comes back the
+  // other way so the header's button can read out the current scale. The view
+  // itself stays inside `PaintCanvas` — it is screen state, not document state,
+  // and nothing above here has any business knowing where you scrolled to.
+  const [fitToken, setFitToken] = useState(0);
+  const [scale, setScale] = useState(1);
   const drawing = store.activeDrawing;
 
   if (!drawing) return null;
@@ -80,7 +85,10 @@ export function CanvasScreen({
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <header className="flex shrink-0 items-center gap-2 border-b border-line bg-surface px-3 py-2">
+      {/* The header pads by the top safe-area inset so its title and buttons
+          sit clear of the status bar / Dynamic Island in the installed iOS PWA,
+          which paints edge to edge (`viewport-fit=cover`). */}
+      <header className="flex shrink-0 items-center gap-2 border-b border-line bg-surface px-3 pb-2 pt-[calc(0.5rem+env(safe-area-inset-top))]">
         {/* The name is edited in place — a drawing is named by typing over its
             title, not through a dialog. */}
         <div className="min-w-0 flex-1">
@@ -94,16 +102,19 @@ export function CanvasScreen({
           />
         </div>
 
-        <SyncStatus
-          providerName={sync.providerName}
-          status={sync.status}
-          dirty={sync.dirty}
-          offline={sync.offline}
-          onOpenDetails={onOpenSyncDetails}
-          labels={{ syncedTo: (name) => t("sync.syncedTo", { name }) }}
-        />
-
         <div className="flex items-center gap-1">
+          {/* The star — where favouriting is discovered, and what puts the
+              drawing in the side menu's Favorites section. */}
+          <IconButton
+            label={drawing.favorite ? t("menu.unfavorite") : t("menu.favorite")}
+            pressed={Boolean(drawing.favorite)}
+            onClick={() => store.toggleFavorite(drawing.id)}
+          >
+            <StarIcon
+              className={`h-[18px] w-[18px] ${drawing.favorite ? "text-accent" : ""}`}
+              filled={drawing.favorite}
+            />
+          </IconButton>
           <IconButton
             label={t("canvas.undo")}
             disabled={!store.canUndo}
@@ -131,9 +142,11 @@ export function CanvasScreen({
         </div>
       </header>
 
-      {/* The page. `min-h-0` lets the flex child actually shrink, so the canvas
-          scales to the space left over rather than pushing the toolbar off. */}
-      <div className="flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-page-bg p-3">
+      {/* The window onto the page. The canvas fills it edge to edge — the page
+          inside is larger than the screen, and you pan and pinch around it — so
+          `min-h-0` matters: it lets the flex child actually shrink to the space
+          left over rather than pushing the toolbar off the bottom. */}
+      <div className="relative min-h-0 flex-1 overflow-hidden bg-page-bg">
         <PaintCanvas
           drawing={drawing}
           pageColor={pageColor}
@@ -145,14 +158,37 @@ export function CanvasScreen({
           }}
           defaultInk={ink}
           showGrid={settings.showGrid}
+          fitToken={fitToken}
+          onScaleChange={setScale}
           onCommit={store.addStroke}
           ariaLabel={drawing.name.trim() || t("menu.untitled")}
         />
+
+        {/* The zoom readout, floating over the canvas rather than sitting in
+            the header — six icon buttons up there left a phone's title field
+            too narrow to read. It doubles as the way back: tap to fit the whole
+            page, tap again for 1:1. Hidden from the pointer stream everywhere
+            but on itself, so it can never swallow a stroke that runs under it. */}
+        <button
+          type="button"
+          onClick={() => setFitToken((n) => n + 1)}
+          aria-label={t("canvas.fitPage")}
+          title={t("canvas.fitPage")}
+          className="absolute right-3 bottom-3 cursor-pointer rounded-full border border-line bg-surface/90 px-2.5 py-1 text-xs text-muted tabular-nums hover:text-fg-bright"
+        >
+          {t("canvas.zoomPercent", {
+            percent: String(Math.round(scale * 100)),
+          })}
+        </button>
       </div>
 
+      {/* The empty state also teaches the gesture: the page is bigger than the
+          screen now, so "you can pinch and pan around it" is not something a
+          first-time user would otherwise discover. It goes away with the first
+          mark, like the rest of the hint. */}
       {drawing.strokes.length === 0 && (
-        <p className="shrink-0 px-3 pb-1 text-center text-xs text-muted">
-          {t("canvas.emptyHint")}
+        <p className="shrink-0 px-3 pb-1 text-center text-xs text-balance text-muted">
+          {t("canvas.emptyHint")} {t("canvas.zoomHint")}
         </p>
       )}
 
@@ -193,11 +229,14 @@ function IconButton({
   label,
   onClick,
   disabled,
+  pressed,
   children,
 }: {
   label: string;
   onClick: () => void;
   disabled?: boolean;
+  /** Set on the toggles (the star), so the button reports its state. */
+  pressed?: boolean;
   children: React.ReactNode;
 }) {
   return (
@@ -206,6 +245,7 @@ function IconButton({
       onClick={onClick}
       disabled={disabled}
       aria-label={label}
+      aria-pressed={pressed}
       title={label}
       className="inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded text-muted hover:bg-surface-2 hover:text-fg disabled:cursor-default disabled:opacity-30 disabled:hover:bg-transparent"
     >

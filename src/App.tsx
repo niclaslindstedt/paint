@@ -17,7 +17,10 @@ import {
   useUndoRedoShortcuts,
 } from "@niclaslindstedt/oss-framework/hooks";
 import { LogViewer } from "@niclaslindstedt/oss-framework/logging";
-import { SyncDetailsModal } from "@niclaslindstedt/oss-framework/sync";
+import {
+  SyncDetailsModal,
+  SyncStatus,
+} from "@niclaslindstedt/oss-framework/sync";
 import {
   NamespacesModal,
   applyFaviconHref,
@@ -52,6 +55,11 @@ const ChangelogPanel = lazy(() =>
   import("./app/ChangelogPanel.tsx").then((m) => ({
     default: m.ChangelogPanel,
   })),
+);
+// The archive is the second top-level view, and most sessions never open it —
+// so it stays off the first-paint path like the dialogs above.
+const ArchiveScreen = lazy(() =>
+  import("./app/ArchiveScreen.tsx").then((m) => ({ default: m.ArchiveScreen })),
 );
 
 // A local-first paint PWA built from the framework's shared surface. The
@@ -91,6 +99,10 @@ export function App() {
   const [namespacesOpen, setNamespacesOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [changelogOpen, setChangelogOpen] = useState(false);
+
+  // The top-level screen: the canvas, or the archive of shelved drawings and
+  // folders. Both are driven from the side menu's button island.
+  const [view, setView] = useState<"canvas" | "archive">("canvas");
 
   // Wide screens (≥ the smallest iPad) dock the sidebar permanently; phones
   // collapse it to a draggable drawer.
@@ -175,6 +187,25 @@ export function App() {
     );
   }, [activeNamespace]);
 
+  // The cloud glyph, rendered as the last cell of the side menu's button
+  // island — one sync affordance for the whole app rather than one per screen
+  // header. It shows on every backend, the on-device one included: it is the
+  // way *in* to the sync command centre, so hiding it until a backend is
+  // connected would hide the door as well as the room.
+  const syncSlot = (
+    <SyncStatus
+      providerName={sync.providerName}
+      status={sync.status}
+      dirty={sync.dirty}
+      offline={sync.offline}
+      onOpenDetails={() => {
+        setDrawerOpen(false);
+        setSyncDetailsOpen(true);
+      }}
+      labels={{ syncedTo: (name) => t("sync.syncedTo", { name }) }}
+    />
+  );
+
   return (
     <div className="flex h-[var(--app-height,100svh)] overflow-hidden bg-page-bg text-fg">
       <Sidebar
@@ -212,6 +243,10 @@ export function App() {
           onNavigate={() => {
             if (!pinned) setDrawerOpen(false);
           }}
+          view={view}
+          onShowArchive={() => setView("archive")}
+          onShowCanvas={() => setView("canvas")}
+          syncSlot={syncSlot}
           checkingUpdate={pwa.checking}
           updateAvailable={pwa.needRefresh}
           onCheckUpdate={pwa.checkForUpdate}
@@ -219,15 +254,22 @@ export function App() {
       </Sidebar>
 
       <main className="relative flex min-w-0 flex-1 flex-col overflow-hidden">
-        <CanvasScreen
-          store={store}
-          sync={sync}
-          settings={settings}
-          update={update}
-          tool={tool}
-          darkCanvas={darkCanvas}
-          onOpenSyncDetails={() => setSyncDetailsOpen(true)}
-        />
+        {view === "archive" ? (
+          <Suspense fallback={null}>
+            <ArchiveScreen
+              store={store}
+              onShowCanvas={() => setView("canvas")}
+            />
+          </Suspense>
+        ) : (
+          <CanvasScreen
+            store={store}
+            settings={settings}
+            update={update}
+            tool={tool}
+            darkCanvas={darkCanvas}
+          />
+        )}
       </main>
 
       {settingsOpen && (
