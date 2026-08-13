@@ -317,6 +317,33 @@ describe("dropper", () => {
   });
 });
 
+describe("clearing the page", () => {
+  beforeEach(() => {
+    resetPlugins();
+    registerBuiltinPlugins();
+  });
+
+  it("is offered by exactly one tool, and that tool is always in the toolbar", () => {
+    const clearing = allPlugins().filter((p) => p.clearsPage);
+    expect(clearing.map((p) => p.id)).toEqual(["eraser"]);
+    // Core, so no settings blob can leave the wipe unreachable — it is the only
+    // way to it now that the header carries no bin.
+    expect(clearing[0]!.core).toBe(true);
+    expect(enabledPlugins([]).map((p) => p.id)).toContain("eraser");
+  });
+
+  it("is a variant of a tool, not a tool of its own", () => {
+    // The flag rides on a tool that still draws: pressing the button holds an
+    // eraser, and the wipe is the second thing that button offers.
+    const eraser = pluginById("eraser")!;
+    expect(eraser.behaviour.start({ x: 0, y: 0 }, ctx)).not.toBeNull();
+    expect(eraser.usesBackground).toBe(true);
+    // Nothing registers the action as a tool of its own, so it can never end up
+    // in the toolbar, in Settings → Tools, or on a stroke's `tool` field.
+    expect(toolPlugins().map((p) => p.id)).not.toContain("clear");
+  });
+});
+
 describe("fill behaviour", () => {
   // A stand-in for the canvas's own probe: it answers with one square area,
   // whatever it is asked. The behaviour is pure over it, so the whole gesture

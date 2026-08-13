@@ -3,6 +3,8 @@ import { useEffect, useRef, useState } from "react";
 
 import { useT } from "./i18n/index.ts";
 import { enabledPlugins } from "./plugins/registry.ts";
+import type { PaintPlugin } from "./plugins/types.ts";
+import { ClearPicker } from "./toolbar/ClearPicker.tsx";
 import { ColorPicker } from "./toolbar/ColorPicker.tsx";
 import { FillPicker } from "./toolbar/FillPicker.tsx";
 import { SizeDot, SizePicker } from "./toolbar/SizePicker.tsx";
@@ -27,6 +29,13 @@ import { SizeDot, SizePicker } from "./toolbar/SizePicker.tsx";
 // are already holding a second time and a two-cell panel opens showing the
 // shape hollow and the shape solid. Which tools offer it is the descriptor's
 // `supportsFill`, so nothing here knows what a rectangle is.
+//
+// Clearing the page rides on that same gesture. The tool that erases carries
+// `clearsPage`, and pressing its button a second time offers the two scales of
+// rubbing out: by hand, or all of it. That is why there is no bin in the
+// header — the header spends its width on the drawing's name instead, and the
+// wipe sits under the hand already reaching for the eraser. Which tool offers
+// it is the descriptor's flag; nothing here knows what an eraser is either.
 
 type Props = {
   tool: string;
@@ -49,7 +58,20 @@ type Props = {
   onHardnessChange: (hardness: number) => void;
   filled: boolean;
   onFilledChange: (filled: boolean) => void;
+  /** Wipe every mark off the page — the action offered by the tool that
+   *  advertises `clearsPage`. The screen owns the confirmation and the edit;
+   *  the toolbar only asks. */
+  onClearPage: () => void;
+  /** Whether the page has anything to clear. */
+  pageHasMarks: boolean;
 };
+
+/** Whether a tool's button does a second job once it is the one in your hand.
+ *  Read off descriptor flags, so a new tool joins the gesture by declaring one
+ *  rather than by being named here. */
+function opensPanel(plugin: PaintPlugin): boolean {
+  return Boolean(plugin.supportsFill || plugin.clearsPage);
+}
 
 export function Toolbar({
   tool,
@@ -70,18 +92,20 @@ export function Toolbar({
   onHardnessChange,
   filled,
   onFilledChange,
+  onClearPage,
+  pageHasMarks,
 }: Props) {
   const t = useT();
   const tools = enabledPlugins(enabled);
   const active = tools.find((p) => p.id === tool);
   // Which panel is open. One at a time, and held as a discriminated value
   // rather than three booleans so opening one can never leave another hanging
-  // over the canvas. The fill panel names its tool: switching tools with it
+  // over the canvas. A tool's own panel names its tool: switching tools with it
   // open must not leave it anchored to a button that no longer means anything.
   const [panel, setPanel] = useState<
-    { kind: "fill"; tool: string } | { kind: "color" } | { kind: "size" } | null
+    { kind: "tool"; tool: string } | { kind: "color" } | { kind: "size" } | null
   >(null);
-  const fillAnchor = useRef<HTMLButtonElement | null>(null);
+  const toolAnchor = useRef<HTMLButtonElement | null>(null);
   const colorAnchor = useRef<HTMLButtonElement | null>(null);
   const sizeAnchor = useRef<HTMLButtonElement | null>(null);
 
@@ -136,24 +160,25 @@ export function Toolbar({
           const Icon = plugin.icon;
           const isActive = plugin.id === tool;
           const name = t(plugin.nameKey);
-          // A shape tool's button does two jobs: pick the tool, and — once it
-          // is the one you are holding — open its fill picker. That is the
-          // "press it twice" gesture, and it costs the toolbar nothing.
-          const opensFill = Boolean(plugin.supportsFill) && isActive;
+          // Some buttons do two jobs: pick the tool, and — once it is the one
+          // you are holding — open that tool's own panel (the shapes' fill
+          // picker, the eraser's clear action). That is the "press it twice"
+          // gesture, and it costs the toolbar nothing.
+          const opensOwn = opensPanel(plugin) && isActive;
           return (
             <button
               key={plugin.id}
               type="button"
-              ref={opensFill ? fillAnchor : undefined}
+              ref={opensOwn ? toolAnchor : undefined}
               onClick={() => {
-                setPanel(opensFill ? { kind: "fill", tool: plugin.id } : null);
+                setPanel(opensOwn ? { kind: "tool", tool: plugin.id } : null);
                 if (!isActive) onToolChange(plugin.id);
               }}
               aria-pressed={isActive}
-              aria-haspopup={opensFill ? "menu" : undefined}
+              aria-haspopup={opensOwn ? "menu" : undefined}
               aria-expanded={
-                opensFill
-                  ? panel?.kind === "fill" && panel.tool === plugin.id
+                opensOwn
+                  ? panel?.kind === "tool" && panel.tool === plugin.id
                   : undefined
               }
               title={
@@ -176,7 +201,7 @@ export function Toolbar({
                   button opens something. Borrowed from the long-press marks on
                   a phone keyboard, and just as quiet — a tool with nothing
                   behind it wears none. */}
-              {plugin.supportsFill && (
+              {opensPanel(plugin) && (
                 <span
                   aria-hidden="true"
                   className="absolute right-[3px] bottom-[3px] h-[5px] w-[5px] bg-current opacity-45 [clip-path:polygon(100%_0,100%_100%,0_100%)]"
@@ -255,14 +280,31 @@ export function Toolbar({
           flips over the canvas. */}
       {active?.supportsFill && (
         <FillPicker
-          open={panel?.kind === "fill" && panel.tool === active.id}
+          open={panel?.kind === "tool" && panel.tool === active.id}
           onClose={() => setPanel(null)}
-          anchor={fillAnchor}
+          anchor={toolAnchor}
           plugin={active}
           filled={filled}
           onPick={(next) => {
             onFilledChange(next);
             setPanel(null);
+          }}
+        />
+      )}
+
+      {active?.clearsPage && (
+        <ClearPicker
+          open={panel?.kind === "tool" && panel.tool === active.id}
+          onClose={() => setPanel(null)}
+          anchor={toolAnchor}
+          plugin={active}
+          hasMarks={pageHasMarks}
+          onClear={() => {
+            // The panel closes on the way to the dialog: the confirmation is
+            // the question now, and leaving a panel hanging behind it would
+            // ask the same thing twice.
+            setPanel(null);
+            onClearPage();
           }}
         />
       )}

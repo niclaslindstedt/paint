@@ -160,6 +160,16 @@ export type PaintPlugin = {
   picksColor?: boolean;
   /** True when the tool honours the fill toggle. */
   supportsFill?: boolean;
+  /** True when the tool offers *clearing the whole page* as a second way of
+   *  erasing. Its button then opens a two-cell panel on a second press — the
+   *  tool itself, and the action that wipes every mark — the same second-press
+   *  gesture `supportsFill` uses.
+   *
+   *  Clearing is not a tool: it begins no gesture and leaves no stroke, it is a
+   *  single undoable edit on the document. It rides on a tool's button because
+   *  that is where a hand reaching to rub something out already is — and it is
+   *  a flag rather than a tool id so no screen has to know what an eraser is. */
+  clearsPage?: boolean;
   /** True when the tool honours the hardness dial — the soft-edged brushes. The
    *  size picker dims the dial for every other tool rather than offering a
    *  control that would do nothing. */
