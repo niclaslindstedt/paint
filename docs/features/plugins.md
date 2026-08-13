@@ -100,7 +100,10 @@ Three steps, none of which touch the canvas, the store, or the toolbar:
 
 1. Write a `ToolBehaviour` — `start` / `move` / optional `end`, plus `paint`.
    The freehand and shape families in `src/app/plugins/builtin/` are factories,
-   so most tools are a few lines of ink configuration.
+   so most tools are a few lines of ink configuration. `paint` is also handed a
+   `PaintDetail` saying how many device pixels one document pixel is about to
+   become; honouring it is optional, but a painter with a texture should, so it
+   doesn't lay down detail smaller than the screen can show.
 2. Register it in `registerBuiltinPlugins()` with an id, an icon, and its two
    catalog keys — plus `core` or `defaultOn` if it should be in the toolbar
    without being asked for.

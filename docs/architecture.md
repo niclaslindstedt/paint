@@ -88,6 +88,39 @@ and the export doesn't, which is the only difference between them — and the
 reason the grid is a `RenderOptions` flag the export leaves unset rather than
 something painted separately.
 
+### A repaint is a fold; a frame is not
+
+`renderDrawing` remains a fold over the whole document, and that is what keeps
+the model the single source of truth — undo, a synced document arriving and a
+theme flip all go through one path. But the canvas repaints on every pointer
+sample, and almost nothing it repaints has changed, so a _frame_ is allowed to
+be much less than a full render:
+
+- `layer.ts` keeps the committed marks as pixels and blits them while a gesture
+  is in flight. A landed stroke is painted onto that bitmap rather than
+  triggering a rebuild, and a **drag scrolls it** — the marks are blitted at
+  their new offset and only the strip of page that has just come into view is
+  painted. When a rebuild is unavoidable it paints the _screen_ and copies the
+  result back, because rendering into an off-screen context is no faster and
+  the copy leaves the layer holding exactly what the next frame wants.
+- `geometry.ts` gives each stroke a box, and the renderer skips the marks that
+  cannot reach the window it is painting.
+- `PaintDetail` tells each painter how big its mark is coming out on the device
+  it is bound for, and the textured painters drop the dabs, hairs and specks
+  that would land inside a single device pixel. The medium's own numbers stay
+  written as the medium — only the screen takes away — so a mark looks the same
+  as you zoom into it and the PNG export (always 1:1) is unchanged.
+
+The cache holds no state the document doesn't: every path into it goes through
+`renderDrawing`, and where there is no DOM to build it in the canvas paints the
+document directly, exactly as it did before the layer existed.
+
+The one place a frame is not the frame a plain render would produce is mid-drag,
+and it is a deliberate trade: a canvas rasteriser is not translation-invariant,
+so marks carried along by a scroll keep the antialiasing fringes they were first
+drawn with. The difference is bounded, does not compound, and heals once the
+drag has moved a window's width.
+
 ## The canvas is a window
 
 The page is larger than any screen, so the `<canvas>` element is a **window**
@@ -123,7 +156,8 @@ so the only thing in the app that scales anything is the canvas.
 lives by: **nothing outside it may branch on a tool id.**
 
 - `types.ts` — the `PaintPlugin` descriptor and the `ToolBehaviour` contract
-  (`start` / `move` / `end` / `paint`).
+  (`start` / `move` / `end` / `paint`), plus the `PaintDetail` a painter is
+  handed to tell it how finely it is being rasterised.
 - `registry.ts` — registration order (which is toolbar order), the
   core / default-on / optional split, and resolution.
 - `builtin/` — the shipped tools, built from two family factories (freehand and
