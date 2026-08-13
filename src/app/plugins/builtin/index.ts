@@ -18,7 +18,10 @@
 // Adding a tool is: write its behaviour (or reuse a family factory), register
 // it here, and add its two catalog strings. Nothing else in the app changes.
 
-import { PencilIcon } from "@niclaslindstedt/oss-framework/components";
+import {
+  ImageUpIcon,
+  PencilIcon,
+} from "@niclaslindstedt/oss-framework/components";
 
 import {
   ArrowIcon,
@@ -42,6 +45,7 @@ import { dropperBehaviour } from "./dropper.ts";
 import { fillBehaviour } from "./fill.ts";
 import { freehandBehaviour } from "./freehand.ts";
 import { handBehaviour } from "./hand.ts";
+import { imageBehaviour, IMAGE_TOOL_ID } from "./image.ts";
 import {
   arrowBehaviour,
   ellipseBehaviour,
@@ -237,5 +241,19 @@ export function registerBuiltinPlugins(): void {
     // eraser stroke undoable like any other mark.
     usesBackground: true,
     behaviour: freehandBehaviour({ useBackground: true, sizeScale: 2.5 }),
+  });
+
+  // --- The painter with no button ------------------------------------------
+  // A dropped bitmap is a stroke like any other, so it names a plugin; there is
+  // simply no gesture that draws one, and `hidden` keeps it out of the toolbar
+  // and out of Settings → Tools. See `image.ts`.
+
+  registerPlugin({
+    id: IMAGE_TOOL_ID,
+    hidden: true,
+    nameKey: "tools.image.name",
+    descriptionKey: "tools.image.description",
+    icon: ImageUpIcon,
+    behaviour: imageBehaviour,
   });
 }

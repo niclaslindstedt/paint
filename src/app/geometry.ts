@@ -70,6 +70,7 @@ export function strokeBounds(stroke: Stroke): Rect | null {
   else if (shape.kind === "segment") box = around([shape.from, shape.to], pad);
   else if (shape.kind === "box") box = around([shape.from, shape.to], pad);
   else if (shape.kind === "region") box = around(shape.contours.flat(), pad);
+  else if (shape.kind === "image") box = around([shape.from, shape.to], pad);
   else if (shape.kind === "text") {
     // Text is measured without a context to measure it with, so this is a
     // deliberate over-estimate: the font is `size * 6` and no glyph is wider

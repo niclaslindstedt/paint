@@ -14,6 +14,7 @@ import {
   isTap,
   type MenuEdge,
 } from "./gestures.ts";
+import { onImageDecoded } from "./images.ts";
 import { createLayer, paintCommitted, type Layer } from "./layer.ts";
 import { pluginById } from "./plugins/registry.ts";
 import type { CanvasProbe, DraftStroke, ToolContext } from "./plugins/types.ts";
@@ -92,6 +93,16 @@ type Props = {
   fitToken?: number;
   /** Reports the live zoom so the header can show it. */
   onScaleChange?: (scale: number) => void;
+  /** Reports the whole view, so an overlay drawn over the canvas — the dropped
+   *  image's placement frame — can sit exactly over the page. */
+  onViewChange?: (view: CanvasView) => void;
+  /** True while something is floating over the page waiting to be settled: a
+   *  dropped image. A press then *settles* that instead of drawing — it is the
+   *  "click outside it" half of the placement gesture, and no mark may be laid
+   *  down under a picture that isn't placed yet. Two-finger pinch and the wheel
+   *  still move the view, so you can look around before deciding. */
+  placing?: boolean;
+  onPlacingPress?: () => void;
   /** The screen edge the sidebar's open-swipe is currently armed on, or `null`
    *  when nothing is watching an edge (a docked sidebar, the floating-button
    *  mode, a drawer that is already open). A touch that lands in that strip is
@@ -118,6 +129,9 @@ export function PaintCanvas({
   showGrid = false,
   fitToken = 0,
   onScaleChange,
+  onViewChange,
+  placing = false,
+  onPlacingPress,
   menuSwipeEdge = null,
   ariaLabel,
 }: Props) {
@@ -174,11 +188,19 @@ export function PaintCanvas({
   pageRef.current = drawing;
   const viewportRef = useRef(viewport);
   viewportRef.current = viewport;
+  // A bitmap on the page decodes asynchronously but paints synchronously, so a
+  // freshly-loaded image would otherwise sit invisible until something else
+  // forced a repaint. Bumping this counter is that something (see `images.ts`),
+  // and it travels into the layer's spec so a cached frame can't hide a picture
+  // that has only just arrived.
+  const [decodedAt, setDecodedAt] = useState(0);
+  useEffect(() => onImageDecoded(() => setDecodedAt((count) => count + 1)), []);
+
   // Everything else a repaint reads. The paint runs from an animation frame,
   // outside React's render, so it takes its inputs from here rather than from a
   // closure that may be a frame out of date.
-  const inks = useRef({ drawing, pageColor, defaultInk, showGrid });
-  inks.current = { drawing, pageColor, defaultInk, showGrid };
+  const inks = useRef({ drawing, pageColor, defaultInk, showGrid, decodedAt });
+  inks.current = { drawing, pageColor, defaultInk, showGrid, decodedAt };
   // The committed marks, as pixels (see `layer.ts`). Opened on the first paint
   // and kept for the life of the canvas.
   const layerRef = useRef<Layer | null>(null);
@@ -304,8 +326,10 @@ export function PaintCanvas({
   }, [fitToken]);
 
   useEffect(() => {
-    if (view) onScaleChange?.(view.scale);
-  }, [view, onScaleChange]);
+    if (!view) return;
+    onScaleChange?.(view.scale);
+    onViewChange?.(view);
+  }, [view, onScaleChange, onViewChange]);
 
   /** Paint one frame.
    *
@@ -318,7 +342,8 @@ export function PaintCanvas({
     const view = viewRef.current;
     const window_ = viewportRef.current;
     if (!canvas || !view) return;
-    const { drawing, pageColor, defaultInk, showGrid } = inks.current;
+    const { drawing, pageColor, defaultInk, showGrid, decodedAt } =
+      inks.current;
     const dpr = Math.min(window.devicePixelRatio || 1, 3);
     const width = Math.round(window_.width * dpr);
     const height = Math.round(window_.height * dpr);
@@ -361,6 +386,7 @@ export function PaintCanvas({
       height,
       dpr,
       options,
+      decodedAt,
     });
 
     // Then the view: device pixels, then the view's scale and pan. From here on
@@ -406,11 +432,21 @@ export function PaintCanvas({
   );
 
   // Repaint whenever the document, the view, the window or the page's colours
-  // change. The gesture in flight asks for its own frames as it moves — it
-  // never reaches React at all.
+  // change — and when a bitmap finishes decoding, which changes what the same
+  // document paints as without changing the document. The gesture in flight
+  // asks for its own frames as it moves; it never reaches React at all.
   useEffect(() => {
     requestPaint();
-  }, [drawing, view, viewport, pageColor, defaultInk, showGrid, requestPaint]);
+  }, [
+    drawing,
+    view,
+    viewport,
+    pageColor,
+    defaultInk,
+    showGrid,
+    decodedAt,
+    requestPaint,
+  ]);
 
   /** Abandon whatever stroke is in flight without committing it. */
   const abandon = useCallback(() => {
@@ -434,6 +470,12 @@ export function PaintCanvas({
    *  element point). Split out from the pointer handler because a press held
    *  back at the screen edge starts here too, late, from where it landed. */
   const beginGesture = (pointerId: number, at: Point) => {
+    // Something is floating over the page waiting to be settled: this press is
+    // the "click outside it" that keeps it, and it begins nothing else.
+    if (placing) {
+      onPlacingPress?.();
+      return;
+    }
     const plugin = pluginById(tool);
     if (!plugin) return;
     // A new press reads a new page: whatever the last gesture drew is part of
@@ -705,7 +747,13 @@ export function PaintCanvas({
       // the canvas scrolls or zooms the page instead of drawing and pinching.
       className="h-full w-full touch-none"
       style={{
-        cursor: holding ? "grabbing" : navigates ? "grab" : "crosshair",
+        cursor: placing
+          ? "default"
+          : holding
+            ? "grabbing"
+            : navigates
+              ? "grab"
+              : "crosshair",
       }}
     />
   );

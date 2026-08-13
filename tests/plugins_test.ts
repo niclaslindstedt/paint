@@ -19,6 +19,7 @@ import {
   registerPlugin,
   resetPlugins,
   resolveActiveTool,
+  toolPlugins,
 } from "../src/app/plugins/registry.ts";
 import type { ToolContext } from "../src/app/plugins/types.ts";
 import type { Point } from "../src/app/types.ts";
@@ -61,13 +62,36 @@ describe("registry", () => {
       "filler",
       "dropper",
       "eraser",
+      // Registered, but never in the toolbar: the painter behind a dropped
+      // image (see `toolPlugins`).
+      "image",
     ]);
   });
 
   it("puts the hand at the far left and the eraser at the far right", () => {
-    const ids = allPlugins().map((p) => p.id);
+    const ids = toolPlugins().map((p) => p.id);
     expect(ids[0]).toBe("hand");
     expect(ids[ids.length - 1]).toBe("eraser");
+  });
+
+  it("keeps a hidden plugin out of every list a user picks from", () => {
+    const hidden = allPlugins()
+      .filter((p) => p.hidden)
+      .map((p) => p.id);
+    expect(hidden).toEqual(["image"]);
+    for (const id of hidden) {
+      expect(toolPlugins().map((p) => p.id)).not.toContain(id);
+      expect(optionalPlugins().map((p) => p.id)).not.toContain(id);
+      expect(enabledPlugins([id]).map((p) => p.id)).not.toContain(id);
+      expect(defaultEnabledPlugins()).not.toContain(id);
+      // …but it is still resolvable, or a stroke drawn with it would lose its
+      // painter and the picture would vanish from the page.
+      expect(pluginById(id)).toBeDefined();
+    }
+  });
+
+  it("never lands the canvas on a tool with no button", () => {
+    expect(resolveActiveTool("image", [])).not.toBe("image");
   });
 
   it("offers only the core tools with nothing switched on", () => {

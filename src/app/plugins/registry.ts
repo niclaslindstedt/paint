@@ -31,10 +31,17 @@ export function allPlugins(): PaintPlugin[] {
   return order.map((id) => registry.get(id)!).filter(Boolean);
 }
 
-/** The plugins the user can switch on — everything that isn't core. This is
- *  what Settings → Tools lists with a switch. */
+/** The plugins that offer a gesture — everything a toolbar could show. A hidden
+ *  plugin (one that only paints, like the dropped image) is not one of them, so
+ *  it is filtered out here once rather than at every call site. */
+export function toolPlugins(): PaintPlugin[] {
+  return allPlugins().filter((p) => !p.hidden);
+}
+
+/** The plugins the user can switch on — every offered tool that isn't core.
+ *  This is what Settings → Tools lists with a switch. */
 export function optionalPlugins(): PaintPlugin[] {
-  return allPlugins().filter((p) => !p.core);
+  return toolPlugins().filter((p) => !p.core);
 }
 
 /** The optional plugins that are on out of the box — the ones a first run finds
@@ -42,8 +49,8 @@ export function optionalPlugins(): PaintPlugin[] {
  *  reset returns it to; it is a *default*, not a floor, so switching one off
  *  sticks. */
 export function defaultEnabledPlugins(): string[] {
-  return allPlugins()
-    .filter((p) => !p.core && p.defaultOn)
+  return optionalPlugins()
+    .filter((p) => p.defaultOn)
     .map((p) => p.id);
 }
 
@@ -59,7 +66,7 @@ export function pluginById(id: string): PaintPlugin | undefined {
  *  slots it into its natural place rather than appending it. */
 export function enabledPlugins(enabledIds: readonly string[]): PaintPlugin[] {
   const enabled = new Set(enabledIds);
-  return allPlugins().filter((p) => p.core || enabled.has(p.id));
+  return toolPlugins().filter((p) => p.core || enabled.has(p.id));
 }
 
 /** Resolve the active tool id against what's actually offered, so a tool that

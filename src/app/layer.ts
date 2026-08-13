@@ -70,6 +70,15 @@ export type LayerSpec = {
   dpr: number;
   /** What the marks are painted over and against — see `render.ts`. */
   options: Omit<RenderOptions, "clip" | "scale">;
+  /** Bumped whenever a bitmap the document references finishes decoding.
+   *
+   *  The cache's whole premise is that an unchanged document paints the same
+   *  picture, and an image stroke is the one place that isn't true: it paints
+   *  nothing until its data URL has decoded, and the decode lands later without
+   *  touching the document (see `images.ts`). Without this, a dropped picture
+   *  would sit invisible behind a cached frame until something else forced a
+   *  repaint — the bug the cache would otherwise have quietly introduced. */
+  decodedAt?: number;
 };
 
 /** What a frame actually had to do. The canvas ignores it; the tests assert on
@@ -328,6 +337,7 @@ function sameFrame(a: LayerSpec, b: LayerSpec): boolean {
     a.width === b.width &&
     a.height === b.height &&
     a.dpr === b.dpr &&
+    a.decodedAt === b.decodedAt &&
     a.options.pageColor === b.options.pageColor &&
     a.options.defaultInk === b.options.defaultInk &&
     a.options.grid === b.options.grid &&

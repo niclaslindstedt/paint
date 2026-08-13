@@ -207,6 +207,24 @@ describe("the committed layer", () => {
     },
   );
 
+  it("repaints when a bitmap finishes decoding", () => {
+    // An image stroke paints nothing until its data URL has decoded, and the
+    // decode lands without touching the document — so an unchanged document is
+    // the one case where "same strokes, same view" is not the same picture.
+    const layer = createLayer(400, 300)!;
+    const { ctx, canvas } = screen();
+    const page = drawing([stroke(100), stroke(120)]);
+    paintCommitted(ctx, canvas, layer, spec(page, { decodedAt: 1 }));
+    painted = [];
+    expect(
+      paintCommitted(ctx, canvas, layer, spec(page, { decodedAt: 1 })),
+    ).toBe("blitted");
+    expect(
+      paintCommitted(ctx, canvas, layer, spec(page, { decodedAt: 2 })),
+    ).toBe("repainted");
+    expect(painted).toHaveLength(2);
+  });
+
   it("repaints when a different drawing is opened", () => {
     const layer = createLayer(400, 300)!;
     const { ctx, canvas } = screen();

@@ -98,7 +98,8 @@ them.
 
 - The drawing's name is edited in place — type over the title.
 - The star adds the drawing to Favorites (see [drawings](drawings.md)).
-- Export the page as a PNG, and clear the page.
+- The download button opens a menu — PNG, JPG, SVG, or copy to the clipboard
+  (see [export](export.md)) — and the bin clears the page.
 
 Undo and redo are not here either. They live in the sidebar's button island and
 on the keyboard, and the header is the one row a phone has to fit a drawing's
@@ -115,8 +116,15 @@ it lives in the sidebar's button island (see [cloud sync](cloud-sync.md)).
   `D` the hand (drag), `L` line, `R` rectangle, `O` ellipse, and one
   per optional tool.
 
+## Dropping in an image
+
+Drag an image file onto the canvas and it floats over the page until you place
+it: drag to move, pull a corner to scale, then Keep it — the button in the bar
+above it, a click away from it, or Enter. The page grows if the picture is bigger
+than the sheet, and Discard (or Escape) throws it away. [More](images.md).
+
 ## The grid
 
 Settings → Canvas can put a light grid behind the page to line boxes and arrows
 up. It is a drawing aid only: it is painted by the page element, never by the
-document, so it can never reach an exported PNG.
+document, so it can never reach a downloaded file.

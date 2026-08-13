@@ -96,7 +96,13 @@ opens on a phone.
 
 ## Keeping and sharing
 
-- The header's download button exports the open page as a **PNG**.
+- The header's download button opens a menu: the open page as a **PNG**, a
+  **JPG** or an **SVG**, or copied straight to the clipboard. Settings →
+  **Download** picks which types the menu offers, whether a file covers the whole
+  page or just the part you drew on, and whether the background is kept or left
+  transparent. [More](features/export.md).
+- Drag an image file onto the canvas to add it to the drawing — or onto the
+  drawings list to start a new drawing from it. [More](features/images.md).
 - Settings → **Storage** exports the whole document as **JSON**, and connects a
   local folder, Dropbox, or Google Drive so your drawings follow you between
   devices — optionally encrypted end-to-end. [More](features/cloud-sync.md).

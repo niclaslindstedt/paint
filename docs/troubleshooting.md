@@ -60,6 +60,21 @@ The browser refused a write. Export the document (Settings → Storage → Expor
 JSON), delete drawings you don't need, and reload. Connecting a cloud backend
 also helps, since the copy there isn't bound by the browser's quota.
 
+Dropped images are the usual reason to hit this: a picture is stored inside the
+drawing, and browser storage is a few megabytes in total. Imports are scaled down
+on the way in, but a handful of large ones still add up — keep the ones you are
+working on and archive or delete the rest.
+
+## A dropped image won't go in
+
+Only image files are accepted, and only one per drop. A file the browser can't
+decode, or one larger than 32 MB, is refused with a line in the log (Settings →
+Developer → Capture logs, then Settings → Logs).
+
+If the picture went in but the page looks empty where it should be, give it a
+moment: a large image decodes asynchronously and the canvas repaints when it
+lands.
+
 ## Reporting something else
 
 Open an [issue](https://github.com/niclaslindstedt/paint/issues) with what you

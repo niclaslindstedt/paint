@@ -15,6 +15,10 @@
 //                       and it joins the toolbar (see `useAppSettings`'s
 //                       `enabledPlugins`).
 //
+// …plus one that is not a tool at all: a `hidden` plugin has no button anywhere
+// and offers no gesture. It exists to paint a mark that arrives another way —
+// today, an image dropped onto the canvas.
+//
 // That is the whole extension story for now, and it is deliberately the *same*
 // contract the built-in tools use: when externally-loaded plugins land later,
 // they register through this interface rather than a second, parallel one.
@@ -160,6 +164,15 @@ export type PaintPlugin = {
    *  size picker dims the dial for every other tool rather than offering a
    *  control that would do nothing. */
   supportsHardness?: boolean;
+  /** True when the plugin exists only to *paint* — it is never offered in the
+   *  toolbar or listed in Settings → Tools, and its `start` returns nothing.
+   *
+   *  The dropped-image plugin is the case: an image is placed by dropping a
+   *  file, not by a gesture, but the stroke it produces still has to name a
+   *  plugin so the renderer can paint it (see `render.ts`). A hidden plugin is
+   *  how a mark can exist without a button, with no screen having to know an
+   *  id. */
+  hidden?: boolean;
   behaviour: ToolBehaviour;
 };
 

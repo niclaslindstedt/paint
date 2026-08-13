@@ -2,7 +2,7 @@
 import { Section } from "@niclaslindstedt/oss-framework/components";
 
 import { useT } from "../i18n/index.ts";
-import { allPlugins, optionalPlugins } from "../plugins/registry.ts";
+import { optionalPlugins, toolPlugins } from "../plugins/registry.ts";
 import type { PaintPlugin } from "../plugins/types.ts";
 import type { AppSettings } from "../useAppSettings.ts";
 
@@ -31,7 +31,7 @@ export function ToolsTab({
   setPluginEnabled: (id: string, enabled: boolean) => void;
 }) {
   const t = useT();
-  const core = allPlugins().filter((p) => p.core);
+  const core = toolPlugins().filter((p) => p.core);
   const optional = optionalPlugins();
 
   return (

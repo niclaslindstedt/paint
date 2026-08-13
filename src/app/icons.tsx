@@ -200,6 +200,34 @@ export function HandIcon({ className }: IconProps) {
   );
 }
 
+/** A file of one particular type — a badge wearing the format's name. The
+ *  download menu shows one per offered type, which is what makes the menu
+ *  readable at a glance: the row for a PNG *looks* like a PNG.
+ *
+ *  The label is the glyph rather than a detail inside one: three letters in a
+ *  box carry at 20 pixels, where the same letters printed on a document sheet
+ *  with a dog-ear are a grey smudge. */
+export function FileFormatIcon({
+  className,
+  label,
+}: IconProps & { label: string }) {
+  return (
+    <svg {...base} className={className} aria-hidden="true">
+      <rect x="2.5" y="5" width="19" height="14" rx="2.5" strokeWidth="1.5" />
+      <text
+        x="12"
+        y="16.2"
+        textAnchor="middle"
+        fill="currentColor"
+        stroke="none"
+        style={{ font: "700 9px ui-sans-serif, system-ui, sans-serif" }}
+      >
+        {label}
+      </text>
+    </svg>
+  );
+}
+
 /** The tools settings tab / plugin list. */
 export function ToolboxIcon({ className }: IconProps) {
   return (

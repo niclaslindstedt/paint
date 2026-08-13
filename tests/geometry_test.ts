@@ -7,7 +7,7 @@ import {
   strokeVisible,
   type Rect,
 } from "../src/app/geometry.ts";
-import type { Stroke } from "../src/app/types.ts";
+import type { Shape, Stroke } from "../src/app/types.ts";
 
 const path = (points: { x: number; y: number }[], size = 4): Stroke => ({
   id: "s",
@@ -43,10 +43,21 @@ describe("stroke bounds", () => {
   });
 
   it("covers every shape a tool can emit", () => {
-    const shapes: Stroke["shape"][] = [
-      { kind: "segment", from: { x: 0, y: 0 }, to: { x: 50, y: 20 } },
-      { kind: "box", from: { x: 5, y: 5 }, to: { x: 60, y: 40 } },
-      {
+    // Keyed by kind rather than listed, so a new shape kind fails to compile
+    // here until it has bounds. A kind this doesn't know measures as nothing,
+    // and a mark that measures as nothing is culled from every frame — the
+    // failure is a mark that silently never paints, which is worth a type error.
+    const shapes: Record<Shape["kind"], Shape> = {
+      path: {
+        kind: "path",
+        points: [
+          { x: 0, y: 0 },
+          { x: 30, y: 12 },
+        ],
+      },
+      segment: { kind: "segment", from: { x: 0, y: 0 }, to: { x: 50, y: 20 } },
+      box: { kind: "box", from: { x: 5, y: 5 }, to: { x: 60, y: 40 } },
+      region: {
         kind: "region",
         contours: [
           [
@@ -56,9 +67,15 @@ describe("stroke bounds", () => {
           ],
         ],
       },
-      { kind: "text", at: { x: 10, y: 10 }, text: "hello" },
-    ];
-    for (const shape of shapes) {
+      text: { kind: "text", at: { x: 10, y: 10 }, text: "hello" },
+      image: {
+        kind: "image",
+        from: { x: 10, y: 10 },
+        to: { x: 90, y: 70 },
+        src: "data:image/png;base64,",
+      },
+    };
+    for (const shape of Object.values(shapes)) {
       const box = strokeBounds({ id: "s", tool: "t", size: 3, shape });
       expect(box, shape.kind).not.toBeNull();
       expect(box!.width, shape.kind).toBeGreaterThan(0);
