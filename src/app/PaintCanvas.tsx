@@ -19,7 +19,7 @@ import { pluginById } from "./plugins/registry.ts";
 import type { CanvasProbe, DraftStroke, ToolContext } from "./plugins/types.ts";
 import { createProbe } from "./probe.ts";
 import { paintStrokes } from "./render.ts";
-import type { Drawing, Point, Stroke } from "./types.ts";
+import type { Drawing, Point } from "./types.ts";
 import {
   clampView,
   fitView,
@@ -32,13 +32,21 @@ import {
 } from "./viewport.ts";
 
 // The canvas surface: one `<canvas>` element filling the screen, a view onto a
-// page that is larger than it, a pointer gesture in flight, and a full repaint
+// page that is larger than it, a pointer gesture in flight, and a frame
 // whenever any of the three changes.
 //
 // The element is a **window**, not the page. It is sized to its container in
 // device pixels (container size × devicePixelRatio) and the drawing is painted
 // through the view transform, so the page can be bigger than the screen and you
 // move around it rather than squinting at a shrunken whole.
+//
+// A frame is not a full repaint. The gesture in flight is painted every frame,
+// because it changes every frame; the marks already committed come off a cached
+// layer (`layer.ts`), which is what stops one more pencil line costing a whole
+// page of airbrush. Frames are asked for rather than taken — one per animation
+// frame however many pointer samples arrive — and the draft never travels
+// through React state to get here, because the only thing it feeds is the next
+// frame.
 //
 // The gesture split is the Procreate one, and it is the whole interaction model:
 //
@@ -366,9 +374,7 @@ export function PaintCanvas({
       dpr * snapped.ty,
     );
     const draft = draftRef.current;
-    if (draft) {
-      paintStrokes(ctx, [{ ...draft, id: "draft" } as Stroke], options);
-    }
+    if (draft) paintStrokes(ctx, [{ ...draft, id: "draft" }], options);
     // Outline the sheet so its edge is visible against the desk. Screen-only —
     // it is chrome, not a mark, so it lives here rather than in the renderer
     // the PNG export shares, and it stays off the layer so a cached frame never
@@ -625,17 +631,20 @@ export function PaintCanvas({
     const plugin = pluginById(tool);
     const current = draftRef.current;
     draftRef.current = null;
+    let committed = null;
     if (current && plugin) {
-      const committed = plugin.behaviour.end
+      committed = plugin.behaviour.end
         ? plugin.behaviour.end(current, context())
         : current;
       if (committed) onCommit(committed);
     }
-    // The commit lands as a new document on the next render, which asks for its
-    // own frame; this one is for the gesture that just left the canvas, so a
-    // discarded stroke (a shape tool's stray tap) clears immediately rather
-    // than lingering until something else happens to repaint.
-    requestPaint();
+    // A committed stroke asks for no frame here: it arrives as a new document,
+    // and *that* is what repaints. Painting now would show the page for one
+    // frame with the gesture already dropped and the commit not yet in — the
+    // stroke blinking out and back in as it lands. A gesture that committed
+    // nothing (a shape tool's stray tap) has no document change coming, so it
+    // does need a frame to clear itself.
+    if (!committed) requestPaint();
   };
 
   // A cancelled gesture (the OS took the pointer — a system gesture, a call)
