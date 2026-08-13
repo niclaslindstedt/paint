@@ -19,13 +19,32 @@
 //     rather than drawn, and they are what these painters are for. A stroke
 //     that differs from the pencil only in `lineWidth` is not a tool.
 //   - **Build the softness out of what the stroke knows.** No `ctx.filter` (it
-//     is uneven across browsers and ruinous per stroke) and no offscreen
-//     buffers: a radial gradient stamp and a handful of hashed offsets get
-//     there, look the same everywhere, and cost a fill each.
+//     is uneven across browsers and ruinous per stroke): a radial gradient stamp
+//     and a handful of hashed offsets get there and look the same everywhere.
+//   - **Draw nothing smaller than a pixel.** Every painter here takes the
+//     `scale` it is being rasterised at (see `PaintDetail`) and thins its detail
+//     to match: a mark fitted to a phone screen gets the stamps, hairs and
+//     specks that screen can actually show, and not the three hundred that land
+//     inside the same device pixel. It is the difference between a page of
+//     airbrush that pans and one that does not.
+//
+// The medium's own numbers — a dab every fifth of a radius, a hair per 1.6
+// pixels of head — stay written as the medium, and the screen only ever *takes
+// away*. That is what keeps a stroke looking the same as you zoom into it, and
+// what makes the PNG export (always 1:1) exactly what the tool intended.
 
 import { withAlpha } from "../color.ts";
 import type { Point, Stroke } from "../types.ts";
 import { paintPath } from "./ink.ts";
+
+/** The finest detail worth drawing, in device pixels. Two stamps closer
+ *  together than this, or two hairs, land on the same pixel: the second one is
+ *  arithmetic with nothing to show for it. */
+const PIXEL = 1;
+
+/** Below this, in device pixels, a mark is a hairline — every painter here
+ *  collapses to a plain path rather than building a texture nobody can see. */
+const HAIRLINE = 0.75;
 
 /** A deterministic pseudo-random number in [0, 1) for a lattice of inputs. A
  *  cheap integer hash (three shifts and two multiplies) — good enough to look
@@ -97,8 +116,14 @@ export function paintSoftPath(
   points: readonly Point[],
   size: number,
   hardness: number,
+  scale = 1,
 ): void {
   const softness = 1 - Math.max(0, Math.min(1, hardness));
+  // A halo narrower than a pixel is four passes of the same line. Draw it once.
+  if (size * scale * softness < PIXEL) {
+    paintPath(ctx, points, size);
+    return;
+  }
   if (softness <= 0.01) {
     paintPath(ctx, points, size);
     return;
@@ -227,26 +252,61 @@ function widthProfile(
  *
  *  The gradient is built once per stroke at the origin and stamped by
  *  translating the context — a `createRadialGradient` per dab would dominate the
- *  cost of a long stroke. */
+ *  cost of a long stroke. (Pre-rendering the cone into a sprite and blitting it
+ *  instead was tried and is *slower*: a browser fills a small radial gradient
+ *  about as fast as it blends a bitmap, and the sprite adds a texture upload per
+ *  colour the drawing uses. The dabs are cheap; there are simply a lot of them.)
+ *
+ *  So the saving that matters is drawing fewer of them: the dabs **thin out with
+ *  the zoom**. The medium wants one every fifth of a radius; the screen can only
+ *  show one per pixel, and past that point the extra dabs are invisible.
+ *  Dropping them would fade the mark, so the ones that remain are darkened to
+ *  stand for the ones that went — the coverage a stack of faint dabs builds is
+ *  `1-(1-a)^n`, and that inverts exactly. */
 export function paintSpray(
   ctx: CanvasRenderingContext2D,
   points: readonly Point[],
   size: number,
   hardness: number,
   color: string,
+  scale = 1,
 ): void {
   const radius = Math.max(3, size * 1.6);
-  const along = trace(points, Math.max(0.8, radius / 5));
-  if (along.length === 0) return;
   const hard = Math.max(0, Math.min(1, hardness));
   const alpha = ctx.globalAlpha;
+  // The cone's radius on the screen it is bound for. Everything below is a
+  // decision about what that many pixels can hold.
+  const onScreen = radius * scale;
 
   // How much of the cone is at full strength before it starts to fall away. A
   // hard setting is a tight, almost-solid core; a soft one fades from the axis.
   const core = 0.08 + hard * 0.55;
   // Per-dab strength. Faint by design: coverage is built from overlap, and a
   // heavy dab would make the first pass opaque and the tool uncontrollable.
-  const dab = 0.055 + hard * 0.05;
+  const faint = 0.055 + hard * 0.05;
+
+  if (onScreen < HAIRLINE) {
+    // Pulled back far enough that the whole cone is inside one pixel. A cloud
+    // this small is a line, so paint the line — at the weight the cone's own
+    // build-up would have reached, so the drawing doesn't lighten as you zoom
+    // out of it.
+    ctx.save();
+    ctx.globalAlpha = alpha * Math.min(1, faint * 6);
+    paintPath(ctx, points, radius);
+    ctx.restore();
+    return;
+  }
+
+  // The spacing the medium wants, and the spacing this screen can resolve.
+  const dense = Math.max(0.8, radius / 5);
+  const step = Math.max(dense, PIXEL / scale);
+  // How many of the medium's dabs each stamp now stands for, and the strength
+  // that many faint dabs would have built up to.
+  const merged = step / dense;
+  const dab = merged > 1 ? 1 - (1 - faint) ** merged : faint;
+
+  const along = resample(points, step);
+  if (along.length === 0) return;
 
   const cone = ctx.createRadialGradient(0, 0, 0, 0, 0, radius);
   cone.addColorStop(0, withAlpha(color, dab * alpha));
@@ -262,22 +322,30 @@ export function paintSpray(
   ctx.save();
   ctx.globalAlpha = 1;
   ctx.fillStyle = cone;
+  // Moved rather than saved and restored per dab: the cone is anchored at the
+  // origin, so each dab only has to walk the context from the last one to this
+  // one, and the whole run is undone by one translate at the end.
+  let atX = 0;
+  let atY = 0;
   for (const p of along) {
-    ctx.save();
-    ctx.translate(p.x, p.y);
+    ctx.translate(p.x - atX, p.y - atY);
+    atX = p.x;
+    atY = p.y;
     ctx.beginPath();
     ctx.arc(0, 0, radius, 0, Math.PI * 2);
     ctx.fill();
-    ctx.restore();
   }
   ctx.restore();
 
   // The grain. Hashed off the position, so it is the same speckle on every
-  // repaint and in the exported PNG.
+  // repaint and in the exported PNG — and skipped outright once the specks are
+  // smaller than a pixel, where they are a hundred sub-pixel arcs that render
+  // as nothing at all.
+  if (onScreen < GRAIN_FLOOR) return;
   const grains = Math.max(3, Math.round(radius / 3));
   ctx.save();
   ctx.fillStyle = color;
-  ctx.globalAlpha = alpha * 0.1;
+  ctx.globalAlpha = alpha * 0.1 * Math.min(2, merged);
   ctx.beginPath();
   for (const [index, p] of along.entries()) {
     if (index % 2 === 1) continue;
@@ -296,6 +364,11 @@ export function paintSpray(
   ctx.fill();
   ctx.restore();
 }
+
+/** How big the cone has to be on screen, in device pixels, before its speckle
+ *  is worth drawing. Below it the specks are sub-pixel arcs — a lot of path
+ *  building for a texture the screen cannot show. */
+const GRAIN_FLOOR = 4;
 
 /** The bristle brush.
  *
@@ -321,11 +394,28 @@ export function paintBrush(
   points: readonly Point[],
   size: number,
   hardness: number,
+  scale = 1,
 ): void {
-  const along = trace(points, Math.max(1, size / 4));
   const alpha = ctx.globalAlpha;
   const hard = Math.max(0, Math.min(1, hardness));
   const half = size / 2;
+  // The head's width on the screen it is bound for. A brush drawn four pixels
+  // wide has room for four hairs, however many the medium would splay.
+  const onScreen = size * scale;
+
+  if (onScreen < HAIRLINE) {
+    // Too small to have a texture at all. A plain line at the body's weight is
+    // what the hairs would average out to anyway.
+    ctx.save();
+    ctx.globalAlpha = alpha * (0.55 + hard * 0.3);
+    paintPath(ctx, points, size);
+    ctx.restore();
+    return;
+  }
+
+  // Samples no closer than a device pixel: the medium wants one every quarter
+  // width, and past a pixel apart they are the same pixel twice.
+  const along = trace(points, Math.max(1, size / 4, PIXEL / scale));
 
   if (along.length < 2) {
     // A tap: a single dab of the head, not a perfect disc.
@@ -340,11 +430,31 @@ export function paintBrush(
     return;
   }
 
-  const ramp = Math.max(2, Math.min(10, Math.floor(along.length / 5)));
-  const widths = along.map((_, i) => widthProfile(along, i, ramp, 1));
+  const count = along.length;
+  const ramp = Math.max(2, Math.min(10, Math.floor(count / 5)));
+  const widths = new Float64Array(count);
+  for (let i = 0; i < count; i++) widths[i] = widthProfile(along, i, ramp, 1);
   // How far the head splays: tight when hard, spread when soft.
   const splay = 1 + (1 - hard) * 0.5;
-  const bristles = Math.max(5, Math.min(16, Math.round(size / 1.6)));
+  // The hairs the medium splays into, and the most this screen can tell apart —
+  // one per device pixel of head, because two hairs inside one pixel are one
+  // hair drawn twice.
+  const inHead = Math.max(5, Math.min(16, Math.round(size / 1.6)));
+  const bristles = Math.max(
+    2,
+    Math.min(inHead, Math.max(3, Math.round(onScreen / PIXEL))),
+  );
+
+  // The direction across the stroke at each sample. Hoisted out of the bristle
+  // loop: it is a property of the *path*, and computing it per hair was the
+  // same divide and square root done sixteen times over.
+  const nxs = new Float64Array(count);
+  const nys = new Float64Array(count);
+  for (let i = 0; i < count; i++) {
+    const { nx, ny } = normalAt(along, i);
+    nxs[i] = nx;
+    nys[i] = ny;
+  }
 
   ctx.save();
   ctx.lineCap = "round";
@@ -355,14 +465,14 @@ export function paintBrush(
   // as the edge of a slab.
   ctx.globalAlpha = alpha * (0.28 + hard * 0.34);
   ctx.beginPath();
-  ribbon(ctx, along, widths, half * 0.72 * splay);
+  ribbon(ctx, along, widths, nxs, nys, half * 0.72 * splay);
   ctx.fill();
 
   // The hairs.
   for (let b = 0; b < bristles; b++) {
     // Where this hair sits across the head, and how loaded it is. The outer
     // ones carry less — that is what makes a brush edge fray instead of stop.
-    const across = (b / (bristles - 1) - 0.5) * 2;
+    const across = bristles === 1 ? 0 : (b / (bristles - 1) - 0.5) * 2;
     const load =
       (0.35 + hashedRandom(b * 7.1, b * 3.3) * 0.5) *
       (1 - Math.abs(across) * 0.3);
@@ -373,60 +483,76 @@ export function paintBrush(
       0.4,
       (size / bristles) * (0.7 + hashedRandom(b * 11.7, 5) * 0.8),
     );
+    const dryEdge = 0.1 + Math.abs(across) * 0.22 * (1 - hard);
 
-    // Walk the stroke, collecting the runs where this hair is on the paper.
-    const runs: Point[][] = [];
-    let run: Point[] = [];
-    for (const [i, p] of along.entries()) {
-      const { nx, ny } = normalAt(along, i);
+    // Walk the stroke, emitting the runs where this hair is on the paper
+    // straight into the path. Collecting them into arrays of points first cost
+    // an object per sample per hair — thousands of allocations per stroke, for
+    // a list read once and thrown away.
+    ctx.beginPath();
+    const strand = openStrand();
+    for (let i = 0; i < count; i++) {
+      const p = along[i]!;
+      // Dry patches. A hair lifts for a *stretch* — the paper's tooth is not
+      // per-sample — so the threshold is crossed by a slow drift, and the ones
+      // at the edge of the head run dry first.
+      const wetness = driftNoise(p.at / 26, b + 91);
+      const dryness = dryEdge + Math.min(0.2, p.speed / 120);
+      if (i > 0 && i < count - 1 && wetness < dryness) {
+        strand.lift(ctx);
+        continue;
+      }
       // The head twists as it travels — a slow drift along the stroke's own
       // length, so it survives resampling and never depends on the sample rate.
       const wander = (driftNoise(p.at / 34, b) - 0.5) * 0.55;
       const offset = (across * splay + wander) * half * widths[i]!;
-      const point = { x: p.x + nx * offset, y: p.y + ny * offset };
-
-      // Dry patches. A hair lifts for a *stretch* — the paper's tooth is not
-      // per-sample — so the threshold is crossed by the same slow drift, and
-      // the ones at the edge of the head run dry first.
-      const wetness = driftNoise(p.at / 26, b + 91);
-      const dryness =
-        0.1 +
-        Math.abs(across) * 0.22 * (1 - hard) +
-        Math.min(0.2, p.speed / 120);
-      const lifted = i > 0 && i < along.length - 1 && wetness < dryness;
-      if (lifted) {
-        if (run.length > 1) runs.push(run);
-        run = [];
-        continue;
-      }
-      run.push(point);
+      strand.to(ctx, p.x + nxs[i]! * offset, p.y + nys[i]! * offset);
     }
-    if (run.length > 1) runs.push(run);
-
-    ctx.beginPath();
-    for (const strand of runs) strandPath(ctx, strand);
+    strand.lift(ctx);
     ctx.stroke();
   }
   ctx.restore();
 }
 
-/** Add one bristle's run to the current path, curved through its midpoints —
- *  the same smoothing the freehand painter uses, and for the same reason: an
- *  offset polyline has a corner at every sample. */
-function strandPath(
-  ctx: CanvasRenderingContext2D,
-  points: readonly Point[],
-): void {
-  const first = points[0];
-  if (!first) return;
-  ctx.moveTo(first.x, first.y);
-  for (let i = 1; i < points.length - 1; i++) {
-    const a = points[i]!;
-    const c = points[i + 1]!;
-    ctx.quadraticCurveTo(a.x, a.y, (a.x + c.x) / 2, (a.y + c.y) / 2);
-  }
-  const last = points[points.length - 1]!;
-  ctx.lineTo(last.x, last.y);
+/** One bristle's run, streamed into the current path.
+ *
+ *  Curved through the midpoints — the same smoothing the freehand painter uses,
+ *  and for the same reason: an offset polyline has a corner at every sample. A
+ *  run of one point is dropped rather than drawn, so a hair that touches down
+ *  for a single sample leaves no dot.
+ *
+ *  It is a little state machine rather than an array because a hair crosses
+ *  hundreds of samples and there are up to sixteen of them per stroke: the
+ *  points are used once, in order, and never looked at again. */
+function openStrand() {
+  // The last point emitted into the path, held back one step so the curve
+  // through it can be aimed at the midpoint of the next.
+  let heldX = 0;
+  let heldY = 0;
+  let seen = 0;
+  return {
+    to(ctx: CanvasRenderingContext2D, x: number, y: number): void {
+      if (seen === 0) {
+        heldX = x;
+        heldY = y;
+        seen = 1;
+        return;
+      }
+      if (seen === 1) {
+        ctx.moveTo(heldX, heldY);
+      } else {
+        ctx.quadraticCurveTo(heldX, heldY, (heldX + x) / 2, (heldY + y) / 2);
+      }
+      heldX = x;
+      heldY = y;
+      seen++;
+    },
+    /** End the run — the hair has left the paper, or the stroke has. */
+    lift(ctx: CanvasRenderingContext2D): void {
+      if (seen > 1) ctx.lineTo(heldX, heldY);
+      seen = 0;
+    },
+  };
 }
 
 /** Trace the outline of a variable-width band through a path and leave it as
@@ -435,28 +561,42 @@ function strandPath(
 function ribbon(
   ctx: CanvasRenderingContext2D,
   along: readonly Trace[],
-  widths: readonly number[],
+  widths: Float64Array,
+  nxs: Float64Array,
+  nys: Float64Array,
   half: number,
 ): void {
-  const last = along.length - 1;
-  const left: Point[] = [];
-  const right: Point[] = [];
-  for (let i = 0; i <= last; i++) {
-    const { nx, ny } = normalAt(along, i);
-    const w = half * (widths[i] ?? 1);
+  const count = along.length;
+  // The outline, as a flat run of x, y pairs: up one side and back down the
+  // other. Flat rather than an array of points because it is walked once to
+  // emit the path — a point object per sample is an allocation for a coordinate
+  // pair that is read twice.
+  const loop = new Float64Array(count * 4);
+  for (let i = 0; i < count; i++) {
+    const w = half * widths[i]!;
     const p = along[i]!;
-    left.push({ x: p.x + nx * w, y: p.y + ny * w });
-    right.push({ x: p.x - nx * w, y: p.y - ny * w });
+    const nx = nxs[i]! * w;
+    const ny = nys[i]! * w;
+    loop[i * 2] = p.x + nx;
+    loop[i * 2 + 1] = p.y + ny;
+    // The far side is filled from the end backwards, which is the reversal the
+    // outline needs without reversing anything.
+    const back = loop.length - 2 - i * 2;
+    loop[back] = p.x - nx;
+    loop[back + 1] = p.y - ny;
   }
-  const loop = [...left, ...right.reverse()];
-  const first = loop[0]!;
-  ctx.moveTo(first.x, first.y);
+  ctx.moveTo(loop[0]!, loop[1]!);
   // Curved through the midpoints, like the freehand painter: an offset polyline
   // has a corner at every sample, and at this width they show.
-  for (let i = 1; i < loop.length - 1; i++) {
-    const a = loop[i]!;
-    const b = loop[i + 1]!;
-    ctx.quadraticCurveTo(a.x, a.y, (a.x + b.x) / 2, (a.y + b.y) / 2);
+  for (let i = 2; i < loop.length - 2; i += 2) {
+    const ax = loop[i]!;
+    const ay = loop[i + 1]!;
+    ctx.quadraticCurveTo(
+      ax,
+      ay,
+      (ax + loop[i + 2]!) / 2,
+      (ay + loop[i + 3]!) / 2,
+    );
   }
   ctx.closePath();
 }
@@ -468,12 +608,27 @@ export function paintCrayon(
   ctx: CanvasRenderingContext2D,
   points: readonly Point[],
   size: number,
+  scale = 1,
 ): void {
-  const along = resample(points, Math.max(1, size / 2));
+  const onScreen = size * scale;
+  if (onScreen < HAIRLINE) {
+    // The wobble and the skips are all inside one pixel: what is left of a
+    // crayon at this size is a line at the weight the strands build up to.
+    const alpha = ctx.globalAlpha;
+    ctx.globalAlpha = alpha * 0.85;
+    paintPath(ctx, points, size);
+    ctx.globalAlpha = alpha;
+    return;
+  }
+  const along = resample(points, Math.max(1, size / 2, PIXEL / scale));
   if (along.length === 0) return;
-  const strands = 5;
+  // Five waxy passes when there is room for five; fewer as the mark narrows,
+  // because strands laid down inside the same pixel are one strand.
+  const strands = Math.max(2, Math.min(5, Math.round(onScreen / 2)));
   const alpha = ctx.globalAlpha;
-  ctx.globalAlpha = alpha * 0.42;
+  // Darkened to stand for the passes that were dropped, so the wax does not
+  // fade as you pull back from it (see the airbrush for the same sum).
+  ctx.globalAlpha = alpha * (1 - (1 - 0.42) ** (5 / strands));
   ctx.lineWidth = Math.max(0.6, size / 3);
   for (let strand = 0; strand < strands; strand++) {
     ctx.beginPath();
@@ -506,8 +661,9 @@ export function paintCalligraphy(
   ctx: CanvasRenderingContext2D,
   points: readonly Point[],
   size: number,
+  scale = 1,
 ): void {
-  const along = resample(points, Math.max(1, size / 4));
+  const along = resample(points, Math.max(1, size / 4, PIXEL / scale));
   const first = along[0];
   if (!first) return;
   // 45° up to the right — the angle a right-handed italic hand holds.
@@ -542,6 +698,7 @@ export function paintGlow(
   ctx: CanvasRenderingContext2D,
   points: readonly Point[],
   size: number,
+  scale = 1,
 ): void {
   const alpha = ctx.globalAlpha;
   for (const [spread, weight] of [
@@ -549,6 +706,8 @@ export function paintGlow(
     [2.2, 0.14],
     [1.4, 0.22],
   ] as const) {
+    // An aura that has closed to within a pixel of the core is not an aura.
+    if ((spread - 0.55) * size * scale < PIXEL) continue;
     ctx.globalAlpha = alpha * weight;
     paintPath(ctx, points, size * spread);
   }
