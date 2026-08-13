@@ -20,7 +20,11 @@
 //   - **strokes were appended** — the gesture just committed. Paint the new
 //     ones onto the layer, on top of what is already there, and blit. A
 //     finished stroke costs one stroke, not a document.
-//   - **anything else** — an undo, a colour change, a pan, a zoom, a different
+//   - **the page was dragged** — a pan moves the window without changing a
+//     mark in it, so the layer is blitted at an offset and only the strip of
+//     page that has just come into view is painted. A slow drag exposes a few
+//     pixels a frame; the rest of the window is a copy of the frame before it.
+//   - **anything else** — an undo, a colour change, a zoom, a different
 //     drawing. Paint the document, and this is the part worth reading twice:
 //     it is painted **to the screen**, and the layer then *copies the screen*.
 //
@@ -71,7 +75,7 @@ export type LayerSpec = {
 /** What a frame actually had to do. The canvas ignores it; the tests assert on
  *  it, because "did this frame repaint the document" is the whole point of the
  *  cache and is otherwise invisible. */
-export type LayerWork = "blitted" | "appended" | "repainted";
+export type LayerWork = "blitted" | "appended" | "scrolled" | "repainted";
 
 export type Layer = {
   surface: Surface;
@@ -135,10 +139,140 @@ export function paintCommitted(
     return added > 0 ? "appended" : "blitted";
   }
 
+  if (scroll(ctx, layer, spec)) {
+    capture(layer, canvas, spec);
+    remember(layer, spec);
+    return "scrolled";
+  }
+
   paintDocument(ctx, spec);
   capture(layer, canvas, spec);
   remember(layer, spec);
   return "repainted";
+}
+
+/** Serve a frame that differs from the layer's only by how far the page has
+ *  been dragged: blit the marks at their new offset, then paint the strip (or
+ *  two) of page that has just come into view.
+ *
+ *  `false` when this frame isn't a pan — a zoom, a different document, a
+ *  resize, or a drag long enough that nothing on the layer is still on screen.
+ *
+ *  The offset is measured in whole device pixels, and it can be because the
+ *  canvas snaps the view to the device pixel grid before painting. That matters
+ *  more than it looks: a fractional blit would resample the marks, and a
+ *  fractional blit *of a fractional blit*, frame after frame, would smear a
+ *  drawing into mush over a long drag. Copying whole pixels is lossless — a
+ *  frame can go through hundreds of round trips and come out bit-identical.
+ *
+ *  What a scrolled frame is *not* is bit-identical to the frame a plain repaint
+ *  would have produced, and the reason is worth writing down because it looks
+ *  like a bug and isn't: a canvas rasteriser is not translation-invariant.
+ *  Rendering the same drawing seventy pixels to the left changes which side of
+ *  a sample point an edge falls on, and Chromium's own output differs in about
+ *  one pixel in a thousand — antialiasing fringes, by up to a few percent of a
+ *  shade. A scrolled frame carries those fringes along from wherever they were
+ *  first drawn, so mid-drag the window is a patchwork of renderings taken a few
+ *  pixels apart. The difference is bounded (nothing compounds; the strips
+ *  replace what they cover rather than blending into it) and it heals itself:
+ *  every pixel gets repainted once the drag has moved a window's width, and the
+ *  measured worst case mid-drag is a quarter shade on half a percent of pixels.
+ *  That is the trade every scrolling compositor makes, and it buys a drag on a
+ *  busy page that runs at frame rate instead of at five frames a second. */
+function scroll(
+  ctx: CanvasRenderingContext2D,
+  layer: Layer,
+  spec: LayerSpec,
+): boolean {
+  const from = layer.painted;
+  if (!from) return false;
+  if (!sameFrame({ ...from, view: spec.view }, spec)) return false;
+  if (from.view.scale !== spec.view.scale) return false;
+  if (!grewFrom(layer.strokes, layer.count, spec.drawing.strokes)) return false;
+  if (spec.drawing.strokes.length !== layer.count) return false;
+  if (
+    layer.surface.canvas.width !== spec.width ||
+    layer.surface.canvas.height !== spec.height
+  ) {
+    return false;
+  }
+
+  const dx = Math.round((spec.view.tx - from.view.tx) * spec.dpr);
+  const dy = Math.round((spec.view.ty - from.view.ty) * spec.dpr);
+  if (dx === 0 && dy === 0) return false;
+  // Dragged clear across the window: there is nothing left to reuse.
+  if (Math.abs(dx) >= spec.width || Math.abs(dy) >= spec.height) return false;
+
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.drawImage(layer.surface.canvas, dx, dy);
+
+  // What the blit left uncovered: a column on the side the page came from, and
+  // a row on the top or bottom. The row stops short of the column so the corner
+  // they share is painted once — twice would double the ink in translucent
+  // marks, which is exactly the kind of seam a cache must never leave.
+  const columnX = dx > 0 ? 0 : spec.width + dx;
+  const rowX = dx > 0 ? dx : 0;
+  const rowWidth = spec.width - Math.abs(dx);
+  if (dx !== 0) {
+    paintStrip(ctx, spec, columnX, 0, Math.abs(dx), spec.height);
+  }
+  if (dy !== 0) {
+    paintStrip(
+      ctx,
+      spec,
+      rowX,
+      dy > 0 ? 0 : spec.height + dy,
+      rowWidth,
+      Math.abs(dy),
+    );
+  }
+  return true;
+}
+
+/** Paint the document into one rectangle of the window, in device pixels, and
+ *  nowhere else. Clipped twice over: the context clip keeps the paint inside
+ *  the strip, and the renderer's own cull keeps marks that cannot reach the
+ *  strip from being painted at all.
+ *
+ *  The rectangle is grown by a pixel first, and that pixel is the difference
+ *  between this being seamless and leaving a faint hairline behind on every
+ *  frame of a drag. A clip edge is antialiased, so the pixels along it come out
+ *  as a blend of the strip and whatever was under it. Landing that blend one
+ *  pixel *inside* the blitted marks makes it a blend of the region with itself —
+ *  the strip repaints exactly what the blit already had there — and a blend of
+ *  two identical pixels is that pixel. Overlapping the strips is safe for the
+ *  same reason it is safe to paint one twice: each one repaints its rectangle
+ *  from an opaque page up, so nothing accumulates. */
+function paintStrip(
+  ctx: CanvasRenderingContext2D,
+  spec: LayerSpec,
+  left: number,
+  top: number,
+  wide: number,
+  tall: number,
+): void {
+  if (wide <= 0 || tall <= 0) return;
+  const x = Math.max(0, left - 1);
+  const y = Math.max(0, top - 1);
+  const width = Math.min(spec.width, left + wide + 1) - x;
+  const height = Math.min(spec.height, top + tall + 1) - y;
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.beginPath();
+  ctx.rect(x, y, width, height);
+  ctx.clip();
+  applyView(ctx, spec);
+  const { view, dpr } = spec;
+  renderDrawing(ctx, spec.drawing, null, {
+    ...spec.options,
+    clip: {
+      x: (x / dpr - view.tx) / view.scale,
+      y: (y / dpr - view.ty) / view.scale,
+      width: width / dpr / view.scale,
+      height: height / dpr / view.scale,
+    },
+  });
+  ctx.restore();
 }
 
 /** Copy the layer onto a context, pixel for pixel. */

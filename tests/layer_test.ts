@@ -181,7 +181,6 @@ describe("the committed layer", () => {
   });
 
   it.each([
-    ["a pan", { view: { scale: 1, tx: -40, ty: 0 } }],
     ["a zoom", { view: { scale: 2, tx: 0, ty: 0 } }],
     ["a resize", { width: 500 }],
     ["a pixel ratio change", { dpr: 2 }],
@@ -246,5 +245,75 @@ describe("culling", () => {
     };
     paintCommitted(ctx, canvas, layer, spec(drawing([onScreen, offScreen])));
     expect(painted.map((s) => s.id)).toEqual([onScreen.id]);
+  });
+});
+
+describe("dragging the page", () => {
+  it("scrolls the marks it already has and paints only the new edge", () => {
+    const layer = createLayer(400, 300)!;
+    const { ctx, canvas } = screen();
+    // One mark in the middle of the window, one off to the left that a drag
+    // to the right is about to pull into view.
+    const middle = stroke(200);
+    const incoming = stroke(-60);
+    const page = drawing([middle, incoming]);
+    paintCommitted(ctx, canvas, layer, spec(page));
+    painted = [];
+
+    const dragged = spec(page, { view: { scale: 1, tx: 80, ty: 0 } });
+    expect(paintCommitted(ctx, canvas, layer, dragged)).toBe("scrolled");
+    // The strip that came into view holds the incoming mark and not the one
+    // already blitted across from the last frame.
+    expect(painted.map((s) => s.id)).toEqual([incoming.id]);
+  });
+
+  it("repaints when the drag clears the whole window", () => {
+    const layer = createLayer(400, 300)!;
+    const { ctx, canvas } = screen();
+    const page = drawing([stroke(100)]);
+    paintCommitted(ctx, canvas, layer, spec(page));
+    painted = [];
+    expect(
+      paintCommitted(
+        ctx,
+        canvas,
+        layer,
+        spec(page, { view: { scale: 1, tx: 900, ty: 0 } }),
+      ),
+    ).toBe("repainted");
+  });
+
+  it("repaints rather than scrolling when the zoom changed too", () => {
+    const layer = createLayer(400, 300)!;
+    const { ctx, canvas } = screen();
+    const page = drawing([stroke(100)]);
+    paintCommitted(ctx, canvas, layer, spec(page));
+    painted = [];
+    expect(
+      paintCommitted(
+        ctx,
+        canvas,
+        layer,
+        spec(page, { view: { scale: 1.5, tx: -20, ty: 0 } }),
+      ),
+    ).toBe("repainted");
+  });
+
+  it("repaints rather than scrolling when a stroke landed in the same frame", () => {
+    const layer = createLayer(400, 300)!;
+    const { ctx, canvas } = screen();
+    const strokes = [stroke(100)];
+    paintCommitted(ctx, canvas, layer, spec(drawing(strokes)));
+    painted = [];
+    expect(
+      paintCommitted(
+        ctx,
+        canvas,
+        layer,
+        spec(drawing([...strokes, stroke(120)]), {
+          view: { scale: 1, tx: -20, ty: 0 },
+        }),
+      ),
+    ).toBe("repainted");
   });
 });

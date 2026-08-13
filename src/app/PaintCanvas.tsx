@@ -326,6 +326,18 @@ export function PaintCanvas({
       grid: showGrid ? GRID_STEP : undefined,
     };
 
+    // Paint from a view whose pan is a whole number of device pixels. The view
+    // itself keeps its exact value — panning stays smooth and reversible, and
+    // the clamp still bites where it bit — but a *frame* is drawn on the pixel
+    // grid, which is what lets a drag reuse the frame before it by copying it
+    // sideways rather than resampling it (see `layer.ts`). Half a device pixel
+    // is below anything a screen can show; a smeared drawing is not.
+    const snapped = {
+      scale: view.scale,
+      tx: Math.round(view.tx * dpr) / dpr,
+      ty: Math.round(view.ty * dpr) / dpr,
+    };
+
     // Clear the whole window first — what shows through around the sheet is the
     // container's own background, so the page reads as a sheet on a desk.
     ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -336,7 +348,7 @@ export function PaintCanvas({
     layerRef.current ??= createLayer(width, height);
     paintCommitted(ctx, canvas, layerRef.current, {
       drawing,
-      view,
+      view: snapped,
       width,
       height,
       dpr,
@@ -346,12 +358,12 @@ export function PaintCanvas({
     // Then the view: device pixels, then the view's scale and pan. From here on
     // this works in document coordinates exactly as the PNG export does.
     ctx.setTransform(
-      dpr * view.scale,
+      dpr * snapped.scale,
       0,
       0,
-      dpr * view.scale,
-      dpr * view.tx,
-      dpr * view.ty,
+      dpr * snapped.scale,
+      dpr * snapped.tx,
+      dpr * snapped.ty,
     );
     const draft = draftRef.current;
     if (draft) {

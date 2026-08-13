@@ -87,7 +87,7 @@ export function createFakeContext(): FakeContext {
     },
   };
   for (const name of METHODS) ctx[name] = () => tick(name);
-  return ctx as FakeContext;
+  return ctx as unknown as FakeContext;
 }
 
 /** A canvas element that hands out one recording context. */
