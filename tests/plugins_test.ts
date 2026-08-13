@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 import { beforeEach, describe, expect, it } from "vitest";
 
+import { dropperBehaviour } from "../src/app/plugins/builtin/dropper.ts";
+import { fillBehaviour } from "../src/app/plugins/builtin/fill.ts";
 import { freehandBehaviour } from "../src/app/plugins/builtin/freehand.ts";
 import { handBehaviour } from "../src/app/plugins/builtin/hand.ts";
 import { registerBuiltinPlugins } from "../src/app/plugins/builtin/index.ts";
@@ -10,6 +12,7 @@ import {
 } from "../src/app/plugins/builtin/shapes.ts";
 import {
   allPlugins,
+  defaultEnabledPlugins,
   enabledPlugins,
   optionalPlugins,
   pluginById,
@@ -18,6 +21,7 @@ import {
   resolveActiveTool,
 } from "../src/app/plugins/registry.ts";
 import type { ToolContext } from "../src/app/plugins/types.ts";
+import type { Point } from "../src/app/types.ts";
 
 // The plugin seam is the app's one extension point, so these tests pin the two
 // things the rest of the app relies on: what the registry offers for a given
@@ -28,6 +32,7 @@ import type { ToolContext } from "../src/app/plugins/types.ts";
 const ctx: ToolContext = {
   color: "#ef4444",
   size: 4,
+  hardness: 1,
   filled: false,
   background: "#ffffff",
 };
@@ -40,26 +45,56 @@ describe("registry", () => {
 
   it("keeps registration order", () => {
     expect(allPlugins().map((p) => p.id)).toEqual([
-      "pencil",
-      "eraser",
-      "line",
-      "rectangle",
-      "ellipse",
       "hand",
-      "arrow",
+      "pencil",
+      "paintbrush",
+      "airspray",
       "marker",
       "highlighter",
+      "crayon",
+      "calligraphy",
+      "glow",
+      "line",
+      "arrow",
+      "rectangle",
+      "ellipse",
+      "filler",
+      "dropper",
+      "eraser",
     ]);
   });
 
-  it("offers the core tools with no plugins enabled", () => {
+  it("puts the hand at the far left and the eraser at the far right", () => {
+    const ids = allPlugins().map((p) => p.id);
+    expect(ids[0]).toBe("hand");
+    expect(ids[ids.length - 1]).toBe("eraser");
+  });
+
+  it("offers only the core tools with nothing switched on", () => {
     expect(enabledPlugins([]).map((p) => p.id)).toEqual([
+      "hand",
       "pencil",
       "eraser",
-      "line",
-      "rectangle",
-      "ellipse",
+    ]);
+  });
+
+  it("ships the brush shelf switched on by default", () => {
+    expect(defaultEnabledPlugins()).toEqual([
+      "paintbrush",
+      "airspray",
+      "filler",
+      "dropper",
+    ]);
+    // …and the shape tools deliberately not: they are opt-in now.
+    expect(defaultEnabledPlugins()).not.toContain("rectangle");
+    expect(enabledPlugins(defaultEnabledPlugins()).map((p) => p.id)).toEqual([
       "hand",
+      "pencil",
+      "paintbrush",
+      "airspray",
+      "filler",
+      "dropper",
+      "eraser",
     ]);
   });
 
@@ -71,26 +106,33 @@ describe("registry", () => {
   });
 
   it("slots an enabled optional tool into registration order, not the end", () => {
-    // `arrow` registers before `marker`, so enabling both must not order them
-    // by when the user switched them on.
-    expect(enabledPlugins(["marker", "arrow"]).map((p) => p.id)).toEqual([
-      "pencil",
-      "eraser",
-      "line",
-      "rectangle",
-      "ellipse",
+    // `marker` registers before `arrow`, so enabling them the other way round
+    // must not order the toolbar by when the user switched them on.
+    expect(enabledPlugins(["arrow", "marker"]).map((p) => p.id)).toEqual([
       "hand",
-      "arrow",
+      "pencil",
       "marker",
+      "arrow",
+      "eraser",
     ]);
   });
 
   it("lists only the non-core plugins as optional", () => {
     expect(optionalPlugins().every((p) => !p.core)).toBe(true);
     expect(optionalPlugins().map((p) => p.id)).toEqual([
-      "arrow",
+      "paintbrush",
+      "airspray",
       "marker",
       "highlighter",
+      "crayon",
+      "calligraphy",
+      "glow",
+      "line",
+      "arrow",
+      "rectangle",
+      "ellipse",
+      "filler",
+      "dropper",
     ]);
   });
 
@@ -107,13 +149,13 @@ describe("registry", () => {
       nameKey: "tools.marker.name",
     });
     expect(allPlugins()).toHaveLength(before);
-    expect(allPlugins()[0]!.id).toBe("pencil");
+    expect(allPlugins()[1]!.id).toBe("pencil");
     expect(pluginById("pencil")!.nameKey).toBe("tools.marker.name");
   });
 
   describe("resolveActiveTool", () => {
     it("keeps a tool that is offered", () => {
-      expect(resolveActiveTool("ellipse", [])).toBe("ellipse");
+      expect(resolveActiveTool("eraser", [])).toBe("eraser");
       expect(resolveActiveTool("arrow", ["arrow"])).toBe("arrow");
     });
 
@@ -122,7 +164,16 @@ describe("registry", () => {
     });
 
     it("falls back for a tool this build doesn't ship", () => {
-      expect(resolveActiveTool("crayon", [])).toBe("pencil");
+      expect(resolveActiveTool("quill", [])).toBe("pencil");
+    });
+
+    it("never falls back onto a tool that leaves no mark", () => {
+      // The hand is the first tool in the toolbar and the dropper sits beside
+      // the bucket; landing a stale settings blob on either would look exactly
+      // like a canvas that has stopped working.
+      expect(resolveActiveTool("quill", defaultEnabledPlugins())).toBe(
+        "pencil",
+      );
     });
   });
 });
@@ -198,6 +249,117 @@ describe("hand behaviour", () => {
     const navigating = allPlugins().filter((p) => p.navigates);
     expect(navigating.map((p) => p.id)).toEqual(["hand"]);
     expect(navigating[0]!.core).toBe(true);
+  });
+});
+
+describe("hardness", () => {
+  it("is recorded only by the tools that advertise it", () => {
+    resetPlugins();
+    registerBuiltinPlugins();
+    const soft = { ...ctx, hardness: 0.25 };
+    // The brush asks for it…
+    expect(
+      freehandBehaviour({ style: "brush", useHardness: true }).start(
+        { x: 0, y: 0 },
+        soft,
+      )!.hardness,
+    ).toBe(0.25);
+    // …the pencil does not, so the dial can never re-edge a plain line.
+    expect(freehandBehaviour().start({ x: 0, y: 0 }, soft)!.hardness).toBe(
+      undefined,
+    );
+  });
+
+  it("is advertised by exactly the tools whose painter reads it", () => {
+    expect(
+      allPlugins()
+        .filter((p) => p.supportsHardness)
+        .map((p) => p.id),
+    ).toEqual(["paintbrush", "airspray"]);
+  });
+});
+
+describe("dropper", () => {
+  it("begins no stroke — a sampled colour is not a mark", () => {
+    expect(dropperBehaviour.start({ x: 4, y: 4 }, ctx)).toBeNull();
+  });
+
+  it("is the only tool that picks a colour, and it draws nothing", () => {
+    resetPlugins();
+    registerBuiltinPlugins();
+    const picking = allPlugins().filter((p) => p.picksColor);
+    expect(picking.map((p) => p.id)).toEqual(["dropper"]);
+    expect(picking[0]!.behaviour.start({ x: 0, y: 0 }, ctx)).toBeNull();
+  });
+});
+
+describe("fill behaviour", () => {
+  // A stand-in for the canvas's own probe: it answers with one square area,
+  // whatever it is asked. The behaviour is pure over it, so the whole gesture
+  // runs with no DOM.
+  const square = [
+    [
+      { x: 0, y: 0 },
+      { x: 10, y: 0 },
+      { x: 10, y: 10 },
+      { x: 0, y: 10 },
+    ],
+  ];
+  const withProbe = (region: Point[][] | null): ToolContext => ({
+    ...ctx,
+    probe: { colorAt: () => "#123456", regionAt: () => region },
+  });
+
+  it("files the traced area as a vector stroke", () => {
+    const draft = fillBehaviour.start({ x: 5, y: 5 }, withProbe(square))!;
+    expect(draft.shape).toEqual({ kind: "region", contours: square });
+    expect(draft.color).toBe("#ef4444");
+  });
+
+  it("records no colour when none was picked, so the fill follows the page", () => {
+    const draft = fillBehaviour.start(
+      { x: 5, y: 5 },
+      { ...withProbe(square), color: null },
+    )!;
+    expect(draft.color).toBeUndefined();
+  });
+
+  it("begins nothing when there is no probe to ask", () => {
+    expect(fillBehaviour.start({ x: 5, y: 5 }, ctx)).toBeNull();
+  });
+
+  it("begins nothing when the area traced to less than an outline", () => {
+    const sliver = [
+      [
+        { x: 0, y: 0 },
+        { x: 1, y: 0 },
+      ],
+    ];
+    expect(fillBehaviour.start({ x: 5, y: 5 }, withProbe(sliver))).toBeNull();
+  });
+
+  it("re-aims rather than extends when the press drags", () => {
+    const draft = fillBehaviour.start({ x: 5, y: 5 }, withProbe(square))!;
+    const elsewhere = [
+      [
+        { x: 20, y: 20 },
+        { x: 30, y: 20 },
+        { x: 30, y: 30 },
+      ],
+    ];
+    const moved = fillBehaviour.move(
+      draft,
+      { x: 25, y: 25 },
+      withProbe(elsewhere),
+    );
+    expect(moved.shape).toEqual({ kind: "region", contours: elsewhere });
+  });
+
+  it("keeps the area it had when the drag leaves the page", () => {
+    const draft = fillBehaviour.start({ x: 5, y: 5 }, withProbe(square))!;
+    expect(fillBehaviour.move(draft, { x: -9, y: -9 }, withProbe(null))).toBe(
+      draft,
+    );
   });
 });
 

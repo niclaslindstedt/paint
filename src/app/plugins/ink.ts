@@ -14,13 +14,22 @@ import type { Point, Stroke } from "../types.ts";
  *  `resolveStrokeInk`) — so the fallback here is only a belt-and-braces default
  *  for a painter called directly. */
 export function applyInk(ctx: CanvasRenderingContext2D, stroke: Stroke): void {
-  const color = stroke.color ?? "#111827";
+  const color = strokeColor(stroke);
   ctx.strokeStyle = color;
   ctx.fillStyle = color;
   ctx.lineWidth = stroke.size;
   ctx.lineCap = "round";
   ctx.lineJoin = "round";
   ctx.globalAlpha = stroke.opacity ?? 1;
+}
+
+/** A stroke's concrete colour. The renderer resolves an absent one against the
+ *  page before dispatching (see `resolveStrokeInk`), so this only ever falls
+ *  back for a painter called directly — but the painters that build a gradient
+ *  need the colour as a *value* rather than as a context setting, so it is
+ *  worth having in one place. */
+export function strokeColor(stroke: Stroke): string {
+  return stroke.color ?? "#111827";
 }
 
 /** Paint a freehand polyline. A single-point path (a tap) is painted as a dot

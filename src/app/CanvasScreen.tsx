@@ -32,10 +32,22 @@ import * as output from "../output.ts";
 // own the ink, and `PaintCanvas` owns the gesture in flight. This component is
 // the wiring between them.
 
+/** The four ways the toolbar's pickers write back to the user's own palette —
+ *  the colours they mixed and the nib widths they added. Bundled rather than
+ *  passed one by one because they travel together and always will. */
+export type PaletteActions = {
+  addColor: (color: string) => void;
+  removeColor: (color: string) => void;
+  addSize: (size: number) => void;
+  removeSize: (size: number) => void;
+};
+
 type Props = {
   store: PaintStore;
   settings: AppSettings;
   update: <K extends keyof AppSettings>(key: K, value: AppSettings[K]) => void;
+  /** Writes into the kept colours and sizes (see `PaletteActions`). */
+  palette: PaletteActions;
   /** The active tool, already resolved against what the toolbar offers. */
   tool: string;
   /** Whether the page is a dark sheet — resolved from the canvas theme and the
@@ -50,6 +62,7 @@ export function CanvasScreen({
   store,
   settings,
   update,
+  palette,
   tool,
   darkCanvas,
   menuSwipeEdge = null,
@@ -146,6 +159,7 @@ export function CanvasScreen({
           ink={{
             color: settings.color,
             size: settings.size,
+            hardness: settings.hardness,
             filled: settings.filled,
           }}
           defaultInk={ink}
@@ -154,6 +168,9 @@ export function CanvasScreen({
           onScaleChange={setScale}
           menuSwipeEdge={menuSwipeEdge}
           onCommit={store.addStroke}
+          // The dropper's press: the colour it sampled becomes the ink, pinned
+          // the same way picking a swatch pins one.
+          onPickColor={(picked) => update("color", picked)}
           ariaLabel={drawing.name.trim() || t("menu.untitled")}
         />
 
@@ -190,8 +207,19 @@ export function CanvasScreen({
         // picked; picking one pins it (see `canvas.ts`).
         color={settings.color ?? ink}
         onColorChange={(color) => update("color", color)}
+        // The eraser's colour, shown as the other half of the ink button and
+        // offered as a swatch of its own in the picker.
+        background={pageColor}
+        customColors={settings.customColors}
+        onAddColor={palette.addColor}
+        onRemoveColor={palette.removeColor}
         size={settings.size}
         onSizeChange={(size) => update("size", size)}
+        customSizes={settings.customSizes}
+        onAddSize={palette.addSize}
+        onRemoveSize={palette.removeSize}
+        hardness={settings.hardness}
+        onHardnessChange={(hardness) => update("hardness", hardness)}
         filled={settings.filled}
         onFilledChange={(filled) => update("filled", filled)}
       />

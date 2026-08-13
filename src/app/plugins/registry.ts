@@ -32,9 +32,19 @@ export function allPlugins(): PaintPlugin[] {
 }
 
 /** The plugins the user can switch on — everything that isn't core. This is
- *  what Settings → Tools lists. */
+ *  what Settings → Tools lists with a switch. */
 export function optionalPlugins(): PaintPlugin[] {
   return allPlugins().filter((p) => !p.core);
+}
+
+/** The optional plugins that are on out of the box — the ones a first run finds
+ *  already in its toolbar. This is what seeds `enabledPlugins`, and what a
+ *  reset returns it to; it is a *default*, not a floor, so switching one off
+ *  sticks. */
+export function defaultEnabledPlugins(): string[] {
+  return allPlugins()
+    .filter((p) => !p.core && p.defaultOn)
+    .map((p) => p.id);
 }
 
 /** Look one plugin up by id. `undefined` for a stroke drawn by a tool this
@@ -54,16 +64,21 @@ export function enabledPlugins(enabledIds: readonly string[]): PaintPlugin[] {
 
 /** Resolve the active tool id against what's actually offered, so a tool that
  *  was switched off (or came from a stale settings blob) can never leave the
- *  canvas holding a tool the toolbar no longer shows. Falls back to the first
- *  enabled plugin. */
+ *  canvas holding a tool the toolbar no longer shows.
+ *
+ *  The fallback is the first offered tool that actually *marks the page* — not
+ *  simply the first one. The toolbar's leftmost button is the hand, and landing
+ *  a stale settings blob on a tool that draws nothing looks exactly like a
+ *  broken canvas. `navigates` and `picksColor` are the descriptor flags that
+ *  say "leaves no mark", so nothing here knows what a hand is. */
 export function resolveActiveTool(
   wanted: string,
   enabledIds: readonly string[],
 ): string {
   const offered = enabledPlugins(enabledIds);
-  return offered.some((p) => p.id === wanted)
-    ? wanted
-    : (offered[0]?.id ?? wanted);
+  if (offered.some((p) => p.id === wanted)) return wanted;
+  const draws = offered.find((p) => !p.navigates && !p.picksColor);
+  return draws?.id ?? offered[0]?.id ?? wanted;
 }
 
 /** Drop every registration. Tests use it to start from a clean registry; the

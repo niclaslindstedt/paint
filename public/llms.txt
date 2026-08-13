@@ -11,11 +11,15 @@ connect a storage backend yourself.
 
 ## What it does
 
-- Draw with a pencil, eraser, line, rectangle, and ellipse, plus a hand tool that
-  drags the page around — the core toolbar.
-- Switch optional tools on in Settings → Tools (arrow, marker, highlighter).
-  Every tool is a plugin behind one interface, so the list grows without the app
-  changing shape.
+- Draw with a pencil, a bristle paintbrush, an airbrush, a paint bucket, a
+  colour dropper, and an eraser, plus a hand tool that drags the page around —
+  the toolbar out of the box.
+- Switch more tools on in Settings → Tools (line, arrow, rectangle, ellipse,
+  marker, highlighter, crayon, calligraphy pen, neon pen). Every tool is a
+  plugin behind one interface, so the list grows without the app changing shape.
+- Pick colour and stroke width from two buttons: a palette with a free colour
+  mixer that remembers what you mix, and a nib picker with your own widths and a
+  hardness dial for the soft brushes.
 - Draw on a page bigger than the screen: the canvas is a window onto it, with
   pinch-to-zoom, two-finger panning, and one-finger panning under the hand.
 - Keep several drawings, group them into folders, star the ones you return to,

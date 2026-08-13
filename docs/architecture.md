@@ -124,14 +124,28 @@ lives by: **nothing outside it may branch on a tool id.**
 
 - `types.ts` — the `PaintPlugin` descriptor and the `ToolBehaviour` contract
   (`start` / `move` / `end` / `paint`).
-- `registry.ts` — registration order, the core/optional split, and resolution.
+- `registry.ts` — registration order (which is toolbar order), the
+  core / default-on / optional split, and resolution.
 - `builtin/` — the shipped tools, built from two family factories (freehand and
-  shape) plus their ink configuration, and the hand, whose behaviour begins no
-  stroke at all.
+  shape) plus their ink configuration, and the three that begin no stroke of
+  their own: the hand, the dropper, and the bucket (which files the area the
+  probe traced for it).
+- `brushes.ts` — the characterful painters: bristles, spray cones, grain. Pure
+  functions of the stroke, with every scatter hashed off position rather than
+  drawn at random, so a repaint and the PNG export grain identically.
 
 A tool that needs the app to treat it differently says so on its descriptor —
-`usesBackground` for the eraser, `navigates` for the hand — so the canvas and the
-toolbar read a property instead of learning a name.
+`usesBackground` for the eraser, `navigates` for the hand, `picksColor` for the
+dropper, `supportsHardness` for the soft brushes — so the canvas and the toolbar
+read a property instead of learning a name.
+
+Two tools need to know what is _painted_ rather than what was drawn. They ask
+through `ToolContext.probe`, a narrow read of the page (`probe.ts`) that
+rasterises the drawing off-screen through the same renderer, once per press. The
+bucket floods that snapshot and traces the outline of what it flooded
+(`flood.ts` — pure, and tested on hand-built images with no canvas), then files
+the outline as an ordinary `region` stroke: the pixels never reach the document,
+so a fill zooms, undoes and syncs like any other mark.
 
 `render.ts` dispatches each stroke to the plugin named in `stroke.tool`, falling
 back to a generic painter when the plugin is unknown — a document from a newer

@@ -9,6 +9,7 @@
 // off-screen canvas the PNG export rasterises, so what you export is exactly
 // what you saw.
 
+import { paintRegion } from "./plugins/brushes.ts";
 import { pluginById } from "./plugins/registry.ts";
 import { applyInk, paintPath, paintRect, paintSegment } from "./plugins/ink.ts";
 import type { Drawing, Stroke } from "./types.ts";
@@ -67,6 +68,8 @@ function paintGeneric(ctx: CanvasRenderingContext2D, stroke: Stroke): void {
   else if (shape.kind === "segment") paintSegment(ctx, shape.from, shape.to);
   else if (shape.kind === "box") {
     paintRect(ctx, shape.from, shape.to, stroke.filled ?? false);
+  } else if (shape.kind === "region") {
+    paintRegion(ctx, shape.contours);
   } else if (shape.kind === "text") {
     ctx.font = `${stroke.size * 6}px sans-serif`;
     ctx.fillText(shape.text, shape.at.x, shape.at.y);

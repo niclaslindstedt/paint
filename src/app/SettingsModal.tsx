@@ -26,7 +26,7 @@ import { type ThemeAppearance } from "@niclaslindstedt/oss-framework/theme";
 import { CanvasIcon, ToolboxIcon } from "./icons.tsx";
 import { useT } from "./i18n/index.ts";
 import { APP_LOOK } from "./look.ts";
-import { DEFAULT_SETTINGS, type AppSettings } from "./useAppSettings.ts";
+import { defaultSettings, type AppSettings } from "./useAppSettings.ts";
 import type { PaintStore } from "./usePaintStore.ts";
 import type { SyncEngine } from "./useSyncEngine.ts";
 import {
@@ -36,8 +36,8 @@ import {
   GeneralTab,
   LogsTab,
   StorageTab,
-  ToolsTab,
 } from "./settings/tabs.tsx";
+import { ToolsTab } from "./settings/tools.tsx";
 
 // The app's tabbed Settings modal — composed from the framework's `Modal` and
 // `FloatingPanel` primitives plus the theme module's `AppearancePicker`. On
@@ -172,13 +172,19 @@ export function SettingsModal({
     onClose();
   }
   function reset() {
+    const fresh = defaultSettings();
     setAppearance(APP_LOOK);
-    // The plugin switchboard applies live, so a reset has to clear it live too
-    // — leaving it in the draft would show every optional tool switched off
-    // while the toolbar still offered them.
-    for (const id of settings.enabledPlugins) setPluginEnabled(id, false);
-    updateLive("canvasTheme", DEFAULT_SETTINGS.canvasTheme);
-    setDraft({ ...DEFAULT_SETTINGS, enabledPlugins: [] });
+    // The plugin switchboard applies live, so a reset has to apply there live
+    // too — leaving it in the draft would show the switches in one state while
+    // the toolbar behind the dialog offered another. "Defaults" here means the
+    // tools a fresh install ships with, not none of them.
+    const wanted = new Set(fresh.enabledPlugins);
+    for (const id of settings.enabledPlugins) {
+      if (!wanted.has(id)) setPluginEnabled(id, false);
+    }
+    for (const id of wanted) setPluginEnabled(id, true);
+    updateLive("canvasTheme", fresh.canvasTheme);
+    setDraft(fresh);
   }
 
   return (

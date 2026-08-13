@@ -86,7 +86,16 @@ export function App() {
   // whole sketchbook and its undo history.
   const ns = useNamespaces();
   const store = usePaintStore(ns.activeSlug);
-  const { settings, setSettings, update, setPluginEnabled } = useAppSettings();
+  const {
+    settings,
+    setSettings,
+    update,
+    setPluginEnabled,
+    addCustomColor,
+    removeCustomColor,
+    addCustomSize,
+    removeCustomSize,
+  } = useAppSettings();
 
   // The sync engine — pushes the document to a folder / Dropbox / Google Drive
   // when connected. The passphrase for an encrypted cloud copy lives only in
@@ -266,6 +275,13 @@ export function App() {
             store={store}
             settings={settings}
             update={update}
+            // The toolbar's pickers keep what the user mixes and adds.
+            palette={{
+              addColor: addCustomColor,
+              removeColor: removeCustomColor,
+              addSize: addCustomSize,
+              removeSize: removeCustomSize,
+            }}
             tool={tool}
             darkCanvas={darkCanvas}
             // The edge the drawer's open-swipe is watching, so the canvas can

@@ -9,25 +9,44 @@ Press and drag to draw. The page is a fixed size, larger than the screen you see
 it through, so a sketch looks the same on a laptop and a phone — you just see
 less of it at once.
 
+- **Hand** (`D`), at the far left, drags the page around instead of drawing on
+  it — and double-tapping with it fits the whole page, again for 1:1.
 - **Pencil** (`P`) draws freehand.
-- **Eraser** (`E`) paints over marks with the page colour.
-- **Line** (`L`), **Rectangle** (`R`), **Ellipse** (`O`) drag from one point to
-  another. A press that never moves is discarded.
-- **Hand** (`D`) drags the page around instead of drawing on it — and
-  double-tapping with it fits the whole page, again for 1:1.
+- **Paintbrush** (`B`) is a bristle brush: the mark swells and tapers, thins
+  where your hand moved fast, and frays at the edges.
+- **Airbrush** (`S`) lays down a soft cloud that builds up the longer you hold
+  it over one spot.
+- **Paint bucket** (`F`) fills the empty space you tap, up to the marks around
+  it.
+- **Colour dropper** (`I`) makes the colour you tap the ink.
+- **Eraser** (`E`), at the far right, paints over marks with the page colour.
 - `Ctrl/Cmd + Z` undoes the last mark, `Ctrl/Cmd + Shift + Z` redoes it. Every
   mark is one step.
 
-The toolbar under the page also carries the ink colour and the stroke width. The
-shapes that can be filled — rectangle and ellipse — wear a folded corner: press
-one again while you are already holding it and a small panel opens over the page
-offering the shape hollow or solid.
+## Colour and size
+
+The two buttons at the end of the toolbar hold everything about the ink.
+
+The **ink button** is split: the colour you are drawing with above the diagonal,
+the page colour that rubs it out below. Press it for the palette and for **Mix a
+colour…**, which opens a hue strip and a brightness field — drag either and the
+ink changes as you go, then **Keep** adds it to your own swatches for good.
+
+The **nib button** shows the width as a dot the size it will draw. Press it for
+the three widths, a slider that adds your own, and **Hardness** — how softly a
+brush's edge fades.
 
 ## More tools
 
-Settings → **Tools** lists the optional tools: an arrow, a marker, a
-highlighter. Switch one on and it joins the toolbar immediately. Switching it
-off later only hides it; marks you already drew stay put.
+Settings → **Tools** is a rack of every tool the app has, each with its glyph
+and an on/off switch: the shapes (line, arrow, rectangle, ellipse), a marker, a
+highlighter, a crayon, a calligraphy pen, a neon pen. Switch one on and it joins
+the toolbar immediately. Switching it off later only hides it; marks you already
+drew stay put.
+
+The shapes that can be filled — rectangle and ellipse — wear a folded corner:
+press one again while you are already holding it and a small panel opens over
+the page offering the shape hollow or solid.
 [More about the plugin model](features/plugins.md).
 
 ## Light page, dark page
