@@ -1,1 +1,146 @@
-# paint
+# Paint
+
+> A local-first sketchpad PWA for drawing the diagram you'd otherwise draw on a
+> whiteboard — with tools you switch on when you need them.
+
+[![ci](https://github.com/niclaslindstedt/paint/actions/workflows/ci.yml/badge.svg)](https://github.com/niclaslindstedt/paint/actions/workflows/ci.yml)
+[![seo](https://github.com/niclaslindstedt/paint/actions/workflows/seo.yml/badge.svg)](https://github.com/niclaslindstedt/paint/actions/workflows/seo.yml)
+[![pages](https://github.com/niclaslindstedt/paint/actions/workflows/pages.yml/badge.svg)](https://github.com/niclaslindstedt/paint/actions/workflows/pages.yml)
+[![license](https://img.shields.io/badge/license-PolyForm--Noncommercial--1.0.0-blue.svg)](LICENSE)
+
+## What
+
+Paint is a small installable web app for sketching a concept: boxes, arrows, a
+circled bit, a scribble. It opens on a page, five tools, and nothing else in the
+way. Drawings are vector strokes kept in your browser; nothing leaves the device
+unless you connect storage yourself.
+
+It is a sibling of the [`notes`](https://github.com/niclaslindstedt/notes) and
+[`contacts`](https://github.com/niclaslindstedt/contacts) apps and is built on
+the same [`oss-framework`](https://github.com/niclaslindstedt/oss-framework).
+
+## Why
+
+- **For explaining things.** The tool you reach for mid-conversation to show a
+  colleague what you mean — quick to open, quick to export, quick to throw away.
+- **Tools are plugins.** Every tool, the pencil included, is registered through
+  one interface. Five are core; the rest switch on in Settings → Tools, so the
+  toolbar stays as simple as you want it and grows when you need it.
+- **Vector, not pixels.** Undo is exact, the document is small enough for a
+  phone, and a synced copy is readable JSON rather than a blob.
+- **Local-first.** No account, no server, works offline. Sync to a folder,
+  Dropbox, or Google Drive only if you ask for it — optionally encrypted.
+- **A page that matches the room.** The canvas follows the app theme: dark app,
+  dark page, light ink — and flipping it re-inks the sketch rather than hiding
+  it.
+
+## Prerequisites
+
+- [Node.js](https://nodejs.org/) 24+ (see `.nvmrc`)
+- npm 10+
+- A GitHub personal access token with the `read:packages` scope — the
+  `@niclaslindstedt/oss-framework` dependency is published to GitHub Packages,
+  which requires auth even for public packages.
+
+## Install
+
+```bash
+git clone https://github.com/niclaslindstedt/paint.git
+cd paint
+```
+
+Point the scope at GitHub Packages by adding the token to your **user** `.npmrc`
+(the committed project `.npmrc` sets the registry but carries no token):
+
+```
+//npm.pkg.github.com/:_authToken=<your token>
+```
+
+Then:
+
+```bash
+make install
+```
+
+## Quick start
+
+```bash
+make install
+npm run dev          # http://localhost:5173
+```
+
+Draw on the page. `P` pencil, `E` eraser, `L` line, `R` rectangle, `O` ellipse;
+`Ctrl/Cmd + Z` undoes a mark. Open the sidebar for more drawings, and Settings →
+Tools to switch the optional tools on.
+
+To build and preview the production bundle (service worker and all):
+
+```bash
+make build
+npm run preview
+```
+
+## Usage
+
+| Command          | What it does                                      |
+| ---------------- | ------------------------------------------------- |
+| `npm run dev`    | Dev server with hot reload                        |
+| `make build`     | Production build into `dist/`                     |
+| `make test`      | Test suite (vitest)                               |
+| `make lint`      | ESLint + `tsc --noEmit`                           |
+| `make fmt`       | Format with Prettier                              |
+| `make fmt-check` | Verify formatting (what CI runs)                  |
+| `make icons`     | Regenerate the PWA icons, favicon, and OG image   |
+| `make check-seo` | Build, then assert the SEO / PWA shape of `dist/` |
+| `make bump`      | Print the semver bump the next release will take  |
+
+### In the app
+
+- **Sidebar** — the drawings in this sketchbook, plus namespaces (separate
+  sketchbooks), undo/redo, settings, and "What's new".
+- **Toolbar** — the enabled tools, the ink colour and width, and the shape-fill
+  toggle. Each tool has a single-key shortcut.
+- **Header** — the drawing's name (edit in place), the sync status glyph,
+  undo/redo, PNG export, and clear.
+
+## Configuration
+
+Everything works with no configuration. Build-time environment variables switch
+the optional cloud backends on — `VITE_DROPBOX_APP_KEY`,
+`VITE_GOOGLE_CLIENT_ID`, and the folder-name overrides. See
+[`docs/configuration.md`](docs/configuration.md).
+
+## Examples
+
+[`examples/`](examples) holds a sample document you can import through
+Settings → Storage, and the JSON shape a drawing takes on disk.
+
+## Troubleshooting
+
+Common problems — a tool missing from the toolbar, a cloud backend that won't
+connect, an update that won't apply — are in
+[`docs/troubleshooting.md`](docs/troubleshooting.md).
+
+## Documentation
+
+- [Getting started](docs/getting-started.md) — the app surface, tour by tour.
+- [Configuration](docs/configuration.md) — build-time environment variables.
+- [Architecture](docs/architecture.md) — how the pieces fit, and why vector.
+- [Troubleshooting](docs/troubleshooting.md)
+- [Feature docs](docs/features) — the read-more halves of the changelog
+  bullets, also rendered inside the app's "What's new" dialog.
+
+## Contributing
+
+Issues and pull requests are welcome — see
+[`CONTRIBUTING.md`](CONTRIBUTING.md) for the workflow, the commit conventions,
+and what CI expects. AI agents should start at [`AGENTS.md`](AGENTS.md).
+
+Bugs and feature requests go to
+[Issues](https://github.com/niclaslindstedt/paint/issues); open-ended questions
+to [Discussions](https://github.com/niclaslindstedt/paint/discussions).
+Security reports follow [`SECURITY.md`](SECURITY.md).
+
+## License
+
+[PolyForm Noncommercial 1.0.0](LICENSE) — free for noncommercial use.

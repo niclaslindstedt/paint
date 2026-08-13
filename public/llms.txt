@@ -1,0 +1,28 @@
+# Paint
+
+> A local-first sketchpad PWA: draw a concept on a canvas, switch extra tools on
+> when you need them, and keep every drawing on your device — with optional
+> Dropbox or Google Drive sync.
+
+Paint is a small, installable web app for sketching the kind of diagram you draw
+to explain something: boxes, arrows, a circled bit, a scribble. Drawings are
+vector strokes stored as JSON in your browser; nothing is uploaded unless you
+connect a storage backend yourself.
+
+## What it does
+
+- Draw with a pencil, eraser, line, rectangle, and ellipse — the five core tools.
+- Switch optional tools on in Settings → Tools (arrow, marker, highlighter).
+  Every tool is a plugin behind one interface, so the list grows without the app
+  changing shape.
+- Keep several drawings, and several namespaces (separate sketchbooks).
+- Undo and redo every mark; export a page as PNG or the document as JSON.
+- Work offline: it is an installable PWA with a precaching service worker.
+- Optionally sync to a local folder, Dropbox, or Google Drive, with optional
+  end-to-end encryption of the synced file.
+
+## Links
+
+- App: https://paint.niclaslindstedt.se/
+- Source: https://github.com/niclaslindstedt/paint
+- Framework it is built on: https://github.com/niclaslindstedt/oss-framework

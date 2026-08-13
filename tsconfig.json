@@ -1,0 +1,36 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    // `WebWorker` supplies the service-worker types the pwa plugin references.
+    "lib": ["ES2022", "DOM", "DOM.Iterable", "WebWorker"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "jsx": "react-jsx",
+    // The runtime is Preact. `jsxImportSource` points the automatic JSX
+    // transform at `preact/jsx-runtime` (matching what `@preact/preset-vite`
+    // compiles to), and the `paths` below teach `tsc` the same `react` →
+    // `preact/compat` aliasing the bundler applies — so the framework's
+    // `.d.ts` files, which import their types from `react`, keep type-checking
+    // without `@types/react` installed.
+    "jsxImportSource": "preact",
+    "paths": {
+      "react": ["./node_modules/preact/compat/"],
+      "react/jsx-runtime": ["./node_modules/preact/jsx-runtime"],
+      "react/jsx-dev-runtime": ["./node_modules/preact/jsx-dev-runtime"],
+      "react-dom": ["./node_modules/preact/compat/"],
+      "react-dom/client": ["./node_modules/preact/compat/client"]
+    },
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "types": ["node"]
+  },
+  "include": [
+    "src",
+    "tests",
+    "vite.config.ts",
+    "vitest.config.ts",
+    "pwa-plugin.ts"
+  ]
+}

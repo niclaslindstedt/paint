@@ -1,0 +1,156 @@
+/* SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0 */
+
+/* App stylesheet.
+
+     1. Tailwind v4 base + utilities.
+     2. The framework's prebuilt stylesheet — the theme-token map, the button /
+        elevation flavours, the drawer keyframes, and every preset palette
+        (baked in — no runtime `installPresetTokens()` call needed).
+     3. `@source` — scan the installed framework package so the utility classes
+        its components use are emitted into this app's CSS.
+     4. App-shell layout: the html/body reset that makes this a full-viewport,
+        non-scrolling PWA. This stays the app's — it is layout, not framework. */
+
+@import "tailwindcss";
+@import "@niclaslindstedt/oss-framework/styles.css";
+
+@source "../node_modules/@niclaslindstedt/oss-framework/dist";
+
+/* ── Appearance knob wiring ──────────────────────────────────────────────────
+   The framework's theme engine (`applyUiStyle`) publishes the global look knobs
+   as CSS variables on `<html>`, but two of them have no consumer on their own,
+   so the matching Appearance settings look dead:
+
+   • `--border-width` (Border width: thin / normal / bold). Tailwind's `border`
+     utility hard-codes `border-width: 1px`, so single-width borders never
+     followed the knob. Route the 1-wide border utilities through the variable
+     (leaving the explicit `border-2` emphasis borders alone) so the setting
+     bites app-wide.
+   • bare `.rounded` (Corner radius). In Tailwind v4 `.rounded` is a literal
+     `0.25rem`, not a token, so the framework cards that use it — `Section`, the
+     popovers — ignored the knob. Route it through the medium radius slot the
+     engine tunes. The `rounded-md` / `rounded-lg` utilities already reference
+     `--radius-md` / `--radius-lg`, so they followed it all along. */
+.border {
+  border-width: var(--border-width, 1px);
+}
+.border-x {
+  border-inline-width: var(--border-width, 1px);
+}
+.border-y {
+  border-block-width: var(--border-width, 1px);
+}
+.border-t {
+  border-top-width: var(--border-width, 1px);
+}
+.border-r {
+  border-right-width: var(--border-width, 1px);
+}
+.border-b {
+  border-bottom-width: var(--border-width, 1px);
+}
+.border-l {
+  border-left-width: var(--border-width, 1px);
+}
+.rounded {
+  border-radius: var(--radius-md, 0.375rem);
+}
+
+/* ── Modal backdrop (darkness + blur) ────────────────────────────────────────
+   The framework `Modal` paints its scrim with a single `bg-black/50` element,
+   and nothing else in the app uses that utility, so routing it through two app
+   variables lets the Appearance tab drive how far the page behind a dialog is
+   dimmed and blurred. The variables are written on `<html>` from the persisted
+   settings (see `applyBackdropVars`); the defaults below match the framework's
+   original look (50% dim, no blur) so the first paint is unchanged. */
+:root {
+  --modal-backdrop-darkness: 0.5;
+  --modal-backdrop-blur: 0px;
+}
+.bg-black\/50 {
+  background-color: rgb(0 0 0 / var(--modal-backdrop-darkness, 0.5));
+  -webkit-backdrop-filter: blur(var(--modal-backdrop-blur, 0px));
+  backdrop-filter: blur(var(--modal-backdrop-blur, 0px));
+}
+
+/* ── Density-driven spacing ──────────────────────────────────────────────────
+   The Appearance → Density knob is published by the theme engine as CSS
+   variables the row components ride, and mirrored onto `<html data-density>`
+   (see `App.tsx`) so the discrete level can drive app-owned chrome too. The
+   framework `Section` hard-codes `p-3` / `mt-3`, so the Settings tabs would
+   otherwise ignore the knob; route those two spacing utilities through the
+   level, scoped to the Settings body. Comfortable is the framework default, so
+   only compact and spacious carry overrides. */
+[data-density="compact"] .settings-body .p-3 {
+  padding: 0.5rem;
+}
+[data-density="compact"] .settings-body .mt-3:not(:first-child) {
+  margin-top: 0.5rem;
+}
+[data-density="spacious"] .settings-body .p-3 {
+  padding: 1rem;
+}
+[data-density="spacious"] .settings-body .mt-3:not(:first-child) {
+  margin-top: 1rem;
+}
+
+/* ── App-shell layout ────────────────────────────────────────────────────────
+   A full-viewport `100svh` flex app whose panes own their own scroll regions,
+   so the document itself never scrolls. */
+:root {
+  /* The signature monospace stack. The theme engine overrides
+     `--app-font-family` inline once it mounts; this is the pre-paint default. */
+  --app-font-family:
+    "JetBrains Mono", "Fira Code", ui-monospace, "SF Mono", Menlo, Consolas,
+    "Liberation Mono", monospace;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  /* Lock the document down: no page scroll and no overscroll rubber-band, so a
+     drag on the canvas can't drag the whole page around underneath it. */
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+body {
+  background: var(--page-bg);
+  color: var(--fg);
+  font-family: var(--app-font-family);
+  font-size: calc(1rem * var(--app-font-scale));
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* The drawing surface never shows a text caret or a selection highlight — a
+   drag on it is a stroke, and letting the browser start a text selection mid
+   stroke leaves a blue smear over the page on desktop. */
+canvas {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Installed iOS PWA edge-to-edge under the home indicator. iOS only extends the
+   page under the home indicator when the *root* element carries a fixed `100vh`
+   height; with `100svh` the document stops at the letterboxed viewport and iOS
+   paints the remainder as a dead black band below the shell. Force the root to
+   `100vh` in the installed iOS PWA and lift `--app-height` to match: the app
+   shell and the framework's drawer both size to `var(--app-height, 100svh)`.
+   Scoped to iOS via the -webkit-touch-callout probe (no other engine supports
+   it) and to display-mode: standalone so a plain iOS Safari tab keeps
+   `100svh`. */
+@supports (-webkit-touch-callout: none) {
+  @media (display-mode: standalone) {
+    html,
+    body {
+      height: 100vh;
+    }
+
+    :root {
+      --app-height: 100vh;
+    }
+  }
+}
