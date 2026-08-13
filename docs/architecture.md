@@ -16,13 +16,14 @@ index.html → src/main.tsx ─┬─ src/App.tsx
                            │    │     └── SideMenuRows (its presentational leaves)
                            │    ├── CanvasScreen      (header, page, toolbar)
                            │    │     ├── PaintCanvas (the gesture in flight)
+                           │    │     ├── LayersPanel (the stack, on a swipe)
                            │    │     └── Toolbar     (enabled tools + ink)
                            │    ├── ArchiveScreen     (lazy)
                            │    └── SettingsModal     (lazy)
                            └─ src/app/PrivacyPage.tsx (lazy, mounted at /privacy)
 
 stores:   usePaintStore · useAppSettings · useNamespaces · useSyncEngine
-domain:   types · render · plugins/* · migrations · canvas · export
+domain:   types · layers · render · plugins/* · migrations · canvas · export
 platform: @niclaslindstedt/oss-framework (UI kit, storage, theme, i18n, PWA)
 ```
 
@@ -90,6 +91,35 @@ that lives in localStorage stays a sane size. On the way out to a remote backend
 those bytes are filed off into a real image file beside the document (see
 [Sync](#sync) below), which is what keeps the pushed JSON small.
 
+### Layers are a view of that list, not a tree
+
+A drawing has a **stack** — an ordered list of layers, bottom first — and each
+stroke names the layer it sits on, the same way it names the tool that drew it.
+The strokes stay in **one flat array**. `layers.ts` is the whole feature: which
+layer a mark belongs to, the paint order that falls out of it, and the counts the
+panel shows.
+
+The flat array is what makes it cheap. Undo is still `pop()` on one list; the
+migration is _nothing_ (a document with no `layers` reads as a single implicit
+layer, so anything written before the feature opens untouched); and a one-layer
+drawing still writes the bytes it always did, because a stroke records a layer
+only once the drawing has a stack of its own. A tree of per-layer stroke arrays
+would have bought a nicer type and cost all three.
+
+Two rules keep it honest, and both live in `visibleStrokes`:
+
+- a stroke naming no layer belongs to the **base**, which keeps a fixed id — so
+  the marks drawn before the stack existed follow the base layer when it is
+  reordered rather than sliding to whatever fell to the bottom;
+- a stroke naming a layer that isn't there belongs to the base too. Losing a
+  layer must never mean losing a mark to invisibility.
+
+`visibleStrokes` is the single answer to "what is on this page": the renderer
+folds over it, so the screen, the PNG / JPG / SVG downloads, the crop-to-marks
+bounds and the bucket's snapshot all agree about what a hidden layer means. For a
+single-layer drawing it hands back the document's own array by reference, which
+keeps the frame cache's identity comparison allocation-free on the common path.
+
 Rasterising happens through the same renderer everywhere: onto the screen
 canvas, and onto an off-screen canvas for the PNG and JPG downloads. There is no
 second painting path to drift. The screen applies the view transform before
@@ -112,13 +142,16 @@ theme flip all go through one path. But the canvas repaints on every pointer
 sample, and almost nothing it repaints has changed, so a _frame_ is allowed to
 be much less than a full render:
 
-- `layer.ts` keeps the committed marks as pixels and blits them while a gesture
+- `cache.ts` keeps the committed marks as pixels and blits them while a gesture
   is in flight. A landed stroke is painted onto that bitmap rather than
   triggering a rebuild, and a **drag scrolls it** — the marks are blitted at
   their new offset and only the strip of page that has just come into view is
   painted. When a rebuild is unavoidable it paints the _screen_ and copies the
   result back, because rendering into an off-screen context is no faster and
-  the copy leaves the layer holding exactly what the next frame wants.
+  the copy leaves the cache holding exactly what the next frame wants. It
+  compares the _painted_ strokes, so hiding or reordering a layer repaints, and
+  a mark landing under something already on the pixels repaints rather than
+  compositing itself on top of it.
 - `geometry.ts` gives each stroke a box, and the renderer skips the marks that
   cannot reach the window it is painting.
 - `PaintDetail` tells each painter how big its mark is coming out on the device
@@ -129,7 +162,7 @@ be much less than a full render:
 
 The cache holds no state the document doesn't: every path into it goes through
 `renderDrawing`, and where there is no DOM to build it in the canvas paints the
-document directly, exactly as it did before the layer existed.
+document directly, exactly as it did before the cache existed.
 
 The one place a frame is not the frame a plain render would produce is mid-drag,
 and it is a deliberate trade: a canvas rasteriser is not translation-invariant,
@@ -167,6 +200,15 @@ browser's event is synthesised inconsistently on touch and arrives only after
 both presses have already been handled, which under a drawing tool means two
 marks are on the page before it fires. Restricting the gesture to a tool that
 draws nothing is what makes it dependable.
+
+Two things want an inward edge swipe: the sidebar (the framework's own hook,
+which opens the drawer itself) and the layers panel (the app's, fired back
+through a callback). The canvas arbitrates by **holding** a touch that lands in a
+watched strip rather than drawing it — the sidebar's edge is asked first, since
+it is listening whatever the canvas decides — and replays the press from where it
+landed the moment it proves to be neither. `CanvasScreen` never arms the panel on
+an edge the sidebar already owns, so a phone with a right-hand drawer reaches
+layers through the header button instead.
 
 Zoom is the canvas's alone. The viewport meta disables it app-wide, `main.tsx`
 swallows WebKit's `gesture*` events (which an iOS Safari tab honours over the

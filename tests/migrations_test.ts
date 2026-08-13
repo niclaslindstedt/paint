@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 import { describe, expect, it } from "vitest";
 
+import { drawingLayers, visibleStrokes } from "../src/app/layers.ts";
 import {
   LATEST_VERSION,
   parseDoc,
@@ -155,6 +156,79 @@ describe("parseDoc", () => {
       to: { x: 400, y: 300 },
       src,
     });
+    expect(parseDoc(serializeDoc(doc))).toEqual(doc);
+  });
+
+  it("reads a document written before layers existed as one layer", () => {
+    // Layers were added the same way dropped images were — additively, with no
+    // version bump, because nothing already on disk needs rewriting. The
+    // promise that makes is this one: an untouched v2 document still opens, its
+    // marks still belong somewhere, and it goes back to disk unchanged.
+    const doc = parseDoc(
+      JSON.stringify({
+        version: LATEST_VERSION,
+        folders: [],
+        drawings: [
+          {
+            id: "d1",
+            name: "sketch",
+            width: 400,
+            height: 300,
+            strokes: [
+              {
+                id: "s1",
+                tool: "pencil",
+                size: 4,
+                shape: { kind: "path", points: [{ x: 1, y: 1 }] },
+              },
+            ],
+          },
+        ],
+        activeDrawingId: "d1",
+      }),
+    );
+    const page = doc.drawings[0]!;
+    expect(page.layers).toBeUndefined();
+    expect(drawingLayers(page)).toHaveLength(1);
+    expect(visibleStrokes(page)).toEqual(page.strokes);
+    expect(parseDoc(serializeDoc(doc))).toEqual(doc);
+  });
+
+  it("round-trips a stack of layers", () => {
+    const doc = parseDoc(
+      JSON.stringify({
+        version: LATEST_VERSION,
+        folders: [],
+        drawings: [
+          {
+            id: "d1",
+            name: "sketch",
+            width: 400,
+            height: 300,
+            layers: [
+              { id: "base", name: "" },
+              { id: "l2", name: "Layer 2", hidden: true },
+            ],
+            activeLayerId: "l2",
+            strokes: [
+              {
+                id: "s1",
+                tool: "pencil",
+                size: 4,
+                layer: "l2",
+                shape: { kind: "path", points: [{ x: 1, y: 1 }] },
+              },
+            ],
+          },
+        ],
+        activeDrawingId: "d1",
+      }),
+    );
+    const page = doc.drawings[0]!;
+    expect(page.layers).toHaveLength(2);
+    expect(page.activeLayerId).toBe("l2");
+    expect(page.strokes[0]!.layer).toBe("l2");
+    expect(visibleStrokes(page)).toEqual([]);
     expect(parseDoc(serializeDoc(doc))).toEqual(doc);
   });
 

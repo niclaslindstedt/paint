@@ -15,7 +15,7 @@ import {
   type MenuEdge,
 } from "./gestures.ts";
 import { onImageDecoded } from "./images.ts";
-import { createLayer, paintCommitted, type Layer } from "./layer.ts";
+import { createCache, paintCommitted, type MarkCache } from "./cache.ts";
 import { pluginById } from "./plugins/registry.ts";
 import type { CanvasProbe, DraftStroke, ToolContext } from "./plugins/types.ts";
 import { createProbe } from "./probe.ts";
@@ -42,12 +42,12 @@ import {
 // move around it rather than squinting at a shrunken whole.
 //
 // A frame is not a full repaint. The gesture in flight is painted every frame,
-// because it changes every frame; the marks already committed come off a cached
-// layer (`layer.ts`), which is what stops one more pencil line costing a whole
-// page of airbrush. Frames are asked for rather than taken — one per animation
-// frame however many pointer samples arrive — and the draft never travels
-// through React state to get here, because the only thing it feeds is the next
-// frame.
+// because it changes every frame; the marks already committed come off a cache
+// of pixels (`cache.ts`), which is what stops one more pencil line costing a
+// whole page of airbrush. Frames are asked for rather than taken — one per
+// animation frame however many pointer samples arrive — and the draft never
+// travels through React state to get here, because the only thing it feeds is
+// the next frame.
 //
 // The gesture split is the Procreate one, and it is the whole interaction model:
 //
@@ -56,7 +56,8 @@ import {
 //   two fingers                pinch to zoom, drag to pan
 //   wheel                      pans; ctrl/⌘ + wheel (and a trackpad pinch) zooms
 //   double-tap (hand only)     fits the page, again for 1:1
-//   inward swipe from the edge opens the sidebar, and draws nothing
+//   inward swipe from the edge opens the sidebar — or, from the right, the
+//                              layers panel — and draws nothing
 //
 // A second finger landing mid-stroke **abandons** the stroke rather than
 // committing it: you meant to zoom, and half a line you didn't want is worse
@@ -108,6 +109,12 @@ type Props = {
    *  mode, a drawer that is already open). A touch that lands in that strip is
    *  held rather than drawn — see `gestures.ts`. */
   menuSwipeEdge?: MenuEdge | null;
+  /** The screen edge an inward swipe opens the layers panel from, or `null`
+   *  when it isn't armed. Held and measured exactly like the sidebar's swipe —
+   *  the difference is only whose it is: the framework opens the drawer itself,
+   *  where this one is fired back through `onPanelSwipe`. */
+  panelSwipeEdge?: MenuEdge | null;
+  onPanelSwipe?: () => void;
   ariaLabel: string;
 };
 
@@ -133,6 +140,8 @@ export function PaintCanvas({
   placing = false,
   onPlacingPress,
   menuSwipeEdge = null,
+  panelSwipeEdge = null,
+  onPanelSwipe,
   ariaLabel,
 }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -170,15 +179,18 @@ export function PaintCanvas({
   // Only a navigating tool ever arms these (see the header note).
   const tapStart = useRef<{ pointerId: number; point: Point } | null>(null);
   const lastTap = useRef<{ time: number; point: Point } | null>(null);
-  // A touch that landed in the sidebar's edge strip and has begun nothing yet:
-  // it may be the drawer's open-swipe. `viewport` is where it landed on the
-  // screen (what the swipe is measured in), `point` where it landed on the
-  // element (what the gesture is replayed from when it turns out to be ours).
+  // A touch that landed in a watched edge strip and has begun nothing yet: it
+  // may be an inward swipe — the sidebar's, or the layers panel's. `viewport`
+  // is where it landed on the screen (what the swipe is measured in), `point`
+  // where it landed on the element (what the gesture is replayed from when it
+  // turns out to be ours), and `open` what to run if the swipe fires: nothing
+  // for the drawer, which the framework opens itself.
   const heldEdgePress = useRef<{
     pointerId: number;
     edge: MenuEdge;
     viewport: Point;
     point: Point;
+    open?: () => void;
   } | null>(null);
   // The live view, for the handlers — they run outside React's render and must
   // read the current value rather than the one their closure captured.
@@ -191,7 +203,7 @@ export function PaintCanvas({
   // A bitmap on the page decodes asynchronously but paints synchronously, so a
   // freshly-loaded image would otherwise sit invisible until something else
   // forced a repaint. Bumping this counter is that something (see `images.ts`),
-  // and it travels into the layer's spec so a cached frame can't hide a picture
+  // and it travels into the cache's spec so a cached frame can't hide a picture
   // that has only just arrived.
   const [decodedAt, setDecodedAt] = useState(0);
   useEffect(() => onImageDecoded(() => setDecodedAt((count) => count + 1)), []);
@@ -201,9 +213,9 @@ export function PaintCanvas({
   // closure that may be a frame out of date.
   const inks = useRef({ drawing, pageColor, defaultInk, showGrid, decodedAt });
   inks.current = { drawing, pageColor, defaultInk, showGrid, decodedAt };
-  // The committed marks, as pixels (see `layer.ts`). Opened on the first paint
+  // The committed marks, as pixels (see `cache.ts`). Opened on the first paint
   // and kept for the life of the canvas.
-  const layerRef = useRef<Layer | null>(null);
+  const cacheRef = useRef<MarkCache | null>(null);
   // The repaint this frame has already scheduled, so a burst of pointer moves
   // costs one paint rather than one each.
   const pending = useRef<number | null>(null);
@@ -333,9 +345,9 @@ export function PaintCanvas({
 
   /** Paint one frame.
    *
-   *  The committed marks come off the layer — a blit while a stroke is being
+   *  The committed marks come off the cache — a blit while a stroke is being
    *  drawn, a repaint when the document or the view actually changed (see
-   *  `layer.ts`). The gesture in flight and the sheet's outline go on top,
+   *  `cache.ts`). The gesture in flight and the sheet's outline go on top,
    *  every frame, because both change every frame. */
   const paint = useCallback(() => {
     const canvas = canvasRef.current;
@@ -363,7 +375,7 @@ export function PaintCanvas({
     // itself keeps its exact value — panning stays smooth and reversible, and
     // the clamp still bites where it bit — but a *frame* is drawn on the pixel
     // grid, which is what lets a drag reuse the frame before it by copying it
-    // sideways rather than resampling it (see `layer.ts`). Half a device pixel
+    // sideways rather than resampling it (see `cache.ts`). Half a device pixel
     // is below anything a screen can show; a smeared drawing is not.
     const snapped = {
       scale: view.scale,
@@ -377,9 +389,9 @@ export function PaintCanvas({
     ctx.clearRect(0, 0, width, height);
 
     // The committed marks: a blit while a stroke is being drawn, a repaint when
-    // the document or the view actually changed (see `layer.ts`).
-    layerRef.current ??= createLayer(width, height);
-    paintCommitted(ctx, canvas, layerRef.current, {
+    // the document or the view actually changed (see `cache.ts`).
+    cacheRef.current ??= createCache(width, height);
+    paintCommitted(ctx, canvas, cacheRef.current, {
       drawing,
       view: snapped,
       width,
@@ -403,7 +415,7 @@ export function PaintCanvas({
     if (draft) paintStrokes(ctx, [{ ...draft, id: "draft" }], options);
     // Outline the sheet so its edge is visible against the desk. Screen-only —
     // it is chrome, not a mark, so it lives here rather than in the renderer
-    // the PNG export shares, and it stays off the layer so a cached frame never
+    // the PNG export shares, and it stays off the cache so a cached frame never
     // has to be thrown away to redraw it. The width is divided by the zoom so
     // the line stays a hairline at any scale instead of fattening as you zoom.
     ctx.strokeStyle = "rgba(120,130,145,0.4)";
@@ -508,6 +520,24 @@ export function PaintCanvas({
     requestPaint();
   };
 
+  /** Which swipe, if any, a press landing at `x` (in viewport coordinates)
+   *  could still turn out to be. The sidebar is asked first: it is the
+   *  framework's gesture and it is already listening whatever we decide, so on
+   *  the one edge both could want, holding it for anything else would open two
+   *  things at once. */
+  const edgeWatching = (
+    x: number,
+  ): { edge: MenuEdge; open?: () => void } | undefined => {
+    const width = window.innerWidth;
+    if (menuSwipeEdge && inEdgeZone(x, width, menuSwipeEdge)) {
+      return { edge: menuSwipeEdge };
+    }
+    if (panelSwipeEdge && inEdgeZone(x, width, panelSwipeEdge)) {
+      return { edge: panelSwipeEdge, open: onPanelSwipe };
+    }
+    return undefined;
+  };
+
   /** Forget a held edge press, whoever owned it. */
   const dropHeld = (pointerId?: number) => {
     if (
@@ -542,21 +572,19 @@ export function PaintCanvas({
     }
     if (pointers.current.size > 2) return;
 
-    // A touch landing in the strip the sidebar watches might be the drawer's
-    // open-swipe, and that swipe must leave no mark. Hold the press instead of
-    // starting anything: `handleMove` releases it the moment it proves it is
-    // not the drawer's, and replays it from here. Touch only — the swipe is a
-    // touch gesture, so a mouse or a pen at the edge is never in doubt.
-    if (
-      menuSwipeEdge &&
-      e.pointerType === "touch" &&
-      inEdgeZone(e.clientX, window.innerWidth, menuSwipeEdge)
-    ) {
+    // A touch landing in a watched strip might be an inward swipe — the
+    // drawer's or the layers panel's — and neither may leave a mark. Hold the
+    // press instead of starting anything: `handleMove` releases it the moment
+    // it proves it is neither, and replays it from here. Touch only — a swipe
+    // is a touch gesture, so a mouse or a pen at the edge is never in doubt.
+    const watched =
+      e.pointerType === "touch" ? edgeWatching(e.clientX) : undefined;
+    if (watched) {
       heldEdgePress.current = {
         pointerId: e.pointerId,
-        edge: menuSwipeEdge,
         viewport: { x: e.clientX, y: e.clientY },
         point: at,
+        ...watched,
       };
       return;
     }
@@ -588,9 +616,10 @@ export function PaintCanvas({
     }
 
     // A press held back at the screen edge: decide whose it is now that it has
-    // moved. The drawer's swipe is dropped outright; anything else becomes the
-    // gesture it always was, replayed from where the finger first landed so no
-    // ink is lost to the wait, and then caught up to here by the code below.
+    // moved. A swipe that fired opens what it was watching and is dropped;
+    // anything else becomes the gesture it always was, replayed from where the
+    // finger first landed so no ink is lost to the wait, and then caught up to
+    // here by the code below.
     const held = heldEdgePress.current;
     if (held && held.pointerId === e.pointerId) {
       const verdict = classifyEdgeDrag(
@@ -600,7 +629,10 @@ export function PaintCanvas({
       );
       if (verdict === "pending") return;
       heldEdgePress.current = null;
-      if (verdict === "menu") return;
+      if (verdict === "menu") {
+        held.open?.();
+        return;
+      }
       beginGesture(e.pointerId, held.point);
     }
 
