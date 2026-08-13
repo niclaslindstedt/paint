@@ -104,10 +104,11 @@ npm run preview
   drawing, new folder, the archive, undo, redo, and the cloud sync glyph; the
   footer below it (foldable behind a chevron) holds Donate, About — What's new,
   the source, the privacy policy — check for updates, and Settings.
-- **Toolbar** — the enabled tools, the ink colour and width, and the shape-fill
-  toggle. Each tool has a single-key shortcut.
-- **Header** — the drawing's name (edit in place), the favourite star,
-  undo/redo, PNG export, and clear.
+- **Toolbar** — the enabled tools, the ink colour, and the stroke width. Each
+  tool has a single-key shortcut; a shape that can be filled opens a hollow /
+  solid picker over the page when you press its button a second time.
+- **Header** — the drawing's name (edit in place), the favourite star, PNG
+  export, and clear. Undo and redo are in the sidebar's button island.
 
 ## Configuration
 

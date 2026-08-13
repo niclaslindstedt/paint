@@ -18,8 +18,10 @@ less of it at once.
 - `Ctrl/Cmd + Z` undoes the last mark, `Ctrl/Cmd + Shift + Z` redoes it. Every
   mark is one step.
 
-The toolbar under the page also carries the ink colour, the stroke width, and —
-for the shape tools — a **Fill shapes** toggle.
+The toolbar under the page also carries the ink colour and the stroke width. The
+shapes that can be filled — rectangle and ellipse — wear a folded corner: press
+one again while you are already holding it and a small panel opens over the page
+offering the shape hollow or solid.
 
 ## More tools
 

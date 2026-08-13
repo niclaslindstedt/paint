@@ -23,6 +23,12 @@ never use. That is the pattern for any tool that needs the app to treat it
 differently: a property on the descriptor, so nothing outside `plugins/` has to
 know a tool by name.
 
+`supportsFill` works the same way. A tool that sets it wears a folded corner in
+the toolbar and opens a fill picker when you press its button a second time —
+two glyphs, its own icon drawn hollow and drawn solid, and no words. That second
+glyph is the descriptor's own `icon` asked for `filled`, so a new fillable tool
+gets the picker by drawing itself solid, with nothing to add to the toolbar.
+
 ## Switching one on
 
 Settings → Tools lists every optional tool with a one-line description and a

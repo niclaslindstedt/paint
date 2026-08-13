@@ -72,6 +72,8 @@ export const en = {
     color: "Colour",
     size: "Size",
     fill: "Fill shapes",
+    fillOutline: "Outline",
+    fillFilled: "Filled",
     tool: "Tool",
     toolbar: "Tools",
     fitPage: "Fit the page, or show it at 1:1",

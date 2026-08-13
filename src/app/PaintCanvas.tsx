@@ -7,7 +7,13 @@ import {
   useState,
 } from "react";
 
-import { isDoubleTap, isTap } from "./gestures.ts";
+import {
+  classifyEdgeDrag,
+  inEdgeZone,
+  isDoubleTap,
+  isTap,
+  type MenuEdge,
+} from "./gestures.ts";
 import { pluginById } from "./plugins/registry.ts";
 import type { DraftStroke, ToolContext } from "./plugins/types.ts";
 import { renderDrawing } from "./render.ts";
@@ -38,6 +44,7 @@ import {
 //   two fingers                pinch to zoom, drag to pan
 //   wheel                      pans; ctrl/⌘ + wheel (and a trackpad pinch) zooms
 //   double-tap (hand only)     fits the page, again for 1:1
+//   inward swipe from the edge opens the sidebar, and draws nothing
 //
 // A second finger landing mid-stroke **abandons** the stroke rather than
 // committing it: you meant to zoom, and half a line you didn't want is worse
@@ -70,6 +77,11 @@ type Props = {
   fitToken?: number;
   /** Reports the live zoom so the header can show it. */
   onScaleChange?: (scale: number) => void;
+  /** The screen edge the sidebar's open-swipe is currently armed on, or `null`
+   *  when nothing is watching an edge (a docked sidebar, the floating-button
+   *  mode, a drawer that is already open). A touch that lands in that strip is
+   *  held rather than drawn — see `gestures.ts`. */
+  menuSwipeEdge?: MenuEdge | null;
   ariaLabel: string;
 };
 
@@ -90,6 +102,7 @@ export function PaintCanvas({
   showGrid = false,
   fitToken = 0,
   onScaleChange,
+  menuSwipeEdge = null,
   ariaLabel,
 }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -124,6 +137,16 @@ export function PaintCanvas({
   // Only a navigating tool ever arms these (see the header note).
   const tapStart = useRef<{ pointerId: number; point: Point } | null>(null);
   const lastTap = useRef<{ time: number; point: Point } | null>(null);
+  // A touch that landed in the sidebar's edge strip and has begun nothing yet:
+  // it may be the drawer's open-swipe. `viewport` is where it landed on the
+  // screen (what the swipe is measured in), `point` where it landed on the
+  // element (what the gesture is replayed from when it turns out to be ours).
+  const heldEdgePress = useRef<{
+    pointerId: number;
+    edge: MenuEdge;
+    viewport: Point;
+    point: Point;
+  } | null>(null);
   // The live view, for the handlers — they run outside React's render and must
   // read the current value rather than the one their closure captured.
   const viewRef = useRef<CanvasView | null>(null);
@@ -148,14 +171,17 @@ export function PaintCanvas({
     [],
   );
 
-  /** …and the same point in document space, which is all the tools ever see. */
+  /** An element point in document space, which is all the tools ever see. */
+  const toDoc = useCallback((at: Point): Point => {
+    const current = viewRef.current;
+    if (!current) return { x: 0, y: 0 };
+    return toDocumentPoint(current, at);
+  }, []);
+
+  /** …and the same, straight from a pointer event. */
   const documentPoint = useCallback(
-    (e: { clientX: number; clientY: number }): Point => {
-      const current = viewRef.current;
-      if (!current) return { x: 0, y: 0 };
-      return toDocumentPoint(current, elementPoint(e));
-    },
-    [elementPoint],
+    (e: { clientX: number; clientY: number }): Point => toDoc(elementPoint(e)),
+    [elementPoint, toDoc],
   );
 
   const applyView = useCallback((next: CanvasView) => {
@@ -289,6 +315,39 @@ export function PaintCanvas({
     }
   }, []);
 
+  /** Start whatever gesture the active tool makes of a press at `at` (an
+   *  element point). Split out from the pointer handler because a press held
+   *  back at the screen edge starts here too, late, from where it landed. */
+  const beginGesture = (pointerId: number, at: Point) => {
+    const plugin = pluginById(tool);
+    if (!plugin) return;
+
+    // The hand. A press under a navigating tool grabs the page instead of
+    // starting a stroke, and is a tap until it travels far enough not to be.
+    if (plugin.navigates) {
+      if (!viewRef.current) return;
+      panStart.current = { pointerId, view: viewRef.current, origin: at };
+      tapStart.current = { pointerId, point: at };
+      return;
+    }
+
+    if (drawingPointer.current !== null) return;
+    const next = plugin.behaviour.start(toDoc(at), context());
+    if (!next) return;
+    drawingPointer.current = pointerId;
+    setDraft({ ...next, tool });
+  };
+
+  /** Forget a held edge press, whoever owned it. */
+  const dropHeld = (pointerId?: number) => {
+    if (
+      pointerId === undefined ||
+      heldEdgePress.current?.pointerId === pointerId
+    ) {
+      heldEdgePress.current = null;
+    }
+  };
+
   const handleDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
     e.currentTarget.setPointerCapture(e.pointerId);
     const at = elementPoint(e);
@@ -301,8 +360,10 @@ export function PaintCanvas({
       const [a, b] = [...pointers.current.values()];
       abandon();
       // …and any pan or half-made tap, for the same reason: a pinch is not the
-      // second half of a double-tap.
+      // second half of a double-tap. A held edge press goes with them: two
+      // fingers are not the drawer's swipe either.
       endPan();
+      dropHeld();
       lastTap.current = null;
       if (viewRef.current && a && b) {
         pinchStart.current = { view: viewRef.current, a, b };
@@ -311,27 +372,26 @@ export function PaintCanvas({
     }
     if (pointers.current.size > 2) return;
 
-    const plugin = pluginById(tool);
-    if (!plugin) return;
-
-    // The hand. A press under a navigating tool grabs the page instead of
-    // starting a stroke, and is a tap until it travels far enough not to be.
-    if (plugin.navigates) {
-      if (!viewRef.current) return;
-      panStart.current = {
+    // A touch landing in the strip the sidebar watches might be the drawer's
+    // open-swipe, and that swipe must leave no mark. Hold the press instead of
+    // starting anything: `handleMove` releases it the moment it proves it is
+    // not the drawer's, and replays it from here. Touch only — the swipe is a
+    // touch gesture, so a mouse or a pen at the edge is never in doubt.
+    if (
+      menuSwipeEdge &&
+      e.pointerType === "touch" &&
+      inEdgeZone(e.clientX, window.innerWidth, menuSwipeEdge)
+    ) {
+      heldEdgePress.current = {
         pointerId: e.pointerId,
-        view: viewRef.current,
-        origin: at,
+        edge: menuSwipeEdge,
+        viewport: { x: e.clientX, y: e.clientY },
+        point: at,
       };
-      tapStart.current = { pointerId: e.pointerId, point: at };
       return;
     }
 
-    if (drawingPointer.current !== null) return;
-    const next = plugin.behaviour.start(documentPoint(e), context());
-    if (!next) return;
-    drawingPointer.current = e.pointerId;
-    setDraft({ ...next, tool });
+    beginGesture(e.pointerId, at);
   };
 
   const handleMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
@@ -355,6 +415,23 @@ export function PaintCanvas({
         setView(viewRef.current);
       }
       return;
+    }
+
+    // A press held back at the screen edge: decide whose it is now that it has
+    // moved. The drawer's swipe is dropped outright; anything else becomes the
+    // gesture it always was, replayed from where the finger first landed so no
+    // ink is lost to the wait, and then caught up to here by the code below.
+    const held = heldEdgePress.current;
+    if (held && held.pointerId === e.pointerId) {
+      const verdict = classifyEdgeDrag(
+        e.clientX - held.viewport.x,
+        e.clientY - held.viewport.y,
+        held.edge,
+      );
+      if (verdict === "pending") return;
+      heldEdgePress.current = null;
+      if (verdict === "menu") return;
+      beginGesture(e.pointerId, held.point);
     }
 
     // A one-finger drag under the hand: pan by how far it has come from where
@@ -385,6 +462,16 @@ export function PaintCanvas({
 
   const finish = (e: React.PointerEvent<HTMLCanvasElement>) => {
     release(e);
+
+    // A press still held at the edge when the finger lifts was never the
+    // drawer's — the swipe would have fired long before this. Start it now so
+    // the press lands as the tap it was, and let the rest of this handler end
+    // it in the same breath.
+    const held = heldEdgePress.current;
+    if (held && held.pointerId === e.pointerId) {
+      heldEdgePress.current = null;
+      beginGesture(e.pointerId, held.point);
+    }
 
     // A press that never wandered is a tap; two of them in quick succession fit
     // the page, then return to 1:1. Detected here rather than from `dblclick`
@@ -425,6 +512,7 @@ export function PaintCanvas({
   const cancel = (e: React.PointerEvent<HTMLCanvasElement>) => {
     release(e);
     endPan(e.pointerId);
+    dropHeld(e.pointerId);
     lastTap.current = null;
     if (drawingPointer.current !== e.pointerId) return;
     abandon();
