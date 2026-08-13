@@ -81,12 +81,26 @@ never a bitmap, and that single decision pays for most of the app:
   makes the light/dark canvas flip re-ink a whole sketch (see
   [`canvas.ts`](../src/app/canvas.ts)).
 
-Rasterising happens twice, both times through the same renderer: onto the screen
-canvas, and onto an off-screen canvas for the PNG export. There is no second
-painting path to drift. The screen applies the view transform before calling it
-and the export doesn't, which is the only difference between them — and the
-reason the grid is a `RenderOptions` flag the export leaves unset rather than
-something painted separately.
+One shape kind breaks the "never a bitmap" rule on purpose: an `image` stroke —
+a picture dropped onto the page — carries its bytes inline as a `data:` URL,
+because an imported photo has no vector form and the alternative to inlining it
+is not having it. It is still one stroke: it undoes, syncs and exports like any
+other mark, and imports are downscaled on the way in (`images.ts`) so a document
+that lives in localStorage stays a sane size.
+
+Rasterising happens through the same renderer everywhere: onto the screen
+canvas, and onto an off-screen canvas for the PNG and JPG downloads. There is no
+second painting path to drift. The screen applies the view transform before
+calling it and a download applies its crop instead, which is the only difference
+between them — and the reason the grid is a `RenderOptions` flag a download
+leaves unset rather than something painted separately.
+
+The SVG download is the same trick rather than an exception. `svg.ts` is a
+**recording context**: an object carrying the slice of the 2D canvas API the
+painters use, which emits elements instead of pixels. `renderDrawing` paints into
+it exactly as it paints into a canvas, so a new tool gets vector output for free
+and there is still one painter per stroke. What an export covers — the sheet, or
+a crop around the marks — is `bounds.ts`, geometry keyed off the shape kind.
 
 ## The canvas is a window
 
@@ -138,6 +152,13 @@ A tool that needs the app to treat it differently says so on its descriptor —
 `usesBackground` for the eraser, `navigates` for the hand, `picksColor` for the
 dropper, `supportsHardness` for the soft brushes — so the canvas and the toolbar
 read a property instead of learning a name.
+
+`hidden` is the same idea taken to its end: the dropped image's painter is a
+plugin with no button anywhere and no gesture at all. An image arrives as a file,
+but the mark it becomes still names a plugin, so the renderer can paint it
+without any screen learning that "image" means something. `toolPlugins()` is the
+list everything user-facing reads; `allPlugins()` keeps the hidden one so a
+stroke never loses its painter.
 
 Two tools need to know what is _painted_ rather than what was drawn. They ask
 through `ToolContext.probe`, a narrow read of the page (`probe.ts`) that

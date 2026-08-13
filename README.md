@@ -24,6 +24,8 @@ the same [`oss-framework`](https://github.com/niclaslindstedt/oss-framework).
 
 - **For explaining things.** The tool you reach for mid-conversation to show a
   colleague what you mean — quick to open, quick to export, quick to throw away.
+  Drop a screenshot on the page and annotate it; download the result as a PNG, a
+  JPG or a vector SVG, or copy it straight to the clipboard.
 - **Tools are plugins.** Every tool, the pencil included, is registered through
   one interface. A few are always on, a few more come switched on, and the rest
   — shapes, a crayon, a calligraphy nib, a neon pen — wait in Settings → Tools,
@@ -117,8 +119,9 @@ npm run preview
   widths, a slider for new ones, and the hardness dial. Each tool has a
   single-key shortcut; a shape that can be filled opens a hollow / solid picker
   over the page when you press its button a second time.
-- **Header** — the drawing's name (edit in place), the favourite star, PNG
-  export, and clear. Undo and redo are in the sidebar's button island.
+- **Header** — the drawing's name (edit in place), the favourite star, the
+  download menu (PNG, JPG, SVG, or copy to the clipboard), and clear. Undo and
+  redo are in the sidebar's button island.
 
 ## Configuration
 

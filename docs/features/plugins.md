@@ -53,6 +53,12 @@ works the same way through `picksColor`, and the soft brushes advertise
 the pattern for any tool that needs the app to treat it differently: a property
 on the descriptor, so nothing outside `plugins/` has to know a tool by name.
 
+`hidden` is the flag taken to its limit: a hidden plugin has no button anywhere
+and no gesture at all. The dropped image's painter is the one this build ships —
+a picture arrives as a file rather than as a stroke you drew, but the mark it
+becomes still names a plugin, which is how it paints, exports and undoes like
+every other mark without any screen knowing what an image is.
+
 `supportsFill` is the same idea. A tool that sets it wears a folded corner in
 the toolbar and opens a fill picker when you press its button a second time —
 two glyphs, its own icon drawn hollow and drawn solid, and no words. That second

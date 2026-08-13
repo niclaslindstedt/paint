@@ -13,6 +13,7 @@ import {
   CodeIcon,
   CogIcon,
   DatabaseIcon,
+  DownloadIcon,
   FloatingPanel,
   MenuIcon,
   Modal,
@@ -37,6 +38,7 @@ import {
   LogsTab,
   StorageTab,
 } from "./settings/tabs.tsx";
+import { DownloadTab } from "./settings/download.tsx";
 import { ToolsTab } from "./settings/tools.tsx";
 
 // The app's tabbed Settings modal — composed from the framework's `Modal` and
@@ -58,6 +60,7 @@ type TabId =
   | "appearance"
   | "tools"
   | "canvas"
+  | "download"
   | "storage"
   | "developer"
   | "logs";
@@ -77,6 +80,7 @@ const TABS: TabDef[] = [
   { id: "appearance", labelKey: "settings.tabs.appearance", icon: PaletteIcon },
   { id: "tools", labelKey: "settings.tabs.tools", icon: ToolboxIcon },
   { id: "canvas", labelKey: "settings.tabs.canvas", icon: CanvasIcon },
+  { id: "download", labelKey: "settings.tabs.download", icon: DownloadIcon },
   { id: "storage", labelKey: "settings.tabs.storage", icon: DatabaseIcon },
   { id: "developer", labelKey: "settings.tabs.developer", icon: CodeIcon },
   { id: "logs", labelKey: "settings.tabs.logs", icon: ScrollTextIcon },
@@ -338,6 +342,9 @@ export function SettingsModal({
               store={store}
               appearance={appearance}
             />
+          )}
+          {activeTab === "download" && (
+            <DownloadTab settings={draft} update={update} />
           )}
           {activeTab === "storage" && (
             <StorageTab store={store} sync={sync} darkCanvas={darkCanvas} />

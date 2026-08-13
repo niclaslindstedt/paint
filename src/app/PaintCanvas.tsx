@@ -14,6 +14,7 @@ import {
   isTap,
   type MenuEdge,
 } from "./gestures.ts";
+import { onImageDecoded } from "./images.ts";
 import { pluginById } from "./plugins/registry.ts";
 import type { CanvasProbe, DraftStroke, ToolContext } from "./plugins/types.ts";
 import { createProbe } from "./probe.ts";
@@ -83,6 +84,16 @@ type Props = {
   fitToken?: number;
   /** Reports the live zoom so the header can show it. */
   onScaleChange?: (scale: number) => void;
+  /** Reports the whole view, so an overlay drawn over the canvas — the dropped
+   *  image's placement frame — can sit exactly over the page. */
+  onViewChange?: (view: CanvasView) => void;
+  /** True while something is floating over the page waiting to be settled: a
+   *  dropped image. A press then *settles* that instead of drawing — it is the
+   *  "click outside it" half of the placement gesture, and no mark may be laid
+   *  down under a picture that isn't placed yet. Two-finger pinch and the wheel
+   *  still move the view, so you can look around before deciding. */
+  placing?: boolean;
+  onPlacingPress?: () => void;
   /** The screen edge the sidebar's open-swipe is currently armed on, or `null`
    *  when nothing is watching an edge (a docked sidebar, the floating-button
    *  mode, a drawer that is already open). A touch that lands in that strip is
@@ -109,6 +120,9 @@ export function PaintCanvas({
   showGrid = false,
   fitToken = 0,
   onScaleChange,
+  onViewChange,
+  placing = false,
+  onPlacingPress,
   menuSwipeEdge = null,
   ariaLabel,
 }: Props) {
@@ -281,8 +295,16 @@ export function PaintCanvas({
   }, [fitToken]);
 
   useEffect(() => {
-    if (view) onScaleChange?.(view.scale);
-  }, [view, onScaleChange]);
+    if (!view) return;
+    onScaleChange?.(view.scale);
+    onViewChange?.(view);
+  }, [view, onScaleChange, onViewChange]);
+
+  // A bitmap on the page decodes asynchronously but paints synchronously, so a
+  // freshly-loaded image would otherwise sit invisible until something else
+  // forced a repaint. Bumping this counter is that something (see `images.ts`).
+  const [decodedAt, setDecodedAt] = useState(0);
+  useEffect(() => onImageDecoded(() => setDecodedAt((count) => count + 1)), []);
 
   // Repaint whenever the document, the gesture, the view, or the device pixel
   // ratio changes. A full redraw per frame is cheap at sketch-sized stroke
@@ -325,7 +347,18 @@ export function PaintCanvas({
     ctx.strokeStyle = "rgba(120,130,145,0.4)";
     ctx.lineWidth = 1 / view.scale;
     ctx.strokeRect(0, 0, drawing.width, drawing.height);
-  }, [drawing, draft, view, viewport, pageColor, defaultInk, showGrid]);
+    // `decodedAt` is not read above — it is in the dependency list so a bitmap
+    // finishing its decode repaints the page it belongs to.
+  }, [
+    drawing,
+    draft,
+    view,
+    viewport,
+    pageColor,
+    defaultInk,
+    showGrid,
+    decodedAt,
+  ]);
 
   /** Abandon whatever stroke is in flight without committing it. */
   const abandon = useCallback(() => {
@@ -348,6 +381,12 @@ export function PaintCanvas({
    *  element point). Split out from the pointer handler because a press held
    *  back at the screen edge starts here too, late, from where it landed. */
   const beginGesture = (pointerId: number, at: Point) => {
+    // Something is floating over the page waiting to be settled: this press is
+    // the "click outside it" that keeps it, and it begins nothing else.
+    if (placing) {
+      onPlacingPress?.();
+      return;
+    }
     const plugin = pluginById(tool);
     if (!plugin) return;
     // A new press reads a new page: whatever the last gesture drew is part of
@@ -606,7 +645,13 @@ export function PaintCanvas({
       // the canvas scrolls or zooms the page instead of drawing and pinching.
       className="h-full w-full touch-none"
       style={{
-        cursor: holding ? "grabbing" : navigates ? "grab" : "crosshair",
+        cursor: placing
+          ? "default"
+          : holding
+            ? "grabbing"
+            : navigates
+              ? "grab"
+              : "crosshair",
       }}
     />
   );

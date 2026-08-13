@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { DEFAULT_NAMESPACE_SLUG } from "@niclaslindstedt/oss-framework/namespaces";
 
+import { pageFitting, strokeBounds } from "./bounds.ts";
 import { parseDoc, serializeDoc } from "./migrations.ts";
 import {
   DEFAULT_CANVAS,
@@ -306,13 +307,24 @@ export function usePaintStore(
     [activeDrawing, commit, data],
   );
 
-  /** File a finished gesture onto the active page — one mark, one undo step. */
+  /** File a finished gesture onto the active page — one mark, one undo step.
+   *
+   *  `fitPage` grows the sheet so the mark fits on it, in the same step: a
+   *  dropped image is placed before it is settled and may well hang off the
+   *  edge, and a picture half off the page is not what was dropped. The page
+   *  only ever grows right and down — moving the origin would shift every mark
+   *  already on it. Ordinary gestures don't ask for it: drawing past the edge is
+   *  a slip, not a request for a bigger sheet. */
   const addStroke = useCallback(
-    (draft: DraftStroke) => {
+    (draft: DraftStroke, options: { fitPage?: boolean } = {}) => {
       const active = activeDrawing;
       if (!active) return;
       const stroke: Stroke = { ...draft, id: freshId("stroke") };
-      patchActive({ strokes: [...active.strokes, stroke] });
+      const bounds = options.fitPage ? strokeBounds(stroke) : null;
+      patchActive({
+        strokes: [...active.strokes, stroke],
+        ...(bounds ? pageFitting(active, bounds) : {}),
+      });
     },
     [activeDrawing, patchActive],
   );
@@ -341,10 +353,19 @@ export function usePaintStore(
     [patchActive],
   );
 
-  /** Create a page and open it, optionally filed into a folder. */
+  /** Create a page and open it, optionally filed into a folder.
+   *
+   *  `init` seeds the new page — the size and the strokes an image dropped onto
+   *  the sidebar arrives with — so the drawing is created in its finished state
+   *  rather than created blank and then edited, which would be two undo steps
+   *  for one gesture. */
   const addDrawing = useCallback(
-    (name = "", folderId: string | null = null): string => {
-      const drawing = blankDrawing(name, folderId);
+    (
+      name = "",
+      folderId: string | null = null,
+      init: Partial<Omit<Drawing, "id">> = {},
+    ): string => {
+      const drawing = { ...blankDrawing(name, folderId), ...init };
       commit({
         ...data,
         drawings: [...data.drawings, drawing],

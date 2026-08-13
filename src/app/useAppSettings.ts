@@ -10,6 +10,11 @@ import {
 } from "@niclaslindstedt/oss-framework/theme";
 
 import type { CanvasTheme } from "./canvas.ts";
+import {
+  DOWNLOAD_FORMATS,
+  type DownloadFormat,
+  type ExportScope,
+} from "./export.ts";
 import { defaultEnabledPlugins } from "./plugins/registry.ts";
 
 // The app's own (non-theme) settings — how the side menu opens, which optional
@@ -63,6 +68,15 @@ export type AppSettings = {
   filled: boolean;
   /** Paint the canvas over a grid, so a sketch of boxes and arrows lines up. */
   showGrid: boolean;
+  /** The file types the download menu offers, in menu order. Switching one off
+   *  hides it from the menu; the menu's "copy to clipboard" is always there, so
+   *  even an empty list leaves a way out. */
+  downloadFormats: DownloadFormat[];
+  /** Whether a download covers the whole page or crops to the marks. */
+  downloadScope: ExportScope;
+  /** Whether a download leaves the page unpainted, so the marks land on
+   *  transparency. JPG can't — it has no alpha channel. */
+  downloadTransparent: boolean;
   modalBackdropDarkness: BackdropDarkness;
   modalBackdropBlur: BackdropBlur;
 };
@@ -125,6 +139,15 @@ const BASE_SETTINGS: Omit<AppSettings, "enabledPlugins"> = {
   hardness: 1,
   filled: false,
   showGrid: false,
+  // All three file types out of the box: the download menu is where you
+  // *discover* that a sketch can leave as an SVG, and hiding one is the unusual
+  // choice.
+  downloadFormats: [...DOWNLOAD_FORMATS],
+  // The whole page, opaque — a downloaded sketch then reads the way it did on
+  // screen wherever it is pasted, including somewhere that paints its own dark
+  // backdrop behind it.
+  downloadScope: "page",
+  downloadTransparent: false,
   // The dialog backdrop dims the page to 50% black (the framework's original
   // look) and adds no blur out of the box — both are tunable in Appearance.
   modalBackdropDarkness: "medium",
@@ -205,6 +228,18 @@ function parseSettings(raw: string): AppSettings {
     ? merged.customColors.filter((c): c is string => typeof c === "string")
     : [];
   merged.customSizes = numbers(merged.customSizes, MAX_SIZE);
+  // The download menu renders straight off this list, so an unknown id (a
+  // format some newer build offered) is dropped rather than kept: there is
+  // nothing this build could show for it.
+  merged.downloadFormats = Array.isArray(merged.downloadFormats)
+    ? DOWNLOAD_FORMATS.filter((format) =>
+        (merged.downloadFormats as unknown[]).includes(format),
+      )
+    : [...base.downloadFormats];
+  if (merged.downloadScope !== "page" && merged.downloadScope !== "marks") {
+    merged.downloadScope = base.downloadScope;
+  }
+  merged.downloadTransparent = Boolean(merged.downloadTransparent);
   return merged;
 }
 
