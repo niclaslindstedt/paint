@@ -211,6 +211,9 @@ jobs:
           cp -R dist-branch/. "$STAGE/"
           # Drop CNAME from the per-slot copy; only the root artifact
           # may carry it. (Vite copies public/CNAME into every build.)
+          # Pages ignores the file either way — the domain is applied
+          # through the API below — but a stray copy under /branch/
+          # would still be served as a public file.
           rm -f "$STAGE/CNAME"
           # Build an orphan tree containing just the build output and
           # force-push it to BRANCH_DEPLOY_REF. Force-push is safe: the
@@ -280,7 +283,55 @@ jobs:
             echo "Merged: /branch/ from $BRANCH_DEPLOY_REF"
           fi
 
-      - uses: actions/configure-pages@v5
+      # ---- Pages site configuration ----
+      # `enablement: true` creates the Pages site (build type "workflow")
+      # on the first run instead of failing with "Get Pages site failed.
+      # Please verify that the repository has Pages enabled" — the repo
+      # then needs no manual Settings → Pages visit before its first
+      # deploy. Needs the `pages: write` permission declared above.
+      - uses: actions/configure-pages@v6
+        with:
+          enablement: true
+
+      # A site published by a *workflow* (rather than from a branch)
+      # ignores the CNAME file in the artifact — GitHub reads the custom
+      # domain from the Pages site's own configuration instead, so
+      # `public/CNAME` alone leaves the app on
+      # `niclaslindstedt.github.io/paint/` while every build is compiled
+      # for the domain root (`VITE_BASE: /`), which 404s every asset.
+      # Keep `public/CNAME` as the single source of truth for the domain
+      # and push it through the Pages API here.
+      - name: Apply the custom domain from public/CNAME
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          DOMAIN=$(tr -d '[:space:]' < public/CNAME)
+          if [ -z "$DOMAIN" ]; then
+            echo "public/CNAME is empty — refusing to unset the custom domain."
+            exit 1
+          fi
+          # Tolerate a failed read (the site is created moments earlier by
+          # configure-pages, and the API is eventually consistent): an
+          # empty answer just falls through to the PUT, which is the
+          # corrective action either way.
+          CURRENT=$(gh api "repos/$GITHUB_REPOSITORY/pages" --jq '.cname // ""' 2>/dev/null || true)
+          if [ "$CURRENT" = "$DOMAIN" ]; then
+            echo "Pages custom domain is already $DOMAIN."
+          else
+            echo "Setting Pages custom domain: ${CURRENT:-<none>} -> $DOMAIN"
+            gh api -X PUT "repos/$GITHUB_REPOSITORY/pages" -f "cname=$DOMAIN"
+          fi
+          # HTTPS enforcement is only accepted once Pages has issued the
+          # certificate for the domain, which lands a few minutes after
+          # the domain is first set. Re-try it on every run and treat a
+          # rejection as "not provisioned yet" rather than a failed deploy.
+          ENFORCED=$(gh api "repos/$GITHUB_REPOSITORY/pages" --jq '.https_enforced' 2>/dev/null || true)
+          if [ "$ENFORCED" != "true" ]; then
+            gh api -X PUT "repos/$GITHUB_REPOSITORY/pages" \
+              -f "cname=$DOMAIN" -F https_enforced=true \
+              || echo "::notice::HTTPS not enforced yet (certificate still provisioning) — retrying next run."
+          fi
+
       - uses: actions/upload-pages-artifact@v5
         with:
           path: dist

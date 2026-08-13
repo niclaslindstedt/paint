@@ -45,6 +45,21 @@ narrow `drive.file` scope, so it can only see files it created itself.
 Both are set by `.github/workflows/pages.yml`; you only touch them if you are
 deploying the app somewhere else.
 
+### The custom domain
+
+The app is served from `paint.niclaslindstedt.se`, which is why the released
+build is compiled for the domain root (`VITE_BASE: /`) rather than for a
+`/<repo>/` subpath.
+
+`public/CNAME` holds that domain and is the only place to change it. GitHub
+Pages **ignores** a `CNAME` file when the site is published by a workflow (it
+only reads one when publishing from a branch), so `pages.yml` reads the file and
+applies it to the Pages site through the Pages API on every deploy, along with
+enabling the site itself and turning on HTTPS enforcement once the certificate
+exists. Changing the domain therefore means editing `public/CNAME`, pointing DNS
+at `<user>.github.io`, and updating the absolute URLs in `index.html`,
+`public/sitemap.xml`, `public/robots.txt`, and `public/llms.txt`.
+
 ## Local development
 
 Put the variables in a `.env.local` file at the repository root (it is
