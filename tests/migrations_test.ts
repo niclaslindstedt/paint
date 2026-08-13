@@ -14,9 +14,14 @@ import { DEFAULT_CANVAS } from "../src/app/types.ts";
 
 describe("serializeDoc", () => {
   it("stamps the version onto the bytes at rest", () => {
-    const text = serializeDoc({ drawings: [], activeDrawingId: "" });
+    const text = serializeDoc({
+      folders: [],
+      drawings: [],
+      activeDrawingId: "",
+    });
     expect(JSON.parse(text)).toEqual({
       version: LATEST_VERSION,
+      folders: [],
       drawings: [],
       activeDrawingId: "",
     });
@@ -24,6 +29,7 @@ describe("serializeDoc", () => {
 
   it("round-trips a document", () => {
     const doc = {
+      folders: [{ id: "f1", name: "Diagrams" }],
       drawings: [
         {
           id: "d1",
@@ -70,7 +76,42 @@ describe("parseDoc", () => {
   });
 
   it("survives a document with nothing in it", () => {
-    expect(parseDoc("{}")).toEqual({ drawings: [], activeDrawingId: "" });
+    expect(parseDoc("{}")).toEqual({
+      folders: [],
+      drawings: [],
+      activeDrawingId: "",
+    });
+  });
+
+  it("gives a v1 document the folders array the menu iterates", () => {
+    const migrated = parseDoc(
+      JSON.stringify({
+        version: 1,
+        drawings: [{ id: "d1" }],
+        activeDrawingId: "d1",
+      }),
+    );
+    expect(migrated.folders).toEqual([]);
+    // Grouping, starring and archiving are all opt-in flags, so an existing
+    // drawing must come through ungrouped, unstarred and live rather than
+    // being rewritten into some default.
+    expect(migrated.drawings[0]!.folderId).toBeUndefined();
+    expect(migrated.drawings[0]!.favorite).toBeUndefined();
+    expect(migrated.drawings[0]!.archived).toBeUndefined();
+  });
+
+  it("keeps folders a v2 document already carried", () => {
+    const migrated = parseDoc(
+      JSON.stringify({
+        version: 2,
+        folders: [{ id: "f1", name: "Diagrams" }],
+        drawings: [{ id: "d1", folderId: "f1", favorite: true }],
+        activeDrawingId: "d1",
+      }),
+    );
+    expect(migrated.folders).toEqual([{ id: "f1", name: "Diagrams" }]);
+    expect(migrated.drawings[0]!.folderId).toBe("f1");
+    expect(migrated.drawings[0]!.favorite).toBe(true);
   });
 
   it("refuses a document from a newer build rather than mangling it", () => {

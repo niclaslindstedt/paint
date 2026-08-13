@@ -52,6 +52,19 @@ export type Stroke = {
   shape: Shape;
 };
 
+/** A group of drawings in the side menu. Flat by design — a sketchbook is a
+ *  shallow thing, and one level of grouping ("Diagrams", "Scratch") is what a
+ *  drawer this size can show without turning into a tree view.
+ *
+ *  Archiving a folder archives the drawings filed in it; the folder itself is
+ *  held, not deleted, so restoring it brings the whole group back. */
+export type Folder = {
+  id: string;
+  name: string;
+  archived?: boolean;
+  createdAt?: string;
+};
+
 /** One canvas in the document. The page is a fixed pixel size so a drawing
  *  looks the same on a phone and a laptop — the view scales it to fit rather
  *  than reflowing it. */
@@ -72,6 +85,13 @@ export type Drawing = {
    *  the browser-tab favicon (see the `glyphs` module). */
   glyph?: string;
   color?: string;
+  /** The folder this drawing is filed in, or `null`/absent for one that sits at
+   *  the top level of the menu. An id that names no present folder reads as
+   *  ungrouped, so a drawing is never stranded by a pruned folder. */
+  folderId?: string | null;
+  /** Starred — mirrored into the menu's Favorites section so it stays one tap
+   *  away wherever it is filed. */
+  favorite?: boolean;
   archived?: boolean;
   createdAt?: string;
   updatedAt?: string;
@@ -80,6 +100,7 @@ export type Drawing = {
 /** The whole in-memory document for one namespace. Version-free by design —
  *  the version lives only on the bytes at rest (see `migrations.ts`). */
 export type AppData = {
+  folders: Folder[];
   drawings: Drawing[];
   activeDrawingId: string;
 };
@@ -95,8 +116,70 @@ export function drawingName(d: Drawing | undefined, fallback: string): string {
   return name ? name : fallback;
 }
 
-/** How many marks a drawing holds — the side-menu row's subtitle, and the
- *  count the cloud-setup prompt compares between two copies. */
-export function strokeCount(d: Drawing): number {
-  return d.strokes.length;
+// --- Selectors ---------------------------------------------------------------
+//
+// The reads the side menu and the archive screen share. Pure functions of the
+// document, kept here beside the shapes they walk so the two screens can never
+// disagree about what "live", "favorite", or "in this folder" means.
+
+/** The folders shown in the menu — everything not archived, oldest first (the
+ *  order they were created in, which is the order they were added to the
+ *  array). */
+export function liveFolders(data: AppData): Folder[] {
+  return data.folders.filter((f) => !f.archived);
+}
+
+/** When a drawing last changed — its `updatedAt` if it has been edited since it
+ *  was made, otherwise the moment it was created. A drawing carrying neither
+ *  (one written by a build older than those stamps) sorts oldest. */
+export function lastTouched(d: Drawing): number {
+  const stamp = d.updatedAt ?? d.createdAt;
+  if (!stamp) return 0;
+  const ms = Date.parse(stamp);
+  return Number.isNaN(ms) ? 0 : ms;
+}
+
+/** Most recently edited first — the order every list of drawings is shown in.
+ *  A sketchpad is a working surface, so what you touched last is what you are
+ *  most likely to want next; ties fall back to the name so the order is stable
+ *  rather than arbitrary. */
+export function byRecency(a: Drawing, b: Drawing): number {
+  return lastTouched(b) - lastTouched(a) || a.name.localeCompare(b.name);
+}
+
+/** The drawings shown in the menu — everything not archived, most recently
+ *  edited first. */
+export function liveDrawings(data: AppData): Drawing[] {
+  return data.drawings.filter((d) => !d.archived).sort(byRecency);
+}
+
+/** The live drawings filed in `folderId` (pass `null` for the ungrouped ones at
+ *  the top level). A drawing pointing at a folder that no longer exists counts
+ *  as ungrouped, so nothing disappears from the menu when a folder is pruned. */
+export function drawingsInFolder(
+  data: AppData,
+  folderId: string | null,
+): Drawing[] {
+  const known = new Set(liveFolders(data).map((f) => f.id));
+  return liveDrawings(data).filter((d) => {
+    const filed =
+      d.folderId != null && known.has(d.folderId) ? d.folderId : null;
+    return filed === folderId;
+  });
+}
+
+/** The starred, non-archived drawings — the menu's Favorites section, flat:
+ *  a favorite is a shortcut, so it reads in one list regardless of where it is
+ *  filed. */
+export function favoriteDrawings(data: AppData): Drawing[] {
+  return liveDrawings(data).filter((d) => d.favorite);
+}
+
+/** How many items the Archive holds — archived drawings plus archived folders.
+ *  The badge on the menu's Archive button. */
+export function archivedCount(data: AppData): number {
+  return (
+    data.drawings.filter((d) => d.archived).length +
+    data.folders.filter((f) => f.archived).length
+  );
 }

@@ -1,7 +1,9 @@
 <!doctype html>
 <!-- `data-theme` seeds the default preset before the app mounts (the engine
-     then keeps it in sync); the framework's token blocks key off it. -->
-<html lang="en" data-theme="githubDark">
+     then keeps it in sync); the framework's token blocks key off it. `system`
+     is the app's default look and follows `prefers-color-scheme`, so the first
+     paint already matches the OS rather than flashing dark on a light phone. -->
+<html lang="en" data-theme="system">
   <head>
     <meta charset="UTF-8" />
     <!-- Lock the viewport scale: an installed PWA is an app, not a document.

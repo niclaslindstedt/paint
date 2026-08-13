@@ -6,11 +6,11 @@ import {
   DownloadIcon,
   InlineEditField,
   RedoIcon,
+  StarIcon,
   TrashIcon,
   UndoIcon,
 } from "@niclaslindstedt/oss-framework/components";
 import { downloadBlob } from "@niclaslindstedt/oss-framework/files";
-import { SyncStatus } from "@niclaslindstedt/oss-framework/sync";
 
 import { defaultInk, resolvePageColor } from "./canvas.ts";
 import { drawingToPng, exportFileName } from "./export.ts";
@@ -20,12 +20,15 @@ import { PaintCanvas } from "./PaintCanvas.tsx";
 import { Toolbar } from "./Toolbar.tsx";
 import type { AppSettings } from "./useAppSettings.ts";
 import type { PaintStore } from "./usePaintStore.ts";
-import type { SyncEngine } from "./useSyncEngine.ts";
 import * as output from "../output.ts";
 
-// The main screen: a header naming the open drawing (with the framework's sync
-// glyph and the undo/redo/export/clear actions), the page itself, and the
-// toolbar under it.
+// The main screen: a header naming the open drawing (with the favourite star
+// and the undo/redo/export/clear actions), the page itself, and the toolbar
+// under it.
+//
+// The sync glyph is deliberately *not* here: there is one cloud affordance for
+// the whole app and it lives in the side menu's button island, so the header
+// keeps its width for the controls that act on the drawing in front of you.
 //
 // The screen owns no drawing state — the store owns the document, the settings
 // own the ink, and `PaintCanvas` owns the gesture in flight. This component is
@@ -33,7 +36,6 @@ import * as output from "../output.ts";
 
 type Props = {
   store: PaintStore;
-  sync: SyncEngine;
   settings: AppSettings;
   update: <K extends keyof AppSettings>(key: K, value: AppSettings[K]) => void;
   /** The active tool, already resolved against what the toolbar offers. */
@@ -41,17 +43,14 @@ type Props = {
   /** Whether the page is a dark sheet — resolved from the canvas theme and the
    *  app appearance by `App`, so the screen never re-derives it. */
   darkCanvas: boolean;
-  onOpenSyncDetails: () => void;
 };
 
 export function CanvasScreen({
   store,
-  sync,
   settings,
   update,
   tool,
   darkCanvas,
-  onOpenSyncDetails,
 }: Props) {
   const t = useT();
   const [confirmClear, setConfirmClear] = useState(false);
@@ -80,7 +79,10 @@ export function CanvasScreen({
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <header className="flex shrink-0 items-center gap-2 border-b border-line bg-surface px-3 py-2">
+      {/* The header pads by the top safe-area inset so its title and buttons
+          sit clear of the status bar / Dynamic Island in the installed iOS PWA,
+          which paints edge to edge (`viewport-fit=cover`). */}
+      <header className="flex shrink-0 items-center gap-2 border-b border-line bg-surface px-3 pb-2 pt-[calc(0.5rem+env(safe-area-inset-top))]">
         {/* The name is edited in place — a drawing is named by typing over its
             title, not through a dialog. */}
         <div className="min-w-0 flex-1">
@@ -94,16 +96,19 @@ export function CanvasScreen({
           />
         </div>
 
-        <SyncStatus
-          providerName={sync.providerName}
-          status={sync.status}
-          dirty={sync.dirty}
-          offline={sync.offline}
-          onOpenDetails={onOpenSyncDetails}
-          labels={{ syncedTo: (name) => t("sync.syncedTo", { name }) }}
-        />
-
         <div className="flex items-center gap-1">
+          {/* The star — where favouriting is discovered, and what puts the
+              drawing in the side menu's Favorites section. */}
+          <IconButton
+            label={drawing.favorite ? t("menu.unfavorite") : t("menu.favorite")}
+            pressed={Boolean(drawing.favorite)}
+            onClick={() => store.toggleFavorite(drawing.id)}
+          >
+            <StarIcon
+              className={`h-[18px] w-[18px] ${drawing.favorite ? "text-accent" : ""}`}
+              filled={drawing.favorite}
+            />
+          </IconButton>
           <IconButton
             label={t("canvas.undo")}
             disabled={!store.canUndo}
@@ -193,11 +198,14 @@ function IconButton({
   label,
   onClick,
   disabled,
+  pressed,
   children,
 }: {
   label: string;
   onClick: () => void;
   disabled?: boolean;
+  /** Set on the toggles (the star), so the button reports its state. */
+  pressed?: boolean;
   children: React.ReactNode;
 }) {
   return (
@@ -206,6 +214,7 @@ function IconButton({
       onClick={onClick}
       disabled={disabled}
       aria-label={label}
+      aria-pressed={pressed}
       title={label}
       className="inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded text-muted hover:bg-surface-2 hover:text-fg disabled:cursor-default disabled:opacity-30 disabled:hover:bg-transparent"
     >
