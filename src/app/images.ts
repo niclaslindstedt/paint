@@ -3,10 +3,12 @@
 // repaint.
 //
 // A dropped image is stored inline as a data URL on the stroke that places it
-// (see `Shape`'s `image` kind), which keeps a drawing one self-contained JSON
-// document — it syncs, exports, and undoes as one thing. The price is bytes, and
+// (see `Shape`'s `image` kind), which keeps the working copy one self-contained
+// JSON document — it exports and undoes as one thing. The price is bytes, and
 // the document lives in localStorage, so an import is *downscaled* on the way in
-// rather than stored at whatever a phone camera produced.
+// rather than stored at whatever a phone camera produced. On the way *out* to a
+// remote backend the bytes are split off into a real image file beside the
+// document (see `imageStore.ts`); nothing in this module has to know that.
 //
 // Painting is synchronous (see `render.ts`) but decoding an image is not, so
 // this module also owns a small cache: a painter asks for a decoded image and
@@ -87,9 +89,13 @@ export function onImageDecoded(fn: () => void): () => void {
 
 /** Every bitmap a drawing references. */
 export function imageSources(drawing: Drawing): string[] {
-  return drawing.strokes
-    .map((s) => (s.shape.kind === "image" ? s.shape.src : null))
-    .filter((src): src is string => src !== null);
+  return (
+    drawing.strokes
+      .map((s) => (s.shape.kind === "image" ? s.shape.src : undefined))
+      // An image stroke whose bytes haven't been read back from the backend yet
+      // references nothing to decode — see `imageStore.ts`.
+      .filter((src): src is string => typeof src === "string" && src.length > 0)
+  );
 }
 
 /** Decode everything a drawing references. The export path awaits this: a

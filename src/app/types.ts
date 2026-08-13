@@ -28,14 +28,34 @@ export type Point = { x: number; y: number };
  *               drawing carries pixels rather than geometry — an imported photo
  *               has no vector form, so the alternative to inlining it is not
  *               having it at all. It is still *one stroke*: it undoes, syncs,
- *               and exports like every other mark. */
+ *               and exports like every other mark.
+ *
+ *               On a remote backend the bytes are filed out to a real image
+ *               file beside the document and `src` is replaced by `srcPath`
+ *               (see `imageStore.ts`) — which is why `src` is optional: a
+ *               freshly-loaded stroke whose file couldn't be read has the
+ *               reference but not yet the pixels, and paints nothing rather
+ *               than tearing the page down. The working copy on this device
+ *               always keeps the bytes inline. */
 export type Shape =
   | { kind: "path"; points: Point[] }
   | { kind: "segment"; from: Point; to: Point }
   | { kind: "box"; from: Point; to: Point }
   | { kind: "region"; contours: Point[][] }
   | { kind: "text"; at: Point; text: string }
-  | { kind: "image"; from: Point; to: Point; src: string };
+  | {
+      kind: "image";
+      from: Point;
+      to: Point;
+      /** The bitmap as a data URL. Absent only between a remote load and the
+       *  file read that re-inlines it — see `srcPath`. */
+      src?: string;
+      /** Where the bitmap's bytes are filed on the active remote backend,
+       *  relative to its app folder (`images/<slug>-<tag>-<n>.png`). Written by
+       *  the externaliser, and carried in the document so the next device knows
+       *  which file to read back. */
+      srcPath?: string;
+    };
 
 /** One committed mark on the canvas: which tool made it, the ink, and the
  *  geometry. `tool` is a plugin id — the renderer looks the plugin up to paint

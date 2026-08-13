@@ -30,6 +30,28 @@ is hidden rather than offered as a dead option.
 - Offline, an auth expiry, or rate limiting each show in the sync glyph and in
   the command centre behind it, with the matching recovery action.
 
+## Dropped pictures become real files
+
+A drawing is vector geometry, so the document is small — until you drop a photo
+onto the page, which is stored inline as base64 and would otherwise be pushed in
+full on every save.
+
+So on a remote backend the pictures are filed out beside the document, as genuine
+`.png` / `.jpg` files under `images/`, named after the page they sit on:
+`images/sequence-diagram-4k2a-1.png`. The document keeps only the reference, and
+reading it back on another device pulls the files in. Two consequences worth
+knowing:
+
+- A picked folder or an app folder is a **browsable tree** — you can open the
+  pictures from a drawing without the app.
+- Filing is **safe by default**: a picture is only removed from the pushed
+  document once its file has been written, and a leftover file is only deleted
+  once the save that stopped referencing it has committed. A throttled or failed
+  upload costs you nothing but a retry.
+
+An **encrypted** copy skips this entirely — its pictures stay inside the
+encrypted envelope rather than landing on the drive in the clear.
+
 ## First connect
 
 When you connect a backend that already holds drawings which differ from this

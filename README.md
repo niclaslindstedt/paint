@@ -36,7 +36,9 @@ the same [`oss-framework`](https://github.com/niclaslindstedt/oss-framework).
 - **Vector, not pixels.** Undo is exact, the document is small enough for a
   phone, and a synced copy is readable JSON rather than a blob.
 - **Local-first.** No account, no server, works offline. Sync to a folder,
-  Dropbox, or Google Drive only if you ask for it — optionally encrypted.
+  Dropbox, or Google Drive only if you ask for it — optionally encrypted. A
+  picture you drop on the page is filed beside the document as a real image
+  file, so what syncs stays small and stays browsable.
 - **A page that matches the room.** The app opens in your device's light or dark
   setting, and the canvas follows it: dark app, dark page, light ink — flipping
   it re-inks the sketch rather than hiding it.

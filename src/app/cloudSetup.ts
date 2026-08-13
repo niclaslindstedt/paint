@@ -22,9 +22,21 @@ export function summarizeDoc(data: AppData): CloudDocSummary {
 }
 
 /** Whether two documents carry the same drawings — the active-page pointer
- *  aside, so re-connecting a device that already matches never nags. */
+ *  aside, so re-connecting a device that already matches never nags.
+ *
+ *  `srcPath` is skipped on both sides: it records where a dropped picture's
+ *  bytes are filed on the backend (see `imageStore.ts`), not what is on the
+ *  page. A copy that came back from a backend carries one and a copy that has
+ *  never been pushed doesn't — comparing it would make every device look like a
+ *  collision the first time it connected. */
 function sameContent(a: AppData, b: AppData): boolean {
-  return JSON.stringify(a.drawings) === JSON.stringify(b.drawings);
+  return contentKey(a) === contentKey(b);
+}
+
+function contentKey(data: AppData): string {
+  return JSON.stringify(data.drawings, (key, value: unknown) =>
+    key === "srcPath" ? undefined : value,
+  );
 }
 
 /** Whether a document holds anything worth protecting. A fresh app boots with
