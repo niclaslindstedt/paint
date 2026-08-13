@@ -77,6 +77,11 @@ export type PaintPlugin = {
   /** True when the tool paints with the page background rather than the ink
    *  colour — the colour swatch is then irrelevant and the toolbar dims it. */
   usesBackground?: boolean;
+  /** True when the tool moves the *view* instead of leaving a mark — the hand.
+   *  A one-finger drag then pans the page and a double-tap fits it, no stroke is
+   *  ever begun, and the toolbar dims the ink it would not use. This is the flag
+   *  the canvas reads; nothing branches on the tool's id. */
+  navigates?: boolean;
   /** True when the tool honours the fill toggle. */
   supportsFill?: boolean;
   behaviour: ToolBehaviour;

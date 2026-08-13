@@ -83,6 +83,18 @@ export function HighlighterIcon({ className }: IconProps) {
   );
 }
 
+/** The hand — drag the page around rather than draw on it. */
+export function HandIcon({ className }: IconProps) {
+  return (
+    <svg {...base} className={className} aria-hidden="true">
+      <path d="M7 13V7a1.75 1.75 0 0 1 3.5 0v4" />
+      <path d="M10.5 11V5.25a1.75 1.75 0 0 1 3.5 0V11" />
+      <path d="M14 11V6.5a1.75 1.75 0 0 1 3.5 0V11" />
+      <path d="M17.5 10.25a1.75 1.75 0 0 1 3.5 0V14.5a6.5 6.5 0 0 1-6.5 6.5h-1.6a6 6 0 0 1-4.24-1.76l-3.6-3.6a1.75 1.75 0 0 1 2.47-2.47L7 15.5" />
+    </svg>
+  );
+}
+
 /** The tools settings tab / plugin list. */
 export function ToolboxIcon({ className }: IconProps) {
   return (

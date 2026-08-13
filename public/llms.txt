@@ -11,12 +11,13 @@ connect a storage backend yourself.
 
 ## What it does
 
-- Draw with a pencil, eraser, line, rectangle, and ellipse — the five core tools.
+- Draw with a pencil, eraser, line, rectangle, and ellipse, plus a hand tool that
+  drags the page around — the core toolbar.
 - Switch optional tools on in Settings → Tools (arrow, marker, highlighter).
   Every tool is a plugin behind one interface, so the list grows without the app
   changing shape.
 - Draw on a page bigger than the screen: the canvas is a window onto it, with
-  pinch-to-zoom and two-finger panning.
+  pinch-to-zoom, two-finger panning, and one-finger panning under the hand.
 - Keep several drawings, group them into folders, star the ones you return to,
   and archive the rest instead of deleting them.
 - Keep several namespaces (separate sketchbooks), each with its own document.

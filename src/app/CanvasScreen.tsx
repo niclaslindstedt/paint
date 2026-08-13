@@ -182,15 +182,11 @@ export function CanvasScreen({
         </button>
       </div>
 
-      {/* The empty state also teaches the gesture: the page is bigger than the
-          screen now, so "you can pinch and pan around it" is not something a
-          first-time user would otherwise discover. It goes away with the first
-          mark, like the rest of the hint. */}
-      {drawing.strokes.length === 0 && (
-        <p className="shrink-0 px-3 pb-1 text-center text-xs text-balance text-muted">
-          {t("canvas.emptyHint")} {t("canvas.zoomHint")}
-        </p>
-      )}
+      {/* No empty-state hint. A blank sheet with a toolbar under it already
+          says "draw here", and a paragraph of instructions between the page and
+          the tools was two lines of reading in the way of the first mark — on a
+          phone it pushed the toolbar down as well. The gestures are in the docs
+          and, for panning, in the hand tool that is now in the toolbar. */}
 
       <Toolbar
         tool={tool}

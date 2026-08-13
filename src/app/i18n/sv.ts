@@ -71,11 +71,8 @@ export const sv: Catalog = {
     fill: "Fyll former",
     tool: "Verktyg",
     toolbar: "Verktyg",
-    emptyHint: "Rita var som helst på sidan för att börja.",
     fitPage: "Anpassa sidan, eller visa den i 1:1",
     zoomPercent: "{percent} %",
-    zoomHint:
-      "Nyp för att zooma, två fingrar för att panorera. Dubbeltryck för att anpassa sidan, igen för 1:1.",
     undo: "Ångra",
     redo: "Gör om",
   },
@@ -96,6 +93,11 @@ export const sv: Catalog = {
     ellipse: {
       name: "Ellips",
       description: "En cirkel eller oval, med kontur eller fylld.",
+    },
+    hand: {
+      name: "Hand",
+      description:
+        "Dra runt sidan i stället för att rita på den. Dubbeltryck för att anpassa sidan, igen för 1:1.",
     },
     arrow: {
       name: "Pil",

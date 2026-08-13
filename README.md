@@ -72,8 +72,8 @@ make install
 npm run dev          # http://localhost:5173
 ```
 
-Draw on the page. `P` pencil, `E` eraser, `L` line, `R` rectangle, `O` ellipse;
-`Ctrl/Cmd + Z` undoes a mark. Open the sidebar for more drawings, and Settings →
+Draw on the page. `P` pencil, `E` eraser, `L` line, `R` rectangle, `O` ellipse,
+`D` the hand (drag the page around); `Ctrl/Cmd + Z` undoes a mark. Open the sidebar for more drawings, and Settings →
 Tools to switch the optional tools on.
 
 To build and preview the production bundle (service worker and all):

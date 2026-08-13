@@ -103,6 +103,15 @@ gesture split (one pointer draws, two pinch, a second finger mid-stroke abandons
 the stroke). The view is screen state and deliberately never reaches the store —
 where you scrolled to is not part of the document.
 
+One pointer draws **unless the active plugin declares `navigates`**, in which
+case it pans and a double-tap fits the page. That is a flag on the descriptor,
+not a tool id — see the plugin seam below. Taps are detected from the pointer
+stream (`gestures.ts`, pure and node-testable) rather than from `dblclick`: the
+browser's event is synthesised inconsistently on touch and arrives only after
+both presses have already been handled, which under a drawing tool means two
+marks are on the page before it fires. Restricting the gesture to a tool that
+draws nothing is what makes it dependable.
+
 Zoom is the canvas's alone. The viewport meta disables it app-wide, `main.tsx`
 swallows WebKit's `gesture*` events (which an iOS Safari tab honours over the
 meta), and `body` carries `touch-action: manipulation` to kill double-tap zoom —
@@ -117,7 +126,12 @@ lives by: **nothing outside it may branch on a tool id.**
   (`start` / `move` / `end` / `paint`).
 - `registry.ts` — registration order, the core/optional split, and resolution.
 - `builtin/` — the shipped tools, built from two family factories (freehand and
-  shape) plus their ink configuration.
+  shape) plus their ink configuration, and the hand, whose behaviour begins no
+  stroke at all.
+
+A tool that needs the app to treat it differently says so on its descriptor —
+`usesBackground` for the eraser, `navigates` for the hand — so the canvas and the
+toolbar read a property instead of learning a name.
 
 `render.ts` dispatches each stroke to the plugin named in `stroke.tool`, falling
 back to a generic painter when the plugin is unknown — a document from a newer
