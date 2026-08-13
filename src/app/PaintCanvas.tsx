@@ -7,6 +7,7 @@ import {
   useState,
 } from "react";
 
+import { isDoubleTap, isTap } from "./gestures.ts";
 import { pluginById } from "./plugins/registry.ts";
 import type { DraftStroke, ToolContext } from "./plugins/types.ts";
 import { renderDrawing } from "./render.ts";
@@ -33,14 +34,20 @@ import {
 //
 // The gesture split is the Procreate one, and it is the whole interaction model:
 //
-//   one finger / pen / mouse   draws
+//   one finger / pen / mouse   draws — or pans, under a tool that `navigates`
 //   two fingers                pinch to zoom, drag to pan
 //   wheel                      pans; ctrl/⌘ + wheel (and a trackpad pinch) zooms
+//   double-tap (hand only)     fits the page, again for 1:1
 //
 // A second finger landing mid-stroke **abandons** the stroke rather than
 // committing it: you meant to zoom, and half a line you didn't want is worse
 // than no line. All pointer maths goes through `toDocumentPoint`, so the tools
 // still only ever see document coordinates, at any zoom.
+//
+// Double-tap belongs to the hand and nowhere else. Under a drawing tool the two
+// presses are two marks — the browser's `dblclick` arrives long after they have
+// been committed, so "fit the page" and "leave two dots on it" would both
+// happen. The tool that draws nothing is the one that can afford the gesture.
 
 type Props = {
   drawing: Drawing;
@@ -105,6 +112,18 @@ export function PaintCanvas({
   const pinchStart = useRef<{ view: CanvasView; a: Point; b: Point } | null>(
     null,
   );
+  // A one-finger pan under a navigating tool, computed from where it began for
+  // the same reason a pinch is: no drift, and the clamp can bite and let go
+  // again without the page creeping.
+  const panStart = useRef<{
+    pointerId: number;
+    view: CanvasView;
+    origin: Point;
+  } | null>(null);
+  // The press that might still turn out to be a tap, and the last one that did.
+  // Only a navigating tool ever arms these (see the header note).
+  const tapStart = useRef<{ pointerId: number; point: Point } | null>(null);
+  const lastTap = useRef<{ time: number; point: Point } | null>(null);
   // The live view, for the handlers — they run outside React's render and must
   // read the current value rather than the one their closure captured.
   const viewRef = useRef<CanvasView | null>(null);
@@ -259,9 +278,21 @@ export function PaintCanvas({
     setDraft(null);
   }, []);
 
+  /** Forget the one-finger pan and the pending tap. With no argument it drops
+   *  them whoever owned them — what a pinch taking over does. */
+  const endPan = useCallback((pointerId?: number) => {
+    if (pointerId === undefined || panStart.current?.pointerId === pointerId) {
+      panStart.current = null;
+    }
+    if (pointerId === undefined || tapStart.current?.pointerId === pointerId) {
+      tapStart.current = null;
+    }
+  }, []);
+
   const handleDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
     e.currentTarget.setPointerCapture(e.pointerId);
-    pointers.current.set(e.pointerId, elementPoint(e));
+    const at = elementPoint(e);
+    pointers.current.set(e.pointerId, at);
 
     // Two pointers down: this is a pinch, not a stroke. Drop any stroke the
     // first finger had begun — the user is zooming, and half a line they never
@@ -269,6 +300,10 @@ export function PaintCanvas({
     if (pointers.current.size === 2) {
       const [a, b] = [...pointers.current.values()];
       abandon();
+      // …and any pan or half-made tap, for the same reason: a pinch is not the
+      // second half of a double-tap.
+      endPan();
+      lastTap.current = null;
       if (viewRef.current && a && b) {
         pinchStart.current = { view: viewRef.current, a, b };
       }
@@ -276,9 +311,23 @@ export function PaintCanvas({
     }
     if (pointers.current.size > 2) return;
 
-    if (drawingPointer.current !== null) return;
     const plugin = pluginById(tool);
     if (!plugin) return;
+
+    // The hand. A press under a navigating tool grabs the page instead of
+    // starting a stroke, and is a tap until it travels far enough not to be.
+    if (plugin.navigates) {
+      if (!viewRef.current) return;
+      panStart.current = {
+        pointerId: e.pointerId,
+        view: viewRef.current,
+        origin: at,
+      };
+      tapStart.current = { pointerId: e.pointerId, point: at };
+      return;
+    }
+
+    if (drawingPointer.current !== null) return;
     const next = plugin.behaviour.start(documentPoint(e), context());
     if (!next) return;
     drawingPointer.current = e.pointerId;
@@ -287,7 +336,8 @@ export function PaintCanvas({
 
   const handleMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
     if (!pointers.current.has(e.pointerId)) return;
-    pointers.current.set(e.pointerId, elementPoint(e));
+    const at = elementPoint(e);
+    pointers.current.set(e.pointerId, at);
 
     // A pinch in progress owns the gesture: scale by how far the fingers have
     // spread since it began, pan by how far their midpoint moved.
@@ -304,6 +354,17 @@ export function PaintCanvas({
         );
         setView(viewRef.current);
       }
+      return;
+    }
+
+    // A one-finger drag under the hand: pan by how far it has come from where
+    // it landed. Once it has travelled past a finger's wobble it stops being a
+    // tap, for good — a pan that ends near where it began is still a pan.
+    const pan = panStart.current;
+    if (pan && pan.pointerId === e.pointerId) {
+      const tap = tapStart.current;
+      if (tap && !isTap(tap.point, at)) tapStart.current = null;
+      applyView(panBy(pan.view, at.x - pan.origin.x, at.y - pan.origin.y));
       return;
     }
 
@@ -324,6 +385,27 @@ export function PaintCanvas({
 
   const finish = (e: React.PointerEvent<HTMLCanvasElement>) => {
     release(e);
+
+    // A press that never wandered is a tap; two of them in quick succession fit
+    // the page, then return to 1:1. Detected here rather than from `dblclick`
+    // so it works the same on touch, and armed only by a navigating tool so it
+    // can never fire alongside a mark being laid down.
+    const tap = tapStart.current;
+    if (tap && tap.pointerId === e.pointerId) {
+      tapStart.current = null;
+      const at = elementPoint(e);
+      if (isTap(tap.point, at)) {
+        const now = { time: e.timeStamp, point: at };
+        if (isDoubleTap(lastTap.current, now)) {
+          lastTap.current = null;
+          toggleFit(at);
+        } else {
+          lastTap.current = now;
+        }
+      }
+    }
+    endPan(e.pointerId);
+
     if (drawingPointer.current !== e.pointerId) return;
     drawingPointer.current = null;
     const plugin = pluginById(tool);
@@ -342,6 +424,8 @@ export function PaintCanvas({
   // drops the draft without committing: half a stroke is worse than none.
   const cancel = (e: React.PointerEvent<HTMLCanvasElement>) => {
     release(e);
+    endPan(e.pointerId);
+    lastTap.current = null;
     if (drawingPointer.current !== e.pointerId) return;
     abandon();
   };
@@ -374,18 +458,11 @@ export function PaintCanvas({
     return () => canvas.removeEventListener("wheel", handler);
   }, [applyView]);
 
-  // Double-tap / double-click toggles between fitting the page and 1:1 — the
-  // quick way back when a pinch has left you somewhere unfamiliar. Bound by
-  // hand rather than through a JSX prop: Preact spells the prop `onDblClick`
-  // where React spells it `onDoubleClick`, and a native listener sidesteps the
-  // difference (see the Rendering-runtime notes in `docs/architecture.md`).
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const handler = (e: MouseEvent) => toggleFit(elementPoint(e));
-    canvas.addEventListener("dblclick", handler);
-    return () => canvas.removeEventListener("dblclick", handler);
-  }, [toggleFit, elementPoint]);
+  // The cursor names the gesture the surface is currently offering: an open
+  // hand under a navigating tool, a closed one while the page is actually being
+  // moved, crosshairs when the next press would leave a mark.
+  const navigates = Boolean(pluginById(tool)?.navigates);
+  const holding = Boolean(pinchStart.current || panStart.current);
 
   return (
     <canvas
@@ -399,7 +476,9 @@ export function PaintCanvas({
       // `touch-none` hands every touch to this component: without it a drag on
       // the canvas scrolls or zooms the page instead of drawing and pinching.
       className="h-full w-full touch-none"
-      style={{ cursor: pinchStart.current ? "grabbing" : "crosshair" }}
+      style={{
+        cursor: holding ? "grabbing" : navigates ? "grab" : "crosshair",
+      }}
     />
   );
 }

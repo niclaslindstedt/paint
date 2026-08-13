@@ -15,6 +15,7 @@ import {
   ArrowIcon,
   CircleIcon,
   EraserIcon,
+  HandIcon,
   HighlighterIcon,
   LineIcon,
   MarkerIcon,
@@ -22,6 +23,7 @@ import {
 } from "../../icons.tsx";
 import { registerPlugin } from "../registry.ts";
 import { freehandBehaviour } from "./freehand.ts";
+import { handBehaviour } from "./hand.ts";
 import {
   arrowBehaviour,
   ellipseBehaviour,
@@ -86,6 +88,22 @@ export function registerBuiltinPlugins(): void {
     shortcut: "o",
     supportsFill: true,
     behaviour: ellipseBehaviour,
+  });
+
+  // Last of the core row, and deliberately *not* first: `resolveActiveTool`
+  // falls back to the first offered tool, and landing a stale settings blob on
+  // a tool that draws nothing would look like a broken canvas.
+  registerPlugin({
+    id: "hand",
+    core: true,
+    nameKey: "tools.hand.name",
+    descriptionKey: "tools.hand.description",
+    icon: HandIcon,
+    shortcut: "d",
+    // The one tool that moves the view instead of the document: drag to pan,
+    // double-tap to fit. See `hand.ts` for why it is a plugin at all.
+    navigates: true,
+    behaviour: handBehaviour,
   });
 
   // --- Opt-in tools (Settings → Tools) ------------------------------------

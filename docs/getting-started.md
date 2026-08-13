@@ -1,17 +1,20 @@
 # Getting started
 
-Paint opens on a blank page with five tools. There is nothing to sign into and
-nothing to configure — start drawing.
+Paint opens on a blank page with a toolbar under it. There is nothing to sign
+into and nothing to configure — start drawing.
 
 ## The canvas
 
-Press and drag to draw. The page is a fixed size that scales to fit your screen,
-so a sketch looks the same on a laptop and a phone.
+Press and drag to draw. The page is a fixed size, larger than the screen you see
+it through, so a sketch looks the same on a laptop and a phone — you just see
+less of it at once.
 
 - **Pencil** (`P`) draws freehand.
 - **Eraser** (`E`) paints over marks with the page colour.
 - **Line** (`L`), **Rectangle** (`R`), **Ellipse** (`O`) drag from one point to
   another. A press that never moves is discarded.
+- **Hand** (`D`) drags the page around instead of drawing on it — and
+  double-tapping with it fits the whole page, again for 1:1.
 - `Ctrl/Cmd + Z` undoes the last mark, `Ctrl/Cmd + Shift + Z` redoes it. Every
   mark is one step.
 

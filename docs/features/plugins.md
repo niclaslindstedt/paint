@@ -12,9 +12,16 @@ There are two kinds, and the only difference is how they are switched on:
 | **Core**     | `core: true` in its registration | Always in the toolbar      |
 | **Optional** | everything else                  | Listed in Settings → Tools |
 
-Core today: pencil, eraser, line, rectangle, ellipse. Optional: arrow, marker,
-highlighter — off out of the box, so a first run is a beginner's five buttons
-rather than a wall of them.
+Core today: pencil, eraser, line, rectangle, ellipse, and the hand. Optional:
+arrow, marker, highlighter — off out of the box, so a first run is a handful of
+buttons rather than a wall of them.
+
+The **hand** is the odd one: it draws nothing. Its descriptor carries
+`navigates: true`, and that flag — not its id — is what tells the canvas a press
+should pan the page rather than start a stroke, and what dims the ink it would
+never use. That is the pattern for any tool that needs the app to treat it
+differently: a property on the descriptor, so nothing outside `plugins/` has to
+know a tool by name.
 
 ## Switching one on
 

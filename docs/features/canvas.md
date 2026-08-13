@@ -17,11 +17,18 @@ the same on a phone — you just see less of it at once.
 | Two fingers                           | Pinch to zoom, drag to pan         |
 | Wheel / trackpad scroll               | Pans                               |
 | Ctrl (⌘) + wheel, or a trackpad pinch | Zooms about the cursor             |
-| Double-tap / double-click             | Fits the whole page, again for 1:1 |
+| The **hand** tool (`D`)               | One-finger drag pans               |
+| Double-tap with the hand              | Fits the whole page, again for 1:1 |
+
+The **hand** is the way around the page when two fingers aren't handy — a mouse
+has no pinch, and a phone in one hand has no second finger. Pick it from the
+toolbar and a plain drag moves the sheet; nothing you do with it can leave a
+mark, which is also what lets it have the double-tap. Under a drawing tool a
+double-tap is two marks, so it does exactly that and nothing else.
 
 The **zoom readout** in the bottom-right corner of the canvas does the same as
-the double-tap: it shows the current zoom, and tapping it fits the page (or
-returns to 1:1 if it is already fitted).
+the hand's double-tap, from any tool: it shows the current zoom, and tapping it
+fits the page (or returns to 1:1 if it is already fitted).
 
 Putting a second finger down mid-stroke abandons that stroke rather than
 committing it — you meant to zoom, and half a line you didn't want is worse than
@@ -60,7 +67,8 @@ it lives in the sidebar's button island (see [cloud sync](cloud-sync.md)).
 
 - `Ctrl/Cmd + Z` undo, `Ctrl/Cmd + Shift + Z` (or `Ctrl + Y`) redo.
 - Each tool has a single-key shortcut, shown in its tooltip: `P` pencil,
-  `E` eraser, `L` line, `R` rectangle, `O` ellipse, and one per optional tool.
+  `E` eraser, `L` line, `R` rectangle, `O` ellipse, `D` the hand (drag), and one
+  per optional tool.
 
 ## The grid
 

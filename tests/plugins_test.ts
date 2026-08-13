@@ -2,6 +2,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { freehandBehaviour } from "../src/app/plugins/builtin/freehand.ts";
+import { handBehaviour } from "../src/app/plugins/builtin/hand.ts";
 import { registerBuiltinPlugins } from "../src/app/plugins/builtin/index.ts";
 import {
   lineBehaviour,
@@ -44,6 +45,7 @@ describe("registry", () => {
       "line",
       "rectangle",
       "ellipse",
+      "hand",
       "arrow",
       "marker",
       "highlighter",
@@ -57,7 +59,15 @@ describe("registry", () => {
       "line",
       "rectangle",
       "ellipse",
+      "hand",
     ]);
+  });
+
+  it("gives every tool a shortcut of its own", () => {
+    const keys = allPlugins()
+      .map((p) => p.shortcut)
+      .filter(Boolean);
+    expect(new Set(keys).size).toBe(keys.length);
   });
 
   it("slots an enabled optional tool into registration order, not the end", () => {
@@ -69,6 +79,7 @@ describe("registry", () => {
       "line",
       "rectangle",
       "ellipse",
+      "hand",
       "arrow",
       "marker",
     ]);
@@ -173,6 +184,20 @@ describe("freehand behaviour", () => {
     )!;
     expect(draft.size).toBe(24);
     expect(draft.opacity).toBe(0.35);
+  });
+});
+
+describe("hand behaviour", () => {
+  it("begins no stroke, so a gesture can never reach the document", () => {
+    expect(handBehaviour.start({ x: 10, y: 10 }, ctx)).toBeNull();
+  });
+
+  it("is the only tool that navigates, and it is core", () => {
+    resetPlugins();
+    registerBuiltinPlugins();
+    const navigating = allPlugins().filter((p) => p.navigates);
+    expect(navigating.map((p) => p.id)).toEqual(["hand"]);
+    expect(navigating[0]!.core).toBe(true);
   });
 });
 

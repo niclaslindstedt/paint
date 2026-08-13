@@ -107,10 +107,13 @@ export function Toolbar({
       </div>
 
       {/* The ink. Dimmed for a tool that paints with the page colour (the
-          eraser) — the swatch would be a lie there. */}
+          eraser) — the swatch would be a lie there — and for one that paints
+          nothing at all (the hand). */}
       <div
         className={`flex items-center gap-1 ${
-          active?.usesBackground ? "pointer-events-none opacity-40" : ""
+          active?.usesBackground || active?.navigates
+            ? "pointer-events-none opacity-40"
+            : ""
         }`}
         role="group"
         aria-label={t("canvas.color")}
@@ -131,8 +134,12 @@ export function Toolbar({
         ))}
       </div>
 
+      {/* The nib. Dimmed alongside the swatches for a tool that leaves no mark
+          to have a width. */}
       <div
-        className="flex items-center gap-1"
+        className={`flex items-center gap-1 ${
+          active?.navigates ? "pointer-events-none opacity-40" : ""
+        }`}
         role="group"
         aria-label={t("canvas.size")}
       >
