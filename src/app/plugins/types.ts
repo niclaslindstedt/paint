@@ -73,6 +73,30 @@ export type ToolContext = {
   probe?: CanvasProbe | null;
 };
 
+/** How finely a stroke is being rasterised — everything a painter needs to stop
+ *  drawing detail nobody can see.
+ *
+ *  A vector document is painted at wildly different sizes: fitted to the screen,
+ *  zoomed to 800%, and at 1:1 into the PNG export. A painter that ignores that
+ *  does the same work every time, and at a fitted zoom most of it lands inside a
+ *  single device pixel — an airbrush laying three hundred overlapping cones
+ *  across a mark two pixels wide, sixteen bristles combed through a hair.
+ *
+ *  So the renderer measures the transform once per repaint and hands it down.
+ *  What a painter does with it is the painter's business — the rule is only that
+ *  detail below a device pixel is worth nothing, and the ones that respect it
+ *  are the reason a busy page still pans at speed. */
+export type PaintDetail = {
+  /** Device pixels per document pixel. 1 at 1:1, 0.4 fitted to a phone, 8
+   *  zoomed in. Never zero. */
+  scale: number;
+};
+
+/** The detail a painter assumes when it is handed none — 1:1, i.e. draw
+ *  everything. A painter called directly (a test, a one-off) then behaves
+ *  exactly as it did before the renderer measured anything. */
+export const FULL_DETAIL: PaintDetail = { scale: 1 };
+
 /** What a tool does with a pointer gesture, and how its strokes are painted.
  *
  *  `start` / `move` / `end` are pure: they take the draft so far and return the
@@ -87,8 +111,16 @@ export type ToolBehaviour = {
    *  drop a zero-size click. Defaults to committing the draft as-is. */
   end?(draft: DraftStroke, ctx: ToolContext): DraftStroke | null;
   /** Paint one stroke onto a 2D context, in document coordinates. Called for
-   *  committed strokes and for the in-flight draft alike. */
-  paint(ctx2d: CanvasRenderingContext2D, stroke: Stroke): void;
+   *  committed strokes and for the in-flight draft alike.
+   *
+   *  `detail` says how big the mark is about to come out on the device it is
+   *  bound for. Honouring it is optional — a painter that ignores it is correct,
+   *  just slower than it needs to be at a fitted zoom. */
+  paint(
+    ctx2d: CanvasRenderingContext2D,
+    stroke: Stroke,
+    detail?: PaintDetail,
+  ): void;
 };
 
 /** A tool plugin: what the toolbar shows, what Settings → Tools lists, and the

@@ -17,7 +17,12 @@ import {
   strokeHardness,
 } from "../brushes.ts";
 import { applyInk, distance, paintPath, strokeColor } from "../ink.ts";
-import type { DraftStroke, ToolBehaviour, ToolContext } from "../types.ts";
+import {
+  FULL_DETAIL,
+  type DraftStroke,
+  type ToolBehaviour,
+  type ToolContext,
+} from "../types.ts";
 
 /** Samples closer together than this (in document pixels) are dropped: they
  *  can't change how the line looks, and keeping them would bloat the saved
@@ -71,32 +76,43 @@ export function freehandBehaviour(ink: FreehandInk = {}): ToolBehaviour {
       if (last && distance(last, p) < MIN_SAMPLE_DISTANCE) return draft;
       return { ...draft, shape: { kind: "path", points: [...points, p] } };
     },
-    paint: (ctx2d, stroke) => {
+    paint: (ctx2d, stroke, detail = FULL_DETAIL) => {
       if (stroke.shape.kind !== "path") return;
       applyInk(ctx2d, stroke);
       const points = stroke.shape.points;
       const hardness = strokeHardness(stroke);
+      // How big this mark is coming out on the device it is bound for. Every
+      // textured painter below spends it the same way: keep the detail the
+      // screen can show, drop the detail it cannot.
+      const scale = detail.scale;
       switch (ink.style) {
         case "brush":
-          paintBrush(ctx2d, points, stroke.size, hardness);
+          paintBrush(ctx2d, points, stroke.size, hardness, scale);
           return;
         case "spray":
           // The spray builds its cone as a gradient, which needs the colour as
           // a value rather than as a context setting.
-          paintSpray(ctx2d, points, stroke.size, hardness, strokeColor(stroke));
+          paintSpray(
+            ctx2d,
+            points,
+            stroke.size,
+            hardness,
+            strokeColor(stroke),
+            scale,
+          );
           return;
         case "crayon":
-          paintCrayon(ctx2d, points, stroke.size);
+          paintCrayon(ctx2d, points, stroke.size, scale);
           return;
         case "calligraphy":
-          paintCalligraphy(ctx2d, points, stroke.size);
+          paintCalligraphy(ctx2d, points, stroke.size, scale);
           return;
         case "glow":
-          paintGlow(ctx2d, points, stroke.size);
+          paintGlow(ctx2d, points, stroke.size, scale);
           return;
         default:
           if (ink.useHardness) {
-            paintSoftPath(ctx2d, points, stroke.size, hardness);
+            paintSoftPath(ctx2d, points, stroke.size, hardness, scale);
             return;
           }
           paintPath(ctx2d, points, stroke.size);

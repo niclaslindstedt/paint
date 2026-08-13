@@ -9,9 +9,11 @@
 // off-screen canvas the PNG export rasterises, so what you export is exactly
 // what you saw.
 
+import { strokeVisible, type Rect } from "./geometry.ts";
 import { paintRegion } from "./plugins/brushes.ts";
 import { pluginById } from "./plugins/registry.ts";
 import { applyInk, paintPath, paintRect, paintSegment } from "./plugins/ink.ts";
+import { FULL_DETAIL, type PaintDetail } from "./plugins/types.ts";
 import type { Drawing, Stroke } from "./types.ts";
 
 /** The colours a repaint resolves absent stroke ink against. */
@@ -50,13 +52,34 @@ export function paintStroke(
   ctx: CanvasRenderingContext2D,
   stroke: Stroke,
   ink: InkContext,
+  detail: PaintDetail = FULL_DETAIL,
 ): void {
   const resolved = resolveStrokeInk(stroke, ink);
   ctx.save();
   const plugin = pluginById(resolved.tool);
-  if (plugin) plugin.behaviour.paint(ctx, resolved);
+  if (plugin) plugin.behaviour.paint(ctx, resolved, detail);
   else paintGeneric(ctx, resolved);
   ctx.restore();
+}
+
+/** How many device pixels one document pixel is about to become, read off the
+ *  context's own transform.
+ *
+ *  Asking the context rather than being told means every caller gets it right
+ *  for free: the screen at whatever zoom, the PNG export at 1:1, the bucket's
+ *  half-resolution snapshot. The scale is the length of the transformed unit
+ *  vector, so a flip or a rotation (neither of which this app does today, but
+ *  the maths is no longer for it) reads the same as the zoom it is worth. */
+export function renderScale(ctx: CanvasRenderingContext2D): number {
+  const read = (
+    ctx as CanvasRenderingContext2D & {
+      getTransform?: () => { a: number; b: number };
+    }
+  ).getTransform;
+  if (typeof read !== "function") return 1;
+  const m = read.call(ctx);
+  const scale = Math.hypot(m.a, m.b);
+  return Number.isFinite(scale) && scale > 0 ? scale : 1;
 }
 
 /** The fallback painter for an unknown tool: honour the geometry, ignore the
@@ -87,6 +110,18 @@ export type RenderOptions = InkContext & {
    *  marks. A **screen-only** drawing aid: the PNG export leaves it unset, so a
    *  grid can never reach an exported file. */
   grid?: number;
+  /** Paint only the marks that can reach this box, in document coordinates.
+   *  The canvas passes the slice of the page its window is actually showing;
+   *  the export and the bucket's snapshot, which want the whole page, leave it
+   *  unset. Marks outside it are skipped before their painter runs (see
+   *  `geometry.ts`) — this is the difference between a zoomed-in repaint
+   *  costing what is on screen and costing the whole document. */
+  clip?: Rect;
+  /** Device pixels per document pixel, for the painters that thin their detail
+   *  to match (see `PaintDetail`). Read off the context's transform when it
+   *  isn't given, which is right for every caller in the app — pass it only to
+   *  paint at a scale the transform doesn't reflect. */
+  scale?: number;
 };
 
 /** The grid's ink. Deliberately a fixed translucent grey rather than a theme
@@ -125,10 +160,18 @@ function paintGrid(
 
 /** Repaint a whole drawing, plus an optional in-flight stroke on top.
  *
- *  Full redraws (rather than incremental compositing) keep the model the single
- *  source of truth: undo, a synced document arriving, and a colour change all
- *  go through the same path, and there is no stale-pixel state to reconcile. At
- *  sketch-sized stroke counts this is comfortably fast enough. */
+ *  A repaint is still a fold over the document rather than an incremental
+ *  composite, and that is what keeps the model the single source of truth: an
+ *  undo, a synced document arriving and a colour change all go through this one
+ *  path, and there is no stale-pixel state to reconcile.
+ *
+ *  What it is *not* is a promise to draw everything, every time. Two things are
+ *  skipped, and neither can change the picture: marks that cannot reach the
+ *  window being painted, and detail finer than the device pixels it would land
+ *  in. Everything that is on screen is still painted from the document, in
+ *  order, every frame. See `layer.ts` for the other half of the story — the
+ *  canvas keeps the *committed* marks on a cached layer, so a repaint during a
+ *  gesture is this function called with one stroke rather than a thousand. */
 export function renderDrawing(
   ctx: CanvasRenderingContext2D,
   drawing: Drawing,
@@ -149,8 +192,36 @@ export function renderDrawing(
 
   if (options.grid) paintGrid(ctx, drawing, options.grid);
 
-  for (const stroke of drawing.strokes) paintStroke(ctx, stroke, options);
-  if (draft) paintStroke(ctx, draft, options);
+  paintStrokes(ctx, drawing.strokes, options);
+  if (draft) paintStroke(ctx, draft, options, detailFor(ctx, options));
+}
+
+/** Paint a run of strokes onto an already-prepared page — the marks half of a
+ *  repaint, without the page or the grid.
+ *
+ *  Split out because the canvas's layer cache needs exactly this: the same
+ *  loop, over the strokes that arrived since it last painted, onto pixels it is
+ *  keeping. */
+export function paintStrokes(
+  ctx: CanvasRenderingContext2D,
+  strokes: readonly Stroke[],
+  options: RenderOptions,
+): void {
+  const detail = detailFor(ctx, options);
+  const clip = options.clip;
+  for (const stroke of strokes) {
+    if (!strokeVisible(stroke, clip)) continue;
+    paintStroke(ctx, stroke, options, detail);
+  }
+}
+
+/** The detail to paint at: what the caller said, or what the context's own
+ *  transform says. Measured once per repaint rather than once per stroke. */
+function detailFor(
+  ctx: CanvasRenderingContext2D,
+  options: RenderOptions,
+): PaintDetail {
+  return { scale: options.scale ?? renderScale(ctx) };
 }
 
 // Screen-to-document mapping used to live here, back when the canvas element

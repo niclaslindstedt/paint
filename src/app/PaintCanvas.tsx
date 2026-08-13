@@ -15,10 +15,11 @@ import {
   type MenuEdge,
 } from "./gestures.ts";
 import { onImageDecoded } from "./images.ts";
+import { createLayer, paintCommitted, type Layer } from "./layer.ts";
 import { pluginById } from "./plugins/registry.ts";
 import type { CanvasProbe, DraftStroke, ToolContext } from "./plugins/types.ts";
 import { createProbe } from "./probe.ts";
-import { renderDrawing } from "./render.ts";
+import { paintStrokes } from "./render.ts";
 import type { Drawing, Point } from "./types.ts";
 import {
   clampView,
@@ -32,13 +33,21 @@ import {
 } from "./viewport.ts";
 
 // The canvas surface: one `<canvas>` element filling the screen, a view onto a
-// page that is larger than it, a pointer gesture in flight, and a full repaint
+// page that is larger than it, a pointer gesture in flight, and a frame
 // whenever any of the three changes.
 //
 // The element is a **window**, not the page. It is sized to its container in
 // device pixels (container size × devicePixelRatio) and the drawing is painted
 // through the view transform, so the page can be bigger than the screen and you
 // move around it rather than squinting at a shrunken whole.
+//
+// A frame is not a full repaint. The gesture in flight is painted every frame,
+// because it changes every frame; the marks already committed come off a cached
+// layer (`layer.ts`), which is what stops one more pencil line costing a whole
+// page of airbrush. Frames are asked for rather than taken — one per animation
+// frame however many pointer samples arrive — and the draft never travels
+// through React state to get here, because the only thing it feeds is the next
+// frame.
 //
 // The gesture split is the Procreate one, and it is the whole interaction model:
 //
@@ -127,10 +136,13 @@ export function PaintCanvas({
   ariaLabel,
 }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  // The in-flight gesture. Held in state (not a ref) because every move has to
-  // repaint; held as a draft (not a committed stroke) because an abandoned
-  // gesture must leave no trace in the document or the undo history.
-  const [draft, setDraft] = useState<DraftStroke | null>(null);
+  // The in-flight gesture. Held in a ref, not in state: a pointer reports at
+  // 120Hz or better and the only thing a draft feeds is the next repaint, so
+  // routing it through React would re-render the component once per sample to
+  // reach a canvas call that is already scheduled. It is a draft rather than a
+  // committed stroke because an abandoned gesture must leave no trace in the
+  // document or the undo history.
+  const draftRef = useRef<DraftStroke | null>(null);
   // The window onto the page, and its size in CSS pixels. `null` until the
   // element has been measured — the initial view can't be computed without
   // knowing how big the window is.
@@ -176,6 +188,25 @@ export function PaintCanvas({
   pageRef.current = drawing;
   const viewportRef = useRef(viewport);
   viewportRef.current = viewport;
+  // A bitmap on the page decodes asynchronously but paints synchronously, so a
+  // freshly-loaded image would otherwise sit invisible until something else
+  // forced a repaint. Bumping this counter is that something (see `images.ts`),
+  // and it travels into the layer's spec so a cached frame can't hide a picture
+  // that has only just arrived.
+  const [decodedAt, setDecodedAt] = useState(0);
+  useEffect(() => onImageDecoded(() => setDecodedAt((count) => count + 1)), []);
+
+  // Everything else a repaint reads. The paint runs from an animation frame,
+  // outside React's render, so it takes its inputs from here rather than from a
+  // closure that may be a frame out of date.
+  const inks = useRef({ drawing, pageColor, defaultInk, showGrid, decodedAt });
+  inks.current = { drawing, pageColor, defaultInk, showGrid, decodedAt };
+  // The committed marks, as pixels (see `layer.ts`). Opened on the first paint
+  // and kept for the life of the canvas.
+  const layerRef = useRef<Layer | null>(null);
+  // The repaint this frame has already scheduled, so a burst of pointer moves
+  // costs one paint rather than one each.
+  const pending = useRef<number | null>(null);
 
   // The page as it is actually painted, for the two tools that read it (the
   // bucket and the dropper). Made fresh for each press and kept for the length
@@ -300,71 +331,129 @@ export function PaintCanvas({
     onViewChange?.(view);
   }, [view, onScaleChange, onViewChange]);
 
-  // A bitmap on the page decodes asynchronously but paints synchronously, so a
-  // freshly-loaded image would otherwise sit invisible until something else
-  // forced a repaint. Bumping this counter is that something (see `images.ts`).
-  const [decodedAt, setDecodedAt] = useState(0);
-  useEffect(() => onImageDecoded(() => setDecodedAt((count) => count + 1)), []);
-
-  // Repaint whenever the document, the gesture, the view, or the device pixel
-  // ratio changes. A full redraw per frame is cheap at sketch-sized stroke
-  // counts and keeps the model the single source of truth (see `render.ts`).
-  useEffect(() => {
+  /** Paint one frame.
+   *
+   *  The committed marks come off the layer — a blit while a stroke is being
+   *  drawn, a repaint when the document or the view actually changed (see
+   *  `layer.ts`). The gesture in flight and the sheet's outline go on top,
+   *  every frame, because both change every frame. */
+  const paint = useCallback(() => {
     const canvas = canvasRef.current;
+    const view = viewRef.current;
+    const window_ = viewportRef.current;
     if (!canvas || !view) return;
+    const { drawing, pageColor, defaultInk, showGrid, decodedAt } =
+      inks.current;
     const dpr = Math.min(window.devicePixelRatio || 1, 3);
-    const width = Math.round(viewport.width * dpr);
-    const height = Math.round(viewport.height * dpr);
+    const width = Math.round(window_.width * dpr);
+    const height = Math.round(window_.height * dpr);
     if (width === 0 || height === 0) return;
     if (canvas.width !== width) canvas.width = width;
     if (canvas.height !== height) canvas.height = height;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
-    // Clear the whole window first — what shows through around the sheet is the
-    // container's own background, so the page reads as a sheet on a desk.
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    // Then paint the drawing through the view: device pixels, then the view's
-    // scale and pan. From here on the renderer works in document coordinates
-    // exactly as the PNG export does.
-    ctx.setTransform(
-      dpr * view.scale,
-      0,
-      0,
-      dpr * view.scale,
-      dpr * view.tx,
-      dpr * view.ty,
-    );
-    renderDrawing(ctx, drawing, draft ? { ...draft, id: "draft" } : null, {
+
+    const options = {
       pageColor,
       defaultInk,
       grid: showGrid ? GRID_STEP : undefined,
+    };
+
+    // Paint from a view whose pan is a whole number of device pixels. The view
+    // itself keeps its exact value — panning stays smooth and reversible, and
+    // the clamp still bites where it bit — but a *frame* is drawn on the pixel
+    // grid, which is what lets a drag reuse the frame before it by copying it
+    // sideways rather than resampling it (see `layer.ts`). Half a device pixel
+    // is below anything a screen can show; a smeared drawing is not.
+    const snapped = {
+      scale: view.scale,
+      tx: Math.round(view.tx * dpr) / dpr,
+      ty: Math.round(view.ty * dpr) / dpr,
+    };
+
+    // Clear the whole window first — what shows through around the sheet is the
+    // container's own background, so the page reads as a sheet on a desk.
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, width, height);
+
+    // The committed marks: a blit while a stroke is being drawn, a repaint when
+    // the document or the view actually changed (see `layer.ts`).
+    layerRef.current ??= createLayer(width, height);
+    paintCommitted(ctx, canvas, layerRef.current, {
+      drawing,
+      view: snapped,
+      width,
+      height,
+      dpr,
+      options,
+      decodedAt,
     });
+
+    // Then the view: device pixels, then the view's scale and pan. From here on
+    // this works in document coordinates exactly as the PNG export does.
+    ctx.setTransform(
+      dpr * snapped.scale,
+      0,
+      0,
+      dpr * snapped.scale,
+      dpr * snapped.tx,
+      dpr * snapped.ty,
+    );
+    const draft = draftRef.current;
+    if (draft) paintStrokes(ctx, [{ ...draft, id: "draft" }], options);
     // Outline the sheet so its edge is visible against the desk. Screen-only —
     // it is chrome, not a mark, so it lives here rather than in the renderer
-    // the PNG export shares. The width is divided by the zoom so the line stays
-    // a hairline at any scale instead of fattening as you zoom in.
+    // the PNG export shares, and it stays off the layer so a cached frame never
+    // has to be thrown away to redraw it. The width is divided by the zoom so
+    // the line stays a hairline at any scale instead of fattening as you zoom.
     ctx.strokeStyle = "rgba(120,130,145,0.4)";
     ctx.lineWidth = 1 / view.scale;
     ctx.strokeRect(0, 0, drawing.width, drawing.height);
-    // `decodedAt` is not read above — it is in the dependency list so a bitmap
-    // finishing its decode repaints the page it belongs to.
+  }, []);
+
+  /** Ask for a repaint on the next animation frame, at most one per frame.
+   *
+   *  Coalescing is the point: a pointer can report several times per frame, a
+   *  pinch moves the view and the draft together, and every one of those used
+   *  to be its own synchronous repaint. The screen only shows one. */
+  const requestPaint = useCallback(() => {
+    if (pending.current !== null) return;
+    pending.current = requestAnimationFrame(() => {
+      pending.current = null;
+      paint();
+    });
+  }, [paint]);
+
+  useEffect(
+    () => () => {
+      if (pending.current !== null) cancelAnimationFrame(pending.current);
+    },
+    [],
+  );
+
+  // Repaint whenever the document, the view, the window or the page's colours
+  // change — and when a bitmap finishes decoding, which changes what the same
+  // document paints as without changing the document. The gesture in flight
+  // asks for its own frames as it moves; it never reaches React at all.
+  useEffect(() => {
+    requestPaint();
   }, [
     drawing,
-    draft,
     view,
     viewport,
     pageColor,
     defaultInk,
     showGrid,
     decodedAt,
+    requestPaint,
   ]);
 
   /** Abandon whatever stroke is in flight without committing it. */
   const abandon = useCallback(() => {
     drawingPointer.current = null;
-    setDraft(null);
-  }, []);
+    draftRef.current = null;
+    requestPaint();
+  }, [requestPaint]);
 
   /** Forget the one-finger pan and the pending tap. With no argument it drops
    *  them whoever owned them — what a pinch taking over does. */
@@ -415,7 +504,8 @@ export function PaintCanvas({
     const next = plugin.behaviour.start(toDoc(at), context());
     if (!next) return;
     drawingPointer.current = pointerId;
-    setDraft({ ...next, tool });
+    draftRef.current = { ...next, tool };
+    requestPaint();
   };
 
   /** Forget a held edge press, whoever owned it. */
@@ -528,9 +618,14 @@ export function PaintCanvas({
     if (drawingPointer.current !== e.pointerId) return;
     const plugin = pluginById(tool);
     if (!plugin) return;
-    setDraft((cur) =>
-      cur ? plugin.behaviour.move(cur, documentPoint(e), context()) : cur,
+    const current = draftRef.current;
+    if (!current) return;
+    draftRef.current = plugin.behaviour.move(
+      current,
+      documentPoint(e),
+      context(),
     );
+    requestPaint();
   };
 
   const release = (e: React.PointerEvent<HTMLCanvasElement>) => {
@@ -576,15 +671,22 @@ export function PaintCanvas({
     if (drawingPointer.current !== e.pointerId) return;
     drawingPointer.current = null;
     const plugin = pluginById(tool);
-    setDraft((cur) => {
-      if (cur && plugin) {
-        const committed = plugin.behaviour.end
-          ? plugin.behaviour.end(cur, context())
-          : cur;
-        if (committed) onCommit(committed);
-      }
-      return null;
-    });
+    const current = draftRef.current;
+    draftRef.current = null;
+    let committed = null;
+    if (current && plugin) {
+      committed = plugin.behaviour.end
+        ? plugin.behaviour.end(current, context())
+        : current;
+      if (committed) onCommit(committed);
+    }
+    // A committed stroke asks for no frame here: it arrives as a new document,
+    // and *that* is what repaints. Painting now would show the page for one
+    // frame with the gesture already dropped and the commit not yet in — the
+    // stroke blinking out and back in as it lands. A gesture that committed
+    // nothing (a shape tool's stray tap) has no document change coming, so it
+    // does need a frame to clear itself.
+    if (!committed) requestPaint();
   };
 
   // A cancelled gesture (the OS took the pointer — a system gesture, a call)
