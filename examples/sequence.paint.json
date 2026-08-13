@@ -1,0 +1,161 @@
+{
+  "version": 1,
+  "activeDrawingId": "drawing-1",
+  "drawings": [
+    {
+      "id": "drawing-1",
+      "name": "Auth flow",
+      "width": 1600,
+      "height": 1000,
+      "strokes": [
+        {
+          "id": "stroke-1",
+          "tool": "rectangle",
+          "size": 4,
+          "shape": {
+            "kind": "box",
+            "from": {
+              "x": 200,
+              "y": 180
+            },
+            "to": {
+              "x": 560,
+              "y": 380
+            }
+          }
+        },
+        {
+          "id": "stroke-2",
+          "tool": "rectangle",
+          "size": 4,
+          "shape": {
+            "kind": "box",
+            "from": {
+              "x": 1040,
+              "y": 180
+            },
+            "to": {
+              "x": 1400,
+              "y": 380
+            }
+          }
+        },
+        {
+          "id": "stroke-3",
+          "tool": "arrow",
+          "size": 4,
+          "color": "#22c55e",
+          "shape": {
+            "kind": "segment",
+            "from": {
+              "x": 570,
+              "y": 240
+            },
+            "to": {
+              "x": 1030,
+              "y": 240
+            }
+          }
+        },
+        {
+          "id": "stroke-4",
+          "tool": "arrow",
+          "size": 4,
+          "color": "#ef4444",
+          "shape": {
+            "kind": "segment",
+            "from": {
+              "x": 1030,
+              "y": 320
+            },
+            "to": {
+              "x": 570,
+              "y": 320
+            }
+          }
+        },
+        {
+          "id": "stroke-5",
+          "tool": "pencil",
+          "size": 2,
+          "shape": {
+            "kind": "path",
+            "points": [
+              {
+                "x": 240,
+                "y": 520
+              },
+              {
+                "x": 300,
+                "y": 560
+              },
+              {
+                "x": 380,
+                "y": 520
+              },
+              {
+                "x": 470,
+                "y": 570
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "drawing-2",
+      "name": "Whiteboard",
+      "width": 1600,
+      "height": 1000,
+      "background": "#fef3c7",
+      "strokes": [
+        {
+          "id": "stroke-6",
+          "tool": "ellipse",
+          "size": 8,
+          "filled": true,
+          "color": "#3b82f6",
+          "shape": {
+            "kind": "box",
+            "from": {
+              "x": 600,
+              "y": 340
+            },
+            "to": {
+              "x": 1000,
+              "y": 640
+            }
+          }
+        },
+        {
+          "id": "stroke-7",
+          "tool": "highlighter",
+          "size": 24,
+          "opacity": 0.35,
+          "color": "#f59e0b",
+          "shape": {
+            "kind": "path",
+            "points": [
+              {
+                "x": 500,
+                "y": 780
+              },
+              {
+                "x": 700,
+                "y": 770
+              },
+              {
+                "x": 900,
+                "y": 785
+              },
+              {
+                "x": 1100,
+                "y": 775
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

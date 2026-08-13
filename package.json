@@ -1,0 +1,54 @@
+{
+  "name": "paint",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A local-first paint PWA built on @niclaslindstedt/oss-framework — a simple canvas for sketching concepts, with pluggable tools you switch on in settings, themes, namespaces, and optional cloud sync.",
+  "license": "PolyForm-Noncommercial-1.0.0",
+  "author": "Niclas Lindstedt <niclas@agilator.se>",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint . && tsc --noEmit",
+    "typecheck": "tsc --noEmit",
+    "fmt": "prettier --write .",
+    "fmt:check": "prettier --check .",
+    "icons": "node scripts/generate-icons.mjs",
+    "check:seo": "node scripts/check-seo.mjs"
+  },
+  "dependencies": {
+    "@fontsource/inter": "^5.2.5",
+    "@fontsource/jetbrains-mono": "^5.2.5",
+    "@fontsource/opendyslexic": "^5.3.0",
+    "@fontsource/source-serif-4": "^5.2.5",
+    "@niclaslindstedt/oss-framework": "^2.4.0",
+    "preact": "^10.29.8",
+    "workbox-window": "^7.0.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@preact/preset-vite": "^2.10.6",
+    "@tailwindcss/vite": "^4.3.1",
+    "@types/node": "^25.9.3",
+    "@typescript-eslint/eslint-plugin": "^8.61.1",
+    "@typescript-eslint/parser": "^8.61.1",
+    "eslint": "^10.5.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "globals": "^17.6.0",
+    "prettier": "^3.4.2",
+    "tailwindcss": "^4.3.1",
+    "typescript": "^6.0.3",
+    "vite": "^8.1.0",
+    "vitest": "^4.1.9"
+  },
+  "overrides": {
+    "react": "npm:@preact/compat@^18.3.2",
+    "react-dom": "npm:@preact/compat@^18.3.2"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

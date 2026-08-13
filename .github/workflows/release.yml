@@ -1,0 +1,144 @@
+name: release
+
+# Triggered by the `v*` tag that version-bump.yml pushes (§10.3): that
+# workflow decides the version, this one turns the tag into a release.
+#
+# What it does, in order: derive the version from the tag, collate the
+# `.changes/unreleased/` fragments into a dated CHANGELOG section, bump
+# package.json, commit `chore(release): vX.Y.Z` to main, force-retag the tag
+# onto that commit (the only force-push this project permits — the tag has to
+# name the commit that carries the changelog), build, publish a GitHub Release,
+# then chain into pages.yml so the new tag is served at `/` without waiting for
+# the next push.
+#
+# It can also be dispatched by hand with an explicit tag, for re-running a
+# release whose first attempt failed partway.
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing v* tag to (re-)release."
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+  # npm ci resolves @niclaslindstedt/oss-framework from GitHub Packages.
+  packages: read
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      tag: ${{ steps.version.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          # main is pushed to below, so the checkout needs a token that can.
+          token: ${{ secrets.RELEASE_TOKEN || secrets.GITHUB_TOKEN }}
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          registry-url: "https://npm.pkg.github.com"
+          scope: "@niclaslindstedt"
+      - run: npm ci
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Resolve the released version
+        id: version
+        env:
+          DISPATCH_TAG: ${{ inputs.tag }}
+        run: |
+          TAG="${DISPATCH_TAG:-${GITHUB_REF#refs/tags/}}"
+          case "$TAG" in
+            v[0-9]*) ;;
+            *) echo "::error::'$TAG' is not a v* release tag"; exit 1 ;;
+          esac
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
+          echo "Releasing $TAG"
+
+      # The tag names a commit; the release commit is built on top of main so
+      # the changelog lands on the branch people read.
+      - name: Check out main
+        run: git checkout main
+
+      - name: Set the package version
+        run: npm version "${{ steps.version.outputs.version }}" --no-git-tag-version --allow-same-version
+
+      - name: Collate changelog
+        run: node scripts/release/collate-changelog.mjs "${{ steps.version.outputs.version }}"
+
+      - name: Extract release-notes body
+        run: node scripts/release/extract-section.mjs "${{ steps.version.outputs.version }}" > .release-notes.md
+
+      - name: Sanity build
+        run: npm run build
+        env:
+          VITE_BASE: /
+          # Mirror the deploy env (pages.yml) so this build is representative.
+          VITE_PWA_IGNORE_PATHS: /preview/,/branch/
+          VITE_DROPBOX_APP_KEY: ${{ vars.VITE_DROPBOX_APP_KEY }}
+          VITE_GOOGLE_CLIENT_ID: ${{ vars.VITE_GOOGLE_CLIENT_ID }}
+          # App-folder names for the "Open in" link / stored documents; unset ->
+          # both default to "Paint".
+          VITE_DROPBOX_APP_FOLDER: ${{ vars.VITE_DROPBOX_APP_FOLDER }}
+          VITE_GDRIVE_APP_FOLDER: ${{ vars.VITE_GDRIVE_APP_FOLDER }}
+
+      - name: Commit the release and re-point the tag
+        env:
+          TAG: ${{ steps.version.outputs.tag }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          git config user.name  'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          if git diff --quiet -- package.json package-lock.json CHANGELOG.md .changes/unreleased; then
+            echo "Nothing to commit — re-running a release whose commit already landed."
+          else
+            git add package.json package-lock.json CHANGELOG.md .changes/unreleased
+            git commit -m "chore(release): v${VERSION}"
+            git push origin HEAD:main
+          fi
+          # Re-point the tag at the release commit. This is the one force-push
+          # the project allows: the tag must name the commit carrying the
+          # changelog, and version-bump.yml created it one commit earlier.
+          git tag -f -a "$TAG" -m "Release ${TAG}"
+          git push -f origin "$TAG"
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "${{ steps.version.outputs.tag }}" \
+            --title "${{ steps.version.outputs.tag }}" \
+            --notes-file .release-notes.md
+
+  deploy:
+    # Chain straight into pages.yml so the new tag is served at `/` immediately
+    # — without this, deployment would wait for the next push to main.
+    needs: release
+    uses: ./.github/workflows/pages.yml
+    with:
+      release_ref: ${{ needs.release.outputs.tag }}
+    permissions:
+      # pages.yml declares `contents: write` at the top level because its build
+      # job force-pushes the /branch/ slot to the `branch-deploy` orphan branch,
+      # and `packages: read` because its npm ci resolves the framework from
+      # GitHub Packages. A reusable workflow can't be granted fewer permissions
+      # than it requests, so these must match or the whole run fails at startup.
+      contents: write
+      pages: write
+      id-token: write
+      packages: read
+    secrets: inherit

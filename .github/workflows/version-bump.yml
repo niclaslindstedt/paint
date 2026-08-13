@@ -1,0 +1,68 @@
+name: version-bump
+
+# Manual only. Computes the next semver from the changeset fragments in
+# .changes/unreleased/ and pushes the matching `v*` tag, which is what
+# release.yml triggers on.
+#
+# The tag is pushed with RELEASE_TOKEN (a PAT or GitHub App token), NOT the
+# default GITHUB_TOKEN: a tag pushed with GITHUB_TOKEN does not trigger
+# downstream workflows, so release.yml would never fire.
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: "Override the computed bump (patch | minor | major). Leave empty to derive it from the changeset fragments."
+        required: false
+        type: string
+        default: ""
+
+permissions:
+  contents: read
+
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.RELEASE_TOKEN }}
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+
+      - name: Compute the next version
+        id: next
+        env:
+          OVERRIDE: ${{ inputs.bump }}
+        run: |
+          CURRENT=$(node -p "require('./package.json').version")
+          if [ -n "$OVERRIDE" ]; then
+            BUMP="$OVERRIDE"
+          else
+            BUMP=$(node scripts/release/compute-bump.mjs)
+          fi
+          case "$BUMP" in
+            major|minor|patch) ;;
+            *) echo "unknown bump '$BUMP'"; exit 1 ;;
+          esac
+          NEXT=$(node -e '
+            const [cur, bump] = process.argv.slice(1);
+            const [ma, mi, pa] = cur.split(".").map(Number);
+            const next =
+              bump === "major" ? [ma + 1, 0, 0]
+              : bump === "minor" ? [ma, mi + 1, 0]
+              : [ma, mi, pa + 1];
+            console.log(next.join("."));
+          ' "$CURRENT" "$BUMP")
+          echo "version=$NEXT" >> "$GITHUB_OUTPUT"
+          echo "Current $CURRENT + $BUMP -> $NEXT"
+
+      - name: Push the release tag
+        env:
+          VERSION: ${{ steps.next.outputs.version }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag "v$VERSION"
+          git push origin "v$VERSION"
