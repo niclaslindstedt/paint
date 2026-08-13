@@ -22,13 +22,20 @@ export type Point = { x: number; y: number };
  *               behind. Painted with the even-odd rule, so a loop inside
  *               another loop is a hole rather than a second coat (see
  *               `flood.ts`).
- *  - `text`     a caption anchored at a point. */
+ *  - `text`     a caption anchored at a point.
+ *  - `image`    a bitmap dropped onto the page, held inline as a data URL and
+ *               placed between two corners like a `box`. The one place a
+ *               drawing carries pixels rather than geometry — an imported photo
+ *               has no vector form, so the alternative to inlining it is not
+ *               having it at all. It is still *one stroke*: it undoes, syncs,
+ *               and exports like every other mark. */
 export type Shape =
   | { kind: "path"; points: Point[] }
   | { kind: "segment"; from: Point; to: Point }
   | { kind: "box"; from: Point; to: Point }
   | { kind: "region"; contours: Point[][] }
-  | { kind: "text"; at: Point; text: string };
+  | { kind: "text"; at: Point; text: string }
+  | { kind: "image"; from: Point; to: Point; src: string };
 
 /** One committed mark on the canvas: which tool made it, the ink, and the
  *  geometry. `tool` is a plugin id — the renderer looks the plugin up to paint

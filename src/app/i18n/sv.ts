@@ -21,6 +21,7 @@ export const sv: Catalog = {
     newDrawing: "Ny teckning",
     newDrawingIn: "Ny teckning i {name}",
     newFolder: "Ny mapp",
+    dropImage: "Släpp bilden för att skapa en teckning av den",
     folderName: "Mappens namn",
     deleteFolder: "Ta bort mappen",
     moveToFolder: "Flytta till {name}",
@@ -64,6 +65,15 @@ export const sv: Catalog = {
     clearConfirm: "Rensa alla streck på sidan? Ångra tar tillbaka dem.",
     exportPng: "Exportera som PNG",
     exportJson: "Exportera som JSON",
+    download: "Ladda ner",
+    downloadFormat: "Ladda ner {format}",
+    copyToClipboard: "Kopiera till urklipp",
+    dropImage: "Släpp bilden för att lägga till den i teckningen",
+    placeImage: "Placerad bild",
+    placeImageHint: "Dra för att flytta, dra i ett hörn för att ändra storlek.",
+    placeImageKeep: "Behåll",
+    placeImageDiscard: "Kasta",
+    resizeImage: "Ändra bildens storlek",
     pageColor: "Sidfärg",
     grid: "Rutnät",
     color: "Färg",
@@ -160,6 +170,11 @@ export const sv: Catalog = {
       name: "Färgpipett",
       description: "Tryck på sidan för att rita med färgen du tryckte på.",
     },
+    image: {
+      name: "Bild",
+      description:
+        "En bild som släppts på sidan. Den har ingen knapp — dra in en bildfil på ritytan och placera den.",
+    },
   },
   settings: {
     title: "Inställningar",
@@ -170,6 +185,7 @@ export const sv: Catalog = {
       appearance: "Utseende",
       tools: "Verktyg",
       canvas: "Rityta",
+      download: "Nedladdning",
       storage: "Lagring",
       developer: "Utvecklare",
       logs: "Loggar",
@@ -219,6 +235,33 @@ export const sv: Catalog = {
       showGrid: "Visa rutnät",
       showGridHint:
         "Ett ljust rutnät bakom sidan, för att rada upp rutor och pilar. Det är bara en hjälplinje — det exporteras aldrig.",
+    },
+    download: {
+      intro:
+        "Vad nedladdningsknappen erbjuder, och vad som kommer ut. Urklipp finns alltid med i menyn.",
+      typesTitle: "Filtyper",
+      typesHint: "Bara de typer du slår på visas i nedladdningsmenyn.",
+      formatPng: "PNG-bild",
+      formatPngHint:
+        "Förlustfri, och den enda typen som kan bära en genomskinlig bakgrund. Det trygga valet.",
+      formatJpg: "JPG-foto",
+      formatJpgHint:
+        "Mindre för sidor fulla av foton, och accepteras av uppladdningar som vägrar allt annat. Aldrig genomskinlig.",
+      formatSvg: "SVG-vektor",
+      formatSvgHint:
+        "Strecken som vektorer, så teckningen förblir skarp i alla storlekar. Släppta bilder följer med inuti filen.",
+      noTypes:
+        "Alla filtyper är avslagna — menyn kan bara kopiera till urklipp.",
+      areaTitle: "Yta",
+      areaLabel: "Ladda ner",
+      scopePage: "Hela sidan",
+      scopeMarks: "Bara strecken",
+      areaHint:
+        "”Bara strecken” beskär filen till det du ritat, med en liten marginal — praktiskt på en stor sida med ett litet diagram på.",
+      backgroundTitle: "Bakgrund",
+      transparent: "Genomskinlig bakgrund",
+      transparentHint:
+        "Låt sidan vara omålad så att strecken hamnar på genomskinlighet. JPG saknar genomskinlighet och behåller alltid sidfärgen; suddgummit målar med sidfärgen, så suddade ytor förblir täckande.",
     },
     appearance: {
       intro: "Tema, typsnitt och utseendet på appens ramverk.",

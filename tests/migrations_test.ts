@@ -114,6 +114,50 @@ describe("parseDoc", () => {
     expect(migrated.drawings[0]!.favorite).toBe(true);
   });
 
+  it("round-trips a dropped image, bitmap and all", () => {
+    // An image stroke carries its bitmap inline, and it was added *without* a
+    // version bump because nothing on disk needed rewriting for it (see
+    // `migrations.ts`). What that turns into a promise is this: the bytes come
+    // back byte-for-byte, at the same version, through the same pipeline.
+    const src = "data:image/png;base64,AAAA";
+    const doc = parseDoc(
+      JSON.stringify({
+        version: LATEST_VERSION,
+        folders: [],
+        drawings: [
+          {
+            id: "d1",
+            name: "photo",
+            width: 400,
+            height: 300,
+            strokes: [
+              {
+                id: "s1",
+                tool: "image",
+                size: 1,
+                shape: {
+                  kind: "image",
+                  from: { x: 0, y: 0 },
+                  to: { x: 400, y: 300 },
+                  src,
+                },
+              },
+            ],
+          },
+        ],
+        activeDrawingId: "d1",
+      }),
+    );
+    const stroke = doc.drawings[0]!.strokes[0]!;
+    expect(stroke.shape).toEqual({
+      kind: "image",
+      from: { x: 0, y: 0 },
+      to: { x: 400, y: 300 },
+      src,
+    });
+    expect(parseDoc(serializeDoc(doc))).toEqual(doc);
+  });
+
   it("refuses a document from a newer build rather than mangling it", () => {
     expect(() =>
       parseDoc(JSON.stringify({ version: LATEST_VERSION + 5, drawings: [] })),

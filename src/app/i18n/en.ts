@@ -24,6 +24,7 @@ export const en = {
     newDrawing: "New drawing",
     newDrawingIn: "New drawing in {name}",
     newFolder: "New folder",
+    dropImage: "Drop the image to start a drawing from it",
     folderName: "Folder name",
     deleteFolder: "Delete folder",
     moveToFolder: "Move to {name}",
@@ -67,6 +68,15 @@ export const en = {
     clearConfirm: "Clear every mark on this page? Undo still brings it back.",
     exportPng: "Export as PNG",
     exportJson: "Export as JSON",
+    download: "Download",
+    downloadFormat: "Download {format}",
+    copyToClipboard: "Copy to clipboard",
+    dropImage: "Drop the image to add it to this drawing",
+    placeImage: "Placed image",
+    placeImageHint: "Drag to move, pull a corner to resize.",
+    placeImageKeep: "Keep",
+    placeImageDiscard: "Discard",
+    resizeImage: "Resize the image",
     pageColor: "Page colour",
     grid: "Grid",
     color: "Colour",
@@ -164,6 +174,11 @@ export const en = {
       name: "Colour dropper",
       description: "Tap the page to draw with the colour you tapped.",
     },
+    image: {
+      name: "Image",
+      description:
+        "A picture dropped onto the page. It has no button — drop an image file on the canvas and place it.",
+    },
   },
   settings: {
     title: "Settings",
@@ -174,6 +189,7 @@ export const en = {
       appearance: "Appearance",
       tools: "Tools",
       canvas: "Canvas",
+      download: "Download",
       storage: "Storage",
       developer: "Developer",
       logs: "Logs",
@@ -223,6 +239,33 @@ export const en = {
       showGrid: "Show a grid",
       showGridHint:
         "A light grid behind the page, to line boxes and arrows up. It is a guide only — it never exports.",
+    },
+    download: {
+      intro:
+        "What the download button offers, and what comes out of it. The clipboard is always on the menu.",
+      typesTitle: "File types",
+      typesHint: "Only the types you switch on appear in the download menu.",
+      formatPng: "PNG image",
+      formatPngHint:
+        "Lossless, and the only type that can carry a transparent background. The safe default.",
+      formatJpg: "JPG photo",
+      formatJpgHint:
+        "Smaller for photo-heavy pages, and accepted by uploads that refuse anything else. Never transparent.",
+      formatSvg: "SVG vector",
+      formatSvgHint:
+        "The marks as vectors, so the drawing stays sharp at any size. Dropped images ride along inside the file.",
+      noTypes:
+        "Every file type is off — the menu can only copy to the clipboard.",
+      areaTitle: "Area",
+      areaLabel: "Download",
+      scopePage: "The whole page",
+      scopeMarks: "Just the marks",
+      areaHint:
+        "“Just the marks” crops the file to what you have drawn, with a small margin — handy on a big page with a small diagram on it.",
+      backgroundTitle: "Background",
+      transparent: "Transparent background",
+      transparentHint:
+        "Leave the page unpainted so the marks land on transparency. JPG has no transparency and always keeps the page colour; the eraser paints with the page colour, so erased areas stay opaque.",
     },
     appearance: {
       intro: "Theme, fonts, and the look of the app chrome.",

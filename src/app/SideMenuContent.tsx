@@ -13,6 +13,7 @@ import {
   FolderOpenIcon,
   HeartIcon,
   HelpCircleIcon,
+  ImageUpIcon,
   PencilIcon,
   PlusIcon,
   RedoIcon,
@@ -24,7 +25,12 @@ import {
   UndoIcon,
   type FloatingPlacement,
 } from "@niclaslindstedt/oss-framework/components";
-import { useLocalStorageState } from "@niclaslindstedt/oss-framework/hooks";
+import {
+  dragHasFilesOfType,
+  firstFileOfType,
+  useFileDrop,
+  useLocalStorageState,
+} from "@niclaslindstedt/oss-framework/hooks";
 import {
   CheckForUpdatesItem,
   type PwaUpdateCheckResult,
@@ -36,6 +42,8 @@ import type {
 } from "@niclaslindstedt/oss-framework/namespaces";
 
 import { useT } from "./i18n/index.ts";
+import { imageFileStem, importImageFile } from "./images.ts";
+import { imageStroke } from "./plugins/builtin/image.ts";
 import {
   BarButton,
   DrawingRow,
@@ -53,7 +61,8 @@ import {
   liveFolders,
   type Drawing,
 } from "./types.ts";
-import type { PaintStore } from "./usePaintStore.ts";
+import { freshId, type PaintStore } from "./usePaintStore.ts";
+import * as output from "../output.ts";
 
 // The sidebar's contents — the rows the framework `Sidebar` shell frames. Top
 // to bottom: the namespace switcher, the starred drawings, the drawing list
@@ -149,6 +158,40 @@ export function SideMenuContent({
   // The footer's About dropdown, anchored to its row and flipped upward.
   const [aboutOpen, setAboutOpen] = useState(false);
   const aboutRef = useRef<HTMLButtonElement>(null);
+
+  // An image dropped on the *menu* starts a drawing from it, rather than
+  // landing on whichever page happened to be open: the drawer is the list of
+  // drawings, so dropping a picture into it means "make this one of them". The
+  // page is cut to the picture's size and the file name (minus its extension)
+  // becomes the drawing's name — a photo you drop is already called something.
+  const panelRef = useRef<HTMLDivElement>(null);
+  const { active: droppingImage } = useFileDrop({
+    targetRef: panelRef,
+    accepts: (dt) => dragHasFilesOfType(dt, "image/"),
+    claim: true,
+    onDrop: (files) => {
+      const file = firstFileOfType(files, "image/");
+      if (!file) return;
+      void importImageFile(file)
+        .then((image) => {
+          const box = { x: 0, y: 0, width: image.width, height: image.height };
+          store.addDrawing(imageFileStem(file.name), null, {
+            width: image.width,
+            height: image.height,
+            strokes: [
+              { ...imageStroke(image.src, box), id: freshId("stroke") },
+            ],
+          });
+          onShowCanvas();
+          onNavigate();
+        })
+        .catch((err: unknown) =>
+          output.error(
+            `Couldn't add that image — ${err instanceof Error ? err.message : String(err)}`,
+          ),
+        );
+    },
+  });
 
   const folders = liveFolders(store.data);
   const ungrouped = drawingsInFolder(store.data, null);
@@ -276,7 +319,10 @@ export function SideMenuContent({
     // (the rail when the footer is folded, the footer when it isn't). Grow past
     // the panel's content box to reclaim it for the scrolling list; the footer
     // and the rail then carry their own bottom breathing room.
-    <div className="flex h-[calc(100%+env(safe-area-inset-bottom))] min-h-0 flex-col">
+    <div
+      ref={panelRef}
+      className="relative flex h-[calc(100%+env(safe-area-inset-bottom))] min-h-0 flex-col"
+    >
       <NamespaceSwitcher
         namespaces={namespaces}
         activeNamespace={activeNamespace.slug}
@@ -535,6 +581,18 @@ export function SideMenuContent({
           {t("menu.privacy")}
         </FooterLink>
       </FloatingPanel>
+
+      {/* The cue while an image is dragged over the drawer — the same one the
+          canvas shows, so "you can drop that here" reads the same in both
+          places, and the two say which of them will take it. */}
+      {droppingImage && (
+        <div className="pointer-events-none absolute inset-2 z-10 flex items-center justify-center rounded-lg border-2 border-dashed border-accent bg-surface/90 p-3 text-center">
+          <span className="flex items-center gap-2 text-sm text-fg-bright">
+            <ImageUpIcon className="h-4 w-4 shrink-0 text-accent" />
+            {t("menu.dropImage")}
+          </span>
+        </div>
+      )}
 
       <ConfirmDialog
         open={pendingDelete !== null}

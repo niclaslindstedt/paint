@@ -608,7 +608,9 @@ export function DeveloperTab({
               key={plugin.id}
               className="rounded border border-line px-1.5 py-0.5 font-mono text-xs text-muted"
             >
-              {plugin.id}
+              {/* `*` marks an always-on tool; a plugin with no button at all
+                  (the dropped image's painter) is shown in brackets. */}
+              {plugin.hidden ? `(${plugin.id})` : plugin.id}
               {plugin.core ? "*" : ""}
             </li>
           ))}

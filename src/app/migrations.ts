@@ -70,6 +70,15 @@ const migrations = {
     version: 2,
     folders: Array.isArray(doc.folders) ? doc.folders : [],
   }),
+  // Not every model change needs a step. Dropped images added a new *shape kind*
+  // (`image`, holding its bitmap as a data URL) and a new plugin id to paint it
+  // — and nothing already on disk has to be rewritten for that: an older
+  // document simply holds no image strokes, and a document holding one still
+  // parses in a build that predates them (it keeps the stroke and paints it
+  // through the generic painter rather than dropping it). Bumping the version
+  // for a purely additive shape would have made every new document unreadable
+  // to the build a stale service worker is still serving, for no gain. A step
+  // belongs here when old bytes need *changing*, not whenever the model grows.
 } as const;
 
 export const migrator = createMigrator({
