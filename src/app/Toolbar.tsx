@@ -1,37 +1,52 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 import { useEffect, useRef, useState } from "react";
 
-import { FloatingPanel } from "@niclaslindstedt/oss-framework/components";
-
 import { useT } from "./i18n/index.ts";
 import { enabledPlugins } from "./plugins/registry.ts";
-import type { PaintPlugin } from "./plugins/types.ts";
-import { PALETTE, SIZES } from "./useAppSettings.ts";
+import { ColorPicker } from "./toolbar/ColorPicker.tsx";
+import { FillPicker } from "./toolbar/FillPicker.tsx";
+import { SizeDot, SizePicker } from "./toolbar/SizePicker.tsx";
 
-// The toolbar: the enabled tools, the ink, and — behind the shape tools — the
-// fill picker.
+// The toolbar: the enabled tools, then two buttons for everything about the
+// ink.
 //
-// It renders whatever `enabledPlugins` hands back — the core five plus whatever
-// the user switched on in Settings → Tools — so a new tool needs no change
+// It renders whatever `enabledPlugins` hands back — the core tools plus
+// whatever is switched on in Settings → Tools — so a new tool needs no change
 // here. Keyboard shortcuts are wired from the plugin descriptors for the same
 // reason.
 //
-// Fill is **not** a row of its own. A labelled checkbox for it cost a toolbar
-// row on a phone and was there whether or not it applied, so it lives on the
-// shape button instead: press the button you are already holding a second time
-// and a two-cell panel opens upward over the canvas, showing the shape hollow
-// and the shape solid. The glyphs *are* the labels — there is nothing to read,
-// and nothing on screen until you ask for it. Which tools offer it is still the
-// descriptor's `supportsFill`, so nothing here knows what a rectangle is.
+// **Ink is two buttons, not two rows.** A fixed row of seven swatches and four
+// nib buttons ate half a phone's toolbar for choices most strokes never change,
+// and it grew every time the palette did. Now the colour button shows the two
+// colours that matter — the ink, and what the eraser paints — split across one
+// square, and the size button shows the nib as a dot the size it will actually
+// be. Each opens its picker over the canvas; both close as soon as you have
+// chosen. The row that is left is tools, and it can afford to be.
+//
+// Fill is not a row either. It lives on the shape button: press the button you
+// are already holding a second time and a two-cell panel opens showing the
+// shape hollow and the shape solid. Which tools offer it is the descriptor's
+// `supportsFill`, so nothing here knows what a rectangle is.
 
 type Props = {
   tool: string;
   onToolChange: (id: string) => void;
   enabled: readonly string[];
+  /** The ink in use, already resolved against the page by the caller. */
   color: string;
   onColorChange: (color: string) => void;
+  /** The page colour — the eraser's ink, and a swatch in its own right. */
+  background: string;
+  customColors: readonly string[];
+  onAddColor: (color: string) => void;
+  onRemoveColor: (color: string) => void;
   size: number;
   onSizeChange: (size: number) => void;
+  customSizes: readonly number[];
+  onAddSize: (size: number) => void;
+  onRemoveSize: (size: number) => void;
+  hardness: number;
+  onHardnessChange: (hardness: number) => void;
   filled: boolean;
   onFilledChange: (filled: boolean) => void;
 };
@@ -42,19 +57,40 @@ export function Toolbar({
   enabled,
   color,
   onColorChange,
+  background,
+  customColors,
+  onAddColor,
+  onRemoveColor,
   size,
   onSizeChange,
+  customSizes,
+  onAddSize,
+  onRemoveSize,
+  hardness,
+  onHardnessChange,
   filled,
   onFilledChange,
 }: Props) {
   const t = useT();
   const tools = enabledPlugins(enabled);
   const active = tools.find((p) => p.id === tool);
-  // The tool whose fill picker is open, and the button it hangs off. Kept as an
-  // id rather than a boolean so switching tools with the panel open can never
-  // leave it anchored to a button that no longer means anything.
-  const [fillPickerFor, setFillPickerFor] = useState<string | null>(null);
+  // Which panel is open. One at a time, and held as a discriminated value
+  // rather than three booleans so opening one can never leave another hanging
+  // over the canvas. The fill panel names its tool: switching tools with it
+  // open must not leave it anchored to a button that no longer means anything.
+  const [panel, setPanel] = useState<
+    { kind: "fill"; tool: string } | { kind: "color" } | { kind: "size" } | null
+  >(null);
   const fillAnchor = useRef<HTMLButtonElement | null>(null);
+  const colorAnchor = useRef<HTMLButtonElement | null>(null);
+  const sizeAnchor = useRef<HTMLButtonElement | null>(null);
+
+  // A tool that paints with the page colour (the eraser) or moves the view (the
+  // hand) has no use for the ink; one that samples a colour has no use for the
+  // nib. Both are read off descriptor flags — nothing here knows a tool by name.
+  const inkIrrelevant =
+    active?.usesBackground || active?.navigates || active?.picksColor;
+  const nibIrrelevant = active?.navigates || active?.picksColor;
 
   // Single-key tool shortcuts, read straight off the plugin descriptors. Held
   // back while a text field or a dialog owns the keyboard so typing a drawing's
@@ -76,9 +112,9 @@ export function Toolbar({
       const match = tools.find((p) => p.shortcut === e.key.toLowerCase());
       if (!match) return;
       e.preventDefault();
-      // The fill picker belongs to the button it opened from; a tool picked
-      // from the keyboard closes it rather than leaving it hanging there.
-      setFillPickerFor(null);
+      // A tool picked from the keyboard closes whatever panel was open rather
+      // than leaving it hanging there.
+      setPanel(null);
       onToolChange(match.id);
     };
     window.addEventListener("keydown", handler);
@@ -88,14 +124,14 @@ export function Toolbar({
   return (
     // The toolbar is the last thing above the screen edge, and the app paints
     // under the home indicator (`viewport-fit=cover`), so it carries the bottom
-    // safe-area inset plus 10px — enough that the swatch row stays a
-    // comfortable thumb reach above the indicator instead of sitting on it.
+    // safe-area inset plus 10px — enough that the buttons stay a comfortable
+    // thumb reach above the indicator instead of sitting on it.
     <div
-      className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-line bg-surface px-3 pt-2 [padding-bottom:calc(env(safe-area-inset-bottom)+10px)]"
+      className="flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-line bg-surface px-3 pt-2 [padding-bottom:calc(env(safe-area-inset-bottom)+10px)]"
       role="toolbar"
       aria-label={t("canvas.toolbar")}
     >
-      <div className="flex items-center gap-1" role="group">
+      <div className="flex flex-wrap items-center gap-1" role="group">
         {tools.map((plugin) => {
           const Icon = plugin.icon;
           const isActive = plugin.id === tool;
@@ -110,13 +146,15 @@ export function Toolbar({
               type="button"
               ref={opensFill ? fillAnchor : undefined}
               onClick={() => {
-                setFillPickerFor(opensFill ? plugin.id : null);
+                setPanel(opensFill ? { kind: "fill", tool: plugin.id } : null);
                 if (!isActive) onToolChange(plugin.id);
               }}
               aria-pressed={isActive}
               aria-haspopup={opensFill ? "menu" : undefined}
               aria-expanded={
-                opensFill ? fillPickerFor === plugin.id : undefined
+                opensFill
+                  ? panel?.kind === "fill" && panel.tool === plugin.id
+                  : undefined
               }
               title={
                 plugin.shortcut
@@ -149,158 +187,111 @@ export function Toolbar({
         })}
       </div>
 
-      {/* The fill picker itself: hollow shape, solid shape, no words. It opens
-          upward because the toolbar is the last row on the screen — the panel
-          measures the room below it, finds none, and flips over the canvas. */}
+      <div className="flex items-center gap-1">
+        {/* The ink button. Split corner to corner: the ink you are drawing
+            with above the diagonal, the colour that rubs it out below — the
+            two colours a drawing hand actually holds. */}
+        <button
+          ref={colorAnchor}
+          type="button"
+          onClick={() =>
+            setPanel((prev) =>
+              prev?.kind === "color" ? null : { kind: "color" },
+            )
+          }
+          aria-haspopup="menu"
+          aria-expanded={panel?.kind === "color"}
+          aria-label={t("canvas.color")}
+          title={t("canvas.color")}
+          className={`relative h-9 w-9 shrink-0 cursor-pointer overflow-hidden rounded border border-line hover:border-accent ${
+            inkIrrelevant ? "opacity-40" : ""
+          }`}
+        >
+          <span
+            aria-hidden="true"
+            className="absolute inset-0"
+            style={{
+              backgroundColor: color,
+              clipPath: "polygon(0 0, 100% 0, 0 100%)",
+            }}
+          />
+          <span
+            aria-hidden="true"
+            className="absolute inset-0"
+            style={{
+              backgroundColor: background,
+              clipPath: "polygon(100% 0, 100% 100%, 0 100%)",
+            }}
+          />
+          <span
+            aria-hidden="true"
+            className="absolute inset-0 bg-line [clip-path:polygon(100%_0,calc(100%_-_1px)_0,0_calc(100%_-_1px),0_100%)]"
+          />
+        </button>
+
+        {/* The nib button — the dot is the width, at the width. */}
+        <button
+          ref={sizeAnchor}
+          type="button"
+          onClick={() =>
+            setPanel((prev) =>
+              prev?.kind === "size" ? null : { kind: "size" },
+            )
+          }
+          aria-haspopup="menu"
+          aria-expanded={panel?.kind === "size"}
+          aria-label={t("canvas.size")}
+          title={t("canvas.size")}
+          className={`inline-flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded border border-line hover:border-accent ${
+            nibIrrelevant ? "opacity-40" : ""
+          }`}
+        >
+          <SizeDot size={size} />
+        </button>
+      </div>
+
+      {/* The panels themselves. All three open upward: the toolbar is the last
+          row on the screen, so each measures the room below it, finds none, and
+          flips over the canvas. */}
       {active?.supportsFill && (
         <FillPicker
-          open={fillPickerFor === active.id}
-          onClose={() => setFillPickerFor(null)}
+          open={panel?.kind === "fill" && panel.tool === active.id}
+          onClose={() => setPanel(null)}
           anchor={fillAnchor}
           plugin={active}
           filled={filled}
           onPick={(next) => {
             onFilledChange(next);
-            setFillPickerFor(null);
+            setPanel(null);
           }}
         />
       )}
 
-      {/* The ink. Dimmed for a tool that paints with the page colour (the
-          eraser) — the swatch would be a lie there — and for one that paints
-          nothing at all (the hand). */}
-      <div
-        className={`flex items-center gap-1 ${
-          active?.usesBackground || active?.navigates
-            ? "pointer-events-none opacity-40"
-            : ""
-        }`}
-        role="group"
-        aria-label={t("canvas.color")}
-      >
-        {PALETTE.map((swatch) => (
-          <button
-            key={swatch}
-            type="button"
-            onClick={() => onColorChange(swatch)}
-            aria-pressed={swatch === color}
-            aria-label={swatch}
-            title={swatch}
-            className={`h-6 w-6 cursor-pointer rounded-full border-2 ${
-              swatch === color ? "border-accent" : "border-line"
-            }`}
-            style={{ backgroundColor: swatch }}
-          />
-        ))}
-      </div>
+      <ColorPicker
+        open={panel?.kind === "color"}
+        onClose={() => setPanel(null)}
+        anchor={colorAnchor}
+        color={color}
+        onPick={onColorChange}
+        background={background}
+        customColors={customColors}
+        onAddColor={onAddColor}
+        onRemoveColor={onRemoveColor}
+      />
 
-      {/* The nib. Dimmed alongside the swatches for a tool that leaves no mark
-          to have a width. */}
-      <div
-        className={`flex items-center gap-1 ${
-          active?.navigates ? "pointer-events-none opacity-40" : ""
-        }`}
-        role="group"
-        aria-label={t("canvas.size")}
-      >
-        {SIZES.map((option) => (
-          <button
-            key={option}
-            type="button"
-            onClick={() => onSizeChange(option)}
-            aria-pressed={option === size}
-            aria-label={`${option}`}
-            title={`${option}`}
-            className={`inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded border ${
-              option === size
-                ? "border-accent bg-accent/15"
-                : "border-transparent hover:border-line hover:bg-surface-2"
-            }`}
-          >
-            <span
-              className="rounded-full bg-fg"
-              // The dot previews the actual nib: the same number of document
-              // pixels the stroke will be, capped so 16 still fits the button.
-              style={{
-                width: `${Math.min(option, 16)}px`,
-                height: `${Math.min(option, 16)}px`,
-              }}
-            />
-          </button>
-        ))}
-      </div>
+      <SizePicker
+        open={panel?.kind === "size"}
+        onClose={() => setPanel(null)}
+        anchor={sizeAnchor}
+        size={size}
+        onPick={onSizeChange}
+        customSizes={customSizes}
+        onAddSize={onAddSize}
+        onRemoveSize={onRemoveSize}
+        hardness={hardness}
+        onHardnessChange={onHardnessChange}
+        hardnessApplies={Boolean(active?.supportsHardness)}
+      />
     </div>
-  );
-}
-
-/** The fill picker: the active shape drawn hollow and drawn solid, side by
- *  side, anchored over its toolbar button.
- *
- *  Two glyphs and no text, because the glyphs say it better than "Fill shapes"
- *  did and in a fifth of the width — and because the panel is *this* tool's,
- *  so it can show this tool's own mark rather than a generic checkbox. The
- *  framework's `FloatingPanel` brings the flip-when-there's-no-room placement,
- *  the click-outside dismissal, and Escape. */
-function FillPicker({
-  open,
-  onClose,
-  anchor,
-  plugin,
-  filled,
-  onPick,
-}: {
-  open: boolean;
-  onClose: () => void;
-  anchor: React.RefObject<HTMLButtonElement | null>;
-  plugin: PaintPlugin;
-  filled: boolean;
-  onPick: (filled: boolean) => void;
-}) {
-  const t = useT();
-  const Icon = plugin.icon;
-  const options = [
-    { value: false, label: t("canvas.fillOutline") },
-    { value: true, label: t("canvas.fillFilled") },
-  ];
-
-  return (
-    <FloatingPanel
-      open={open}
-      onClose={onClose}
-      triggerRef={anchor}
-      placement={{
-        width: { kind: "max", maxPx: 96 },
-        anchor: "left",
-        // Enough to clear the toolbar's own top border, so the panel reads as
-        // floating over the page rather than growing out of the row.
-        gap: 14,
-        coordinateSpace: "viewport",
-      }}
-      className="p-1"
-    >
-      <div
-        className="flex items-center gap-1"
-        role="group"
-        aria-label={t("canvas.fill")}
-      >
-        {options.map((option) => (
-          <button
-            key={String(option.value)}
-            type="button"
-            onClick={() => onPick(option.value)}
-            aria-pressed={option.value === filled}
-            aria-label={option.label}
-            title={option.label}
-            className={`inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded border ${
-              option.value === filled
-                ? "border-accent bg-accent/15 text-accent"
-                : "border-transparent text-fg hover:border-line hover:bg-surface"
-            }`}
-          >
-            <Icon className="h-5 w-5" filled={option.value} />
-          </button>
-        ))}
-      </div>
-    </FloatingPanel>
   );
 }

@@ -74,6 +74,21 @@ export const en = {
     fill: "Fill shapes",
     fillOutline: "Outline",
     fillFilled: "Filled",
+    eraseColor: "Page colour (erases)",
+    mixColor: "Mix a colour…",
+    hideMixer: "Hide the mixer",
+    mixField: "Saturation and brightness",
+    mixHue: "Hue",
+    keepColor: "Keep",
+    colorKept: "Kept",
+    removeColor: "Forget",
+    customSize: "Custom width: {size}",
+    keepSize: "Keep",
+    sizeKept: "Kept",
+    removeSize: "Forget",
+    hardness: "Hardness: {percent}%",
+    hardnessHint: "Soft feathers the edge; hard keeps it crisp.",
+    hardnessNotUsed: "The tool in your hand draws a hard edge either way.",
     tool: "Tool",
     toolbar: "Tools",
     fitPage: "Fit the page, or show it at 1:1",
@@ -116,6 +131,39 @@ export const en = {
       name: "Highlighter",
       description: "A wide translucent band that builds up where it overlaps.",
     },
+    paintbrush: {
+      name: "Paintbrush",
+      description:
+        "A loaded bristle brush: the stroke swells in the middle and tapers off at both ends.",
+    },
+    airspray: {
+      name: "Airbrush",
+      description:
+        "A cloud of paint that builds up the longer you hold it in one place.",
+    },
+    crayon: {
+      name: "Crayon",
+      description:
+        "A waxy, grainy stick that skips over the tooth of the page.",
+    },
+    calligraphy: {
+      name: "Calligraphy pen",
+      description:
+        "A flat nib held at an angle — broad across the stroke, hairline along it.",
+    },
+    glow: {
+      name: "Neon pen",
+      description: "A bright core inside its own halo, for marks that shine.",
+    },
+    filler: {
+      name: "Paint bucket",
+      description:
+        "Tap an empty space and it takes the colour, up to the marks around it.",
+    },
+    dropper: {
+      name: "Colour dropper",
+      description: "Tap the page to draw with the colour you tapped.",
+    },
   },
   settings: {
     title: "Settings",
@@ -146,12 +194,14 @@ export const en = {
     },
     tools: {
       intro:
-        "Every tool in the app is a plugin. The five core tools are always in the toolbar; switch the rest on here and they join it.",
-      coreTitle: "Core tools",
-      coreHint: "Always available.",
-      optionalTitle: "Optional tools",
+        "Every tool in the app is a plugin, and this is the rack they hang on. Switch one on and it appears in the toolbar straight away.",
+      coreTitle: "Always on",
+      coreHint:
+        "The three a canvas can't do without — a nib, a way to take a mark back, and a way to move the page.",
+      alwaysOn: "Always on",
+      optionalTitle: "Tools",
       optionalHint:
-        "Switch one on and it appears in the toolbar straight away. Switching it off only hides the tool — marks you already drew with it stay on the page.",
+        "Some are on out of the box; the rest are a tap away. Switching one off only hides the tool — marks you already drew with it stay on the page.",
       shortcut: "Shortcut: {key}",
       none: "This build ships no optional tools.",
     },

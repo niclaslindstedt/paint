@@ -18,11 +18,16 @@ export type Point = { x: number; y: number };
  *  - `path`     freehand — a polyline sampled from the pointer.
  *  - `segment`  a straight run between two points (lines, arrows).
  *  - `box`      an axis-aligned rectangle between two corners (rects, ellipses).
+ *  - `region`   an area, as closed outlines — what the paint bucket leaves
+ *               behind. Painted with the even-odd rule, so a loop inside
+ *               another loop is a hole rather than a second coat (see
+ *               `flood.ts`).
  *  - `text`     a caption anchored at a point. */
 export type Shape =
   | { kind: "path"; points: Point[] }
   | { kind: "segment"; from: Point; to: Point }
   | { kind: "box"; from: Point; to: Point }
+  | { kind: "region"; contours: Point[][] }
   | { kind: "text"; at: Point; text: string };
 
 /** One committed mark on the canvas: which tool made it, the ink, and the
@@ -45,6 +50,11 @@ export type Stroke = {
   color?: string;
   /** Stroke width in document pixels. */
   size: number;
+  /** How crisp the mark's edge is, 0 (a soft airbrushed fade) to 1 (a hard
+   *  edge). Absent means hard — only the tools that advertise
+   *  `supportsHardness` ever record it, so a pencil line stays a pencil line
+   *  however the toolbar's hardness dial is set. */
+  hardness?: number;
   /** Fill the shape with `color` instead of outlining it (shape tools only). */
   filled?: boolean;
   /** Ink opacity, 0–1. Absent means fully opaque; the highlighter uses it. */

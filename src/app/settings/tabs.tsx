@@ -31,7 +31,7 @@ import { drawingToPng, exportFileName } from "../export.ts";
 import { useT } from "../i18n/index.ts";
 import { log, logStore } from "../log.ts";
 import { serializeDoc } from "../migrations.ts";
-import { allPlugins, optionalPlugins } from "../plugins/registry.ts";
+import { allPlugins } from "../plugins/registry.ts";
 import { applyBackdropVars } from "../useAppSettings.ts";
 import type {
   AppSettings,
@@ -195,80 +195,6 @@ export function GeneralTab({
           checked={settings.devMode}
           onChange={(next) => update("devMode", next)}
         />
-      </Section>
-    </div>
-  );
-}
-
-// --- Tools (the plugin switchboard) ----------------------------------------
-
-// Every registered tool, split by how it is switched on. The core rows are
-// informational; the optional ones each carry a toggle that writes straight
-// into `enabledPlugins`. This tab is the whole user-facing plugin story — when
-// external plugins land they list here beside the built-ins.
-export function ToolsTab({
-  settings,
-  setPluginEnabled,
-}: {
-  settings: AppSettings;
-  setPluginEnabled: (id: string, enabled: boolean) => void;
-}) {
-  const t = useT();
-  const core = allPlugins().filter((p) => p.core);
-  const optional = optionalPlugins();
-
-  return (
-    <div>
-      <p className="mb-3 text-xs text-muted">{t("settings.tools.intro")}</p>
-
-      <Section title={t("settings.tools.coreTitle")}>
-        <p className="text-xs text-muted">{t("settings.tools.coreHint")}</p>
-        <ul className="flex flex-col gap-2">
-          {core.map((plugin) => {
-            const Icon = plugin.icon;
-            return (
-              <li key={plugin.id} className="flex items-start gap-2">
-                <Icon className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
-                <div className="min-w-0">
-                  <div className="text-sm text-fg-bright">
-                    {t(plugin.nameKey)}
-                    {plugin.shortcut && (
-                      <span className="ml-2 text-xs text-muted">
-                        {t("settings.tools.shortcut", {
-                          key: plugin.shortcut.toUpperCase(),
-                        })}
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-xs text-muted">
-                    {t(plugin.descriptionKey)}
-                  </p>
-                </div>
-              </li>
-            );
-          })}
-        </ul>
-      </Section>
-
-      <Section title={t("settings.tools.optionalTitle")}>
-        <p className="text-xs text-muted">{t("settings.tools.optionalHint")}</p>
-        {optional.length === 0 ? (
-          <p className="text-sm text-muted">{t("settings.tools.none")}</p>
-        ) : (
-          optional.map((plugin) => (
-            <ToggleRow
-              key={plugin.id}
-              label={
-                plugin.shortcut
-                  ? `${t(plugin.nameKey)} (${plugin.shortcut.toUpperCase()})`
-                  : t(plugin.nameKey)
-              }
-              hint={t(plugin.descriptionKey)}
-              checked={settings.enabledPlugins.includes(plugin.id)}
-              onChange={(next) => setPluginEnabled(plugin.id, next)}
-            />
-          ))
-        )}
       </Section>
     </div>
   );

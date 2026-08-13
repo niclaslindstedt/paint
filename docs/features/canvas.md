@@ -69,6 +69,30 @@ a readable JSON file rather than a blob of pixels.
 - The eraser paints with the page colour. In a vector document there are no
   pixels to clear, and painting over means an eraser stroke is undoable like any
   other mark.
+- The **paint bucket** fills the empty space you tap, up to the marks around it
+  — and files that area as a vector shape, so it stays crisp however far you
+  zoom in. Marks stranded inside the area stay unpainted. Tap a gap in your
+  outline and it will leak through it, the same way a bucket always has.
+- The **dropper** takes the colour you tap and makes it the ink — including a
+  colour that only exists where two translucent passes overlap.
+
+## Colour and size
+
+Both live behind a single button, at the right-hand end of the toolbar.
+
+The **ink button** is split corner to corner: the colour you are drawing with
+above the diagonal, the page colour that rubs it out below. Press it for the
+palette, whatever colours you have mixed, and the page colour as a swatch of its
+own. **Mix a colour…** opens a hue strip and a saturation/brightness field —
+drag either and the ink changes as you go; **Keep** adds it to your own swatches
+for good, and a swatch you no longer want has a small × on it.
+
+The **nib button** shows the width as a dot the size it will actually draw.
+Press it for the three widths it ships with, plus any you have added: the slider
+sets a width live, and **Keep** puts it in the row, sorted fine to broad.
+**Hardness** is under it — soft feathers a brush's edge, hard keeps it crisp. It
+is dimmed under a tool that draws a hard edge either way, which is most of
+them.
 
 ## The header
 
@@ -87,7 +111,8 @@ it lives in the sidebar's button island (see [cloud sync](cloud-sync.md)).
 
 - `Ctrl/Cmd + Z` undo, `Ctrl/Cmd + Shift + Z` (or `Ctrl + Y`) redo.
 - Each tool has a single-key shortcut, shown in its tooltip: `P` pencil,
-  `E` eraser, `L` line, `R` rectangle, `O` ellipse, `D` the hand (drag), and one
+  `B` paintbrush, `S` airbrush, `F` the bucket, `I` the dropper, `E` eraser,
+  `D` the hand (drag), `L` line, `R` rectangle, `O` ellipse, and one
   per optional tool.
 
 ## The grid

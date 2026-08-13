@@ -71,6 +71,21 @@ export const sv: Catalog = {
     fill: "Fyll former",
     fillOutline: "Kontur",
     fillFilled: "Fylld",
+    eraseColor: "Sidfärg (suddar)",
+    mixColor: "Blanda en färg…",
+    hideMixer: "Dölj blandaren",
+    mixField: "Mättnad och ljushet",
+    mixHue: "Nyans",
+    keepColor: "Spara",
+    colorKept: "Sparad",
+    removeColor: "Glöm",
+    customSize: "Egen tjocklek: {size}",
+    keepSize: "Spara",
+    sizeKept: "Sparad",
+    removeSize: "Glöm",
+    hardness: "Hårdhet: {percent} %",
+    hardnessHint: "Mjuk tonar ut kanten; hård håller den skarp.",
+    hardnessNotUsed: "Verktyget du håller i ritar en skarp kant ändå.",
     tool: "Verktyg",
     toolbar: "Verktyg",
     fitPage: "Anpassa sidan, eller visa den i 1:1",
@@ -113,6 +128,38 @@ export const sv: Catalog = {
       name: "Överstrykningspenna",
       description: "Ett brett genomskinligt band som byggs upp där det korsas.",
     },
+    paintbrush: {
+      name: "Målarpensel",
+      description:
+        "En laddad pensel: draget sväller på mitten och tonar ut i båda ändar.",
+    },
+    airspray: {
+      name: "Airbrush",
+      description:
+        "Ett moln av färg som byggs upp ju längre du håller kvar på samma ställe.",
+    },
+    crayon: {
+      name: "Vaxkrita",
+      description: "En vaxig, kornig krita som hoppar över papprets struktur.",
+    },
+    calligraphy: {
+      name: "Kalligrafipenna",
+      description:
+        "En platt spets på sned — bred tvärs över draget, hårfin längs med det.",
+    },
+    glow: {
+      name: "Neonpenna",
+      description: "En ljus kärna i sin egen gloria, för streck som lyser.",
+    },
+    filler: {
+      name: "Färgburk",
+      description:
+        "Tryck på en tom yta så fylls den med färgen, fram till strecken runt omkring.",
+    },
+    dropper: {
+      name: "Färgpipett",
+      description: "Tryck på sidan för att rita med färgen du tryckte på.",
+    },
   },
   settings: {
     title: "Inställningar",
@@ -143,12 +190,14 @@ export const sv: Catalog = {
     },
     tools: {
       intro:
-        "Varje verktyg i appen är ett plugin. De fem grundverktygen finns alltid i verktygsfältet; slå på resten här så följer de med.",
-      coreTitle: "Grundverktyg",
-      coreHint: "Alltid tillgängliga.",
-      optionalTitle: "Valfria verktyg",
+        "Varje verktyg i appen är ett plugin, och det här är stället de hänger på. Slå på ett så dyker det upp i verktygsfältet direkt.",
+      coreTitle: "Alltid på",
+      coreHint:
+        "De tre en rityta inte klarar sig utan — en spets, ett sätt att ta tillbaka ett streck och ett sätt att flytta sidan.",
+      alwaysOn: "Alltid på",
+      optionalTitle: "Verktyg",
       optionalHint:
-        "Slå på ett så dyker det upp i verktygsfältet direkt. Att slå av det döljer bara verktyget — streck du redan ritat med det ligger kvar.",
+        "Några är på från början; resten är ett tryck bort. Att slå av ett döljer bara verktyget — streck du redan ritat med det ligger kvar.",
       shortcut: "Kortkommando: {key}",
       none: "Det här bygget innehåller inga valfria verktyg.",
     },

@@ -15,7 +15,8 @@ import {
   type MenuEdge,
 } from "./gestures.ts";
 import { pluginById } from "./plugins/registry.ts";
-import type { DraftStroke, ToolContext } from "./plugins/types.ts";
+import type { CanvasProbe, DraftStroke, ToolContext } from "./plugins/types.ts";
+import { createProbe } from "./probe.ts";
 import { renderDrawing } from "./render.ts";
 import type { Drawing, Point } from "./types.ts";
 import {
@@ -40,7 +41,8 @@ import {
 //
 // The gesture split is the Procreate one, and it is the whole interaction model:
 //
-//   one finger / pen / mouse   draws — or pans, under a tool that `navigates`
+//   one finger / pen / mouse   draws — or pans, under a tool that `navigates`,
+//                              or samples, under one that `picksColor`
 //   two fingers                pinch to zoom, drag to pan
 //   wheel                      pans; ctrl/⌘ + wheel (and a trackpad pinch) zooms
 //   double-tap (hand only)     fits the page, again for 1:1
@@ -65,12 +67,16 @@ type Props = {
   /** The active tool's plugin id. */
   tool: string;
   /** The ink the toolbar has selected — `color: null` when the user hasn't
-   *  picked one, which is what lets a mark follow the page. */
-  ink: Omit<ToolContext, "background">;
+   *  picked one, which is what lets a mark follow the page. The page colour and
+   *  the probe are the canvas's own to supply. */
+  ink: Omit<ToolContext, "background" | "probe">;
   /** The colour an unpicked mark resolves to on this page. */
   defaultInk: string;
   /** Called once per finished gesture with the stroke to file. */
   onCommit: (draft: DraftStroke) => void;
+  /** Called with the colour under the pointer when a tool that `picksColor`
+   *  (the dropper) is pressed — the sampled colour becomes the ink. */
+  onPickColor?: (color: string) => void;
   /** Paint a faint grid behind the page as a drawing aid. Never exported. */
   showGrid?: boolean;
   /** Bumped by the zoom pill to toggle between fitting the page and 1:1. */
@@ -99,6 +105,7 @@ export function PaintCanvas({
   ink,
   defaultInk,
   onCommit,
+  onPickColor,
   showGrid = false,
   fitToken = 0,
   onScaleChange,
@@ -156,9 +163,31 @@ export function PaintCanvas({
   const viewportRef = useRef(viewport);
   viewportRef.current = viewport;
 
+  // The page as it is actually painted, for the two tools that read it (the
+  // bucket and the dropper). Made fresh for each press and kept for the length
+  // of that gesture: the document can't change while a pointer is down, so one
+  // snapshot answers every question a drag asks — and a press that never
+  // reaches a colour tool never takes one at all (see `probe.ts`).
+  const probe = useRef<CanvasProbe | null>(null);
+  const openProbe = useCallback((): CanvasProbe => {
+    probe.current ??= createProbe(pageRef.current, {
+      pageColor,
+      defaultInk,
+    });
+    return probe.current;
+  }, [pageColor, defaultInk]);
+
   const context = useCallback(
-    (): ToolContext => ({ ...ink, background: pageColor }),
-    [ink, pageColor],
+    (): ToolContext => ({
+      ...ink,
+      background: pageColor,
+      // Lazily: reading `probe` here would take a snapshot for every pencil
+      // move. A tool that wants one asks for it.
+      get probe() {
+        return openProbe();
+      },
+    }),
+    [ink, pageColor, openProbe],
   );
 
   /** A pointer event's position on the element, in CSS pixels. */
@@ -321,6 +350,18 @@ export function PaintCanvas({
   const beginGesture = (pointerId: number, at: Point) => {
     const plugin = pluginById(tool);
     if (!plugin) return;
+    // A new press reads a new page: whatever the last gesture drew is part of
+    // what this one samples.
+    probe.current = null;
+
+    // The dropper. A press under a colour-sampling tool takes the colour it
+    // landed on and hands it to the toolbar; nothing is drawn, and nothing
+    // reaches the document or the undo history.
+    if (plugin.picksColor) {
+      const sampled = openProbe().colorAt(toDoc(at));
+      if (sampled) onPickColor?.(sampled);
+      return;
+    }
 
     // The hand. A press under a navigating tool grabs the page instead of
     // starting a stroke, and is a tap until it travels far enough not to be.

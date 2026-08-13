@@ -11,8 +11,9 @@
 ## What
 
 Paint is a small installable web app for sketching a concept: boxes, arrows, a
-circled bit, a scribble. It opens on a page, five tools, and nothing else in the
-way. Drawings are vector strokes kept in your browser; nothing leaves the device
+circled bit, a scribble. It opens on a page, a handful of tools — pencil,
+paintbrush, airbrush, paint bucket, colour dropper, eraser — and nothing else in
+the way. Drawings are vector strokes kept in your browser; nothing leaves the device
 unless you connect storage yourself.
 
 It is a sibling of the [`notes`](https://github.com/niclaslindstedt/notes) and
@@ -24,8 +25,12 @@ the same [`oss-framework`](https://github.com/niclaslindstedt/oss-framework).
 - **For explaining things.** The tool you reach for mid-conversation to show a
   colleague what you mean — quick to open, quick to export, quick to throw away.
 - **Tools are plugins.** Every tool, the pencil included, is registered through
-  one interface. Five are core; the rest switch on in Settings → Tools, so the
-  toolbar stays as simple as you want it and grows when you need it.
+  one interface. A few are always on, a few more come switched on, and the rest
+  — shapes, a crayon, a calligraphy nib, a neon pen — wait in Settings → Tools,
+  so the toolbar stays as simple as you want it and grows when you need it.
+- **Brushes that are their medium.** The paintbrush is a head of separate hairs
+  that thins when you move fast and runs dry at the edges; the airbrush is a
+  spray cone that builds up where you linger. Not a pencil at a different width.
 - **Vector, not pixels.** Undo is exact, the document is small enough for a
   phone, and a synced copy is readable JSON rather than a blob.
 - **Local-first.** No account, no server, works offline. Sync to a folder,
@@ -72,9 +77,10 @@ make install
 npm run dev          # http://localhost:5173
 ```
 
-Draw on the page. `P` pencil, `E` eraser, `L` line, `R` rectangle, `O` ellipse,
-`D` the hand (drag the page around); `Ctrl/Cmd + Z` undoes a mark. Open the sidebar for more drawings, and Settings →
-Tools to switch the optional tools on.
+Draw on the page. `P` pencil, `B` paintbrush, `S` airbrush, `F` the paint
+bucket, `I` the colour dropper, `E` eraser, `D` the hand (drag the page around);
+`Ctrl/Cmd + Z` undoes a mark. Open the sidebar for more drawings, and Settings →
+Tools to switch the shapes and the rest on.
 
 To build and preview the production bundle (service worker and all):
 
@@ -104,9 +110,13 @@ npm run preview
   drawing, new folder, the archive, undo, redo, and the cloud sync glyph; the
   footer below it (foldable behind a chevron) holds Donate, About — What's new,
   the source, the privacy policy — check for updates, and Settings.
-- **Toolbar** — the enabled tools, the ink colour, and the stroke width. Each
-  tool has a single-key shortcut; a shape that can be filled opens a hollow /
-  solid picker over the page when you press its button a second time.
+- **Toolbar** — the enabled tools, then one button for colour and one for the
+  nib. The ink button is split between the colour you draw with and the page
+  colour that erases it, and opens the palette, your own mixed colours, and a
+  free colour mixer; the nib button shows the width as a dot and opens the
+  widths, a slider for new ones, and the hardness dial. Each tool has a
+  single-key shortcut; a shape that can be filled opens a hollow / solid picker
+  over the page when you press its button a second time.
 - **Header** — the drawing's name (edit in place), the favourite star, PNG
   export, and clear. Undo and redo are in the sidebar's button island.
 
