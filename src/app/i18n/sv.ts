@@ -72,6 +72,10 @@ export const sv: Catalog = {
     tool: "Verktyg",
     toolbar: "Verktyg",
     emptyHint: "Rita var som helst på sidan för att börja.",
+    fitPage: "Anpassa sidan, eller visa den i 1:1",
+    zoomPercent: "{percent} %",
+    zoomHint:
+      "Nyp för att zooma, två fingrar för att panorera. Dubbeltryck för att anpassa sidan, igen för 1:1.",
     undo: "Ångra",
     redo: "Gör om",
   },

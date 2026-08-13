@@ -31,6 +31,18 @@ if (import.meta.env.DEV && "serviceWorker" in navigator) {
     .then((regs) => regs.forEach((reg) => void reg.unregister()));
 }
 
+// Zoom belongs to the canvas. WebKit fires its own `gesture*` events for a
+// pinch and zooms the whole page on them, ignoring the viewport meta's
+// `user-scalable=no` in an ordinary iOS Safari tab — so a pinch meant for the
+// drawing would scale the app chrome instead. Swallowing them app-wide leaves
+// `PaintCanvas` (which pinches from pointer events, not these) as the only
+// thing that zooms. Non-passive, or `preventDefault` is ignored.
+for (const type of ["gesturestart", "gesturechange", "gestureend"]) {
+  document.addEventListener(type, (e) => e.preventDefault(), {
+    passive: false,
+  });
+}
+
 const root = document.getElementById("root");
 if (!root) throw new Error("missing #root element");
 

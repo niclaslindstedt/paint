@@ -35,19 +35,40 @@ page, so flipping the theme re-inks the whole sketch instead of hiding it.
 The same tab has the on-screen grid, and can pin a specific page colour to the
 drawing you have open.
 
-## Drawings and sketchbooks
+## Drawings, folders, and sketchbooks
 
-The sidebar lists the drawings in the current sketchbook. **New drawing** adds a
-page; right-click (or long-press) a row to duplicate or delete it. The switcher
-at the top of the sidebar swaps between **namespaces** — whole separate sets of
-drawings, each with its own undo history and its own synced file.
+The sidebar lists the drawings in the current sketchbook, most recently edited
+first. Right-click (or long-press) a row for its actions: star it, file it into
+a folder, duplicate it, archive it, or delete it.
+
+The block of buttons at the foot of the sidebar is where the rest lives — **new
+drawing**, **new folder**, the **archive**, **undo**, **redo**, and the **cloud
+sync** glyph, which shows the sync state and opens the sync details.
+
+Star a drawing with the star in the canvas header and it appears under
+**Favorites** at the top of the sidebar, wherever it happens to be filed.
+Archiving shelves a drawing instead of deleting it; the archive screen restores
+it (or deletes it for good), and archiving a folder takes its drawings with it.
+[More](features/drawings.md).
+
+The switcher at the very top swaps between **namespaces** — whole separate sets
+of drawings, each with its own undo history and its own synced file.
+
+## The sidebar footer
+
+Below the buttons, a thin chevron folds the footer away when you want the room
+for your drawings — it remembers the choice. Unfolded it holds **Donate**,
+**About** (what's new, the source repository with this build's identifier, and
+the privacy policy), **check for updates**, and **Settings**.
 
 ## Making it look how you like
 
-Settings → **Appearance** carries the framework's theme engine: presets, a
-custom palette, the font family and size, corner radius, density, borders, and
-how far dialogs dim the page behind them. Settings → **General** picks the app
-language (English or Swedish) and how the sidebar opens on a phone.
+Paint opens in the **System** theme, following whether your device is set to
+light or dark. Settings → **Appearance** carries the framework's theme engine if
+you'd rather pick: presets, a custom palette, the font family and size, corner
+radius, density, borders, and how far dialogs dim the page behind them. Settings
+→ **General** picks the app language (English or Swedish) and how the sidebar
+opens on a phone.
 
 ## Keeping and sharing
 

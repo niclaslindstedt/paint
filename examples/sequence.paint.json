@@ -1,5 +1,12 @@
 {
-  "version": 1,
+  "version": 2,
+  "folders": [
+    {
+      "id": "folder-1",
+      "name": "Auth",
+      "createdAt": "2026-01-02T09:00:00.000Z"
+    }
+  ],
   "activeDrawingId": "drawing-1",
   "drawings": [
     {
@@ -100,7 +107,8 @@
             ]
           }
         }
-      ]
+      ],
+      "favorite": true
     },
     {
       "id": "drawing-2",
@@ -155,7 +163,8 @@
             ]
           }
         }
-      ]
+      ],
+      "folderId": "folder-1"
     }
   ]
 }

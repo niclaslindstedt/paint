@@ -54,6 +54,12 @@ export function CanvasScreen({
 }: Props) {
   const t = useT();
   const [confirmClear, setConfirmClear] = useState(false);
+  // Bumped to ask the canvas to re-fit its view; the live zoom comes back the
+  // other way so the header's button can read out the current scale. The view
+  // itself stays inside `PaintCanvas` — it is screen state, not document state,
+  // and nothing above here has any business knowing where you scrolled to.
+  const [fitToken, setFitToken] = useState(0);
+  const [scale, setScale] = useState(1);
   const drawing = store.activeDrawing;
 
   if (!drawing) return null;
@@ -136,9 +142,11 @@ export function CanvasScreen({
         </div>
       </header>
 
-      {/* The page. `min-h-0` lets the flex child actually shrink, so the canvas
-          scales to the space left over rather than pushing the toolbar off. */}
-      <div className="flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-page-bg p-3">
+      {/* The window onto the page. The canvas fills it edge to edge — the page
+          inside is larger than the screen, and you pan and pinch around it — so
+          `min-h-0` matters: it lets the flex child actually shrink to the space
+          left over rather than pushing the toolbar off the bottom. */}
+      <div className="relative min-h-0 flex-1 overflow-hidden bg-page-bg">
         <PaintCanvas
           drawing={drawing}
           pageColor={pageColor}
@@ -150,14 +158,37 @@ export function CanvasScreen({
           }}
           defaultInk={ink}
           showGrid={settings.showGrid}
+          fitToken={fitToken}
+          onScaleChange={setScale}
           onCommit={store.addStroke}
           ariaLabel={drawing.name.trim() || t("menu.untitled")}
         />
+
+        {/* The zoom readout, floating over the canvas rather than sitting in
+            the header — six icon buttons up there left a phone's title field
+            too narrow to read. It doubles as the way back: tap to fit the whole
+            page, tap again for 1:1. Hidden from the pointer stream everywhere
+            but on itself, so it can never swallow a stroke that runs under it. */}
+        <button
+          type="button"
+          onClick={() => setFitToken((n) => n + 1)}
+          aria-label={t("canvas.fitPage")}
+          title={t("canvas.fitPage")}
+          className="absolute right-3 bottom-3 cursor-pointer rounded-full border border-line bg-surface/90 px-2.5 py-1 text-xs text-muted tabular-nums hover:text-fg-bright"
+        >
+          {t("canvas.zoomPercent", {
+            percent: String(Math.round(scale * 100)),
+          })}
+        </button>
       </div>
 
+      {/* The empty state also teaches the gesture: the page is bigger than the
+          screen now, so "you can pinch and pan around it" is not something a
+          first-time user would otherwise discover. It goes away with the first
+          mark, like the rest of the hint. */}
       {drawing.strokes.length === 0 && (
-        <p className="shrink-0 px-3 pb-1 text-center text-xs text-muted">
-          {t("canvas.emptyHint")}
+        <p className="shrink-0 px-3 pb-1 text-center text-xs text-balance text-muted">
+          {t("canvas.emptyHint")} {t("canvas.zoomHint")}
         </p>
       )}
 

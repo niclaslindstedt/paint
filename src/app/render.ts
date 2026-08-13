@@ -75,12 +75,50 @@ function paintGeneric(ctx: CanvasRenderingContext2D, stroke: Stroke): void {
 
 /** How a repaint treats the page, and what it inks unpicked strokes with. */
 export type RenderOptions = InkContext & {
-  /** Clear to transparent instead of filling with the page colour. The screen
-   *  sets this (the element paints the page in CSS); the PNG export never does
-   *  — an exported sketch must carry its own background. The page colour is
-   *  still required either way: the eraser paints with it. */
+  /** Clear to transparent instead of filling with the page colour. Nothing sets
+   *  it today — both the screen and the export paint the sheet — but a caller
+   *  compositing the marks over something of its own can. The page colour is
+   *  required either way: the eraser paints with it. */
   transparentPage?: boolean;
+  /** Rule a grid of this spacing (document pixels) across the page, under the
+   *  marks. A **screen-only** drawing aid: the PNG export leaves it unset, so a
+   *  grid can never reach an exported file. */
+  grid?: number;
 };
+
+/** The grid's ink. Deliberately a fixed translucent grey rather than a theme
+ *  colour: it has to read as a faint guide on a white sheet and on a black one,
+ *  and it is never the thing you are looking at. */
+const GRID_INK = "rgba(120,130,145,0.25)";
+
+/** Rule the grid across the page, clipped to it — the guide belongs to the
+ *  sheet, not to the desk it is lying on. Lines are drawn one document pixel
+ *  wide; the view transform thins or fattens them with the zoom, which is what
+ *  makes the grid recede when you pull back. */
+function paintGrid(
+  ctx: CanvasRenderingContext2D,
+  drawing: Drawing,
+  step: number,
+): void {
+  if (step <= 0) return;
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(0, 0, drawing.width, drawing.height);
+  ctx.clip();
+  ctx.strokeStyle = GRID_INK;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  for (let x = step; x < drawing.width; x += step) {
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x, drawing.height);
+  }
+  for (let y = step; y < drawing.height; y += step) {
+    ctx.moveTo(0, y);
+    ctx.lineTo(drawing.width, y);
+  }
+  ctx.stroke();
+  ctx.restore();
+}
 
 /** Repaint a whole drawing, plus an optional in-flight stroke on top.
  *
@@ -106,25 +144,14 @@ export function renderDrawing(
   }
   ctx.restore();
 
+  if (options.grid) paintGrid(ctx, drawing, options.grid);
+
   for (const stroke of drawing.strokes) paintStroke(ctx, stroke, options);
   if (draft) paintStroke(ctx, draft, options);
 }
 
-/** Map a pointer event's client coordinates into document space.
- *
- *  The canvas is laid out to fit the viewport (`object-fit: contain` style), so
- *  the element's CSS size rarely matches the document's pixel size; this is the
- *  one place that conversion lives. */
-export function toDocumentPoint(
-  rect: { left: number; top: number; width: number; height: number },
-  drawing: { width: number; height: number },
-  clientX: number,
-  clientY: number,
-): { x: number; y: number } {
-  const scaleX = rect.width === 0 ? 1 : drawing.width / rect.width;
-  const scaleY = rect.height === 0 ? 1 : drawing.height / rect.height;
-  return {
-    x: (clientX - rect.left) * scaleX,
-    y: (clientY - rect.top) * scaleY,
-  };
-}
+// Screen-to-document mapping used to live here, back when the canvas element
+// was the page and was laid out to fit the viewport. The page is now larger
+// than the screen and the element is a window onto it, so that conversion is a
+// property of the *view* rather than of the element's box — it lives in
+// `viewport.ts` alongside the rest of the pan/zoom maths.

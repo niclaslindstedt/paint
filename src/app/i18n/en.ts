@@ -75,6 +75,10 @@ export const en = {
     tool: "Tool",
     toolbar: "Tools",
     emptyHint: "Draw anywhere on the page to start.",
+    fitPage: "Fit the page, or show it at 1:1",
+    zoomPercent: "{percent}%",
+    zoomHint:
+      "Pinch to zoom, two fingers to pan. Double-tap to fit the page, again for 1:1.",
     undo: "Undo",
     redo: "Redo",
   },

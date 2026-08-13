@@ -105,9 +105,16 @@ export type AppData = {
   activeDrawingId: string;
 };
 
-/** The default page size for a new drawing — 16:10, big enough to sketch a
- *  diagram on and small enough that a phone shows it whole. */
-export const DEFAULT_CANVAS = { width: 1600, height: 1000 } as const;
+/** The default page size for a new drawing — 16:10, and deliberately larger
+ *  than any screen it will be opened on.
+ *
+ *  A page that fits the viewport is a page you run out of: the drawing opens
+ *  fitted, and the first diagram that needs one more box has nowhere to put it.
+ *  At this size the canvas opens at 1:1 as a *window* onto a much bigger sheet —
+ *  pinch to zoom, two fingers to pan (see `viewport.ts`) — so there is always
+ *  room to the right of what you have drawn. It stays small enough that a
+ *  full-page PNG export is a sane file, which an unbounded canvas would not be. */
+export const DEFAULT_CANVAS = { width: 3200, height: 2000 } as const;
 
 /** A drawing's display name, falling back to a placeholder for an unnamed one
  *  so list rows and the tab title never render empty. */

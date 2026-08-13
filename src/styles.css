@@ -73,6 +73,26 @@
   backdrop-filter: blur(var(--modal-backdrop-blur, 0px));
 }
 
+/* ── The sync glyph as a button-island cell ──────────────────────────────────
+   The framework's `SyncStatus` is shaped as a *header* button: a fixed 36px
+   square with its own border and rounding. In the side menu's button island it
+   is not a button seated in a cell — it IS the cell, flush against Undo and
+   Redo, and the island's own border and dividers are the only box around it.
+
+   Overriding that from the `className` prop can't be relied on (Tailwind's
+   generated order decides which of two same-property utilities wins, not the
+   order they appear in the class attribute), so the reshaping lives here,
+   scoped to the wrapper the island puts around it. Only the box is dropped —
+   the tone colour the component picks stays, because that tint *is* the status.
+   Match `BarButton`'s vertical padding so the row's three cells are one height. */
+.sync-island-cell > button {
+  width: 100%;
+  height: auto;
+  padding-block: calc(var(--density-row-py) + 0.25rem);
+  border-color: transparent;
+  border-radius: 0;
+}
+
 /* ── Density-driven spacing ──────────────────────────────────────────────────
    The Appearance → Density knob is published by the theme engine as CSS
    variables the row components ride, and mirrored onto `<html data-density>`
@@ -114,6 +134,16 @@ body {
      drag on the canvas can't drag the whole page around underneath it. */
   overflow: hidden;
   overscroll-behavior: none;
+  /* Zoom belongs to the canvas, and only to the canvas. `manipulation` keeps
+     taps and scrolls working while switching off the browser's double-tap
+     zoom, so a quick double-tap on the page chrome doesn't blow the whole app
+     up — and a double-tap on the canvas reaches our own fit/1:1 toggle instead.
+     The pinch half is handled in two places: the viewport meta's
+     `user-scalable=no` (honoured in an installed PWA) and the WebKit
+     `gesture*` guard in `main.tsx` (which covers an iOS Safari tab, where the
+     meta is ignored). The canvas element sets `touch-action: none` on top of
+     this, taking every touch on it for drawing and pinching. */
+  touch-action: manipulation;
 }
 
 body {

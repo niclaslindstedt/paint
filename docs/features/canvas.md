@@ -1,8 +1,35 @@
 # The canvas
 
-The page you draw on is a fixed pixel size (1600 × 1000 by default) that the
-view scales to fit whatever screen you are on — so a sketch made on a laptop
-looks the same on a phone, rather than reflowing.
+The page you draw on is a fixed pixel size — 3200 × 2000 by default, which is
+**bigger than the screen you are looking at it through**. A page that fits the
+window is a page you run out of: the first diagram that needs one more box has
+nowhere to put it. So the canvas opens as a window onto the middle of the sheet
+at 1:1, with room in every direction, and you move around it.
+
+Because the size is fixed rather than reflowed, a sketch made on a laptop looks
+the same on a phone — you just see less of it at once.
+
+## Zooming and panning
+
+| Gesture                               | What it does                       |
+| ------------------------------------- | ---------------------------------- |
+| One finger, pen, or mouse             | Draws                              |
+| Two fingers                           | Pinch to zoom, drag to pan         |
+| Wheel / trackpad scroll               | Pans                               |
+| Ctrl (⌘) + wheel, or a trackpad pinch | Zooms about the cursor             |
+| Double-tap / double-click             | Fits the whole page, again for 1:1 |
+
+The **zoom readout** in the bottom-right corner of the canvas does the same as
+the double-tap: it shows the current zoom, and tapping it fits the page (or
+returns to 1:1 if it is already fitted).
+
+Putting a second finger down mid-stroke abandons that stroke rather than
+committing it — you meant to zoom, and half a line you didn't want is worse than
+none.
+
+Zoom belongs to the canvas and nowhere else: pinching anywhere in the app's
+chrome does nothing, so a pinch aimed at your drawing can never leave the whole
+interface blown up instead.
 
 A drawing is **vector**, not a bitmap: each mark is a stroke object with a
 shape, a colour, and a width. That is what makes undo exact (one mark at a
@@ -23,8 +50,11 @@ a readable JSON file rather than a blob of pixels.
 ## The header
 
 - The drawing's name is edited in place — type over the title.
-- The sync glyph opens the sync command centre (see [cloud sync](cloud-sync.md)).
+- The star adds the drawing to Favorites (see [drawings](drawings.md)).
 - Undo / redo, export the page as a PNG, and clear the page.
+
+The sync glyph is not here: there is one cloud affordance for the whole app, and
+it lives in the sidebar's button island (see [cloud sync](cloud-sync.md)).
 
 ## Keyboard
 

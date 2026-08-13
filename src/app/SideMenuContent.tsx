@@ -434,10 +434,13 @@ export function SideMenuContent({
             >
               <RedoIcon className="h-5 w-5" />
             </BarButton>
+            {/* The cloud glyph is a cell of the island, not a button seated
+                inside one — the framework's `SyncStatus` is styled as a bordered
+                header button, so `sync-island-cell` strips its box and lets it
+                fill the cell like its neighbours (see `styles.css`). Its tone
+                colour survives: that tint is the status. */}
             {syncSlot && (
-              <div className="flex flex-1 items-center justify-center py-[calc(var(--density-row-py)+0.25rem)]">
-                {syncSlot}
-              </div>
+              <div className="sync-island-cell flex flex-1">{syncSlot}</div>
             )}
           </div>
         </div>

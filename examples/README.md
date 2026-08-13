@@ -15,14 +15,17 @@ diff between two versions is meaningful.
 
 ```jsonc
 {
-  "version": 1, // stamped on the bytes at rest, not in memory
+  "version": 2, // stamped on the bytes at rest, not in memory
+  "folders": [{ "id": "folder-1", "name": "Auth" }],
   "activeDrawingId": "drawing-1",
   "drawings": [
     {
       "id": "drawing-1",
       "name": "Auth flow",
-      "width": 1600, // document pixels; the view scales to fit
+      "width": 1600, // document pixels — a page may be any size
       "height": 1000,
+      "favorite": true, // starred, so it heads the sidebar's Favorites
+      // "folderId" is absent, so this page sits at the top level.
       // "background" is absent, so this page follows the canvas theme.
       "strokes": [
         {
@@ -43,5 +46,10 @@ diff between two versions is meaningful.
 ```
 
 A stroke omits what it doesn't need: no `color` means "follow the page", no
-`filled` means outlined, no `opacity` means opaque. See
-[`src/app/types.ts`](../src/app/types.ts) for the full model.
+`filled` means outlined, no `opacity` means opaque. Drawings omit the same way:
+no `folderId` means top level, no `favorite` means unstarred, no `archived`
+means live. See [`src/app/types.ts`](../src/app/types.ts) for the full model.
+
+The pages here are 1600 × 1000, smaller than the 3200 × 2000 a **new** page gets
+— the size is per drawing, not a constant, and an older document keeps whatever
+it was made at.

@@ -11,12 +11,15 @@ and `contacts` apps.
 ## The layers
 
 ```
-index.html → src/main.tsx → src/App.tsx
-                              ├── SideMenuContent      (drawings, namespaces)
-                              ├── CanvasScreen         (header, page, toolbar)
-                              │     ├── PaintCanvas    (the gesture in flight)
-                              │     └── Toolbar        (enabled tools + ink)
-                              └── SettingsModal        (lazy)
+index.html → src/main.tsx ─┬─ src/App.tsx
+                           │    ├── SideMenuContent   (navigation)
+                           │    │     └── SideMenuRows (its presentational leaves)
+                           │    ├── CanvasScreen      (header, page, toolbar)
+                           │    │     ├── PaintCanvas (the gesture in flight)
+                           │    │     └── Toolbar     (enabled tools + ink)
+                           │    ├── ArchiveScreen     (lazy)
+                           │    └── SettingsModal     (lazy)
+                           └─ src/app/PrivacyPage.tsx (lazy, mounted at /privacy)
 
 stores:   usePaintStore · useAppSettings · useNamespaces · useSyncEngine
 domain:   types · render · plugins/* · migrations · canvas · export
@@ -26,6 +29,42 @@ platform: @niclaslindstedt/oss-framework (UI kit, storage, theme, i18n, PWA)
 Dependency direction is one-way: screens → stores → framework. Nothing imports
 framework internals, only its published subpaths.
 
+`main.tsx` is a two-way switch, not a router: the build mirrors `index.html` to
+`dist/privacy/index.html` (the `emitPrivacyAlias` plugin in `vite.config.ts`),
+so GitHub Pages serves the same bundle at `/privacy/`, and a `location.pathname`
+check decides which page to mount. Each half is lazily imported, so neither
+rides in the other's chunk.
+
+## The side menu
+
+`SideMenuContent` owns the menu's state and actions; `SideMenuRows` holds its
+presentational leaves (section headers, drawing / folder rows, the inline name
+editors, the island cells, the footer rows, the collapse rail). The split keeps
+the stateful file about behaviour rather than pixels, and both well under the
+§20.5 size cap.
+
+Everything generic underneath is the framework's: the drawer shell (`Sidebar`),
+the namespace switcher, the row action menus, the "About" dropdown's
+`FloatingPanel`, the inline edit rows, and the check-for-updates row. The menu
+rides the framework's own `px-5` row gutter so the app-owned rows and the
+framework-owned ones read as one continuous list.
+
+The **cloud glyph is a menu cell, not screen chrome.** `App` renders the
+framework's `SyncStatus` once and passes it down as the island's last cell, so
+there is a single sync affordance for the whole app rather than one per screen
+header.
+
+## Safe areas
+
+The app paints edge to edge (`viewport-fit=cover`) so an installed iOS PWA fills
+the screen, which means every piece of chrome at an edge has to clear the notch
+or the home indicator itself. Three do:
+
+- the canvas header and the archive header pad by `env(safe-area-inset-top)`,
+- the toolbar and the menu footer pad by `env(safe-area-inset-bottom) + 10px`,
+- the menu panel grows past its content box by the bottom inset to reclaim the
+  padding the framework panel reserves, handing it to the scrolling list.
+
 ## Why the document is vector
 
 A drawing is an ordered list of **strokes**, each a shape plus its ink. It is
@@ -34,7 +73,7 @@ never a bitmap, and that single decision pays for most of the app:
 - **Undo is exact and cheap.** One mark is one entry; undo is `pop()`, not a
   per-stroke image snapshot.
 - **The document fits in localStorage.** A sketch is a few kilobytes of JSON
-  where a 1600×1000 PNG is a few hundred.
+  where a 3200×2000 PNG is a megabyte or more.
 - **Sync is diffable and readable.** The bytes pushed to Dropbox are the same
   JSON you can export, open in an editor, and reason about.
 - **The page can be re-themed.** Because ink is data rather than baked pixels, a
@@ -44,7 +83,30 @@ never a bitmap, and that single decision pays for most of the app:
 
 Rasterising happens twice, both times through the same renderer: onto the screen
 canvas, and onto an off-screen canvas for the PNG export. There is no second
-painting path to drift.
+painting path to drift. The screen applies the view transform before calling it
+and the export doesn't, which is the only difference between them — and the
+reason the grid is a `RenderOptions` flag the export leaves unset rather than
+something painted separately.
+
+## The canvas is a window
+
+The page is larger than any screen, so the `<canvas>` element is a **window**
+onto it rather than the page itself. `viewport.ts` owns that window as a pure
+affine transform (uniform scale + translation) and all the arithmetic over it —
+zoom-about-an-anchor, clamped panning, and a whole pinch computed from where the
+gesture began rather than accumulated frame by frame, which is what makes it
+exact and reversible. Being DOM-free, a complete pinch can be driven in a node
+test.
+
+`PaintCanvas` owns only what the maths can't: the pointers, the repaint, and the
+gesture split (one pointer draws, two pinch, a second finger mid-stroke abandons
+the stroke). The view is screen state and deliberately never reaches the store —
+where you scrolled to is not part of the document.
+
+Zoom is the canvas's alone. The viewport meta disables it app-wide, `main.tsx`
+swallows WebKit's `gesture*` events (which an iOS Safari tab honours over the
+meta), and `body` carries `touch-action: manipulation` to kill double-tap zoom —
+so the only thing in the app that scales anything is the canvas.
 
 ## The plugin seam
 
