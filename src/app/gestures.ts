@@ -46,3 +46,57 @@ export function isDoubleTap(previous: Tap | null, tap: Tap): boolean {
 export function isTap(from: Point, to: Point): boolean {
   return distance(from, to) <= TAP_SLOP;
 }
+
+// --- The drawer's open-swipe --------------------------------------------
+//
+// On a phone in "Edge swipe" mode the sidebar opens on an inward swipe that
+// starts at the screen edge — and that swipe lands on the canvas, which would
+// otherwise take it for a stroke and leave a line across the page behind the
+// opening drawer.
+//
+// The canvas can't ask the framework's hook what it is thinking, so it repeats
+// its arithmetic here: same strip, same distance, same "a vertical drag isn't a
+// swipe" rule. A press that starts in the strip is **held** rather than drawn —
+// it becomes a stroke the moment it proves it isn't the drawer's, and it is
+// replayed from where it began, so nothing is lost by the wait.
+
+/** The side of the screen the drawer opens from. */
+export type MenuEdge = "left" | "right";
+
+/** How far in from the watched edge a press may land and still be a candidate
+ *  for the drawer's swipe, in CSS pixels. The framework's `edgeZone` default. */
+export const EDGE_ZONE = 30;
+
+/** How far inward such a press must travel before the drawer opens. The
+ *  framework's `openDistance` default. */
+export const EDGE_OPEN_DISTANCE = 48;
+
+/** Whether a press at `x` (in viewport coordinates, on a viewport `width` wide)
+ *  begins in the strip the drawer watches. */
+export function inEdgeZone(x: number, width: number, edge: MenuEdge): boolean {
+  return edge === "left" ? x <= EDGE_ZONE : x >= width - EDGE_ZONE;
+}
+
+/** What a held press has turned out to be:
+ *
+ *  - `pending` — still undecided; keep holding.
+ *  - `draw` — not the drawer's swipe, so it is the tool's press after all.
+ *  - `menu` — the inward swipe fired and the drawer is opening; drop it. */
+export type EdgeVerdict = "pending" | "draw" | "menu";
+
+/** Classify a held press from how far it has travelled since it landed.
+ *
+ *  A drag that is more vertical than horizontal is never the drawer's — the
+ *  framework disarms on exactly that test — so it is released to the tool at
+ *  once. Otherwise it stays held until it has gone far enough inward to open the
+ *  drawer; short of that it is still anyone's, and the release (or the finger
+ *  lifting) decides. */
+export function classifyEdgeDrag(
+  dx: number,
+  dy: number,
+  edge: MenuEdge,
+): EdgeVerdict {
+  if (Math.abs(dy) > Math.abs(dx)) return "draw";
+  const inward = edge === "left" ? dx : -dx;
+  return inward >= EDGE_OPEN_DISTANCE ? "menu" : "pending";
+}

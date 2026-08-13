@@ -5,15 +5,14 @@ import {
   ConfirmDialog,
   DownloadIcon,
   InlineEditField,
-  RedoIcon,
   StarIcon,
   TrashIcon,
-  UndoIcon,
 } from "@niclaslindstedt/oss-framework/components";
 import { downloadBlob } from "@niclaslindstedt/oss-framework/files";
 
 import { defaultInk, resolvePageColor } from "./canvas.ts";
 import { drawingToPng, exportFileName } from "./export.ts";
+import type { MenuEdge } from "./gestures.ts";
 import { useT } from "./i18n/index.ts";
 import { log } from "./log.ts";
 import { PaintCanvas } from "./PaintCanvas.tsx";
@@ -23,8 +22,7 @@ import type { PaintStore } from "./usePaintStore.ts";
 import * as output from "../output.ts";
 
 // The main screen: a header naming the open drawing (with the favourite star
-// and the undo/redo/export/clear actions), the page itself, and the toolbar
-// under it.
+// and the export/clear actions), the page itself, and the toolbar under it.
 //
 // The sync glyph is deliberately *not* here: there is one cloud affordance for
 // the whole app and it lives in the side menu's button island, so the header
@@ -43,6 +41,9 @@ type Props = {
   /** Whether the page is a dark sheet — resolved from the canvas theme and the
    *  app appearance by `App`, so the screen never re-derives it. */
   darkCanvas: boolean;
+  /** The screen edge the sidebar's open-swipe is armed on, if any. Passed
+   *  through to the canvas, which must not draw that swipe. */
+  menuSwipeEdge?: MenuEdge | null;
 };
 
 export function CanvasScreen({
@@ -51,6 +52,7 @@ export function CanvasScreen({
   update,
   tool,
   darkCanvas,
+  menuSwipeEdge = null,
 }: Props) {
   const t = useT();
   const [confirmClear, setConfirmClear] = useState(false);
@@ -115,20 +117,10 @@ export function CanvasScreen({
               filled={drawing.favorite}
             />
           </IconButton>
-          <IconButton
-            label={t("canvas.undo")}
-            disabled={!store.canUndo}
-            onClick={store.undo}
-          >
-            <UndoIcon className="h-[18px] w-[18px]" />
-          </IconButton>
-          <IconButton
-            label={t("canvas.redo")}
-            disabled={!store.canRedo}
-            onClick={store.redo}
-          >
-            <RedoIcon className="h-[18px] w-[18px]" />
-          </IconButton>
+          {/* No undo / redo here. They are one tap away in the sidebar's
+              button island and on the keyboard, and the header is the one row
+              a phone has to fit a drawing's name into — two glyphs it can
+              spend elsewhere buy back the width to read the title. */}
           <IconButton label={t("canvas.exportPng")} onClick={exportPng}>
             <DownloadIcon className="h-[18px] w-[18px]" />
           </IconButton>
@@ -160,6 +152,7 @@ export function CanvasScreen({
           showGrid={settings.showGrid}
           fitToken={fitToken}
           onScaleChange={setScale}
+          menuSwipeEdge={menuSwipeEdge}
           onCommit={store.addStroke}
           ariaLabel={drawing.name.trim() || t("menu.untitled")}
         />

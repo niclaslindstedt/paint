@@ -11,14 +11,15 @@ the same on a phone — you just see less of it at once.
 
 ## Zooming and panning
 
-| Gesture                               | What it does                       |
-| ------------------------------------- | ---------------------------------- |
-| One finger, pen, or mouse             | Draws                              |
-| Two fingers                           | Pinch to zoom, drag to pan         |
-| Wheel / trackpad scroll               | Pans                               |
-| Ctrl (⌘) + wheel, or a trackpad pinch | Zooms about the cursor             |
-| The **hand** tool (`D`)               | One-finger drag pans               |
-| Double-tap with the hand              | Fits the whole page, again for 1:1 |
+| Gesture                               | What it does                         |
+| ------------------------------------- | ------------------------------------ |
+| One finger, pen, or mouse             | Draws                                |
+| Two fingers                           | Pinch to zoom, drag to pan           |
+| Wheel / trackpad scroll               | Pans                                 |
+| Ctrl (⌘) + wheel, or a trackpad pinch | Zooms about the cursor               |
+| The **hand** tool (`D`)               | One-finger drag pans                 |
+| Double-tap with the hand              | Fits the whole page, again for 1:1   |
+| Swipe in from the screen edge         | Opens the sidebar, and marks nothing |
 
 The **hand** is the way around the page when two fingers aren't handy — a mouse
 has no pinch, and a phone in one hand has no second finger. Pick it from the
@@ -33,6 +34,14 @@ fits the page (or returns to 1:1 if it is already fitted).
 Putting a second finger down mid-stroke abandons that stroke rather than
 committing it — you meant to zoom, and half a line you didn't want is worse than
 none.
+
+If you open the sidebar by swiping in from the screen edge (Settings → General),
+that swipe crosses the page — and it leaves nothing behind. A touch that lands in
+the narrow strip the sidebar watches is **held** rather than drawn: swipe inward
+and the drawer opens with the page untouched; do anything else — draw downward,
+draw back out, lift your finger where it landed — and the mark appears from the
+point you first pressed, so nothing is lost to the wait. A mouse or a pen at the
+edge never waits, because the gesture is a touch one.
 
 Zoom belongs to the canvas and nowhere else: pinching anywhere in the app's
 chrome does nothing, so a pinch aimed at your drawing can never leave the whole
@@ -50,6 +59,13 @@ a readable JSON file rather than a blob of pixels.
 - A shape tool (line, rectangle, ellipse, arrow) draws from where you pressed to
   where you let go. A press that never moved is discarded, so a mis-tap doesn't
   leave an invisible mark.
+- The shapes that can be **filled** — rectangle and ellipse — wear a folded
+  corner on their toolbar button. Press the button again once it is the tool you
+  are holding and a small panel opens over the page with the shape drawn hollow
+  and drawn solid; pick one. There is no text on it and nothing on screen until
+  you ask for it, which is the row of toolbar the old "Fill shapes" checkbox
+  used to cost. The choice sticks until you change it, and both shape buttons
+  show it.
 - The eraser paints with the page colour. In a vector document there are no
   pixels to clear, and painting over means an eraser stroke is undoable like any
   other mark.
@@ -58,7 +74,11 @@ a readable JSON file rather than a blob of pixels.
 
 - The drawing's name is edited in place — type over the title.
 - The star adds the drawing to Favorites (see [drawings](drawings.md)).
-- Undo / redo, export the page as a PNG, and clear the page.
+- Export the page as a PNG, and clear the page.
+
+Undo and redo are not here either. They live in the sidebar's button island and
+on the keyboard, and the header is the one row a phone has to fit a drawing's
+name into — the width those two glyphs took is worth more spent on the title.
 
 The sync glyph is not here: there is one cloud affordance for the whole app, and
 it lives in the sidebar's button island (see [cloud sync](cloud-sync.md)).

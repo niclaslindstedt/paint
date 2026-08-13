@@ -4,7 +4,13 @@
 // `className` for sizing) so they sit beside `PencilIcon` & co. without
 // looking imported.
 
-type IconProps = { className?: string };
+type IconProps = {
+  className?: string;
+  /** Paint the glyph solid rather than as an outline. Only the shape marks
+   *  honour it — it is how the fill picker shows the two ways a shape can be
+   *  drawn without a word of text (see `Toolbar.tsx`). */
+  filled?: boolean;
+};
 
 const base = {
   viewBox: "0 0 24 24",
@@ -45,20 +51,33 @@ export function ArrowIcon({ className }: IconProps) {
   );
 }
 
-/** A rectangle. */
-export function SquareIcon({ className }: IconProps) {
+/** A rectangle, outlined or solid. */
+export function SquareIcon({ className, filled }: IconProps) {
   return (
     <svg {...base} className={className} aria-hidden="true">
-      <rect x="4" y="5" width="16" height="14" rx="1.5" />
+      <rect
+        x="4"
+        y="5"
+        width="16"
+        height="14"
+        rx="1.5"
+        fill={filled ? "currentColor" : "none"}
+      />
     </svg>
   );
 }
 
-/** An ellipse. */
-export function CircleIcon({ className }: IconProps) {
+/** An ellipse, outlined or solid. */
+export function CircleIcon({ className, filled }: IconProps) {
   return (
     <svg {...base} className={className} aria-hidden="true">
-      <ellipse cx="12" cy="12" rx="8.5" ry="7" />
+      <ellipse
+        cx="12"
+        cy="12"
+        rx="8.5"
+        ry="7"
+        fill={filled ? "currentColor" : "none"}
+      />
     </svg>
   );
 }

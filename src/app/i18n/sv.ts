@@ -69,6 +69,8 @@ export const sv: Catalog = {
     color: "Färg",
     size: "Tjocklek",
     fill: "Fyll former",
+    fillOutline: "Kontur",
+    fillFilled: "Fylld",
     tool: "Verktyg",
     toolbar: "Verktyg",
     fitPage: "Anpassa sidan, eller visa den i 1:1",

@@ -70,8 +70,10 @@ export type PaintPlugin = {
   /** Catalog keys for the toolbar tooltip and the settings row. */
   nameKey: TKey;
   descriptionKey: TKey;
-  /** Toolbar glyph. */
-  icon: (props: { className?: string }) => ReactNode;
+  /** Toolbar glyph. A tool that `supportsFill` is asked for a solid version of
+   *  it too (`filled`), which is what the fill picker shows in place of words;
+   *  a glyph that ignores the flag simply draws the same either way. */
+  icon: (props: { className?: string; filled?: boolean }) => ReactNode;
   /** Single-key shortcut (lower case), shown in the tooltip. */
   shortcut?: string;
   /** True when the tool paints with the page background rather than the ink

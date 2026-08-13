@@ -268,6 +268,11 @@ export function App() {
             update={update}
             tool={tool}
             darkCanvas={darkCanvas}
+            // The edge the drawer's open-swipe is watching, so the canvas can
+            // hold that swipe back instead of drawing it. `null` whenever
+            // nothing is listening — a docked sidebar, the floating button, or
+            // a drawer that is already open.
+            menuSwipeEdge={swipeToOpen && !drawerOpen ? position.side : null}
           />
         )}
       </main>
