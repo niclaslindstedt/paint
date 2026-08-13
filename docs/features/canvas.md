@@ -1,13 +1,33 @@
 # The canvas
 
-The page you draw on is a fixed pixel size — 3200 × 2000 by default, which is
-**bigger than the screen you are looking at it through**. A page that fits the
-window is a page you run out of: the first diagram that needs one more box has
-nowhere to put it. So the canvas opens as a window onto the middle of the sheet
-at 1:1, with room in every direction, and you move around it.
+The page you draw on is a fixed pixel size, and you choose it when the drawing
+is made: **New drawing** asks how big the page should be before it opens one.
+
+| Size              | What it is                                                     |
+| ----------------- | -------------------------------------------------------------- |
+| **This screen**   | Your display's own resolution — the default, and usually right |
+| **Full HD**       | 1920 × 1080                                                    |
+| **4K**            | 3840 × 2160                                                    |
+| **Large sheet**   | 3200 × 2000 — bigger than any screen, for a diagram that grows |
+| **Square**        | 2048 × 2048                                                    |
+| **A4 at 300 dpi** | 2480 × 3508, portrait — a page to print                        |
+| **Custom size…**  | Type a width and a height, 64–8192 px on each side             |
+
+"This screen" is the resolution the display actually has, pixel ratio included,
+so a page made on a retina laptop exports at its native size rather than at half
+of it. A size that is already on the list — Full HD on a 1080p monitor — is
+offered once, as _This screen_.
+
+A page **larger than the window** is not a problem: the canvas opens as a window
+onto the sheet at 1:1 and you move around it, so there is always room to the
+right of what you have drawn. That is the whole point of the large sheet — a
+page that exactly fits the window is a page you run out of, and the first
+diagram that needs one more box has nowhere to put it.
 
 Because the size is fixed rather than reflowed, a sketch made on a laptop looks
-the same on a phone — you just see less of it at once.
+the same on a phone — you just see less of it at once. The page also grows on
+its own in one case: a picture dropped past its edge takes the sheet with it
+(see [images](images.md)).
 
 ## Zooming and panning
 

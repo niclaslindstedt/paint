@@ -5,9 +5,10 @@ into and nothing to configure — start drawing.
 
 ## The canvas
 
-Press and drag to draw. The page is a fixed size, larger than the screen you see
-it through, so a sketch looks the same on a laptop and a phone — you just see
-less of it at once.
+Press and drag to draw. The page is a fixed size — the one you picked when the
+drawing was made, this screen's own resolution unless you chose otherwise — so a
+sketch looks the same on a laptop and a phone. On a page bigger than the window
+you just see less of it at once. [More](features/canvas.md).
 
 - **Hand** (`D`), at the far left, drags the page around instead of drawing on
   it — and double-tapping with it fits the whole page, again for 1:1.

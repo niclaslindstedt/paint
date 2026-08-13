@@ -33,6 +33,10 @@ the same [`oss-framework`](https://github.com/niclaslindstedt/oss-framework).
 - **Brushes that are their medium.** The paintbrush is a head of separate hairs
   that thins when you move fast and runs dry at the edges; the airbrush is a
   spray cone that builds up where you linger. Not a pencil at a different width.
+- **A page the size you meant.** A new drawing asks how big its canvas is —
+  this screen's own resolution by default, Full HD, 4K, square, A4 at 300 dpi, a
+  sheet larger than any screen, or a size you type. The page is fixed after
+  that, so the sketch looks the same everywhere it opens.
 - **Vector, not pixels.** Undo is exact, the document is small enough for a
   phone, and a synced copy is readable JSON rather than a blob.
 - **Local-first.** No account, no server, works offline. Sync to a folder,
@@ -109,7 +113,8 @@ npm run preview
 
 - **Sidebar** — namespaces (separate sketchbooks), your starred drawings, and
   the drawing list grouped into folders. The button island at its foot holds new
-  drawing, new folder, the archive, undo, redo, and the cloud sync glyph; the
+  drawing (which asks for the page size first), new folder, the archive, undo,
+  redo, and the cloud sync glyph; the
   footer below it (foldable behind a chevron) holds Donate, About — What's new,
   the source, the privacy policy — check for updates, and Settings.
 - **Toolbar** — the enabled tools, then one button for colour and one for the

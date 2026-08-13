@@ -20,7 +20,10 @@ connect a storage backend yourself.
 - Pick colour and stroke width from two buttons: a palette with a free colour
   mixer that remembers what you mix, and a nib picker with your own widths and a
   hardness dial for the soft brushes.
-- Draw on a page bigger than the screen: the canvas is a window onto it, with
+- Choose a new drawing's canvas size when you create it: this screen's own
+  resolution by default, presets (Full HD, 4K, a large 3200 × 2000 sheet,
+  square, A4 at 300 dpi), or a size you type.
+- Draw on a page bigger than the window: the canvas is a window onto it, with
   pinch-to-zoom, two-finger panning, and one-finger panning under the hand.
 - Keep several drawings, group them into folders, star the ones you return to,
   and archive the rest instead of deleting them.

@@ -27,8 +27,8 @@ Three choices, and they apply to every download and to the clipboard alike.
 
 **File types.** Switch off the ones you never reach for and they leave the menu.
 
-**Area.** _The whole page_ exports the entire sheet — 3200 × 2000 by default —
-however far you happen to be zoomed in: the file is the drawing, not the view of
+**Area.** _The whole page_ exports the entire sheet — whatever size the drawing
+was made at — however far you happen to be zoomed in: the file is the drawing, not the view of
 it. _Just the marks_ crops to what you have actually drawn, with a small margin,
 which is what you want on a big page with one small diagram on it. A page with
 nothing on it falls back to the whole sheet.

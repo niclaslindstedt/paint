@@ -25,8 +25,8 @@ step of undo, and it syncs and exports with everything else.
 ## The page grows to fit
 
 If the picture is bigger than the sheet, the sheet grows: drop a 4000-pixel-wide
-photo onto the default 3200 × 2000 page and the page becomes the photo, which is
-what "open this image and draw on it" ought to mean. The same happens if you
+photo onto a 1920 × 1080 page and the page becomes the photo, which is what
+"open this image and draw on it" ought to mean. The same happens if you
 drag or scale a picture past the right or bottom edge before settling it — the
 page follows the picture.
 
