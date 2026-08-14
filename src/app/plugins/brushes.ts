@@ -656,7 +656,18 @@ export function paintCrayon(
 
 /** The calligraphy nib: a flat edge held at a fixed angle, so the line is broad
  *  across the nib and hairline along it. Each step is a quad between the two
- *  ends of the nib at consecutive points. */
+ *  ends of the nib at consecutive points.
+ *
+ *  All the quads go into **one path filled once**, so the seams between them
+ *  disappear instead of showing as darker joins under a translucent ink. That
+ *  makes their *winding* load-bearing: a canvas fills a path by the nonzero
+ *  rule, and a quad laid down while travelling one way round the nib winds the
+ *  opposite way to one laid down travelling back. Where the two overlap the
+ *  winding numbers cancel and the fill leaves a hole — which is why a
+ *  stylistic `l`, drawn up and then back down over itself, used to look like it
+ *  had erased the stroke underneath it. So every quad is emitted the same way
+ *  round: the overlap then winds to two rather than to zero, and doubling back
+ *  paints over the mark the way a real nib does. */
 export function paintCalligraphy(
   ctx: CanvasRenderingContext2D,
   points: readonly Point[],
@@ -683,10 +694,17 @@ export function paintCalligraphy(
   for (let i = 1; i < along.length; i++) {
     const a = along[i - 1]!;
     const b = along[i]!;
-    ctx.moveTo(a.x - nx, a.y - ny);
-    ctx.lineTo(a.x + nx, a.y + ny);
-    ctx.lineTo(b.x + nx, b.y + ny);
-    ctx.lineTo(b.x - nx, b.y - ny);
+    // Which way round this quad comes out is decided by which side of the nib
+    // the step travels along — the sign of the nib crossed with the step. Flip
+    // the two ends when it comes out backwards and every quad in the stroke
+    // winds the same way.
+    const facing = nx * (b.y - a.y) - ny * (b.x - a.x) >= 0 ? 1 : -1;
+    const ex = nx * facing;
+    const ey = ny * facing;
+    ctx.moveTo(a.x - ex, a.y - ey);
+    ctx.lineTo(a.x + ex, a.y + ey);
+    ctx.lineTo(b.x + ex, b.y + ey);
+    ctx.lineTo(b.x - ex, b.y - ey);
     ctx.closePath();
   }
   ctx.fill();
