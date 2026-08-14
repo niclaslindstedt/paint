@@ -303,7 +303,8 @@ the stroke). The view is screen state and deliberately never reaches the store �
 where you scrolled to is not part of the document.
 
 One pointer draws **unless the active plugin declares `navigates`**, in which
-case it pans and a double-tap fits the page. That is a flag on the descriptor,
+case it pans and a double-tap fits the page — or, with something selected and
+the press inside it, moves the marks instead of the window. That is a flag on the descriptor,
 not a tool id — see the plugin seam below. Taps are detected from the pointer
 stream (`gestures.ts`, pure and node-testable) rather than from `dblclick`: the
 browser's event is synthesised inconsistently on touch and arrives only after
@@ -337,8 +338,15 @@ lives by: **nothing outside it may branch on a tool id.**
 - `dials.ts` — what happens to those sliders' numbers: resolved for the panel,
   and pared back to just the ones moved off their default for the canvas and the
   stroke.
-- `registry.ts` — registration order (which is toolbar order), the
-  core / default-on / optional split, and resolution.
+- `registry.ts` — registration order (which is the toolbar's _default_ order),
+  the core / default-on / optional split, resolution, and the two things a
+  toolbar is actually built from: **entries** (a lone tool, or a whole family
+  behind one button — see `ToolGroup`) and `orderEntries`, the pure permutation
+  that puts them in the order Settings → Tools has them in. That order is
+  recorded as a list of ids and applied _in place_, so an entry it has never
+  heard of keeps its registration index — a tool added by a later release lands
+  where its maker put it rather than at the end of an arrangement written before
+  it existed.
 - `builtin/` — the shipped tools, built from two family factories (freehand and
   shape) plus their ink configuration, and the three that begin no stroke of
   their own: the hand, the dropper, and the bucket (which files the area the
@@ -369,8 +377,16 @@ identically.
 
 A tool that needs the app to treat it differently says so on its descriptor —
 `usesBackground` for the eraser, `navigates` for the hand, `picksColor` for the
-dropper — so the canvas and the toolbar read a property instead of learning a
-name.
+dropper, `selects` for the marquee — so the canvas and the toolbar read a
+property instead of learning a name.
+
+`group` is the flag that changes how a tool is _offered_ rather than how it
+behaves. The eleven shapes each stay their own plugin — their own painter, their
+own remembered width, their own persisted id, so nothing already drawn is
+orphaned — and share one toolbar button and one switch. The button wears the
+member you last held; pressing it again opens the family and the fill toggle.
+Grouping touched no stroke and needed no migration, which is the test any
+"merge these tools" change has to pass: a stroke's `tool` is persisted.
 
 `dials` is that pattern carrying a whole surface. Width is the one control every
 tool shares; past it they stop agreeing, so a tool lists what _it_ has to tune
@@ -402,7 +418,36 @@ back to a generic painter when the plugin is unknown — a document from a newer
 build still renders. Enabling and disabling a tool changes the _toolbar_, never
 the document.
 
-See [`docs/features/plugins.md`](features/plugins.md) for the user-facing half.
+## Selections
+
+A selection is **not document state**. Which marks are picked is not saved, not
+synced and not undoable; `CanvasScreen` holds a list of stroke ids and
+`selection.ts` answers every question about them from the document on each
+render — the box they cover, whether a press landed on it, what one looks like
+moved. So an undo puts the marks back and the outline follows, deleting them
+empties it, and there is no third copy of anything to go stale.
+
+`selection.ts` switches on the shape kind, the same contract `bounds.ts` and the
+renderer's fallback painter use, so the tool works on marks made by tools it has
+never heard of. Everything in it is pure and node-tested.
+
+The moving half is the one place the canvas paints something the document does
+not yet say. A drag on a selection under the hand is shown live — the marks in
+flight are painted at the offset the finger has reached and left out of the page
+underneath (`RenderOptions.omit`, a set the canvas keeps for the length of the
+drag so the mark cache can compare it by identity) — and lands as **one** edit
+when the finger lifts. One drag, one undo step, and no per-frame writes to the
+store.
+
+Copied marks travel on the _system_ clipboard, as text behind a marker
+(`strokeClipboard.ts`), which is what makes copy-here-paste-there work across
+tabs and reloads. Reading it back validates every field, because anything at all
+can be put behind that marker. `clipboard.ts` classifies a paste — marks, a
+picture, or words — and each lands in the surface that already exists for it: the
+store, the image placement frame, or the caption box.
+
+See [`docs/features/plugins.md`](features/plugins.md) and
+[`docs/features/selection.md`](features/selection.md) for the user-facing half.
 
 ## Rendering runtime
 

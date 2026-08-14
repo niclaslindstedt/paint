@@ -1,19 +1,28 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-// Reading a picture off the system clipboard.
+// The system clipboard, in both directions.
 //
-// The new-drawing dialog offers "Clipboard" only when there is actually
-// something on it (see `NewDrawingModal.tsx`), which means the question has to
-// be *asked* rather than assumed — and asking is the awkward part: the async
-// clipboard is behind a permission on Chrome, behind a user gesture on Safari,
-// and absent altogether on Firefox at the time of writing.
+// Three things travel through here, and which one a paste turns out to be is
+// this module's whole job: marks copied out of this app, a picture, or words.
 //
-// So the rule here is that **every failure is "no image"**. A browser without
-// the API, a permission the user declined, a clipboard holding a spreadsheet, a
-// blob that won't decode — all of them come back `null`, and the dialog simply
-// doesn't offer the tab. Nothing about this path is load-bearing: the file
-// picker and the drop target reach the same place.
+// The awkward part is *asking*. The async clipboard is behind a permission on
+// Chrome, behind a user gesture on Safari, and absent altogether on Firefox at
+// the time of writing. So the rule here is that **every failure is "nothing"**.
+// A browser without the API, a permission the user declined, a clipboard holding
+// a spreadsheet, a blob that won't decode — all of them come back `null`, and
+// the caller simply doesn't offer the paste. Nothing on this path is
+// load-bearing: the file picker, the drop target and the keyboard's own paste
+// event all reach the same place.
+//
+// The keyboard's paste is in fact the *good* path, and it is why `readPaste`
+// exists beside `readSystemClipboard`: a real `paste` event hands over its
+// `DataTransfer` synchronously, with no permission and no prompt. The async
+// clipboard is only asked when there is no event to read — the selection menu's
+// own Paste item.
 
 import { importImageFile, type ImportedImage } from "./images.ts";
+import type { DraftStroke } from "./plugins/types.ts";
+import { decodeStrokes, encodeStrokes } from "./strokeClipboard.ts";
+import type { Stroke } from "./types.ts";
 
 /** The clipboard API, as much of it as this module uses — typed by hand because
  *  `navigator.clipboard.read` is not in every TypeScript DOM lib, and this is
@@ -25,7 +34,88 @@ type AsyncClipboard = {
       getType: (type: string) => Promise<Blob>;
     }[]
   >;
+  readText?: () => Promise<string>;
+  writeText?: (text: string) => Promise<void>;
 };
+
+function asyncClipboard(): AsyncClipboard | undefined {
+  return typeof navigator === "undefined"
+    ? undefined
+    : (navigator as Navigator & { clipboard?: AsyncClipboard }).clipboard;
+}
+
+/** What a paste turned out to be holding. */
+export type PastePayload =
+  | { kind: "strokes"; strokes: DraftStroke[] }
+  | { kind: "image"; image: ImportedImage }
+  | { kind: "text"; text: string };
+
+/** Classify what a `paste` event is carrying, in the order the app cares about:
+ *  marks it wrote itself, then a picture, then words.
+ *
+ *  Marks first because they are text and would otherwise be pasted as their own
+ *  JSON. A picture before words because a copy out of a browser usually carries
+ *  both, and the picture is what was meant. */
+export async function readPaste(
+  data: DataTransfer | null,
+): Promise<PastePayload | null> {
+  if (!data) return null;
+  const text = data.getData("text/plain");
+  if (text) {
+    const strokes = decodeStrokes(text);
+    if (strokes) return { kind: "strokes", strokes };
+  }
+  const file = [...(data.files ?? [])].find((f) => f.type.startsWith("image/"));
+  if (file) {
+    const image = await importImageFile(file).catch(() => null);
+    if (image) return { kind: "image", image };
+  }
+  // Trailing whitespace is the newline a copied line brings with it, not part
+  // of the caption.
+  const words = text.replace(/\s+$/, "");
+  return words ? { kind: "text", text: words } : null;
+}
+
+/** The same question, asked of the clipboard itself — the selection menu's
+ *  Paste, which has no event to read. Every refusal is `null`; the caller falls
+ *  back to the marks this app last copied. */
+export async function readSystemClipboard(): Promise<PastePayload | null> {
+  const clipboard = asyncClipboard();
+  if (!clipboard) return null;
+  try {
+    const text = await clipboard.readText?.();
+    if (text) {
+      const strokes = decodeStrokes(text);
+      if (strokes) return { kind: "strokes", strokes };
+      const words = text.replace(/\s+$/, "");
+      if (words) return { kind: "text", text: words };
+    }
+  } catch {
+    // Denied, unsupported, or a clipboard we may not read. Try the picture.
+  }
+  const image = await clipboardImage();
+  return image ? { kind: "image", image } : null;
+}
+
+/** Put marks on the system clipboard, as the text this app recognises (see
+ *  `strokeClipboard.ts`).
+ *
+ *  Best effort, and deliberately so: this is the *menu's* copy, which has no
+ *  `copy` event to write through, and a browser is entitled to refuse it. The
+ *  caller keeps its own copy of what was copied either way, so a refusal costs
+ *  pasting into another tab and nothing else. */
+export async function writeStrokes(
+  strokes: readonly Stroke[],
+): Promise<boolean> {
+  const clipboard = asyncClipboard();
+  if (!clipboard?.writeText) return false;
+  try {
+    await clipboard.writeText(encodeStrokes(strokes));
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 /** How long the clipboard gets to answer before it counts as empty.
  *
@@ -48,10 +138,7 @@ export async function clipboardImage(): Promise<ImportedImage | null> {
 }
 
 async function readClipboardImage(): Promise<ImportedImage | null> {
-  const clipboard =
-    typeof navigator === "undefined"
-      ? undefined
-      : (navigator as Navigator & { clipboard?: AsyncClipboard }).clipboard;
+  const clipboard = asyncClipboard();
   if (!clipboard?.read) return null;
   try {
     const items = await clipboard.read();

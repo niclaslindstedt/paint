@@ -56,8 +56,9 @@ preview can never disagree with the drawing.
   nothing.
 - **Lock / unlock** — the padlock, beside the eye. A locked layer takes no
   marks: you cannot draw on it, select it, move it in the stack or delete it,
-  and the marks already on it are left exactly as they are. The Background is
-  locked out of the box; unlock it if you want to paint the sheet itself.
+  and the marks already on it are left exactly as they are — a marquee will not
+  pick them up either (see [selections](selection.md)). The Background is locked
+  out of the box; unlock it if you want to paint the sheet itself.
 - **Reorder** — the up and down arrows on the selected row. Raising a layer
   lifts everything drawn on it over the layers it passes.
 - **Delete** — the bin on the selected row. It takes the marks on that layer

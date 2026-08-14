@@ -187,6 +187,10 @@ export const sv: Catalog = {
     removeSize: "Glöm",
     tool: "Verktyg",
     toolbar: "Verktyg",
+    selectionActions: "Markering",
+    copy: "Kopiera",
+    cut: "Klipp ut",
+    paste: "Klistra in",
     fitPage: "Anpassa sidan, eller visa den i 1:1",
     zoomPercent: "{percent} %",
     undo: "Ångra",
@@ -206,6 +210,14 @@ export const sv: Catalog = {
     hair: {
       name: "Strån: {value} %",
       hint: "Fina strån ger många tunna streck, grova några få breda.",
+    },
+    splay: {
+      name: "Spretighet: {value} %",
+      hint: "En ny pensel ger en skarp kant, en sliten fransar sig.",
+    },
+    bleed: {
+      name: "Blödning: {value} %",
+      hint: "Hur långt en våt kant suger sig in i papperet.",
     },
     flow: {
       name: "Flöde: {value} %",
@@ -279,6 +291,39 @@ export const sv: Catalog = {
     arrow: {
       name: "Pil",
       description: "En linje med pilspets — för att peka på saker.",
+    },
+    shapes: {
+      name: "Former",
+      description:
+        "Rutor, cirklar, polygoner, stjärnor, linjer och pilar — elva stycken bakom en knapp. Tryck igen för att välja en annan, eller för att fylla den.",
+    },
+    roundrect: {
+      name: "Rundad rektangel",
+      description: "En ruta med avrundade hörn.",
+    },
+    triangle: {
+      name: "Triangel",
+      description: "Tre sidor, spetsen uppåt, utsträckt över draget.",
+    },
+    diamond: {
+      name: "Romb",
+      description: "En kvadrat på sitt hörn — flödesschemats beslut.",
+    },
+    pentagon: { name: "Femhörning", description: "Fem sidor, spetsen uppåt." },
+    hexagon: {
+      name: "Sexhörning",
+      description: "Sex sidor, stående på en platt sida.",
+    },
+    star: { name: "Stjärna", description: "En femuddig stjärna." },
+    doublearrow: {
+      name: "Dubbelpil",
+      description:
+        "En linje med spets i båda ändar — för att mäta ett avstånd.",
+    },
+    select: {
+      name: "Markera",
+      description:
+        "Dra en ruta för att välja ut streck. Flytta dem med handen; kopiera, klipp ut eller ta bort dem med tangentbordet, högerklick eller ett långt tryck.",
     },
     marker: {
       name: "Tuschpenna",
@@ -359,15 +404,13 @@ export const sv: Catalog = {
     tools: {
       intro:
         "Varje verktyg i appen är ett plugin, och det här är stället de hänger på. Slå på ett så dyker det upp i verktygsfältet direkt.",
-      coreTitle: "Alltid på",
-      coreHint:
-        "De tre en rityta inte klarar sig utan — en spets, ett sätt att ta tillbaka ett streck och ett sätt att flytta sidan.",
       alwaysOn: "Alltid på",
-      optionalTitle: "Verktyg",
+      optionalTitle: "Verktygsfält",
       optionalHint:
-        "Några är på från början; resten är ett tryck bort. Att slå av ett döljer bara verktyget — streck du redan ritat med det ligger kvar.",
+        "I den ordning knapparna sitter — flytta en rad så flyttar verktygsfältet med. Några verktyg är på från början; resten är ett tryck bort. Att slå av ett döljer det bara — streck du redan ritat med det ligger kvar.",
       shortcut: "Kortkommando: {key}",
-      none: "Det här bygget innehåller inga valfria verktyg.",
+      moveUp: "Flytta {name} tidigare i verktygsfältet",
+      moveDown: "Flytta {name} senare i verktygsfältet",
     },
     canvas: {
       intro: "Standardvärden för sidan du ritar på.",

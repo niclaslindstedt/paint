@@ -101,6 +101,7 @@ export function App() {
     setSettings,
     update,
     setPluginEnabled,
+    moveTool,
     addCustomColor,
     removeCustomColor,
     setToolSize,
@@ -395,6 +396,7 @@ export function App() {
             settings={settings}
             commitSettings={setSettings}
             setPluginEnabled={setPluginEnabled}
+            moveTool={moveTool}
             updateLive={update}
             darkCanvas={darkCanvas}
             store={store}

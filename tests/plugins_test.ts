@@ -6,9 +6,13 @@ import { fillBehaviour } from "../src/app/plugins/builtin/fill.ts";
 import { freehandBehaviour } from "../src/app/plugins/builtin/freehand.ts";
 import { handBehaviour } from "../src/app/plugins/builtin/hand.ts";
 import { registerBuiltinPlugins } from "../src/app/plugins/builtin/index.ts";
+import { selectBehaviour } from "../src/app/plugins/builtin/select.ts";
 import {
+  hexagonBehaviour,
   lineBehaviour,
   rectangleBehaviour,
+  SHAPES_GROUP_ID,
+  starBehaviour,
 } from "../src/app/plugins/builtin/shapes.ts";
 import {
   DEFAULT_TEXT_FONT,
@@ -23,13 +27,19 @@ import {
   allPlugins,
   defaultEnabledPlugins,
   enabledPlugins,
-  optionalPlugins,
+  groupById,
+  groupMembers,
+  orderEntries,
   pluginById,
+  registeredEntries,
   registerPlugin,
   resetPlugins,
   resolveActiveTool,
+  toolbarEntries,
   toolPlugins,
+  type ToolbarEntry,
 } from "../src/app/plugins/registry.ts";
+import { polygonCorners, starCorners } from "../src/app/plugins/ink.ts";
 import type { ToolContext } from "../src/app/plugins/types.ts";
 import type { Point } from "../src/app/types.ts";
 
@@ -57,7 +67,7 @@ describe("registry", () => {
 
   it("keeps registration order", () => {
     // Photoshop's column, top to bottom: sample, paint, erase, fill, type,
-    // shapes, and the tool that moves the view last.
+    // shapes, the marquee, and the tool that moves the view last.
     expect(allPlugins().map((p) => p.id)).toEqual([
       "dropper",
       "pencil",
@@ -70,10 +80,20 @@ describe("registry", () => {
       "eraser",
       "filler",
       "text",
+      // The shapes: four a paint program has always had, then the ones a
+      // diagram wants. They share a button, not a registration.
       "rectangle",
       "ellipse",
       "line",
       "arrow",
+      "roundrect",
+      "triangle",
+      "diamond",
+      "pentagon",
+      "hexagon",
+      "star",
+      "doublearrow",
+      "select",
       "hand",
       // Registered, but never in the toolbar: the painter behind a dropped
       // image (see `toolPlugins`).
@@ -100,7 +120,7 @@ describe("registry", () => {
     expect(hidden).toEqual(["image"]);
     for (const id of hidden) {
       expect(toolPlugins().map((p) => p.id)).not.toContain(id);
-      expect(optionalPlugins().map((p) => p.id)).not.toContain(id);
+      expect(registeredEntries().map((e) => e.id)).not.toContain(id);
       expect(enabledPlugins([id]).map((p) => p.id)).not.toContain(id);
       expect(defaultEnabledPlugins()).not.toContain(id);
       // …but it is still resolvable, or a stroke drawn with it would lose its
@@ -123,18 +143,19 @@ describe("registry", () => {
 
   it("opens on a paint program's toolbox and nothing else", () => {
     // What a first run finds: a nib, a spray can, a rubber, a bucket, a
-    // dropper, type and the three shapes — the tools anyone who has opened a
-    // paint program already knows.
-    expect(enabledPlugins(defaultEnabledPlugins()).map((p) => p.id)).toEqual([
+    // dropper, type, the shapes and the marquee — the tools anyone who has
+    // opened a paint program already knows.
+    expect(
+      toolbarEntries(defaultEnabledPlugins(), []).map((e) => e.id),
+    ).toEqual([
       "dropper",
       "pencil",
       "airspray",
       "eraser",
       "filler",
       "text",
-      "rectangle",
-      "ellipse",
-      "line",
+      "shapes",
+      "select",
       "hand",
     ]);
     // …and the rest of the media deliberately not: they are the app's own
@@ -145,7 +166,6 @@ describe("registry", () => {
       "highlighter",
       "crayon",
       "calligraphy",
-      "arrow",
     ]) {
       expect(defaultEnabledPlugins()).not.toContain(id);
     }
@@ -175,33 +195,14 @@ describe("registry", () => {
   });
 
   it("slots an enabled optional tool into registration order, not the end", () => {
-    // `marker` registers before `arrow`, so enabling them the other way round
+    // `marker` registers before `select`, so enabling them the other way round
     // must not order the toolbar by when the user switched them on.
-    expect(enabledPlugins(["arrow", "marker"]).map((p) => p.id)).toEqual([
+    expect(toolbarEntries(["select", "marker"], []).map((e) => e.id)).toEqual([
       "pencil",
       "marker",
       "eraser",
-      "arrow",
+      "select",
       "hand",
-    ]);
-  });
-
-  it("lists only the non-core plugins as optional", () => {
-    expect(optionalPlugins().every((p) => !p.core)).toBe(true);
-    expect(optionalPlugins().map((p) => p.id)).toEqual([
-      "dropper",
-      "paintbrush",
-      "airspray",
-      "marker",
-      "highlighter",
-      "crayon",
-      "calligraphy",
-      "filler",
-      "text",
-      "rectangle",
-      "ellipse",
-      "line",
-      "arrow",
     ]);
   });
 
@@ -225,11 +226,11 @@ describe("registry", () => {
   describe("resolveActiveTool", () => {
     it("keeps a tool that is offered", () => {
       expect(resolveActiveTool("eraser", [])).toBe("eraser");
-      expect(resolveActiveTool("arrow", ["arrow"])).toBe("arrow");
+      expect(resolveActiveTool("marker", ["marker"])).toBe("marker");
     });
 
     it("falls back when the active tool was switched off", () => {
-      expect(resolveActiveTool("arrow", [])).toBe("pencil");
+      expect(resolveActiveTool("marker", [])).toBe("pencil");
     });
 
     it("falls back for a tool this build doesn't ship", () => {
@@ -237,13 +238,136 @@ describe("registry", () => {
     });
 
     it("never falls back onto a tool that leaves no mark", () => {
-      // The dropper is the first tool in the toolbar and the hand is the last;
-      // landing a stale settings blob on either would look exactly like a
-      // canvas that has stopped working.
+      // The dropper is the first tool in the toolbar, the hand is the last and
+      // the marquee draws nothing either; landing a stale settings blob on any
+      // of them would look exactly like a canvas that has stopped working.
       expect(resolveActiveTool("quill", defaultEnabledPlugins())).toBe(
         "pencil",
       );
     });
+  });
+});
+
+describe("tool groups", () => {
+  beforeEach(() => {
+    resetPlugins();
+    registerBuiltinPlugins();
+  });
+
+  it("offers the shapes as one button and one switch", () => {
+    const entries = registeredEntries();
+    const shapes = entries.find((e) => e.id === SHAPES_GROUP_ID);
+    expect(shapes?.kind).toBe("group");
+    // Eleven plugins, one row: the whole point of grouping them.
+    expect(
+      entries.filter((e) => e.kind === "tool" && e.plugin.group).length,
+    ).toBe(0);
+    expect(groupMembers(SHAPES_GROUP_ID).map((p) => p.id)).toEqual([
+      "rectangle",
+      "ellipse",
+      "line",
+      "arrow",
+      "roundrect",
+      "triangle",
+      "diamond",
+      "pentagon",
+      "hexagon",
+      "star",
+      "doublearrow",
+    ]);
+  });
+
+  it("sits where its first member registered, not where the group was declared", () => {
+    const ids = registeredEntries().map((e) => e.id);
+    expect(ids[ids.indexOf(SHAPES_GROUP_ID) - 1]).toBe("text");
+    expect(ids[ids.indexOf(SHAPES_GROUP_ID) + 1]).toBe("select");
+  });
+
+  it("switches the whole family with one id", () => {
+    // Off: not one shape is offered, however its own descriptor reads.
+    const off = enabledPlugins([]).map((p) => p.id);
+    for (const id of groupMembers(SHAPES_GROUP_ID).map((p) => p.id)) {
+      expect(off).not.toContain(id);
+    }
+    // On: all eleven, and the group id is the only thing that had to be said.
+    const on = enabledPlugins([SHAPES_GROUP_ID]).map((p) => p.id);
+    for (const id of groupMembers(SHAPES_GROUP_ID).map((p) => p.id)) {
+      expect(on).toContain(id);
+    }
+    // A member's own id switches nothing: it is not what the settings blob
+    // holds any more, and an install upgrading from one that did must not have
+    // half a family in its toolbar.
+    expect(enabledPlugins(["rectangle"]).map((p) => p.id)).not.toContain(
+      "rectangle",
+    );
+  });
+
+  it("keeps every member's own id, so nothing already drawn is orphaned", () => {
+    // A stroke records the plugin that drew it. Merging the buttons must not
+    // rename one, or every rectangle ever drawn loses its painter.
+    for (const id of ["rectangle", "ellipse", "line", "arrow"]) {
+      expect(pluginById(id)).toBeDefined();
+      expect(pluginById(id)!.group).toBe(SHAPES_GROUP_ID);
+    }
+    expect(groupById(SHAPES_GROUP_ID)?.defaultOn).toBe(true);
+  });
+});
+
+describe("toolbar order", () => {
+  const entry = (id: string) =>
+    ({ kind: "tool", id, plugin: { id } }) as unknown as ToolbarEntry;
+  const entries = ["a", "b", "c", "d"].map(entry);
+  const ids = (list: readonly ToolbarEntry[]) => list.map((e) => e.id);
+
+  it("leaves an untouched toolbar in registration order", () => {
+    expect(ids(orderEntries(entries, []))).toEqual(["a", "b", "c", "d"]);
+  });
+
+  it("reorders the entries the order names", () => {
+    expect(ids(orderEntries(entries, ["d", "c", "b", "a"]))).toEqual([
+      "d",
+      "c",
+      "b",
+      "a",
+    ]);
+  });
+
+  it("keeps an entry the order has never heard of where it registered", () => {
+    // The case that matters: an order written before `c` shipped must not push
+    // `c` to the end of the toolbar — its maker put it third, and it stays
+    // third while the rows that *were* reordered fill the slots around it.
+    expect(ids(orderEntries(entries, ["d", "b", "a"]))).toEqual([
+      "d",
+      "b",
+      "c",
+      "a",
+    ]);
+  });
+
+  it("ignores ids for entries this build doesn't ship", () => {
+    expect(ids(orderEntries(entries, ["c", "gone", "a"]))).toEqual([
+      "c",
+      "b",
+      "a",
+      "d",
+    ]);
+  });
+
+  it("survives a duplicated id", () => {
+    const out = ids(orderEntries(entries, ["b", "b", "a"]));
+    expect(out).toHaveLength(entries.length);
+    expect(new Set(out).size).toBe(entries.length);
+  });
+
+  it("carries the order into the toolbar, and only for what is switched on", () => {
+    resetPlugins();
+    registerBuiltinPlugins();
+    const order = ["hand", "pencil", "eraser"];
+    expect(toolbarEntries([], order).map((e) => e.id)).toEqual([
+      "hand",
+      "pencil",
+      "eraser",
+    ]);
   });
 });
 
@@ -613,5 +737,104 @@ describe("shape behaviour", () => {
     expect(lineBehaviour.start({ x: 0, y: 0 }, filledCtx)!.filled).toBe(
       undefined,
     );
+  });
+});
+
+describe("the shape family's geometry", () => {
+  // The polygons are `box` strokes painted by a plugin, so the geometry is
+  // the painter's — and a canvas can't be asked whether a pentagon has five
+  // evenly spaced corners. The corner maths is pure and answers here.
+
+  it("inscribes a polygon in the drag box, stretched to fill it", () => {
+    const corners = polygonCorners({ x: 0, y: 0 }, { x: 100, y: 40 }, 4);
+    expect(corners).toHaveLength(4);
+    // A vertex leads: straight up from the middle of the box.
+    expect(corners[0]!.x).toBeCloseTo(50);
+    expect(corners[0]!.y).toBeCloseTo(0);
+    // …and the box is filled corner to corner, however it was dragged.
+    const xs = corners.map((p) => p.x);
+    const ys = corners.map((p) => p.y);
+    expect(Math.min(...xs)).toBeCloseTo(0);
+    expect(Math.max(...xs)).toBeCloseTo(100);
+    expect(Math.min(...ys)).toBeCloseTo(0);
+    expect(Math.max(...ys)).toBeCloseTo(40);
+  });
+
+  it("spaces a polygon's corners evenly", () => {
+    const corners = polygonCorners({ x: 0, y: 0 }, { x: 100, y: 100 }, 5);
+    const angles = corners.map((p) => Math.atan2(p.y - 50, p.x - 50));
+    for (let i = 1; i < angles.length; i++) {
+      const step = (angles[i]! - angles[i - 1]! + Math.PI * 2) % (Math.PI * 2);
+      expect(step).toBeCloseTo((Math.PI * 2) / 5);
+    }
+  });
+
+  it("turns the hexagon onto its flats", () => {
+    // Straight up from the middle is where the *rectangle* tool's polygon puts
+    // a vertex; a hexagon everyone recognises stands on an edge instead.
+    const upright = polygonCorners({ x: 0, y: 0 }, { x: 100, y: 100 }, 6);
+    const laid = polygonCorners({ x: 0, y: 0 }, { x: 100, y: 100 }, 6, 1 / 12);
+    expect(upright[0]!.y).toBeCloseTo(0);
+    expect(laid[0]!.y).toBeGreaterThan(0);
+  });
+
+  it("alternates a star between its two radii", () => {
+    const corners = starCorners({ x: 0, y: 0 }, { x: 100, y: 100 });
+    expect(corners).toHaveLength(10);
+    const reach = (p: { x: number; y: number }) =>
+      Math.hypot(p.x - 50, p.y - 50);
+    for (let i = 0; i < corners.length; i += 2) {
+      expect(reach(corners[i]!)).toBeGreaterThan(reach(corners[i + 1]!));
+    }
+  });
+
+  it("drags every shape from the same two anchors", () => {
+    // Eleven painters, one gesture: whatever the shape, the stroke records the
+    // box the drag described and the painter decides what fills it. That is
+    // what keeps the document free of a shape field.
+    for (const behaviour of [hexagonBehaviour, starBehaviour]) {
+      let draft = behaviour.start({ x: 10, y: 10 }, ctx)!;
+      draft = behaviour.move(draft, { x: 60, y: 90 }, ctx);
+      expect(draft.shape).toEqual({
+        kind: "box",
+        from: { x: 10, y: 10 },
+        to: { x: 60, y: 90 },
+      });
+    }
+  });
+});
+
+describe("select behaviour", () => {
+  beforeEach(() => {
+    resetPlugins();
+    registerBuiltinPlugins();
+  });
+
+  it("is the only tool that chooses marks instead of making one", () => {
+    const selecting = allPlugins().filter((p) => p.selects);
+    expect(selecting.map((p) => p.id)).toEqual(["select"]);
+  });
+
+  it("drags an ordinary two-corner box, so the whole gesture pipeline is reused", () => {
+    let draft = selectBehaviour.start({ x: 4, y: 4 }, ctx)!;
+    draft = selectBehaviour.move(draft, { x: 40, y: 30 }, ctx);
+    expect(draft.shape).toEqual({
+      kind: "box",
+      from: { x: 4, y: 4 },
+      to: { x: 40, y: 30 },
+    });
+  });
+
+  it("records no colour, so a marquee never resolves ink against the page", () => {
+    const draft = selectBehaviour.start({ x: 0, y: 0 }, ctx)!;
+    expect(draft.color).toBeUndefined();
+  });
+
+  it("keeps a press that never moved — a tap means 'select nothing'", () => {
+    // Every other two-corner tool drops one, because a zero-size shape is a
+    // mis-tap. Here it is an instruction, and dropping it would leave the last
+    // selection hanging around after an obvious attempt to clear it.
+    const draft = selectBehaviour.start({ x: 5, y: 5 }, ctx)!;
+    expect(selectBehaviour.end!(draft, ctx)).toBe(draft);
   });
 });

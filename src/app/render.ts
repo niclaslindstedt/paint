@@ -129,6 +129,18 @@ export type RenderOptions = InkContext & {
    *  isn't given, which is right for every caller in the app — pass it only to
    *  paint at a scale the transform doesn't reflect. */
   scale?: number;
+  /** Marks to leave off this repaint, by stroke id.
+   *
+   *  One caller: the canvas, while a selection is being dragged. The marks in
+   *  flight are painted where the finger has got to instead, and painting them
+   *  in both places at once would show a drag hovering over the copy it came
+   *  from. Nothing about the *document* changes — this is a view of it with a
+   *  few marks lifted off, exactly as a hidden layer is.
+   *
+   *  Pass a set that lives as long as the drag: the canvas's mark cache compares
+   *  it by identity, so a fresh set each frame would repaint the whole page each
+   *  frame (see `cache.ts`). */
+  omit?: ReadonlySet<string>;
 };
 
 /** The grid's ink. Deliberately a fixed translucent grey rather than a theme
@@ -230,7 +242,9 @@ export function paintStrokes(
 ): void {
   const detail = detailFor(ctx, options);
   const clip = options.clip;
+  const omit = options.omit;
   for (const stroke of strokes) {
+    if (omit?.has(stroke.id)) continue;
     if (!strokeVisible(stroke, clip)) continue;
     paintStroke(ctx, stroke, options, detail);
   }

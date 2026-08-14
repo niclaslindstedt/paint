@@ -199,6 +199,25 @@ function bucketsOf(drawing: Drawing, layers: readonly Layer[]): Stroke[][] {
   return buckets;
 }
 
+/** A test for "is this mark on a locked layer?", built once against the
+ *  drawing's stack.
+ *
+ *  A closure rather than a per-stroke lookup because the caller asks it of
+ *  every visible mark on the page: a marquee dragged across a busy drawing
+ *  would otherwise rebuild the stack's index once per stroke. A drawing with
+ *  nothing locked answers `false` without looking at all.
+ *
+ *  It exists because a lock has to hold against more than the pencil. Marks on
+ *  a locked layer are not selectable — the same rule the hidden layers get, and
+ *  for the same reason: a lock that let a marquee pick up the sheet and drag it
+ *  off the page would not be a lock. */
+export function lockedMarks(drawing: Drawing): (stroke: Stroke) => boolean {
+  const layers = drawingLayers(drawing);
+  if (!layers.some(isLocked)) return () => false;
+  const { order, base } = stackOrder(layers);
+  return (stroke) => isLocked(layers[indexOfStroke(stroke, order, base)]!);
+}
+
 /** The drawing's marks with everything on `layerId` dropped — what deleting a
  *  layer leaves behind. Membership is resolved against the stack the drawing
  *  still has, so deleting the base takes the marks that never named a layer

@@ -20,6 +20,7 @@ import {
   drawingLayers,
   hasLayers,
   isLocked,
+  lockedMarks,
   nextLayerName,
   reorderLayers,
   strokeLayer,
@@ -124,6 +125,30 @@ describe("the sheet", () => {
     expect(
       visibleStrokes(page, { withoutBackground: true }).map((s) => s.id),
     ).toEqual([above.id]);
+  });
+});
+
+describe("marks on a locked layer", () => {
+  it("are recognised through the same rules paint order uses", () => {
+    const legacy = stroke();
+    const onSheet = stroke(BACKGROUND_LAYER_ID);
+    const above = stroke("top");
+    const page = drawing({
+      strokes: [legacy, onSheet, above],
+      layers: [sheet, base, top],
+    });
+    const locked = lockedMarks(page);
+    expect(locked(onSheet)).toBe(true);
+    // A mark naming no layer belongs to the base, which is not locked…
+    expect(locked(legacy)).toBe(false);
+    expect(locked(above)).toBe(false);
+    // …and so does a mark naming a layer that isn't there.
+    expect(locked(stroke("deleted-elsewhere"))).toBe(false);
+  });
+
+  it("answers no without looking when nothing is locked", () => {
+    const page = drawing({ layers: [base, top] });
+    expect(lockedMarks(page)(stroke(BACKGROUND_LAYER_ID))).toBe(false);
   });
 });
 

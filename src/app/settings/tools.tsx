@@ -1,22 +1,37 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-import { Section } from "@niclaslindstedt/oss-framework/components";
+import {
+  ChevronDownIcon,
+  ChevronUpIcon,
+  Section,
+} from "@niclaslindstedt/oss-framework/components";
 
 import { useT } from "../i18n/index.ts";
-import { optionalPlugins, toolPlugins } from "../plugins/registry.ts";
-import type { PaintPlugin } from "../plugins/types.ts";
+import { orderedEntries, type ToolbarEntry } from "../plugins/registry.ts";
 import type { AppSettings } from "../useAppSettings.ts";
 
 // Settings → Tools: the plugin switchboard, and the whole user-facing plugin
 // story. When externally-loaded plugins land they list here beside the
 // built-ins, through the same rows.
 //
+// **The list is the toolbar.** One list, in the order the buttons actually sit
+// in, with the up / down buttons that put them in another one — so this page is
+// not a description of the toolbar, it is the toolbar with its lid off. That is
+// why the always-on tools are in it too rather than penned in a section of their
+// own: they have a place in the row like everything else, and a page that let
+// you reorder eight of eleven buttons would be a puzzle.
+//
 // Every tool reads the same way, whether it can be switched or not: **its own
 // glyph on the left**, the one it wears in the toolbar, so the list is scannable
 // as a rack of tools rather than as a wall of sentences; its name, shortcut and
-// one line of description beside it; and a switch on the right. The framework's
-// `ToggleRow` puts a checkbox on the *left* and carries no glyph, which is the
-// opposite arrangement — so the row is app-owned. Everything else on the page
-// (the section frames) is still the framework's.
+// one line of description beside it; the two reorder buttons; and a switch on
+// the right. The framework's `ToggleRow` puts a checkbox on the *left* and
+// carries no glyph, which is the opposite arrangement — so the row is app-owned.
+// Everything else on the page (the section frame) is still the framework's.
+//
+// A row is not always one tool. A family that shares a toolbar button shares a
+// row here too — one switch for the eleven shapes, because "do you want shapes"
+// is a question worth asking once (see `ToolGroup`). Its glyph is the family's
+// and its description says what is inside.
 //
 // The switch on an always-on tool is real, shown on, and disabled: a canvas with
 // no pencil, no eraser and no way to move the page is not a canvas, and a row
@@ -26,100 +41,138 @@ import type { AppSettings } from "../useAppSettings.ts";
 export function ToolsTab({
   settings,
   setPluginEnabled,
+  moveTool,
 }: {
   settings: AppSettings;
   setPluginEnabled: (id: string, enabled: boolean) => void;
+  /** Move a row within the order. It is handed the whole order it is a
+   *  permutation of, because a list of ids means nothing without the list of
+   *  entries it reorders — see `moveTool` in `useAppSettings.ts`. */
+  moveTool: (order: readonly string[], from: number, to: number) => void;
 }) {
   const t = useT();
-  const core = toolPlugins().filter((p) => p.core);
-  const optional = optionalPlugins();
+  const entries = orderedEntries(settings.toolOrder);
+  const order = entries.map((entry) => entry.id);
 
   return (
     <div>
       <p className="mb-3 text-xs text-muted">{t("settings.tools.intro")}</p>
 
-      <Section title={t("settings.tools.coreTitle")}>
-        <p className="text-xs text-muted">{t("settings.tools.coreHint")}</p>
+      <Section title={t("settings.tools.optionalTitle")}>
+        <p className="text-xs text-muted">{t("settings.tools.optionalHint")}</p>
         <ul className="flex flex-col gap-1">
-          {core.map((plugin) => (
-            <li key={plugin.id}>
-              <ToolRow plugin={plugin} checked locked />
+          {entries.map((entry, index) => (
+            <li key={entry.id}>
+              <ToolRow
+                entry={entry}
+                checked={
+                  core(entry) || settings.enabledPlugins.includes(entry.id)
+                }
+                locked={core(entry)}
+                onChange={(next) => setPluginEnabled(entry.id, next)}
+                onMoveUp={
+                  index > 0
+                    ? () => moveTool(order, index, index - 1)
+                    : undefined
+                }
+                onMoveDown={
+                  index < entries.length - 1
+                    ? () => moveTool(order, index, index + 1)
+                    : undefined
+                }
+              />
             </li>
           ))}
         </ul>
-      </Section>
-
-      <Section title={t("settings.tools.optionalTitle")}>
-        <p className="text-xs text-muted">{t("settings.tools.optionalHint")}</p>
-        {optional.length === 0 ? (
-          <p className="text-sm text-muted">{t("settings.tools.none")}</p>
-        ) : (
-          <ul className="flex flex-col gap-1">
-            {optional.map((plugin) => (
-              <li key={plugin.id}>
-                <ToolRow
-                  plugin={plugin}
-                  checked={settings.enabledPlugins.includes(plugin.id)}
-                  onChange={(next) => setPluginEnabled(plugin.id, next)}
-                />
-              </li>
-            ))}
-          </ul>
-        )}
       </Section>
     </div>
   );
 }
 
-/** One tool: glyph, name, what it does — and the switch that puts it in the
- *  toolbar. A locked row is on and stays on. */
+/** Whether a row is one of the always-on ones — the group's flag for a family,
+ *  the plugin's for a lone tool. */
+function core(entry: ToolbarEntry): boolean {
+  return Boolean(entry.kind === "group" ? entry.group.core : entry.plugin.core);
+}
+
+/** One row: glyph, name, what it does, where it sits — and the switch that puts
+ *  it in the toolbar. A locked row is on and stays on, but it still moves. */
 function ToolRow({
-  plugin,
+  entry,
   checked,
   locked = false,
   onChange,
+  onMoveUp,
+  onMoveDown,
 }: {
-  plugin: PaintPlugin;
+  entry: ToolbarEntry;
   checked: boolean;
   locked?: boolean;
-  onChange?: (next: boolean) => void;
+  onChange: (next: boolean) => void;
+  /** Absent at the ends of the list, where there is nowhere to go. */
+  onMoveUp?: () => void;
+  onMoveDown?: () => void;
 }) {
   const t = useT();
-  const Icon = plugin.icon;
-  const name = t(plugin.nameKey);
+  const descriptor = entry.kind === "group" ? entry.group : entry.plugin;
+  const Icon = descriptor.icon;
+  const name = t(descriptor.nameKey);
+  const shortcut = entry.kind === "tool" ? entry.plugin.shortcut : undefined;
   return (
-    <label
-      className={`flex items-center gap-3 rounded px-1 py-1.5 ${
-        locked ? "" : "cursor-pointer hover:bg-surface-2"
-      }`}
-    >
-      {/* The tool's own mark, in the box it occupies in the toolbar — so a row
-          here and a button there are recognisably the same thing. */}
-      <span
-        aria-hidden="true"
-        className={`inline-flex h-8 w-8 shrink-0 items-center justify-center rounded border ${
-          checked
-            ? "border-accent/60 bg-accent/10 text-accent"
-            : "border-line text-muted"
+    <div className="flex items-center gap-2 rounded px-1 py-1.5">
+      <label
+        className={`flex min-w-0 flex-1 items-center gap-3 ${
+          locked ? "" : "cursor-pointer"
         }`}
       >
-        <Icon className="h-[18px] w-[18px]" />
-      </span>
+        {/* The tool's own mark, in the box it occupies in the toolbar — so a row
+            here and a button there are recognisably the same thing. */}
+        <span
+          aria-hidden="true"
+          className={`inline-flex h-8 w-8 shrink-0 items-center justify-center rounded border ${
+            checked
+              ? "border-accent/60 bg-accent/10 text-accent"
+              : "border-line text-muted"
+          }`}
+        >
+          <Icon className="h-[18px] w-[18px]" />
+        </span>
 
-      <span className="min-w-0 flex-1">
-        <span className="flex flex-wrap items-baseline gap-x-2">
-          <span className="text-sm text-fg-bright">{name}</span>
-          {plugin.shortcut && (
-            <span className="text-xs text-muted">
-              {t("settings.tools.shortcut", {
-                key: plugin.shortcut.toUpperCase(),
-              })}
-            </span>
-          )}
+        <span className="min-w-0 flex-1">
+          <span className="flex flex-wrap items-baseline gap-x-2">
+            <span className="text-sm text-fg-bright">{name}</span>
+            {shortcut && (
+              <span className="text-xs text-muted">
+                {t("settings.tools.shortcut", {
+                  key: shortcut.toUpperCase(),
+                })}
+              </span>
+            )}
+          </span>
+          <span className="block text-xs text-muted">
+            {t(descriptor.descriptionKey)}
+          </span>
         </span>
-        <span className="block text-xs text-muted">
-          {t(plugin.descriptionKey)}
-        </span>
+      </label>
+
+      {/* Where it sits. Buttons rather than a drag handle, deliberately: this
+          list is read on a phone as often as on a desktop, a drag inside a
+          scrolling dialog fights the scroll, and two arrows are reachable from a
+          keyboard and a screen reader without any of that being re-invented.
+          It is the same pair the layers panel uses to restack a drawing. */}
+      <span className="flex shrink-0 items-center gap-0.5">
+        <MoveButton
+          label={t("settings.tools.moveUp", { name })}
+          onClick={onMoveUp}
+        >
+          <ChevronUpIcon className="h-4 w-4" />
+        </MoveButton>
+        <MoveButton
+          label={t("settings.tools.moveDown", { name })}
+          onClick={onMoveDown}
+        >
+          <ChevronDownIcon className="h-4 w-4" />
+        </MoveButton>
       </span>
 
       <Switch
@@ -127,9 +180,35 @@ function ToolRow({
         disabled={locked}
         label={name}
         hint={locked ? t("settings.tools.alwaysOn") : undefined}
-        onChange={(next) => onChange?.(next)}
+        onChange={onChange}
       />
-    </label>
+    </div>
+  );
+}
+
+/** One of the two arrows. Rendered disabled rather than omitted at the ends of
+ *  the list, so the rows stay the same width and nothing jumps sideways as a
+ *  tool is walked up the toolbar. */
+function MoveButton({
+  label,
+  onClick,
+  children,
+}: {
+  label: string;
+  onClick?: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={!onClick}
+      aria-label={label}
+      title={label}
+      className="inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded border border-transparent text-muted hover:border-line hover:bg-surface-2 hover:text-fg disabled:cursor-default disabled:opacity-30 disabled:hover:border-transparent disabled:hover:bg-transparent"
+    >
+      {children}
+    </button>
   );
 }
 

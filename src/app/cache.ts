@@ -365,7 +365,12 @@ function sameFrame(a: CacheSpec, b: CacheSpec): boolean {
     a.options.pageColor === b.options.pageColor &&
     a.options.defaultInk === b.options.defaultInk &&
     a.options.grid === b.options.grid &&
-    a.options.transparentPage === b.options.transparentPage
+    a.options.transparentPage === b.options.transparentPage &&
+    // Compared by identity, and the canvas keeps one set for the length of a
+    // drag so it holds: what matters is only "are the same marks lifted off",
+    // and walking two sets per frame to answer it would cost more than the
+    // repaint it saves on the frames where the answer is no.
+    a.options.omit === b.options.omit
   );
 }
 
