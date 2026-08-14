@@ -95,7 +95,11 @@ function paintGeneric(ctx: CanvasRenderingContext2D, stroke: Stroke): void {
   } else if (shape.kind === "region") {
     paintRegion(ctx, shape.contours);
   } else if (shape.kind === "text") {
-    ctx.font = `${stroke.size * 6}px sans-serif`;
+    // The size is the type size, exactly as it is for the tool that types one
+    // (see `plugins/builtin/text.ts`); the face is whatever this build can
+    // manage without it.
+    ctx.font = `${stroke.size}px sans-serif`;
+    ctx.textBaseline = "top";
     ctx.fillText(shape.text, shape.at.x, shape.at.y);
   }
 }

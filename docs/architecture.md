@@ -243,10 +243,17 @@ drag has moved a window's width.
 
 A page is whatever size it was created at — the new-drawing dialog asks, and
 defaults to the screen's own resolution. The rules behind that question (the
-presets, what "this screen" resolves to, what a typed size has to pass) live in
-`canvasSize.ts`, pure and node-testable; `NewDrawingModal.tsx` is only the
-dialog around them, and the size reaches the document as the `init` patch
-`addDrawing` already took.
+four presets, what "this screen" resolves to, and the one scale all four are
+_drawn_ at so they can be compared as rectangles) live in `canvasSize.ts`, pure
+and node-testable; `NewDrawingModal.tsx` is only the dialog around them, and the
+size reaches the document as the `init` patch `addDrawing` already took.
+
+That dialog also asks what the drawing is made of — an empty page, an image file,
+or an image on the clipboard (`clipboard.ts`, where every failure to read one is
+"there isn't one") — and a drawing made from a picture opens with the picture on
+it as one ordinary image stroke. It lives in `App.tsx` rather than in the side
+menu that opens it: pressing New closes the drawer, and on a phone the framework
+`Sidebar` _unmounts_ its contents when it closes.
 
 A page can therefore be larger than the window it is shown in, so the `<canvas>`
 element is a **window** onto it rather than the page itself. `viewport.ts` owns that window as a pure
@@ -302,7 +309,13 @@ lives by: **nothing outside it may branch on a tool id.**
   shape) plus their ink configuration, and the three that begin no stroke of
   their own: the hand, the dropper, and the bucket (which files the area the
   probe traced for it).
-- `brushes.ts` — the characterful painters: spray cones, nibs, halos.
+- `brushes.ts` — the characterful painters: spray cones, soft nibs, feathered
+  fills.
+- `builtin/text.ts` — the one tool whose mark is typed rather than drawn. Its
+  press opens a caret (`entersText`, read by the canvas) and `TextEntry.tsx`
+  collects the words into a text stroke; the module also owns the typefaces, the
+  font shorthand every surface sets type with, and the measurement the export
+  crop and the repaint's culling both ask for.
 - `bristle.ts` — the paintbrush, which needs a module of its own because it is
   the only painter modelling a physical _object_: a head that holds a load and
   spends it, that is wider than the wiggles you ask it to follow, that cannot

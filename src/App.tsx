@@ -34,10 +34,11 @@ import { useT } from "./app/i18n/index.ts";
 import { APP_LOOK } from "./app/look.ts";
 import { descendingLogStore, logStore } from "./app/log.ts";
 import { cacheIdForBase } from "./app/pwa.ts";
+import { imageStroke } from "./app/plugins/builtin/image.ts";
 import { resolveActiveTool } from "./app/plugins/registry.ts";
 import { applyBackdropVars, useAppSettings } from "./app/useAppSettings.ts";
 import { useNamespaces } from "./app/useNamespaces.ts";
-import { usePaintStore } from "./app/usePaintStore.ts";
+import { freshId, usePaintStore } from "./app/usePaintStore.ts";
 import { useSyncEngine } from "./app/useSyncEngine.ts";
 import { status } from "./output.ts";
 
@@ -60,6 +61,15 @@ const ChangelogPanel = lazy(() =>
 // so it stays off the first-paint path like the dialogs above.
 const ArchiveScreen = lazy(() =>
   import("./app/ArchiveScreen.tsx").then((m) => ({ default: m.ArchiveScreen })),
+);
+// The "what is this drawing made of" dialog. It lives up here rather than in the
+// side menu that opens it: pressing New closes the drawer, and on a phone the
+// drawer *unmounts* its contents when it closes — a dialog owned by the menu
+// would be dismissed by the very gesture that asked for it.
+const NewDrawingModal = lazy(() =>
+  import("./app/NewDrawingModal.tsx").then((m) => ({
+    default: m.NewDrawingModal,
+  })),
 );
 
 // A local-first paint PWA built from the framework's shared surface. The
@@ -93,6 +103,7 @@ export function App() {
     setPluginEnabled,
     addCustomColor,
     removeCustomColor,
+    setToolSize,
     addCustomSize,
     removeCustomSize,
     setToolDial,
@@ -114,6 +125,13 @@ export function App() {
   // The top-level screen: the canvas, or the archive of shelved drawings and
   // folders. Both are driven from the side menu's button island.
   const [view, setView] = useState<"canvas" | "archive">("canvas");
+
+  // A new drawing in the making: which folder it is destined for, held while the
+  // dialog is up. `null` means no dialog; a pending drawing filed at the top
+  // level carries `{ folderId: null }`.
+  const [pendingDrawing, setPendingDrawing] = useState<{
+    folderId: string | null;
+  } | null>(null);
 
   // Wide screens (≥ the smallest iPad) dock the sidebar permanently; phones
   // collapse it to a draggable drawer.
@@ -251,6 +269,14 @@ export function App() {
             setDrawerOpen(false);
             setChangelogOpen(true);
           }}
+          // New drawing: the drawer gets out of the way first — the dialog is
+          // the thing being answered, and on a phone the menu would otherwise
+          // sit behind it with the question in front of a list nobody is
+          // reading any more.
+          onNewDrawing={(folderId) => {
+            setDrawerOpen(false);
+            setPendingDrawing({ folderId });
+          }}
           onNavigate={() => {
             if (!pinned) setDrawerOpen(false);
           }}
@@ -281,6 +307,7 @@ export function App() {
             palette={{
               addColor: addCustomColor,
               removeColor: removeCustomColor,
+              setSize: setToolSize,
               addSize: addCustomSize,
               removeSize: removeCustomSize,
               setDial: setToolDial,
@@ -296,6 +323,48 @@ export function App() {
           />
         )}
       </main>
+
+      {/* What a new drawing is made of, and how big it is. Mounted only while
+          one is pending, so each is asked fresh rather than reopening on the
+          last answer. */}
+      {pendingDrawing && (
+        <Suspense fallback={null}>
+          <NewDrawingModal
+            folderName={
+              store.data.folders.find((f) => f.id === pendingDrawing.folderId)
+                ?.name
+            }
+            onCancel={() => setPendingDrawing(null)}
+            onCreate={(size) => {
+              store.addDrawing("", pendingDrawing.folderId, size);
+              setPendingDrawing(null);
+              setView("canvas");
+            }}
+            // A drawing made from a picture is the size of the picture, and it
+            // opens with the picture already on it as one ordinary mark — the
+            // same stroke a drop onto the canvas would have left.
+            onCreateFromImage={(image, name) => {
+              store.addDrawing(name, pendingDrawing.folderId, {
+                width: image.width,
+                height: image.height,
+                strokes: [
+                  {
+                    ...imageStroke(image.src, {
+                      x: 0,
+                      y: 0,
+                      width: image.width,
+                      height: image.height,
+                    }),
+                    id: freshId("stroke"),
+                  },
+                ],
+              });
+              setPendingDrawing(null);
+              setView("canvas");
+            }}
+          />
+        </Suspense>
+      )}
 
       {settingsOpen && (
         <Suspense fallback={null}>

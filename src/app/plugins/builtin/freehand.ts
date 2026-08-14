@@ -10,7 +10,6 @@ import type { Point } from "../../types.ts";
 import { paintBrush } from "../bristle.ts";
 import {
   paintCalligraphy,
-  paintGlow,
   paintSoftPath,
   paintSpray,
   strokeHardness,
@@ -33,7 +32,7 @@ const MIN_SAMPLE_DISTANCE = 1.5;
 /** Which painter lays the polyline down. The geometry is identical across all
  *  of them — a freehand tool's whole character is in this choice. */
 export type FreehandStyle =
-  "line" | "brush" | "spray" | "crayon" | "calligraphy" | "glow";
+  "line" | "brush" | "spray" | "crayon" | "calligraphy";
 
 type FreehandInk = {
   /** Paint with the page background instead of the ink colour (the eraser). */
@@ -134,15 +133,6 @@ export function freehandBehaviour(ink: FreehandInk = {}): ToolBehaviour {
           return;
         case "calligraphy":
           paintCalligraphy(ctx2d, points, stroke.size, scale);
-          return;
-        case "glow":
-          paintGlow(
-            ctx2d,
-            points,
-            stroke.size,
-            scale,
-            strokeDial(stroke, "halo"),
-          );
           return;
         default:
           if (ink.useHardness) {

@@ -14,6 +14,7 @@
 // still the same object still has the same shape, and a document that has not
 // changed measures itself exactly once.
 
+import { textBox } from "./plugins/builtin/text.ts";
 import type { Point, Stroke } from "./types.ts";
 
 /** An axis-aligned box in document coordinates. */
@@ -22,9 +23,9 @@ export type Rect = { x: number; y: number; width: number; height: number };
 /** How far past its own geometry a painter is allowed to spread, as a multiple
  *  of the stroke width.
  *
- *  This is the one number that has to stay ahead of the painters: the neon pen
- *  lays an aura 3.2× its width, the airbrush a cone 1.6× plus its grain, the
- *  soft nib a halo 2.2×. Set it too low and a mark is culled while a corner of
+ *  This is the one number that has to stay ahead of the painters: the airbrush
+ *  lays a cone 1.6× its width plus its grain, the soft nib a halo 2.2×, the
+ *  bucket's feather up to forty document pixels. Set it too low and a mark is culled while a corner of
  *  it is still on screen, which reads as a stroke that pops in. It is
  *  deliberately generous — the cost of being wrong is a visible glitch, and the
  *  cost of being loose is a few strokes painted that needn't have been. */
@@ -72,16 +73,25 @@ export function strokeBounds(stroke: Stroke): Rect | null {
   else if (shape.kind === "region") box = around(shape.contours.flat(), pad);
   else if (shape.kind === "image") box = around([shape.from, shape.to], pad);
   else if (shape.kind === "text") {
-    // Text is measured without a context to measure it with, so this is a
-    // deliberate over-estimate: the font is `size * 6` and no glyph is wider
-    // than it is tall.
-    const em = stroke.size * 6;
+    // A caption hangs from its top-left anchor, as wide as its longest line and
+    // as tall as its lines stacked — measured by the tool that sets it (see
+    // `plugins/builtin/text.ts`), with a whole type size of slack for the
+    // ascenders and descenders that reach past the box.
+    const measured = textBox(shape.text, {
+      size: stroke.size,
+      font: shape.font,
+      bold: shape.bold,
+      italic: shape.italic,
+    });
     box = around(
       [
         shape.at,
-        { x: shape.at.x + em * shape.text.length, y: shape.at.y + em },
+        {
+          x: shape.at.x + measured.width,
+          y: shape.at.y + measured.height,
+        },
       ],
-      pad + em,
+      pad + stroke.size,
     );
   }
   if (box) cache.set(stroke, box);

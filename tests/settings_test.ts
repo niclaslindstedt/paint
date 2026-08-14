@@ -2,7 +2,14 @@
 import { describe, expect, it } from "vitest";
 
 import { registerBuiltinPlugins } from "../src/app/plugins/builtin/index.ts";
-import { defaultSettings, parseSettings } from "../src/app/useAppSettings.ts";
+import { pluginById } from "../src/app/plugins/registry.ts";
+import {
+  SIZES,
+  defaultSettings,
+  parseSettings,
+  sizesFor,
+  toolSize,
+} from "../src/app/useAppSettings.ts";
 
 // The settings blob is the one thing an install carries across every upgrade,
 // so what `parseSettings` does with an *older* blob matters more than what it
@@ -22,11 +29,73 @@ describe("parseSettings", () => {
 
   it("keeps the choices a blob does hold", () => {
     const parsed = parseSettings(
-      JSON.stringify({ activeTool: "marker", size: 24, showGrid: true }),
+      JSON.stringify({ activeTool: "marker", showGrid: true }),
     );
     expect(parsed.activeTool).toBe("marker");
-    expect(parsed.size).toBe(24);
     expect(parsed.showGrid).toBe(true);
+  });
+
+  describe("toolSizes", () => {
+    it("is empty for a blob that has never resized anything", () => {
+      expect(parseSettings(JSON.stringify({})).toolSizes).toEqual({});
+    });
+
+    it("keeps a width per tool", () => {
+      const blob = { toolSizes: { pencil: 3, paintbrush: 12 } };
+      expect(parseSettings(JSON.stringify(blob)).toolSizes).toEqual({
+        pencil: 3,
+        paintbrush: 12,
+      });
+    });
+
+    it("drops values that aren't usable widths", () => {
+      const blob = {
+        toolSizes: { pencil: 0, marker: -4, crayon: "fat", glow: 9999 },
+      };
+      expect(parseSettings(JSON.stringify(blob)).toolSizes).toEqual({});
+    });
+
+    it("forgets the one width every tool used to share", () => {
+      // Seeding it into all fifteen would hand an upgrading install the very
+      // thing per-tool widths replaced: a paintbrush set to a pencil's width.
+      const parsed = parseSettings(JSON.stringify({ size: 24 }));
+      expect("size" in parsed).toBe(false);
+      expect(parsed.toolSizes).toEqual({});
+    });
+  });
+
+  describe("toolSize", () => {
+    it("falls back to the width the tool's own plugin opens at", () => {
+      const settings = defaultSettings();
+      expect(toolSize(settings, "pencil")).toBe(3);
+      expect(toolSize(settings, "text")).toBe(32);
+      expect(toolSize(settings, "eraser")).toBe(8);
+    });
+
+    it("answers with the width that tool was last set to", () => {
+      const settings = { ...defaultSettings(), toolSizes: { pencil: 11 } };
+      expect(toolSize(settings, "pencil")).toBe(11);
+      // …and only that tool: a fat pencil is not a fat brush.
+      expect(toolSize(settings, "paintbrush")).toBe(6);
+    });
+
+    it("falls back to the middle of the shared row for a tool it can't find", () => {
+      expect(toolSize(defaultSettings(), "quill")).toBe(SIZES[1]);
+    });
+  });
+
+  describe("sizesFor", () => {
+    it("offers the app's three widths for a tool with no scale of its own", () => {
+      expect(sizesFor(pluginById("pencil"), [])).toEqual([...SIZES]);
+    });
+
+    it("offers a tool's own scale where it declares one", () => {
+      expect(sizesFor(pluginById("text"), [])).toEqual([16, 24, 32, 48, 72]);
+    });
+
+    it("folds the widths the user kept into the row, fine to broad", () => {
+      expect(sizesFor(pluginById("pencil"), [9, 4])).toEqual([2, 4, 6, 9, 16]);
+    });
   });
 
   describe("showToolName", () => {

@@ -27,17 +27,25 @@ the same [`oss-framework`](https://github.com/niclaslindstedt/oss-framework).
   Drop a screenshot on the page and annotate it; download the result as a PNG, a
   JPG or a vector SVG, or copy it straight to the clipboard.
 - **Tools are plugins.** Every tool, the pencil included, is registered through
-  one interface. A few are always on, a few more come switched on, and the rest
-  — shapes, a crayon, a calligraphy nib, a neon pen — wait in Settings → Tools,
-  so the toolbar stays as simple as you want it and grows when you need it.
+  one interface. It opens on the toolbox you already know — pencil, brush,
+  eraser, bucket, dropper, text and the three shapes — and the media it adds to
+  that (a marker, an airbrush, a crayon, a calligraphy nib, a highlighter) wait
+  in Settings → Tools, so the toolbar stays as simple as you want it and grows
+  when you need it. Each tool remembers its own width, so a fat brush never
+  costs you a fine pencil.
 - **Brushes that are their medium.** The paintbrush is a head of hair: it lays
   down opaque paint with the hairs' partings scratched through it, frays at the
   sides, and runs dry towards the end of a long drag. The airbrush is a spray
   cone that builds up where you linger. Not a pencil at a different width.
-- **A page the size you meant.** A new drawing asks how big its canvas is —
-  this screen's own resolution by default, Full HD, 4K, square, A4 at 300 dpi, a
-  sheet larger than any screen, or a size you type. The page is fixed after
-  that, so the sketch looks the same everywhere it opens.
+- **Type on the page.** The text tool drops a caret wherever you tap and you
+  type into the drawing itself, in the size, colour and typeface it will land
+  in — four faces, bold and italic.
+- **A page the size you meant.** New asks what the drawing is made of — an empty
+  page, an image from disk, or whatever is on the clipboard — and, for an empty
+  one, how big it is. The four sizes are _drawn_ at one shared scale (this
+  screen, Full HD, 4K, A4), so you pick by comparing rectangles rather than by
+  reading numbers. The page is fixed after that, so the sketch looks the same
+  everywhere it opens.
 - **Layers when you want them.** Swipe in from the right edge for the stack: put
   the photo underneath, the tracing over it, the labels on top, and hide any of
   them. A drawing that never asks for a second layer is stored exactly as it was

@@ -22,7 +22,12 @@ export type Point = { x: number; y: number };
  *               behind. Painted with the even-odd rule, so a loop inside
  *               another loop is a hole rather than a second coat (see
  *               `flood.ts`).
- *  - `text`     a caption anchored at a point.
+ *  - `text`     a caption typed at a point — the one mark that is entered
+ *               rather than drawn. It anchors at its **top-left** corner and
+ *               may run to several lines; the typeface it was set in travels
+ *               with it, because a caption re-set in another face is a
+ *               different mark. The size is the stroke's `size`, in document
+ *               pixels, exactly as a nib width is.
  *  - `image`    a bitmap dropped onto the page, held inline as a data URL and
  *               placed between two corners like a `box`. The one place a
  *               drawing carries pixels rather than geometry — an imported photo
@@ -42,7 +47,17 @@ export type Shape =
   | { kind: "segment"; from: Point; to: Point }
   | { kind: "box"; from: Point; to: Point }
   | { kind: "region"; contours: Point[][] }
-  | { kind: "text"; at: Point; text: string }
+  | {
+      kind: "text";
+      at: Point;
+      text: string;
+      /** The typeface id this caption was set in (see `plugins/builtin/text.ts`).
+       *  Absent means the default face — a caption written before this build, or
+       *  one set in the face the tool opens with, records nothing. */
+      font?: string;
+      bold?: boolean;
+      italic?: boolean;
+    }
   | {
       kind: "image";
       from: Point;

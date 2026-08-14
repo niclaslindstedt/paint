@@ -5,9 +5,9 @@
 // does it once, before the app mounts. Registration order *is* toolbar order,
 // and it is deliberate: it reads down Photoshop's tool column, so a hand that
 // already knows one toolbar finds this one where it expects to. Sample, then
-// paint, then erase, then fill, then the shapes, and the tool that moves the
-// view last of all — that column with the gaps closed up, since selections,
-// crop, type and pen paths are tools this app has no business shipping.
+// paint, then erase, then fill, then type, then the shapes, and the tool that
+// moves the view last of all — that column with the gaps closed up, since
+// selections, crop and pen paths are tools this app has no business shipping.
 //
 // Whether a tool is *in* the toolbar is a separate question from where it sits,
 // and it has three answers (see `plugins/types.ts`): `core` tools are always
@@ -16,8 +16,20 @@
 // into its registration position rather than appending it, so the toolbar's
 // order never depends on the order you discovered it in.
 //
+// **What a first run finds is the shape of Paint**: a nib, a brush, a rubber, a
+// bucket, a dropper, type, and the three shapes — the toolbox anyone who has
+// opened a paint program has already used. The media (marker, crayon, chalk
+// nib, airbrush, highlighter) are the app's own additions and are one tap away
+// in Settings → Tools; they are not what an empty page should open holding.
+//
 // Adding a tool is: write its behaviour (or reuse a family factory), register
 // it here, and add its two catalog strings. Nothing else in the app changes.
+//
+// A tool also declares **the width it opens at** (`defaultSize`), because one
+// number never suited all of them: six document pixels is a fine pencil line, a
+// starved airbrush, and type too small to read. The size is per tool and it
+// sticks per tool — picking a fat brush no longer fattens the pencil (see
+// `toolSize` in `useAppSettings.ts`).
 //
 // A tool's `dials` are the same story one level down. The size button opens the
 // width — the one control every tool shares — and, behind **Advanced**, the two
@@ -39,7 +51,6 @@ import {
   CrayonIcon,
   DropperIcon,
   EraserIcon,
-  GlowIcon,
   HandIcon,
   HighlighterIcon,
   LineIcon,
@@ -47,17 +58,10 @@ import {
   NibIcon,
   SprayIcon,
   SquareIcon,
+  TextIcon,
 } from "../../icons.tsx";
 import { registerPlugin } from "../registry.ts";
-import {
-  FEATHER,
-  FLOW,
-  HAIR,
-  HALO,
-  HARDNESS,
-  OPACITY,
-  PRESSURE,
-} from "./dials.ts";
+import { FEATHER, FLOW, HAIR, HARDNESS, OPACITY, PRESSURE } from "./dials.ts";
 import { dropperBehaviour } from "./dropper.ts";
 import { fillBehaviour } from "./fill.ts";
 import { freehandBehaviour } from "./freehand.ts";
@@ -69,6 +73,12 @@ import {
   lineBehaviour,
   rectangleBehaviour,
 } from "./shapes.ts";
+import {
+  DEFAULT_TEXT_SIZE,
+  TEXT_SIZES,
+  TEXT_TOOL_ID,
+  textBehaviour,
+} from "./text.ts";
 
 /** Register the built-in tools. Idempotent — re-registering an id replaces it
  *  in place, so calling this twice (a hot reload, a test) is harmless. */
@@ -103,6 +113,9 @@ export function registerBuiltinPlugins(): void {
     descriptionKey: "tools.pencil.description",
     icon: PencilIcon,
     shortcut: "p",
+    // A pencil draws at the width it says it does, so this is the mark itself:
+    // fine enough to write with, wide enough to see on a 4K page.
+    defaultSize: 3,
     dials: [OPACITY],
     behaviour: freehandBehaviour(),
   });
@@ -114,6 +127,9 @@ export function registerBuiltinPlugins(): void {
     descriptionKey: "tools.paintbrush.description",
     icon: BrushIcon,
     shortcut: "b",
+    // 6 × 2.5 — a loaded round brush about fifteen pixels across, which is the
+    // width a bristle head's streaks actually read at.
+    defaultSize: 6,
     // A head of hair: how wet and gathered it is, and what gauge the hair is.
     dials: [HARDNESS, HAIR],
     behaviour: freehandBehaviour({
@@ -125,11 +141,13 @@ export function registerBuiltinPlugins(): void {
 
   registerPlugin({
     id: "airspray",
-    defaultOn: true,
     nameKey: "tools.airspray.name",
     descriptionKey: "tools.airspray.description",
     icon: SprayIcon,
     shortcut: "s",
+    // 8 × 3 — a cone two dozen pixels wide. A spray narrower than that is a
+    // grainy pencil, which is not what anyone reaches for an airbrush to get.
+    defaultSize: 8,
     // A spray cone: how tight its core is, and how much paint the trigger lets
     // through per pass.
     dials: [HARDNESS, FLOW],
@@ -146,6 +164,8 @@ export function registerBuiltinPlugins(): void {
     descriptionKey: "tools.marker.description",
     icon: MarkerIcon,
     shortcut: "m",
+    // 6 × 3 — a chisel marker's broad edge.
+    defaultSize: 6,
     dials: [OPACITY],
     behaviour: freehandBehaviour({ sizeScale: 3 }),
   });
@@ -156,6 +176,8 @@ export function registerBuiltinPlugins(): void {
     descriptionKey: "tools.highlighter.description",
     icon: HighlighterIcon,
     shortcut: "h",
+    // 4 × 6 — a band wide enough to cover a line of writing in one pass.
+    defaultSize: 4,
     dials: [OPACITY],
     behaviour: freehandBehaviour({ sizeScale: 6, opacity: 0.35 }),
   });
@@ -166,6 +188,9 @@ export function registerBuiltinPlugins(): void {
     descriptionKey: "tools.crayon.description",
     icon: CrayonIcon,
     shortcut: "c",
+    // 6 × 2 — a wax stick's flat, and wide enough for the paper's tooth to
+    // show through the mark rather than swallow it.
+    defaultSize: 6,
     dials: [OPACITY, PRESSURE],
     behaviour: freehandBehaviour({ sizeScale: 2, style: "crayon" }),
   });
@@ -176,18 +201,12 @@ export function registerBuiltinPlugins(): void {
     descriptionKey: "tools.calligraphy.description",
     icon: NibIcon,
     shortcut: "k",
+    // 8 × 1.5 — a broad nib. Below about ten pixels across, the difference
+    // between the flat and the edge is the difference the tool is *for*, and it
+    // disappears.
+    defaultSize: 8,
     dials: [OPACITY],
     behaviour: freehandBehaviour({ sizeScale: 1.5, style: "calligraphy" }),
-  });
-
-  registerPlugin({
-    id: "glow",
-    nameKey: "tools.glow.name",
-    descriptionKey: "tools.glow.description",
-    icon: GlowIcon,
-    shortcut: "n",
-    dials: [OPACITY, HALO],
-    behaviour: freehandBehaviour({ sizeScale: 1.5, style: "glow" }),
   });
 
   // --- Then taking ink off again -------------------------------------------
@@ -202,6 +221,9 @@ export function registerBuiltinPlugins(): void {
     descriptionKey: "tools.eraser.description",
     icon: EraserIcon,
     shortcut: "e",
+    // 8 × 2.5 — a rubber you can actually rub something out with. An eraser the
+    // width of the pencil takes as many passes as the drawing took.
+    defaultSize: 8,
     // The eraser paints the page colour rather than removing strokes: a vector
     // document has no pixels to clear, and painting over is what makes an
     // eraser stroke undoable like any other mark.
@@ -229,21 +251,47 @@ export function registerBuiltinPlugins(): void {
     behaviour: fillBehaviour,
   });
 
+  // --- Then typing ---------------------------------------------------------
+  // Photoshop's type tool sits between the fill tools and the shapes, and so
+  // does this one. It is the only tool whose mark is entered rather than drawn:
+  // `entersText` is what tells the canvas to open a caret instead of beginning a
+  // stroke (see `text.ts`).
+
+  registerPlugin({
+    id: TEXT_TOOL_ID,
+    defaultOn: true,
+    nameKey: "tools.text.name",
+    descriptionKey: "tools.text.description",
+    icon: TextIcon,
+    shortcut: "t",
+    entersText: true,
+    // The width *is* the type size here, so the tool brings its own scale: the
+    // three nib widths every other tool shares are all unreadable as type.
+    defaultSize: DEFAULT_TEXT_SIZE,
+    sizes: TEXT_SIZES,
+    dials: [OPACITY],
+    behaviour: textBehaviour,
+  });
+
   // --- Then the shapes -----------------------------------------------------
   // Photoshop's shape group, in its order — rectangle, ellipse, then the line —
   // and in its place near the bottom of the column.
   //
-  // Off out of the box. A sketchpad is opened to draw on, not to diagram in,
-  // and four shape buttons on a phone toolbar crowd out the brushes for
-  // something a minority of sessions ever reaches for. One tap in Settings →
-  // Tools brings back whichever of them you actually want.
+  // The three a paint program has always had are on out of the box; the arrow,
+  // which is a diagramming tool rather than a drawing one, waits in Settings →
+  // Tools with the media.
 
   registerPlugin({
     id: "rectangle",
+    defaultOn: true,
     nameKey: "tools.rectangle.name",
     descriptionKey: "tools.rectangle.description",
     icon: SquareIcon,
     shortcut: "r",
+    // An outline you can see without zooming in, on a page that is bigger than
+    // the screen. The same for all four two-point tools — they draw at the
+    // width they are given, so the number is the line.
+    defaultSize: 4,
     dials: [OPACITY],
     supportsFill: true,
     behaviour: rectangleBehaviour,
@@ -251,10 +299,12 @@ export function registerBuiltinPlugins(): void {
 
   registerPlugin({
     id: "ellipse",
+    defaultOn: true,
     nameKey: "tools.ellipse.name",
     descriptionKey: "tools.ellipse.description",
     icon: CircleIcon,
     shortcut: "o",
+    defaultSize: 4,
     dials: [OPACITY],
     supportsFill: true,
     behaviour: ellipseBehaviour,
@@ -262,10 +312,12 @@ export function registerBuiltinPlugins(): void {
 
   registerPlugin({
     id: "line",
+    defaultOn: true,
     nameKey: "tools.line.name",
     descriptionKey: "tools.line.description",
     icon: LineIcon,
     shortcut: "l",
+    defaultSize: 4,
     dials: [OPACITY],
     behaviour: lineBehaviour,
   });
@@ -276,6 +328,7 @@ export function registerBuiltinPlugins(): void {
     descriptionKey: "tools.arrow.description",
     icon: ArrowIcon,
     shortcut: "a",
+    defaultSize: 4,
     dials: [OPACITY],
     behaviour: arrowBehaviour,
   });

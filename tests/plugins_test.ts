@@ -11,6 +11,15 @@ import {
   rectangleBehaviour,
 } from "../src/app/plugins/builtin/shapes.ts";
 import {
+  DEFAULT_TEXT_FONT,
+  fontSpec,
+  textBehaviour,
+  textFont,
+  textLines,
+  textStroke,
+  TEXT_TOOL_ID,
+} from "../src/app/plugins/builtin/text.ts";
+import {
   allPlugins,
   defaultEnabledPlugins,
   enabledPlugins,
@@ -47,8 +56,8 @@ describe("registry", () => {
   });
 
   it("keeps registration order", () => {
-    // Photoshop's column, top to bottom: sample, paint, erase, fill, shapes,
-    // and the tool that moves the view last.
+    // Photoshop's column, top to bottom: sample, paint, erase, fill, type,
+    // shapes, and the tool that moves the view last.
     expect(allPlugins().map((p) => p.id)).toEqual([
       "dropper",
       "pencil",
@@ -58,9 +67,9 @@ describe("registry", () => {
       "highlighter",
       "crayon",
       "calligraphy",
-      "glow",
       "eraser",
       "filler",
+      "text",
       "rectangle",
       "ellipse",
       "line",
@@ -80,7 +89,7 @@ describe("registry", () => {
 
   it("keeps the eraser directly under the tools it undoes", () => {
     const ids = toolPlugins().map((p) => p.id);
-    expect(ids[ids.indexOf("eraser") - 1]).toBe("glow");
+    expect(ids[ids.indexOf("eraser") - 1]).toBe("calligraphy");
     expect(ids[ids.indexOf("eraser") + 1]).toBe("filler");
   });
 
@@ -112,24 +121,50 @@ describe("registry", () => {
     ]);
   });
 
-  it("ships the brush shelf switched on by default", () => {
-    expect(defaultEnabledPlugins()).toEqual([
-      "dropper",
-      "paintbrush",
-      "airspray",
-      "filler",
-    ]);
-    // …and the shape tools deliberately not: they are opt-in now.
-    expect(defaultEnabledPlugins()).not.toContain("rectangle");
+  it("opens on a paint program's toolbox and nothing else", () => {
+    // What a first run finds: a nib, a brush, a rubber, a bucket, a dropper,
+    // type and the three shapes — the tools anyone who has opened a paint
+    // program already knows.
     expect(enabledPlugins(defaultEnabledPlugins()).map((p) => p.id)).toEqual([
       "dropper",
       "pencil",
       "paintbrush",
-      "airspray",
       "eraser",
       "filler",
+      "text",
+      "rectangle",
+      "ellipse",
+      "line",
       "hand",
     ]);
+    // …and the media deliberately not: they are the app's own additions, and
+    // they are one tap away in Settings → Tools.
+    for (const id of [
+      "airspray",
+      "marker",
+      "highlighter",
+      "crayon",
+      "calligraphy",
+      "arrow",
+    ]) {
+      expect(defaultEnabledPlugins()).not.toContain(id);
+    }
+  });
+
+  it("gives every tool a width of its own to open at", () => {
+    // One number never suited all of them: 6 document pixels is a fine pencil
+    // line, a starved airbrush and type too small to read. A tool without one
+    // falls back to the middle of the shared row, which is only right for the
+    // tools that have no nib at all.
+    const sized = toolPlugins().filter((p) => p.defaultSize !== undefined);
+    expect(sized.map((p) => p.id)).toContain("pencil");
+    expect(pluginById("text")!.defaultSize).toBe(32);
+    expect(pluginById("pencil")!.defaultSize).not.toBe(
+      pluginById("eraser")!.defaultSize,
+    );
+    for (const plugin of sized) {
+      expect(plugin.defaultSize).toBeGreaterThan(0);
+    }
   });
 
   it("gives every tool a shortcut of its own", () => {
@@ -161,8 +196,8 @@ describe("registry", () => {
       "highlighter",
       "crayon",
       "calligraphy",
-      "glow",
       "filler",
+      "text",
       "rectangle",
       "ellipse",
       "line",
@@ -337,6 +372,116 @@ describe("dropper", () => {
     const picking = allPlugins().filter((p) => p.picksColor);
     expect(picking.map((p) => p.id)).toEqual(["dropper"]);
     expect(picking[0]!.behaviour.start({ x: 0, y: 0 }, ctx)).toBeNull();
+  });
+});
+
+describe("text", () => {
+  beforeEach(() => {
+    resetPlugins();
+    registerBuiltinPlugins();
+  });
+
+  it("begins no stroke — a caption is typed, not dragged", () => {
+    expect(textBehaviour.start({ x: 4, y: 4 }, ctx)).toBeNull();
+  });
+
+  it("is the only tool whose mark is entered rather than drawn", () => {
+    const typing = allPlugins().filter((p) => p.entersText);
+    expect(typing.map((p) => p.id)).toEqual(["text"]);
+    // The flag is what the canvas reads, so it must ride on a tool that draws
+    // nothing: a press opens a caret, and no gesture can reach the document.
+    expect(typing[0]!.behaviour.start({ x: 0, y: 0 }, ctx)).toBeNull();
+  });
+
+  it("brings its own scale, because a nib width is not a type size", () => {
+    const text = pluginById("text")!;
+    expect(text.sizes).toEqual([16, 24, 32, 48, 72]);
+    expect(text.defaultSize).toBe(32);
+  });
+
+  it("files the words as one mark, at the point they were typed", () => {
+    const stroke = textStroke(
+      "hello",
+      { x: 12, y: 30 },
+      {
+        color: "#ef4444",
+        size: 48,
+      },
+    );
+    expect(stroke.tool).toBe(TEXT_TOOL_ID);
+    expect(stroke.size).toBe(48);
+    expect(stroke.color).toBe("#ef4444");
+    expect(stroke.shape).toEqual({
+      kind: "text",
+      at: { x: 12, y: 30 },
+      text: "hello",
+    });
+  });
+
+  it("keeps several lines in one stroke", () => {
+    const stroke = textStroke(
+      "two\nlines",
+      { x: 0, y: 0 },
+      {
+        color: null,
+        size: 32,
+      },
+    );
+    if (stroke.shape.kind !== "text") throw new Error("expected a caption");
+    expect(textLines(stroke.shape.text)).toEqual(["two", "lines"]);
+  });
+
+  it("records no colour when none was picked, so type follows the page", () => {
+    const stroke = textStroke("x", { x: 0, y: 0 }, { color: null, size: 32 });
+    expect(stroke.color).toBeUndefined();
+  });
+
+  it("records only the type styling that differs from the default", () => {
+    const plain = textStroke(
+      "x",
+      { x: 0, y: 0 },
+      {
+        color: null,
+        size: 32,
+        font: DEFAULT_TEXT_FONT,
+      },
+    );
+    // A caption set the way the tool opens serialises as small as it reads.
+    expect(plain.shape).toEqual({
+      kind: "text",
+      at: { x: 0, y: 0 },
+      text: "x",
+    });
+
+    const styled = textStroke(
+      "x",
+      { x: 0, y: 0 },
+      {
+        color: null,
+        size: 32,
+        font: "serif",
+        bold: true,
+        italic: true,
+      },
+    );
+    if (styled.shape.kind !== "text") throw new Error("expected a caption");
+    expect(styled.shape.font).toBe("serif");
+    expect(styled.shape.bold).toBe(true);
+    expect(styled.shape.italic).toBe(true);
+  });
+
+  it("builds the same font shorthand the entry box previews with", () => {
+    expect(fontSpec({ size: 24, font: "mono" })).toBe(
+      `400 24px ${textFont("mono").stack}`,
+    );
+    expect(fontSpec({ size: 24, bold: true, italic: true })).toBe(
+      `italic 700 24px ${textFont(DEFAULT_TEXT_FONT).stack}`,
+    );
+  });
+
+  it("falls back to the default face for one this build no longer ships", () => {
+    // A caption never loses its words to a missing font.
+    expect(textFont("blackletter").id).toBe(DEFAULT_TEXT_FONT);
   });
 });
 

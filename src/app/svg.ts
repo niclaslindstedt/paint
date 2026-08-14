@@ -30,6 +30,7 @@ type PaintedState = {
   lineJoin: CanvasLineJoin;
   globalAlpha: number;
   font: string;
+  textBaseline: CanvasTextBaseline;
   tx: number;
   ty: number;
 };
@@ -42,6 +43,7 @@ const INITIAL: Omit<PaintedState, "tx" | "ty"> = {
   lineJoin: "miter",
   globalAlpha: 1,
   font: "10px sans-serif",
+  textBaseline: "alphabetic",
 };
 
 /** Two decimals is finer than any screen and keeps the file readable. */
@@ -84,8 +86,8 @@ class SvgGradient {
  * A 2D context that writes SVG.
  *
  * Deliberately *only* the subset the painters use: paths, rectangles, ellipses,
- * text, images, radial-gradient fills, a translation, and the ink properties
- * `applyInk` sets. Calls it has no meaning for (`clearRect` — an SVG starts
+ * text (with the one baseline the text tool sets), images, radial-gradient
+ * fills, a translation, and the ink properties `applyInk` sets. Calls it has no meaning for (`clearRect` — an SVG starts
  * transparent; `clip` — used only by the screen's grid, which never exports)
  * are accepted and ignored, so a caller can hand it to the shared renderer
  * unchanged.
@@ -108,6 +110,7 @@ export class SvgCanvas {
   lineJoin: CanvasLineJoin = INITIAL.lineJoin;
   globalAlpha = INITIAL.globalAlpha;
   font = INITIAL.font;
+  textBaseline: CanvasTextBaseline = INITIAL.textBaseline;
 
   save(): void {
     this.stack.push({
@@ -119,6 +122,7 @@ export class SvgCanvas {
       lineJoin: this.lineJoin,
       globalAlpha: this.globalAlpha,
       font: this.font,
+      textBaseline: this.textBaseline,
       tx: this.tx,
       ty: this.ty,
     });
@@ -134,6 +138,7 @@ export class SvgCanvas {
     this.lineJoin = prev.lineJoin;
     this.globalAlpha = prev.globalAlpha;
     this.font = prev.font;
+    this.textBaseline = prev.textBaseline;
     this.tx = prev.tx;
     this.ty = prev.ty;
   }
@@ -277,9 +282,19 @@ export class SvgCanvas {
   fillText(text: string, x: number, y: number): void {
     // The canvas `font` shorthand is close enough to CSS to hand straight to
     // the `font` presentation attribute.
+    //
+    // The baseline is not: a canvas anchors text wherever `textBaseline` says,
+    // an SVG `<text>` always on the alphabetic baseline. A caption is anchored
+    // at its top (see `plugins/builtin/text.ts`), so the one baseline this app
+    // actually sets is carried across as `dominant-baseline` — without it every
+    // exported caption sits a line higher than it did on screen.
+    const baseline =
+      this.textBaseline === "top"
+        ? ` dominant-baseline="text-before-edge"`
+        : "";
     this.elements.push(
       `<text x="${n(x + this.tx)}" y="${n(y + this.ty)}" fill="${this.fillPaint()}"` +
-        ` style="font:${esc(this.font)}"${this.opacity()}>${esc(text)}</text>`,
+        `${baseline} style="font:${esc(this.font)}"${this.opacity()}>${esc(text)}</text>`,
     );
   }
 

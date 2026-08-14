@@ -9,8 +9,7 @@ import {
   clampSide,
   currentScreenCanvasSize,
   matchPreset,
-  parseCanvasSize,
-  parseSide,
+  previewScale,
   sameCanvasSize,
   screenCanvasSize,
 } from "../src/app/canvasSize.ts";
@@ -19,7 +18,8 @@ import { DEFAULT_CANVAS } from "../src/app/types.ts";
 // The size a new page is made at. Every rule the new-drawing dialog leans on
 // lives in the module under test, so the whole choice can be driven here
 // without a browser: what "this screen" resolves to, what the list offers, and
-// what a hand-typed size has to pass.
+// how big each of them is *drawn* — the dialog compares them as rectangles, so
+// the scale they share is part of the answer rather than part of the paint.
 
 describe("clampSide", () => {
   it("rounds to whole pixels", () => {
@@ -104,14 +104,10 @@ describe("canvasPresets", () => {
     });
   });
 
-  it("keeps the old default sheet on the list", () => {
-    const sheet = canvasPresets({ width: 2560, height: 1440 }).find(
-      (p) => p.id === "sheet",
-    );
-    expect(sheet?.size).toEqual({
-      width: DEFAULT_CANVAS.width,
-      height: DEFAULT_CANVAS.height,
-    });
+  it("offers four sizes and no more — they are compared, not read", () => {
+    expect(
+      canvasPresets({ width: 2560, height: 1440 }).map((p) => p.id),
+    ).toEqual(["screen", "hd", "uhd", "print"]);
   });
 
   it("lists a named size that is also the screen size only once", () => {
@@ -138,36 +134,35 @@ describe("canvasPresets", () => {
   });
 });
 
-describe("parseSide", () => {
-  it("takes a whole number inside the range", () => {
-    expect(parseSide("1920")).toBe(1920);
-    expect(parseSide("  800  ")).toBe(800);
-    expect(parseSide("640.6")).toBe(641);
+describe("previewScale", () => {
+  const presets = canvasPresets({ width: 2560, height: 1440 });
+
+  it("fits the largest page in the box, in whichever direction it is largest", () => {
+    const box = { width: 100, height: 60 };
+    const scale = previewScale(presets, box);
+    for (const preset of presets) {
+      expect(preset.size.width * scale).toBeLessThanOrEqual(box.width + 0.001);
+      expect(preset.size.height * scale).toBeLessThanOrEqual(
+        box.height + 0.001,
+      );
+    }
+    // …and one of them actually reaches an edge, or the shelf is drawn smaller
+    // than it needs to be.
+    const touches = presets.some(
+      (p) =>
+        Math.abs(p.size.width * scale - box.width) < 0.001 ||
+        Math.abs(p.size.height * scale - box.height) < 0.001,
+    );
+    expect(touches).toBe(true);
   });
 
-  it("refuses what isn't a usable side", () => {
-    expect(parseSide("")).toBeNull();
-    expect(parseSide("wide")).toBeNull();
-    expect(parseSide("-100")).toBeNull();
-    expect(parseSide(String(MIN_CANVAS_SIDE - 1))).toBeNull();
-    expect(parseSide(String(MAX_CANVAS_SIDE + 1))).toBeNull();
-  });
-
-  it("says no rather than quietly resizing an out-of-range page", () => {
-    // Clamping "20000" to 8192 would create a page nobody asked for; the field
-    // stays invalid instead.
-    expect(parseSide("20000")).toBeNull();
-  });
-});
-
-describe("parseCanvasSize", () => {
-  it("needs both sides", () => {
-    expect(parseCanvasSize("1920", "1080")).toEqual({
-      width: 1920,
-      height: 1080,
-    });
-    expect(parseCanvasSize("1920", "")).toBeNull();
-    expect(parseCanvasSize("", "1080")).toBeNull();
-    expect(parseCanvasSize("0", "0")).toBeNull();
+  it("is one scale for the whole shelf, so the sizes can be compared", () => {
+    // 4K is exactly twice Full HD on each side, and it has to *draw* twice as
+    // big — a per-cell fit would make them identical, which is the one thing a
+    // picture of a page size must not do.
+    const scale = previewScale(presets, { width: 100, height: 60 });
+    const hd = presets.find((p) => p.id === "hd")!;
+    const uhd = presets.find((p) => p.id === "uhd")!;
+    expect(uhd.size.width * scale).toBeCloseTo(hd.size.width * scale * 2, 6);
   });
 });

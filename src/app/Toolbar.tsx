@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useT } from "./i18n/index.ts";
 import { enabledPlugins } from "./plugins/registry.ts";
 import type { PaintPlugin } from "./plugins/types.ts";
+import { sizesFor } from "./useAppSettings.ts";
 import { ClearPicker } from "./toolbar/ClearPicker.tsx";
 import { ColorPicker } from "./toolbar/ColorPicker.tsx";
 import { FillPicker } from "./toolbar/FillPicker.tsx";
@@ -295,7 +296,7 @@ export function Toolbar({
             nibIrrelevant ? "opacity-40" : ""
           }`}
         >
-          <SizeDot size={size} />
+          <SizeDot size={size} of={sizesFor(active, customSizes).at(-1)} />
         </button>
       </div>
 
@@ -349,6 +350,7 @@ export function Toolbar({
         open={panel?.kind === "size"}
         onClose={() => setPanel(null)}
         anchor={sizeAnchor}
+        plugin={active}
         size={size}
         onPick={onSizeChange}
         customSizes={customSizes}

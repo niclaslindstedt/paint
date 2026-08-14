@@ -99,14 +99,3 @@ export const FEATHER: ToolDial = {
   default: 0,
   unit: "px",
 };
-
-/** How far the neon pen's aura reaches past its core — a tight rim, or a wide
- *  bloom. */
-export const HALO: ToolDial = {
-  id: "halo",
-  nameKey: "dials.halo.name",
-  hintKey: "dials.halo.hint",
-  min: 0.5,
-  max: 2,
-  step: 0.05,
-};

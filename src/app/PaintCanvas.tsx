@@ -52,7 +52,8 @@ import {
 // The gesture split is the Procreate one, and it is the whole interaction model:
 //
 //   one finger / pen / mouse   draws — or pans, under a tool that `navigates`,
-//                              or samples, under one that `picksColor`
+//                              samples, under one that `picksColor`, or opens a
+//                              caret, under one that `entersText`
 //   two fingers                pinch to zoom, drag to pan
 //   wheel                      pans; ctrl/⌘ + wheel (and a trackpad pinch) zooms
 //   double-tap (hand only)     fits the page, again for 1:1
@@ -88,6 +89,11 @@ type Props = {
   /** Called with the colour under the pointer when a tool that `picksColor`
    *  (the dropper) is pressed — the sampled colour becomes the ink. */
   onPickColor?: (color: string) => void;
+  /** Called with the document point pressed under a tool that `entersText` (the
+   *  text tool) — the caret opens there. Nothing is drawn and nothing reaches
+   *  the document: the caption arrives later, as a finished mark (see
+   *  `TextEntry.tsx`). */
+  onEnterText?: (at: Point) => void;
   /** Paint a faint grid behind the page as a drawing aid. Never exported. */
   showGrid?: boolean;
   /** Bumped by the zoom pill to toggle between fitting the page and 1:1. */
@@ -133,6 +139,7 @@ export function PaintCanvas({
   defaultInk,
   onCommit,
   onPickColor,
+  onEnterText,
   showGrid = false,
   fitToken = 0,
   onScaleChange,
@@ -503,6 +510,14 @@ export function PaintCanvas({
       return;
     }
 
+    // The text tool. A press under a typing tool opens a caret where it landed
+    // and begins no stroke: the mark is entered rather than drawn, and it
+    // reaches the document only once the words are finished.
+    if (plugin.entersText) {
+      onEnterText?.(toDoc(at));
+      return;
+    }
+
     // The hand. A press under a navigating tool grabs the page instead of
     // starting a stroke, and is a tap until it travels far enough not to be.
     if (plugin.navigates) {
@@ -764,6 +779,7 @@ export function PaintCanvas({
   // hand under a navigating tool, a closed one while the page is actually being
   // moved, crosshairs when the next press would leave a mark.
   const navigates = Boolean(pluginById(tool)?.navigates);
+  const typing = Boolean(pluginById(tool)?.entersText);
   const holding = Boolean(pinchStart.current || panStart.current);
 
   return (
@@ -785,7 +801,9 @@ export function PaintCanvas({
             ? "grabbing"
             : navigates
               ? "grab"
-              : "crosshair",
+              : typing
+                ? "text"
+                : "crosshair",
       }}
     />
   );

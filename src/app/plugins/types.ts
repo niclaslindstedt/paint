@@ -201,6 +201,24 @@ export type PaintPlugin = {
   picksColor?: boolean;
   /** True when the tool honours the fill toggle. */
   supportsFill?: boolean;
+  /** True when the tool's mark is *typed* rather than drawn — the text tool.
+   *
+   *  A press begins no gesture; it opens a caret on the page instead, and the
+   *  mark is filed when the typing is finished. Like `navigates` and
+   *  `picksColor` this is a flag the canvas reads, so no screen has to know
+   *  what the text tool is called. */
+  entersText?: boolean;
+  /** The width this tool opens at, in document pixels, before its own scaling
+   *  (a paintbrush multiplies it, a text tool reads it as the type size).
+   *
+   *  Declared per tool because a width that suits a pencil suits nothing else:
+   *  6px is a fine pencil line, a starved airbrush and unreadable type. Absent
+   *  falls back to the middle of `sizes` — see `toolSize` in `useAppSettings`. */
+  defaultSize?: number;
+  /** The widths this tool's size panel offers as buttons, fine to broad. Absent
+   *  means the app's own three (`SIZES`), which is right for everything that
+   *  draws a line; the text tool overrides it with type sizes. */
+  sizes?: readonly number[];
   /** What this tool offers under **Advanced** in the size panel, past the width
    *  every tool shares. Two at most: the panel is a thing you reach into
    *  mid-stroke, and a rack of sliders is a settings screen.

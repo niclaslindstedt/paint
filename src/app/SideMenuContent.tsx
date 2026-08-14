@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-import { Suspense, lazy, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import type { ReactNode } from "react";
 
 import {
@@ -45,7 +45,6 @@ import type {
 } from "@niclaslindstedt/oss-framework/namespaces";
 import { useDragDrop } from "@niclaslindstedt/oss-framework/sidebar";
 
-import type { CanvasSize } from "./canvasSize.ts";
 import { CanvasIcon } from "./icons.tsx";
 import { useT } from "./i18n/index.ts";
 import { imageFileStem, importImageFile } from "./images.ts";
@@ -112,12 +111,6 @@ import * as output from "../output.ts";
 // pointer goes looking for them. Which of them is legal for a given row is
 // `sidebarDnd.ts`; what each drop *does* is `onDrop` below.
 
-// The page-size dialog is a click away, never a first paint away — like every
-// other dialog in the app it loads when it is asked for (see `App.tsx`).
-const NewDrawingModal = lazy(() =>
-  import("./NewDrawingModal.tsx").then((m) => ({ default: m.NewDrawingModal })),
-);
-
 // The About dropdown opens up-and-to-the-left of its footer trigger — there is
 // no room below it at the foot of the drawer, and the framework's
 // `FloatingPanel` flips it above automatically.
@@ -147,6 +140,11 @@ type Props = {
   onOpenNamespaces: () => void;
   onOpenSettings: () => void;
   onOpenChangelog: () => void;
+  /** Start a new drawing in `folderId` (`null` for the top level). The dialog
+   *  that asks what it is made of lives in `App` rather than in here: on a
+   *  phone this whole panel is unmounted the moment the drawer closes, and
+   *  pressing New closes it — a dialog owned by the drawer would go with it. */
+  onNewDrawing: (folderId: string | null) => void;
   onNavigate: () => void;
   /** The screen the main area is showing — lights the Archive island cell when
    *  the archive is the view in front of you. */
@@ -170,6 +168,7 @@ export function SideMenuContent({
   onOpenNamespaces,
   onOpenSettings,
   onOpenChangelog,
+  onNewDrawing,
   onNavigate,
   view,
   onShowArchive,
@@ -189,13 +188,6 @@ export function SideMenuContent({
   // which drawing is being filed once that action is chosen.
   const movePointer = useRef<FloatingPoint>({ x: 0, y: 0 });
   const [movePicker, setMovePicker] = useState<string | null>(null);
-
-  // A new drawing in the making: which folder it is destined for, held while
-  // the page-size dialog is up. `null` means no dialog; a pending drawing filed
-  // at the top level carries `{ folderId: null }`.
-  const [pendingDrawing, setPendingDrawing] = useState<{
-    folderId: string | null;
-  } | null>(null);
 
   // Which folders are folded shut, and the inline name editors. All view-local
   // — the persisted folder registry lives in the store.
@@ -316,19 +308,12 @@ export function SideMenuContent({
     onNavigate();
   }
 
-  /** Start a new drawing: ask how big the page is, then make it. The size is
-   *  asked once, here, because a page never reflows — see `NewDrawingModal`. */
+  /** Start a new drawing: hand the question up to `App`, which owns the dialog
+   *  and the drawer this panel is inside. The folder is unfolded on the way, so
+   *  the drawing lands somewhere you can see when it arrives. */
   function createDrawing(folderId: string | null) {
-    setPendingDrawing({ folderId });
-  }
-
-  function commitDrawing(size: CanvasSize) {
-    const folderId = pendingDrawing?.folderId ?? null;
-    setPendingDrawing(null);
     if (folderId !== null) ensureExpanded(folderId);
-    store.addDrawing("", folderId, size);
-    onShowCanvas();
-    onNavigate();
+    onNewDrawing(folderId);
   }
 
   // One drawing row, wearing all three ways into its actions: it is a drag
@@ -785,20 +770,6 @@ export function SideMenuContent({
             {t("menu.dropImage")}
           </span>
         </div>
-      )}
-
-      {/* The page-size question. Mounted only while a drawing is pending, so
-          each one is asked fresh rather than reopening on the last answer. */}
-      {pendingDrawing && (
-        <Suspense fallback={null}>
-          <NewDrawingModal
-            folderName={
-              folders.find((f) => f.id === pendingDrawing.folderId)?.name
-            }
-            onCancel={() => setPendingDrawing(null)}
-            onCreate={commitDrawing}
-          />
-        </Suspense>
       )}
 
       {/* What is in the hand right now, following the pointer — portalled to

@@ -11,21 +11,24 @@ connect a storage backend yourself.
 
 ## What it does
 
-- Draw with a pencil, a bristle paintbrush, an airbrush, a paint bucket, a
-  colour dropper, and an eraser, plus a hand tool that drags the page around —
-  the toolbar out of the box.
-- Switch more tools on in Settings → Tools (line, arrow, rectangle, ellipse,
-  marker, highlighter, crayon, calligraphy pen, neon pen). Every tool is a
-  plugin behind one interface, so the list grows without the app changing shape.
+- Draw with a pencil, a bristle paintbrush, an eraser, a paint bucket, a colour
+  dropper, a text tool, and the three shapes (rectangle, ellipse, line), plus a
+  hand tool that drags the page around — the toolbar out of the box.
+- Switch more tools on in Settings → Tools (airbrush, marker, highlighter,
+  crayon, calligraphy pen, arrow). Every tool is a plugin behind one interface,
+  so the list grows without the app changing shape.
+- Type on the page: the text tool opens a caret where you tap, in four
+  typefaces, five type sizes, bold and italic.
 - Pick colour and stroke width from two buttons: a palette with a free colour
-  mixer that remembers what you mix, and a nib picker with your own widths.
+  mixer that remembers what you mix, and a nib picker with your own widths. The
+  width is remembered per tool, and each tool opens at a width of its own.
 - Tune the tool in your hand under the nib picker's Advanced fold — hair gauge
   for the paintbrush, flow for the airbrush, pressure for the crayon, a
   feathered edge for the paint bucket, opacity for most of the rest. Each tool
   keeps its own settings, and a mark remembers what it was drawn with.
-- Choose a new drawing's canvas size when you create it: this screen's own
-  resolution by default, presets (Full HD, 4K, a large 3200 × 2000 sheet,
-  square, A4 at 300 dpi), or a size you type.
+- Start a drawing from an empty page, an image file, or an image on the
+  clipboard. An empty one asks its canvas size up front — this screen, Full HD,
+  4K or A4, drawn to one shared scale so the four can be compared at a glance.
 - Draw on a page bigger than the window: the canvas is a window onto it, with
   pinch-to-zoom, two-finger panning, and one-finger panning under the hand.
 - Stack a drawing into layers: swipe in from the right edge of the canvas (or
