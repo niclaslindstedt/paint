@@ -3,6 +3,15 @@
 // Same shape as the framework icons (24×24 line art on `currentColor`,
 // `className` for sizing) so they sit beside `PencilIcon` & co. without
 // looking imported.
+//
+// They are drawn for 18 pixels, because that is the size the toolbar renders
+// them at (`Toolbar.tsx`), and that size has rules of its own. An outlined
+// detail narrower than about two units — a drop, a speck, a breather hole —
+// closes up into a grey smudge, so anything that small is drawn *filled*
+// instead. Three shapes is about the ceiling before a glyph reads as texture.
+// And where a tool's silhouette is shared with half the toolbar — every pen is
+// a stick held at 45° — the mark it leaves is what tells it apart: the marker
+// carries its opaque bar, the highlighter its translucent band.
 
 type IconProps = {
   className?: string;
@@ -21,174 +30,229 @@ const base = {
   strokeLinejoin: "round" as const,
 };
 
-/** The eraser tool — a rubber block on its edge. */
+/** The eraser tool — a rubber block on its edge, sitting on the page it is
+ *  rubbing. The line under it is what stops the block reading as a loose
+ *  capsule, and the block runs corner to corner so its two halves stay apart at
+ *  18 pixels. */
 export function EraserIcon({ className }: IconProps) {
   return (
     <svg {...base} className={className} aria-hidden="true">
-      <path d="M8.5 20H20" />
-      <path d="m4.7 15.5 4.8 4.5 9.3-9.3a2 2 0 0 0 0-2.8l-2.7-2.7a2 2 0 0 0-2.8 0L4 12.7a2 2 0 0 0 0 2.8Z" />
-      <path d="m10.5 9.5 4.7 4.7" />
+      <path d="M7.8 20.4H20.6" />
+      <path d="m3.6 15.4 5 4.8 10-10a2.1 2.1 0 0 0 0-3l-2.8-2.8a2.1 2.1 0 0 0-3 0l-9.2 9.2a2.1 2.1 0 0 0 0 3Z" />
+      <path d="m9.8 8.8 5.8 5.8" />
     </svg>
   );
 }
 
-/** Clearing the page — the sheet itself, wiped back to blank.
+/** Clearing the page — a blank sheet, sparkling clean.
  *  Deliberately not a second eraser: it sits beside `EraserIcon` in the eraser's
  *  panel, and two rubber blocks a few pixels apart would say nothing. The frame
- *  is what makes it "all of it" rather than "some of it", and what is left
- *  inside it is a clean sheet rather than a mark. */
+ *  is what makes it "all of it" rather than "some of it"; the sheet inside it is
+ *  empty, and the sparkle sits *on the corner* rather than in the middle, where
+ *  it would read as a mark someone left behind. It is filled because a hollow
+ *  four-pointed star closes up into a blob at toolbar size. */
 export function ClearPageIcon({ className }: IconProps) {
   return (
     <svg {...base} className={className} aria-hidden="true">
-      <rect x="3.5" y="4" width="17" height="16" rx="2" />
-      <path d="M12 8.2l1.3 2.5 2.5 1.3-2.5 1.3-1.3 2.5-1.3-2.5-2.5-1.3 2.5-1.3z" />
+      <rect x="2.6" y="5.6" width="15.2" height="14.4" rx="2" />
+      <path
+        d="M19 1.6 19.95 4.45 22.8 5.4 19.95 6.35 19 9.2 18.05 6.35 15.2 5.4 18.05 4.45Z"
+        fill="currentColor"
+        stroke="none"
+      />
     </svg>
   );
 }
 
-/** A straight line. */
+/** A straight line, with its two ends marked. A bare diagonal says nothing in
+ *  particular; the endpoints are what make it a segment someone drew. */
 export function LineIcon({ className }: IconProps) {
   return (
     <svg {...base} className={className} aria-hidden="true">
-      <path d="M5 19 19 5" />
+      <path d="M6.6 17.4 17.4 6.6" />
+      <circle cx="5.4" cy="18.6" r="1.7" fill="currentColor" stroke="none" />
+      <circle cx="18.6" cy="5.4" r="1.7" fill="currentColor" stroke="none" />
     </svg>
   );
 }
 
-/** An arrow — the annotated-diagram workhorse. */
+/** An arrow — the annotated-diagram workhorse. The head is solid: an outlined
+ *  one thins to nothing at 18 pixels, which is the size that matters. */
 export function ArrowIcon({ className }: IconProps) {
   return (
     <svg {...base} className={className} aria-hidden="true">
-      <path d="M5 19 19 5" />
-      <path d="M11 5h8v8" />
+      <path d="M4.4 19.6 15.6 8.4" />
+      <path d="M20.4 3.6 13.4 5.4l4.8 4.8z" fill="currentColor" />
     </svg>
   );
 }
 
-/** A rectangle, outlined or solid. */
+/** A rectangle, outlined or solid. Square corners, because that is what the
+ *  tool draws. */
 export function SquareIcon({ className, filled }: IconProps) {
   return (
     <svg {...base} className={className} aria-hidden="true">
       <rect
-        x="4"
-        y="5"
-        width="16"
-        height="14"
-        rx="1.5"
+        x="3.5"
+        y="5.5"
+        width="17"
+        height="13"
+        rx="0.5"
         fill={filled ? "currentColor" : "none"}
       />
     </svg>
   );
 }
 
-/** An ellipse, outlined or solid. */
+/** An ellipse, outlined or solid — fuller than the rectangle is tall, so the
+ *  two shape tools do not sit on the toolbar as the same grey lozenge. */
 export function CircleIcon({ className, filled }: IconProps) {
   return (
     <svg {...base} className={className} aria-hidden="true">
       <ellipse
         cx="12"
         cy="12"
-        rx="8.5"
-        ry="7"
+        rx="8.7"
+        ry="7.6"
         fill={filled ? "currentColor" : "none"}
       />
     </svg>
   );
 }
 
-/** A marker pen — the fat freehand tool. */
+/** A marker pen — a fat barrel on a chisel nib, over the opaque bar it lays
+ *  down. The bar is the whole point: barrel and nib alone are a pen, and the
+ *  toolbar already has one. */
 export function MarkerIcon({ className }: IconProps) {
   return (
     <svg {...base} className={className} aria-hidden="true">
-      <path d="M15 3.5 20.5 9l-9 9H6v-5.5Z" />
-      <path d="M4 21h16" />
+      <g transform="rotate(45 12 12)">
+        <path d="M9.2 2.2h5.6v9.2H9.2z" />
+        <path d="M9.2 11.4h5.6l-1.5 4.6h-2.6z" />
+      </g>
+      <path d="M4.6 20.4h10.6" strokeWidth="2.6" />
     </svg>
   );
 }
 
-/** A highlighter — a marker laying down a translucent band. */
+/** A highlighter — a broad chisel over the translucent band it leaves. The
+ *  band is wider and paler than the marker's bar, which is the difference
+ *  between the two tools said in the only way that survives 18 pixels. */
 export function HighlighterIcon({ className }: IconProps) {
   return (
     <svg {...base} className={className} aria-hidden="true">
-      <path d="M13 3.5 20.5 11l-7 7H8l-2.5-2.5Z" />
-      <path d="M4 21h7" />
+      <path d="M13.4 2.6 21 10.2l-7.2 7.2H8.2L5.2 14.4Z" />
+      <path
+        d="M3.4 20.4h11"
+        strokeWidth="3.4"
+        strokeLinecap="butt"
+        opacity=".5"
+      />
     </svg>
   );
 }
 
-/** A bristle brush, loaded and held at an angle. */
+/** A bristle brush held at an angle: thin handle, ferrule, splayed bristles.
+ *  The mass sits in the head — a brush drawn with an even body reads as a
+ *  knife, and one drawn without the ferrule reads as a spoon. It runs the full
+ *  diagonal so it carries the same weight as the eraser two buttons along. */
 export function BrushIcon({ className }: IconProps) {
   return (
     <svg {...base} className={className} aria-hidden="true">
-      <path d="M17.5 3.5a2.1 2.1 0 0 1 3 3l-6.2 5.4-2.2-2.2Z" />
-      <path d="M11 10.5 13.5 13l-1.2 1.9a4 4 0 0 1-2.2 1.7l-3.4 1 1-3.4a4 4 0 0 1 1.7-2.2Z" />
-      <path d="M6.5 17.5c-.6 1.4-1.7 2.3-3.5 2.6.8-1.5 1-2.6.8-3.6Z" />
+      <g transform="rotate(45 12 12)">
+        <path d="M12 1.4v8.2" />
+        <path d="M8.85 9.6h6.3v2.8h-6.3z" />
+        <path d="M9.4 12.4h5.2l.45 4.6a2.85 2.85 0 0 1-2.85 3.15h-.45a2.85 2.85 0 0 1-2.85-3.15Z" />
+      </g>
     </svg>
   );
 }
 
-/** The airbrush — a can with its spray fanning out. */
+/** The airbrush — a can with its spray fanning out. The spray is four filled
+ *  dots rather than a scatter of specks: round caps that small rasterise into
+ *  a grey haze, and four is the fewest that still reads as spray. */
 export function SprayIcon({ className }: IconProps) {
   return (
     <svg {...base} className={className} aria-hidden="true">
-      <rect x="7" y="9" width="8" height="12" rx="2" />
-      <path d="M9 9V6a2 2 0 0 1 2-2h1" />
-      <path d="M18 5h.01M21 4h.01M18 9h.01M21 8.5h.01M20.5 12h.01M18 13h.01" />
+      <rect x="3.6" y="8.8" width="8.8" height="12.4" rx="2.4" />
+      <path d="M6.2 8.8V5.8a2.1 2.1 0 0 1 2.1-2.1h1.9" />
+      <circle cx="15.8" cy="4.6" r="1.25" fill="currentColor" stroke="none" />
+      <circle cx="20" cy="3.6" r="1.25" fill="currentColor" stroke="none" />
+      <circle cx="16.6" cy="9.4" r="1.25" fill="currentColor" stroke="none" />
+      <circle cx="20.4" cy="8.4" r="1.25" fill="currentColor" stroke="none" />
     </svg>
   );
 }
 
-/** The paint bucket — tipped, with a drop leaving it. */
+/** The paint bucket — tipped, with a drop leaving it. The drop is filled;
+ *  outlined, it was the first thing to disappear on the toolbar. */
 export function BucketIcon({ className }: IconProps) {
   return (
     <svg {...base} className={className} aria-hidden="true">
-      <path d="m4.5 11.5 6.2-6.2a1 1 0 0 1 1.4 0l4.9 4.9a1 1 0 0 1 0 1.4l-5 5a1.6 1.6 0 0 1-2.3 0l-5.2-5.1Z" />
-      <path d="m8.5 7.5-2-2" />
-      <path d="M19 15c1 1.4 1.6 2.4 1.6 3a1.6 1.6 0 0 1-3.2 0c0-.6.6-1.6 1.6-3Z" />
+      <path d="m3.8 11.6 6.5-6.5a1.1 1.1 0 0 1 1.6 0l5.2 5.2a1.1 1.1 0 0 1 0 1.6l-5.3 5.3a1.7 1.7 0 0 1-2.4 0Z" />
+      <path d="m8 7.4-2.4-2.4" />
+      <path
+        d="M19.6 14.4c1.1 1.6 1.7 2.7 1.7 3.3a1.7 1.7 0 0 1-3.4 0c0-.6.6-1.7 1.7-3.3Z"
+        fill="currentColor"
+      />
     </svg>
   );
 }
 
-/** The colour dropper — a pipette over a drop of colour. */
+/** The colour dropper — a pipette with a loaded bulb. The solid bulb is the
+ *  one mark a pencil never has, and without it the two glyphs are the same
+ *  diagonal stick. */
 export function DropperIcon({ className }: IconProps) {
   return (
     <svg {...base} className={className} aria-hidden="true">
-      <path d="m14.5 5.5 4 4" />
-      <path d="M17 3a2.8 2.8 0 0 1 4 4l-2.3 2.3-4-4Z" />
-      <path d="m13.5 6.5 4 4-7.6 7.6a2 2 0 0 1-1 .55l-3.2.7.7-3.2a2 2 0 0 1 .55-1Z" />
+      <path d="M16.6 2.8a3 3 0 0 1 4.6 3.8l-2.4 2.4-4-4Z" fill="currentColor" />
+      <path d="m13.4 6.2 4.4 4.4-8 8-3.9.9a1 1 0 0 1-1.2-1.2l.9-3.9Z" />
     </svg>
   );
 }
 
-/** A crayon — the blunt, waxy stick. */
+/** A crayon — the blunt waxy stick in its paper wrapper. It stands upright
+ *  where every other drawing tool leans, which is what tells it from them at a
+ *  glance; the wrapper is two edges rather than a set of stripes, which closed
+ *  up into a smudge. */
 export function CrayonIcon({ className }: IconProps) {
   return (
     <svg {...base} className={className} aria-hidden="true">
-      <path d="M9 3h6l1 4v11a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2V7Z" />
-      <path d="M8 7h8" />
-      <path d="M11 11v4M14 11v4" />
+      <path d="M8.4 3.4h7.2v9.8L12 20.6l-3.6-7.4z" />
+      <path d="M8.4 7.2h7.2M8.4 11.4h7.2" />
     </svg>
   );
 }
 
-/** A calligraphy nib — the flat-edged pen. */
+/** A calligraphy nib — the flat-edged pen, slit and shoulder. The breather
+ *  hole it used to carry was a 1.6-unit circle, i.e. a smudge on the toolbar
+ *  and detail nobody needed. */
 export function NibIcon({ className }: IconProps) {
   return (
     <svg {...base} className={className} aria-hidden="true">
-      <path d="M4 20 8 9l8-5 4 4-5 8-11 4Z" />
-      <path d="m4 20 7.5-7.5" />
-      <path d="M13 10.5a1.6 1.6 0 1 1-2.2 2.2 1.6 1.6 0 0 1 2.2-2.2Z" />
+      <path d="M3.6 20.4 7.8 8.8l8-4.8 4.4 4.4-4.8 8-11.8 4Z" />
+      <path d="m3.6 20.4 8.2-8.2" />
+      <path d="m9.6 6.6 7.8 7.8" />
     </svg>
   );
 }
 
-/** The neon pen — a line wearing its own glow. */
+/** The neon pen — a stroke wearing its own glow: a fat core between two pale
+ *  flanks. It used to be a sun, which is a brightness control, not a pen. */
 export function GlowIcon({ className }: IconProps) {
   return (
     <svg {...base} className={className} aria-hidden="true">
-      <path d="M12 3v3M12 18v3M3 12h3M18 12h3" />
-      <path d="m5.6 5.6 2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1" />
-      <circle cx="12" cy="12" r="3.2" />
+      <path d="M4.8 18.8c3.2-8.4 8.8-11.4 14.4-13.6" strokeWidth="3.2" />
+      <path
+        d="M3.6 17.2c3.2-8.4 8.8-11.4 14.4-13.6"
+        strokeWidth="1.4"
+        opacity=".45"
+      />
+      <path
+        d="M6 20.4c3.2-8.4 8.8-11.4 14.4-13.6"
+        strokeWidth="1.4"
+        opacity=".45"
+      />
     </svg>
   );
 }
@@ -202,14 +266,15 @@ export function CustomColorIcon({ className }: IconProps) {
   );
 }
 
-/** The hand — drag the page around rather than draw on it. */
+/** The hand — drag the page around rather than draw on it. Three fingers, not
+ *  four: at 18 pixels a fourth one costs a gap, and the gaps are the only thing
+ *  keeping the hand from rasterising into a mitten. */
 export function HandIcon({ className }: IconProps) {
   return (
     <svg {...base} className={className} aria-hidden="true">
-      <path d="M7 13V7a1.75 1.75 0 0 1 3.5 0v4" />
-      <path d="M10.5 11V5.25a1.75 1.75 0 0 1 3.5 0V11" />
-      <path d="M14 11V6.5a1.75 1.75 0 0 1 3.5 0V11" />
-      <path d="M17.5 10.25a1.75 1.75 0 0 1 3.5 0V14.5a6.5 6.5 0 0 1-6.5 6.5h-1.6a6 6 0 0 1-4.24-1.76l-3.6-3.6a1.75 1.75 0 0 1 2.47-2.47L7 15.5" />
+      <path d="M6.9 14.6V7.6a2 2 0 0 1 4 0V11" />
+      <path d="M10.9 11V6a2 2 0 0 1 4 0v5" />
+      <path d="M14.9 11.2V8.4a2 2 0 0 1 4 0v5.8a6.8 6.8 0 0 1-6.8 6.8h-.9a6.1 6.1 0 0 1-4.31-1.79l-3-3a1.9 1.9 0 0 1 2.68-2.68l1.32 1.32" />
     </svg>
   );
 }
