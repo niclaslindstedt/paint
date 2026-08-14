@@ -80,7 +80,7 @@ export type ToolContext = {
  *  zoomed to 800%, and at 1:1 into the PNG export. A painter that ignores that
  *  does the same work every time, and at a fitted zoom most of it lands inside a
  *  single device pixel — an airbrush laying three hundred overlapping cones
- *  across a mark two pixels wide, sixteen bristles combed through a hair.
+ *  across a mark two pixels wide, fifty bristles combed through a hair.
  *
  *  So the renderer measures the transform once per repaint and hands it down.
  *  What a painter does with it is the painter's business — the rule is only that
