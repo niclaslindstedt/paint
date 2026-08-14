@@ -108,6 +108,13 @@ function pressDraft(
     });
   }
 
+  // A tool whose drag *chooses* marks rather than leaving one. It builds an
+  // ordinary two-corner draft — that is how the marquee inherits the whole drag
+  // pipeline — but the box never reaches the document, so there is no mark to
+  // preview and its width means nothing. The flag is the same one the canvas
+  // reads (`selects`); nothing here knows what a selection tool is called.
+  if (plugin.selects) return null;
+
   const behaviour = plugin.behaviour;
   // The page the tools that read one are lent, so a bucket previews a fill
   // rather than nothing.

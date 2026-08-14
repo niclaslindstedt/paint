@@ -28,6 +28,16 @@ export const DOUBLE_TAP_SLOP = 32;
  *  rather than a drag. Below a finger's own wobble. */
 export const TAP_SLOP = 8;
 
+/** How long a finger has to stay put before the press counts as a long one, in
+ *  milliseconds — what opens the selection's menu on touch, where a right-click
+ *  isn't available. The platform's own long-press threshold, and the framework's
+ *  default for the same gesture, so a hand that has learnt one has learnt both.
+ *
+ *  It is measured from where the press *landed*: a finger that wanders past
+ *  `TAP_SLOP` is drawing (or dragging), and the hold is dropped for good rather
+ *  than re-armed when it wanders back. */
+export const LONG_PRESS_MS = 500;
+
 /** A press that has been released without wandering. */
 export type Tap = { time: number; point: Point };
 

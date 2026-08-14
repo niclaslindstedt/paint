@@ -58,9 +58,14 @@ function pointsBox(points: readonly Point[]): Box | null {
   return box;
 }
 
+/** As much of a stroke as measuring it needs: the geometry and the nib. Widened
+ *  from `Stroke` so a mark that hasn't been filed yet — one on the clipboard,
+ *  one being pasted — can be measured with the same function the page uses. */
+export type Measurable = Pick<Stroke, "size" | "shape">;
+
 /** The area one stroke paints, nib included. `null` for a shape carrying no
  *  geometry (an empty path), which simply contributes nothing to the union. */
-export function strokeBounds(stroke: Stroke): Box | null {
+export function strokeBounds(stroke: Measurable): Box | null {
   const shape = stroke.shape;
   // Half the nib each way, and never less than a pixel: a hairline still has
   // to survive the crop.

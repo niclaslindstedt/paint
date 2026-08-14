@@ -186,6 +186,10 @@ export const en = {
     removeSize: "Forget",
     tool: "Tool",
     toolbar: "Tools",
+    selectionActions: "Selection",
+    copy: "Copy",
+    cut: "Cut",
+    paste: "Paste",
     fitPage: "Fit the page, or show it at 1:1",
     zoomPercent: "{percent}%",
     undo: "Undo",
@@ -208,6 +212,14 @@ export const en = {
     hair: {
       name: "Hair: {value}%",
       hint: "Fine hair leaves many thin streaks, coarse hair a few broad ones.",
+    },
+    splay: {
+      name: "Splay: {value}%",
+      hint: "A new brush cuts a crisp side; a worn one frays.",
+    },
+    bleed: {
+      name: "Bleed: {value}%",
+      hint: "How far a wet edge wicks into the paper.",
     },
     flow: {
       name: "Flow: {value}%",
@@ -280,6 +292,35 @@ export const en = {
     arrow: {
       name: "Arrow",
       description: "A line with an arrowhead — for pointing at things.",
+    },
+    shapes: {
+      name: "Shapes",
+      description:
+        "Boxes, circles, polygons, stars, lines and arrows — eleven of them behind one button. Press it again to pick another, or to fill it in.",
+    },
+    roundrect: {
+      name: "Rounded rectangle",
+      description: "A box with its corners taken off.",
+    },
+    triangle: {
+      name: "Triangle",
+      description: "Three sides, point up, stretched to fill the drag.",
+    },
+    diamond: {
+      name: "Diamond",
+      description: "A square on its corner — the flowchart decision.",
+    },
+    pentagon: { name: "Pentagon", description: "Five sides, point up." },
+    hexagon: { name: "Hexagon", description: "Six sides, standing on a flat." },
+    star: { name: "Star", description: "A five-pointed star." },
+    doublearrow: {
+      name: "Double arrow",
+      description: "A line with a head at both ends — for measuring a gap.",
+    },
+    select: {
+      name: "Select",
+      description:
+        "Drag a box to pick marks out. Move them with the hand; copy, cut or delete them with the keyboard, a right-click, or a long press.",
     },
     marker: {
       name: "Marker",
@@ -361,15 +402,13 @@ export const en = {
     tools: {
       intro:
         "Every tool in the app is a plugin, and this is the rack they hang on. Switch one on and it appears in the toolbar straight away.",
-      coreTitle: "Always on",
-      coreHint:
-        "The three a canvas can't do without — a nib, a way to take a mark back, and a way to move the page.",
       alwaysOn: "Always on",
-      optionalTitle: "Tools",
+      optionalTitle: "Toolbar",
       optionalHint:
-        "Some are on out of the box; the rest are a tap away. Switching one off only hides the tool — marks you already drew with it stay on the page.",
+        "In the order the buttons sit in — move a row and the toolbar moves with it. Some tools are on out of the box; the rest are a tap away. Switching one off only hides it — marks you already drew with it stay on the page.",
       shortcut: "Shortcut: {key}",
-      none: "This build ships no optional tools.",
+      moveUp: "Move {name} earlier in the toolbar",
+      moveDown: "Move {name} later in the toolbar",
     },
     canvas: {
       intro: "Defaults for the page you draw on.",

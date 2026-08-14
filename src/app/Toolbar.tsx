@@ -2,22 +2,39 @@
 import { useEffect, useRef, useState } from "react";
 
 import { useT } from "./i18n/index.ts";
-import { enabledPlugins } from "./plugins/registry.ts";
+import { fieldHasKeyboard } from "./keys.ts";
+import {
+  enabledPlugins,
+  pluginById,
+  toolbarEntries,
+  type ToolbarEntry,
+} from "./plugins/registry.ts";
 import type { PaintPlugin } from "./plugins/types.ts";
-import { sizesFor } from "./useAppSettings.ts";
+import {
+  groupMemberFor,
+  sizesFor,
+  type AppSettings,
+} from "./useAppSettings.ts";
 import { ClearPicker } from "./toolbar/ClearPicker.tsx";
 import { ColorPicker } from "./toolbar/ColorPicker.tsx";
 import { FillPicker } from "./toolbar/FillPicker.tsx";
+import { GroupPicker } from "./toolbar/GroupPicker.tsx";
 import { PressPreview } from "./toolbar/PressPreview.tsx";
 import { SizePicker } from "./toolbar/SizePicker.tsx";
 
 // The toolbar: the enabled tools, then two buttons for everything about the
 // ink.
 //
-// It renders whatever `enabledPlugins` hands back — the core tools plus
-// whatever is switched on in Settings → Tools — so a new tool needs no change
-// here. Keyboard shortcuts are wired from the plugin descriptors for the same
-// reason.
+// It renders whatever `toolbarEntries` hands back — the core tools plus
+// whatever is switched on in Settings → Tools, in whatever order that page has
+// them in — so a new tool needs no change here. Keyboard shortcuts are wired
+// from the plugin descriptors for the same reason.
+//
+// An *entry* is a button, and a button is not always one tool. A family of them
+// can share one (`ToolGroup`): the shapes button wears the shape you last held,
+// and pressing it again opens the other ten. That is the same second-press
+// gesture the fill toggle and the eraser's wipe already use, so the toolbar has
+// one rule for "this button does a second job" rather than three.
 //
 // **Ink is two buttons, not two rows.** A fixed row of seven swatches and four
 // nib buttons ate half a phone's toolbar for choices most strokes never change,
@@ -33,10 +50,10 @@ import { SizePicker } from "./toolbar/SizePicker.tsx";
 // those are is the descriptor's `dials`, so the toolbar hands the picker a list
 // it never reads.
 //
-// Fill is not a row either. It lives on the shape button: press the button you
-// are already holding a second time and a two-cell panel opens showing the
-// shape hollow and the shape solid. Which tools offer it is the descriptor's
-// `supportsFill`, so nothing here knows what a rectangle is.
+// Fill is not a row either. It lives inside the shapes button's panel, under
+// the family: the shape you have picked, drawn hollow and drawn solid. Which
+// tools offer it is the descriptor's `supportsFill`, so nothing here knows what
+// a rectangle is.
 //
 // Clearing the page rides on that same gesture. The tool that erases carries
 // `clearsPage`, and pressing its button a second time offers the two scales of
@@ -48,7 +65,10 @@ import { SizePicker } from "./toolbar/SizePicker.tsx";
 type Props = {
   tool: string;
   onToolChange: (id: string) => void;
-  enabled: readonly string[];
+  /** The whole settings blob — the toolbar reads three things off it that
+   *  belong together: which entries are switched on, what order they are in,
+   *  and which member each group last had in hand. */
+  settings: AppSettings;
   /** The ink in use, already resolved against the page by the caller. */
   color: string;
   onColorChange: (color: string) => void;
@@ -82,17 +102,19 @@ type Props = {
   pageHasMarks: boolean;
 };
 
-/** Whether a tool's button does a second job once it is the one in your hand.
- *  Read off descriptor flags, so a new tool joins the gesture by declaring one
- *  rather than by being named here. */
-function opensPanel(plugin: PaintPlugin): boolean {
-  return Boolean(plugin.supportsFill || plugin.clearsPage);
+/** Whether an entry's button does a second job once it is the one in your hand.
+ *  Read off descriptor flags — a group always has one (the family behind it),
+ *  and a lone tool joins the gesture by declaring `supportsFill` or
+ *  `clearsPage` rather than by being named here. */
+function opensPanel(entry: ToolbarEntry, plugin: PaintPlugin | undefined) {
+  if (entry.kind === "group") return true;
+  return Boolean(plugin?.supportsFill || plugin?.clearsPage);
 }
 
 export function Toolbar({
   tool,
   onToolChange,
-  enabled,
+  settings,
   color,
   onColorChange,
   background,
@@ -114,25 +136,41 @@ export function Toolbar({
   pageHasMarks,
 }: Props) {
   const t = useT();
-  const tools = enabledPlugins(enabled);
-  const active = tools.find((p) => p.id === tool);
+  const entries = toolbarEntries(settings.enabledPlugins, settings.toolOrder);
+  // What each button stands for right now: the tool itself for a lone one, the
+  // member you last held for a family (see `groupMemberFor`).
+  const shownFor = (entry: ToolbarEntry): PaintPlugin | undefined =>
+    entry.kind === "tool"
+      ? entry.plugin
+      : groupMemberFor(settings, entry, tool);
+  const active = pluginById(tool);
+  // The entry whose button is currently pressed in — the one the active tool
+  // belongs to, whether it stands alone or in a family.
+  const activeEntry = entries.find((entry) =>
+    entry.kind === "tool" ? entry.id === tool : shownFor(entry)?.id === tool,
+  );
   // Which panel is open. One at a time, and held as a discriminated value
   // rather than three booleans so opening one can never leave another hanging
-  // over the canvas. A tool's own panel names its tool: switching tools with it
+  // over the canvas. A tool's own panel names its entry: switching tools with it
   // open must not leave it anchored to a button that no longer means anything.
   const [panel, setPanel] = useState<
-    { kind: "tool"; tool: string } | { kind: "color" } | { kind: "size" } | null
+    | { kind: "tool"; entry: string }
+    | { kind: "color" }
+    | { kind: "size" }
+    | null
   >(null);
   const toolAnchor = useRef<HTMLButtonElement | null>(null);
   const colorAnchor = useRef<HTMLButtonElement | null>(null);
   const sizeAnchor = useRef<HTMLButtonElement | null>(null);
 
   // A tool that paints with the page colour (the eraser) or moves the view (the
-  // hand) has no use for the ink; one that samples a colour has no use for the
-  // nib. Both are read off descriptor flags — nothing here knows a tool by name.
-  const inkIrrelevant =
-    active?.usesBackground || active?.navigates || active?.picksColor;
-  const nibIrrelevant = active?.navigates || active?.picksColor;
+  // hand) has no use for the ink; one that samples a colour, moves the page or
+  // chooses marks has no use for the nib either. Both are read off descriptor
+  // flags — nothing here knows a tool by name.
+  const leavesNoMark =
+    active?.navigates || active?.picksColor || active?.selects;
+  const inkIrrelevant = active?.usesBackground || leavesNoMark;
+  const nibIrrelevant = leavesNoMark;
 
   // Single-key tool shortcuts, read straight off the plugin descriptors. Held
   // back while a text field or a dialog owns the keyboard so typing a drawing's
@@ -140,18 +178,11 @@ export function Toolbar({
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.metaKey || e.ctrlKey || e.altKey) return;
-      const target = e.target as HTMLElement | null;
-      const tag = target?.tagName;
-      if (
-        tag === "INPUT" ||
-        tag === "TEXTAREA" ||
-        tag === "SELECT" ||
-        target?.isContentEditable
-      ) {
-        return;
-      }
-      if (target?.closest("[role='dialog']")) return;
-      const match = tools.find((p) => p.shortcut === e.key.toLowerCase());
+      if (fieldHasKeyboard(e.target)) return;
+      // Every offered tool, not every button: a shape inside the shapes group
+      // still answers to its own letter without having a button of its own.
+      const offered = enabledPlugins(settings.enabledPlugins);
+      const match = offered.find((p) => p.shortcut === e.key.toLowerCase());
       if (!match) return;
       e.preventDefault();
       // A tool picked from the keyboard closes whatever panel was open rather
@@ -161,7 +192,7 @@ export function Toolbar({
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [tools, onToolChange]);
+  }, [settings.enabledPlugins, onToolChange]);
 
   return (
     // The toolbar is the last thing above the screen edge, and the app paints
@@ -180,34 +211,40 @@ export function Toolbar({
           two rows of dead width on a phone. Flat, the ink follows the last
           tool onto the row it was already sharing. */}
       <div className="contents" role="group">
-        {tools.map((plugin) => {
-          const Icon = plugin.icon;
-          const isActive = plugin.id === tool;
-          const name = t(plugin.nameKey);
+        {entries.map((entry) => {
+          const shown = shownFor(entry);
+          if (!shown) return null;
+          const Icon = shown.icon;
+          const isActive = entry.id === activeEntry?.id;
+          // A family's button is named for the group, so its tooltip says what
+          // pressing it again opens; a lone tool's is named for itself.
+          const name =
+            entry.kind === "group" ? t(entry.group.nameKey) : t(shown.nameKey);
           // Some buttons do two jobs: pick the tool, and — once it is the one
-          // you are holding — open that tool's own panel (the shapes' fill
-          // picker, the eraser's clear action). That is the "press it twice"
+          // you are holding — open that button's own panel (the family behind
+          // it, the eraser's clear action). That is the "press it twice"
           // gesture, and it costs the toolbar nothing.
-          const opensOwn = opensPanel(plugin) && isActive;
+          const second = opensPanel(entry, shown);
+          const opensOwn = second && isActive;
           return (
             <button
-              key={plugin.id}
+              key={entry.id}
               type="button"
               ref={opensOwn ? toolAnchor : undefined}
               onClick={() => {
-                setPanel(opensOwn ? { kind: "tool", tool: plugin.id } : null);
-                if (!isActive) onToolChange(plugin.id);
+                setPanel(opensOwn ? { kind: "tool", entry: entry.id } : null);
+                if (shown.id !== tool) onToolChange(shown.id);
               }}
               aria-pressed={isActive}
               aria-haspopup={opensOwn ? "menu" : undefined}
               aria-expanded={
                 opensOwn
-                  ? panel?.kind === "tool" && panel.tool === plugin.id
+                  ? panel?.kind === "tool" && panel.entry === entry.id
                   : undefined
               }
               title={
-                plugin.shortcut
-                  ? `${name} (${plugin.shortcut.toUpperCase()})`
+                shown.shortcut
+                  ? `${name} (${shown.shortcut.toUpperCase()})`
                   : name
               }
               aria-label={name}
@@ -219,13 +256,13 @@ export function Toolbar({
             >
               <Icon
                 className="h-[18px] w-[18px]"
-                filled={Boolean(plugin.supportsFill) && filled}
+                filled={Boolean(shown.supportsFill) && filled}
               />
               {/* The folded corner: the one hint that a second press on this
                   button opens something. Borrowed from the long-press marks on
                   a phone keyboard, and just as quiet — a tool with nothing
                   behind it wears none. */}
-              {opensPanel(plugin) && (
+              {second && (
                 <span
                   aria-hidden="true"
                   className="absolute right-[3px] bottom-[3px] h-[5px] w-[5px] bg-current opacity-45 [clip-path:polygon(100%_0,100%_100%,0_100%)]"
@@ -317,9 +354,29 @@ export function Toolbar({
       {/* The panels themselves. All three open upward: the toolbar is the last
           row on the screen, so each measures the room below it, finds none, and
           flips over the canvas. */}
-      {active?.supportsFill && (
+      {/* A family's panel: the rest of the shapes, and how they are drawn. It
+          stays open as you try them — picking a shape is what the panel is for,
+          and closing on the first one would mean re-opening it to compare two. */}
+      {activeEntry?.kind === "group" && (
+        <GroupPicker
+          open={panel?.kind === "tool" && panel.entry === activeEntry.id}
+          onClose={() => setPanel(null)}
+          anchor={toolAnchor}
+          name={t(activeEntry.group.nameKey)}
+          members={activeEntry.members}
+          active={active}
+          onPick={onToolChange}
+          filled={filled}
+          onFilledChange={onFilledChange}
+        />
+      )}
+
+      {/* A lone tool that fills — none ship today, every shape being in the
+          family above, but the flag is the descriptor's and a build that adds
+          one gets the picker without touching the toolbar. */}
+      {activeEntry?.kind === "tool" && active?.supportsFill && (
         <FillPicker
-          open={panel?.kind === "tool" && panel.tool === active.id}
+          open={panel?.kind === "tool" && panel.entry === activeEntry.id}
           onClose={() => setPanel(null)}
           anchor={toolAnchor}
           plugin={active}
@@ -331,9 +388,9 @@ export function Toolbar({
         />
       )}
 
-      {active?.clearsPage && (
+      {activeEntry?.kind === "tool" && active?.clearsPage && (
         <ClearPicker
-          open={panel?.kind === "tool" && panel.tool === active.id}
+          open={panel?.kind === "tool" && panel.entry === activeEntry.id}
           onClose={() => setPanel(null)}
           anchor={toolAnchor}
           plugin={active}

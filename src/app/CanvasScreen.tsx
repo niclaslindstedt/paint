@@ -1,13 +1,16 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { Suspense, lazy } from "react";
 
 import {
   ConfirmDialog,
+  ContextMenu,
+  CopyIcon,
   ImageUpIcon,
   MenuIcon,
   StarIcon,
+  TrashIcon,
 } from "@niclaslindstedt/oss-framework/components";
 import {
   dragHasFilesOfType,
@@ -15,22 +18,38 @@ import {
   useFileDrop,
 } from "@niclaslindstedt/oss-framework/hooks";
 
+import type { Box } from "./bounds.ts";
 import { defaultInk, resolvePageColor } from "./canvas.ts";
+import {
+  readPaste,
+  readSystemClipboard,
+  writeStrokes,
+  type PastePayload,
+} from "./clipboard.ts";
 import { DownloadMenu } from "./DownloadMenu.tsx";
 import { DrawingTitle } from "./DrawingTitle.tsx";
 import type { MenuEdge } from "./gestures.ts";
 import { HeaderIconButton } from "./HeaderIconButton.tsx";
-import { LayersIcon } from "./icons.tsx";
+import { LayersIcon, PasteIcon, ScissorsIcon } from "./icons.tsx";
 import { useT } from "./i18n/index.ts";
 import { ImagePlacement } from "./ImagePlacement.tsx";
-import { importImageFile } from "./images.ts";
+import { importImageFile, type ImportedImage } from "./images.ts";
+import { fieldHasKeyboard } from "./keys.ts";
 import { SidePanel } from "./SidePanel.tsx";
 import { PaintCanvas } from "./PaintCanvas.tsx";
 import { initialPlacement, type Placement } from "./placement.ts";
 import { imageStroke } from "./plugins/builtin/image.ts";
-import { textStroke } from "./plugins/builtin/text.ts";
+import { textStroke, TEXT_TOOL_ID } from "./plugins/builtin/text.ts";
 import { resolveDials, tunedDials } from "./plugins/dials.ts";
-import { pluginById } from "./plugins/registry.ts";
+import { groupOf, pluginById } from "./plugins/registry.ts";
+import type { DraftStroke } from "./plugins/types.ts";
+import {
+  offsetTo,
+  selectionBox,
+  strokesInBox,
+  translateStrokes,
+} from "./selection.ts";
+import { encodeStrokes } from "./strokeClipboard.ts";
 import { TextEntry } from "./TextEntry.tsx";
 import { Toolbar } from "./Toolbar.tsx";
 import { ToolFlash } from "./ToolFlash.tsx";
@@ -65,8 +84,22 @@ const ResizeModal = lazy(() =>
 //
 // The screen owns no drawing state — the store owns the document, the settings
 // own the ink, and `PaintCanvas` owns the gesture in flight. This component is
-// the wiring between them, plus the one piece of state that is neither document
-// nor gesture: an image that has been dropped but not yet settled.
+// the wiring between them, plus the pieces of state that are neither document
+// nor gesture: an image that has been dropped but not yet settled, a caption
+// being typed, and **which marks are selected**.
+//
+// The selection is held as a set of stroke ids and nothing else. Everything a
+// screen wants to know about it — the box it covers, whether a press landed on
+// it — is worked out from the document on every render (see `selection.ts`), so
+// it can never say something the document doesn't. Undo a move and the outline
+// follows; delete the marks and the selection empties itself.
+//
+// What you can do with a selection is the ordinary set, reachable the ordinary
+// three ways: ⌘/Ctrl+C, X and Delete from the keyboard, a right-click on a
+// desktop, and a long press on touch. And its other half — ⌘/Ctrl+V — is what
+// brings things *in*: marks copied from this app or another tab, a picture (the
+// same placement frame a drop opens), or words, which land in the caption box so
+// the face and the size are yours to change before they become a mark.
 
 /** The ways the toolbar's pickers write back to the user's own kit — the
  *  colours they mixed, the nib widths they added, and how they have their tools
@@ -85,6 +118,11 @@ export type PaletteActions = {
   /** Put every dial on one tool back where it started. */
   resetDials: (tool: string) => void;
 };
+
+/** How far a paste that names no place of its own is nudged from where it was
+ *  copied, in document pixels. Enough to see that something landed, close enough
+ *  that it is obviously the same thing. */
+const PASTE_NUDGE = 16;
 
 type Props = {
   store: PaintStore;
@@ -151,6 +189,17 @@ export function CanvasScreen({
   // screen too narrow to dock it. Screen state too: which panels are open is
   // not part of the drawing.
   const [layersOpen, setLayersOpen] = useState(false);
+  // The marks a marquee has picked out — ids only, so the selection can never
+  // hold a stale copy of a mark the document has since changed.
+  const [selectedIds, setSelectedIds] = useState<readonly string[]>([]);
+  // Where the selection's menu is, in viewport coordinates, or `null` for
+  // closed.
+  const [menuAt, setMenuAt] = useState<Point | null>(null);
+  // The marks this app last copied. The system clipboard is the real one — an
+  // in-app copy writes there too, which is what makes copy-here-paste-there
+  // work — but a browser may refuse to hand it back, and falling back on what we
+  // know we copied beats a paste that does nothing.
+  const copied = useRef<DraftStroke[] | null>(null);
   // The resize dialog, which is the one page action that has a question to ask.
   const [resizing, setResizing] = useState(false);
   // Bumped when the page changes shape under the view, so the canvas can fit the
@@ -171,6 +220,32 @@ export function CanvasScreen({
   const inkDials = tunedDials(activePlugin, tuning);
   const size = toolSize(settings, tool);
 
+  // …and the same two reads for the *text* tool, whatever is in hand. A caption
+  // is normally opened by the text tool, in which case these are the numbers
+  // above — but a pasted line of words opens the same box with a pencil in your
+  // hand, and setting it in a pencil's three-pixel nib would be type nobody can
+  // read. The caption is the text tool's mark wherever it came from, so it is
+  // always set at the text tool's size and tuning.
+  const textSize = toolSize(settings, TEXT_TOOL_ID);
+  const textDials = tunedDials(
+    pluginById(TEXT_TOOL_ID),
+    settings.toolDials[TEXT_TOOL_ID],
+  );
+
+  // The selection, worked out from the document rather than remembered
+  // alongside it: the marks whose ids are picked and are still on the page, and
+  // the box they cover. That is what keeps it honest through an undo, a delete
+  // and a move — the ids are the only thing held, and everything else is a read.
+  const selected = useMemo(() => {
+    if (selectedIds.length === 0 || !drawing) return [];
+    const picked = new Set(selectedIds);
+    return drawing.strokes.filter((s) => picked.has(s.id));
+  }, [drawing, selectedIds]);
+  const selection = useMemo(() => {
+    const box = selectionBox(selected);
+    return box ? { ids: selected.map((s) => s.id), box } : null;
+  }, [selected]);
+
   // A placement belongs to the page it was dropped on. Opening another drawing
   // with one still floating drops it rather than carrying it across — settling
   // it there would file the picture onto a page it was never dropped on.
@@ -180,6 +255,12 @@ export function CanvasScreen({
   useEffect(() => setTyping(null), [openPage]);
   // The panel is about the page it was opened over, so it closes with it.
   useEffect(() => setLayersOpen(false), [openPage]);
+  // …and a selection names marks on *this* page, so it is dropped with the page
+  // rather than carried onto one where those ids mean nothing.
+  useEffect(() => {
+    setSelectedIds([]);
+    setMenuAt(null);
+  }, [openPage]);
 
   /** Keep the floating image: file it as one mark on the page. */
   const settle = useCallback(() => {
@@ -223,11 +304,11 @@ export function CanvasScreen({
         store.addStroke(
           textStroke(words, current.at, {
             color: settings.color,
-            size,
+            size: textSize,
             font: settings.textFont,
             bold: settings.textBold,
             italic: settings.textItalic,
-            opacity: inkDials.opacity,
+            opacity: textDials.opacity,
           }),
           // A caption typed past the sheet's edge grows the sheet around it,
           // exactly as a picture dropped past it does.
@@ -238,13 +319,214 @@ export function CanvasScreen({
     });
   }, [
     store,
-    size,
+    textSize,
     settings.color,
     settings.textFont,
     settings.textBold,
     settings.textItalic,
-    inkDials.opacity,
+    textDials.opacity,
   ]);
+
+  /** The middle of the window, in document coordinates — where something that
+   *  arrives without a place of its own lands: a pasted picture, a pasted line
+   *  of words. `null` before the canvas has been measured. */
+  const viewCenter = useCallback((): Point | null => {
+    if (!view || !surfaceRef.current) return null;
+    return toDocumentPoint(view, {
+      x: surfaceRef.current.clientWidth / 2,
+      y: surfaceRef.current.clientHeight / 2,
+    });
+  }, [view]);
+
+  /** Float a picture over the page, waiting to be placed — where a drop, a
+   *  paste and the sidebar's image drop all end up. */
+  const place = useCallback(
+    (image: ImportedImage) => {
+      if (!drawing) return;
+      setPlacement(initialPlacement(image, drawing, viewCenter()));
+    },
+    [drawing, viewCenter],
+  );
+
+  // --- What a selection is for ------------------------------------------------
+
+  /** Keep the selected marks: on the system clipboard, so they can be pasted
+   *  into another tab or another sketchbook, and in this screen's own hand in
+   *  case the browser won't give them back.
+   *
+   *  `data` is the `DataTransfer` of a real `copy` / `cut` event when there is
+   *  one — that path needs no permission and never fails, so it is the one the
+   *  keyboard takes. The menu has no event and falls back to asking. */
+  const copySelection = useCallback(
+    (data?: DataTransfer | null) => {
+      if (selected.length === 0) return false;
+      copied.current = selected.map(({ id: _id, layer: _layer, ...s }) => s);
+      const text = encodeStrokes(selected);
+      if (data) data.setData("text/plain", text);
+      else void writeStrokes(selected);
+      return true;
+    },
+    [selected],
+  );
+
+  const deleteSelection = useCallback(() => {
+    if (selectedIds.length === 0) return;
+    store.deleteStrokes(selectedIds);
+    setSelectedIds([]);
+  }, [store, selectedIds]);
+
+  /** Put marks on the page and leave them selected — which is what makes
+   *  "paste, then drag it where you wanted it" one gesture rather than two.
+   *
+   *  `at` puts their top-left corner exactly there (the menu's paste, which
+   *  lands where you opened it); without it they arrive a nudge from where they
+   *  were copied, the way a paste always has. */
+  const pasteStrokes = useCallback(
+    (strokes: readonly DraftStroke[], at?: Point) => {
+      if (strokes.length === 0) return;
+      const by = at
+        ? offsetTo(strokes, at)
+        : { x: PASTE_NUDGE, y: PASTE_NUDGE };
+      const ids = store.addStrokes(translateStrokes(strokes, by.x, by.y), {
+        fitPage: true,
+      });
+      setSelectedIds(ids);
+    },
+    [store],
+  );
+
+  /** Land whatever a paste turned out to be holding.
+   *
+   *  Three kinds, three destinations, and none of them is a special case of
+   *  another: marks go straight onto the page and stay selected; a picture opens
+   *  the same placement frame a drop does, because a pasted screenshot needs
+   *  sizing as much as a dropped one; and **words open the caption box** rather
+   *  than becoming a mark on the spot, so the typeface, the weight and the size
+   *  are still yours to change before they land. */
+  const applyPaste = useCallback(
+    (payload: PastePayload, at?: Point) => {
+      if (payload.kind === "strokes") {
+        pasteStrokes(payload.strokes, at);
+        return;
+      }
+      if (payload.kind === "image") {
+        place(payload.image);
+        return;
+      }
+      const where = at ?? viewCenter();
+      if (!where) return;
+      // Anything already being typed is kept first, exactly as a second press
+      // of the text tool would keep it.
+      commitText();
+      setTyping({ at: where, text: payload.text });
+    },
+    [pasteStrokes, place, viewCenter, commitText],
+  );
+
+  /** Where the selection's menu was opened, on the page — the menu holds a
+   *  viewport point, because that is what a floating menu is placed with, and a
+   *  paste from it wants the document point under the same pixel. */
+  const menuOnPage = useCallback((): Point | null => {
+    const surface = surfaceRef.current;
+    if (!menuAt || !view || !surface) return null;
+    const rect = surface.getBoundingClientRect();
+    return toDocumentPoint(view, {
+      x: menuAt.x - rect.left,
+      y: menuAt.y - rect.top,
+    });
+  }, [menuAt, view]);
+
+  /** The menu's Paste, which has no event to read: ask the clipboard, and fall
+   *  back to whatever this app last copied when it won't answer. */
+  const pasteFromSystem = useCallback(
+    (at?: Point) => {
+      void readSystemClipboard()
+        .catch(() => null)
+        .then((payload) => {
+          if (payload) applyPaste(payload, at);
+          else if (copied.current) pasteStrokes(copied.current, at);
+        });
+    },
+    [applyPaste, pasteStrokes],
+  );
+
+  // The clipboard's own events. `copy` and `cut` are listened for rather than
+  // driven from a key handler because that is the one path a browser lets a page
+  // *write* the clipboard on without asking anyone's permission — and `paste`
+  // likewise hands its contents over with no prompt at all, which is why ⌘V
+  // works here and the menu's Paste has to ask.
+  //
+  // A field or a dialog that is open owns them: ⌘C in the caption box copies the
+  // words, and pasting into it pastes into it (see `keys.ts`).
+  useEffect(() => {
+    const onCopy = (e: ClipboardEvent) => {
+      if (fieldHasKeyboard(e.target)) return;
+      if (!copySelection(e.clipboardData)) return;
+      e.preventDefault();
+    };
+    const onCut = (e: ClipboardEvent) => {
+      if (fieldHasKeyboard(e.target)) return;
+      if (!copySelection(e.clipboardData)) return;
+      e.preventDefault();
+      deleteSelection();
+    };
+    const onPaste = (e: ClipboardEvent) => {
+      if (fieldHasKeyboard(e.target)) return;
+      const data = e.clipboardData;
+      if (!data) return;
+      e.preventDefault();
+      void readPaste(data)
+        .catch(() => null)
+        .then((payload) => {
+          if (payload) applyPaste(payload);
+        });
+    };
+    window.addEventListener("copy", onCopy);
+    window.addEventListener("cut", onCut);
+    window.addEventListener("paste", onPaste);
+    return () => {
+      window.removeEventListener("copy", onCopy);
+      window.removeEventListener("cut", onCut);
+      window.removeEventListener("paste", onPaste);
+    };
+  }, [copySelection, deleteSelection, applyPaste]);
+
+  // The keys the clipboard events don't carry: rubbing the selection out, and
+  // putting it down again. ⌘/Ctrl+A is offered only under the marquee — "select
+  // everything" means nothing with a pencil in your hand, and swallowing the
+  // browser's own select-all there would be a nuisance.
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (fieldHasKeyboard(e.target)) return;
+      const held = e.metaKey || e.ctrlKey;
+      if (!held && (e.key === "Delete" || e.key === "Backspace")) {
+        if (selectedIds.length === 0) return;
+        e.preventDefault();
+        deleteSelection();
+        return;
+      }
+      if (!held && e.key === "Escape") {
+        if (selectedIds.length === 0 && !menuAt) return;
+        setSelectedIds([]);
+        setMenuAt(null);
+        return;
+      }
+      if (held && e.key.toLowerCase() === "a") {
+        if (!pluginById(tool)?.selects || !drawing) return;
+        e.preventDefault();
+        setSelectedIds(
+          strokesInBox(drawing, {
+            x: 0,
+            y: 0,
+            width: drawing.width,
+            height: drawing.height,
+          }).map((s) => s.id),
+        );
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [deleteSelection, selectedIds.length, menuAt, tool, drawing]);
 
   // Picking another tool finishes the caption rather than abandoning it: the
   // words are on the page in front of you, and reaching for the eraser to rub
@@ -255,6 +537,20 @@ export function CanvasScreen({
     lastTool.current = tool;
     commitText();
   }, [tool, commitText]);
+
+  /** Pick a tool — and, when it is one of a family, remember it as that
+   *  family's. The shapes button has to wear *a* shape while you are holding the
+   *  pencil, and the one you used last is the only answer worth giving. */
+  const pickTool = useCallback(
+    (id: string) => {
+      update("activeTool", id);
+      const plugin = pluginById(id);
+      const group = plugin && groupOf(plugin);
+      if (!group || settings.groupTools[group.id] === id) return;
+      update("groupTools", { ...settings.groupTools, [group.id]: id });
+    },
+    [update, settings.groupTools],
+  );
 
   // Dropping an image file anywhere on the canvas places it. The whole surface
   // is the target rather than a dropzone you have to find, and the drag is
@@ -268,19 +564,10 @@ export function CanvasScreen({
       const file = firstFileOfType(files, "image/");
       if (!file || !drawing) return;
       void importImageFile(file)
-        .then((image) => {
-          // Land it where you were looking: the middle of the window, in
-          // document coordinates. A picture bigger than the sheet lands at the
-          // origin instead and takes the page over (see `initialPlacement`).
-          const center =
-            view && surfaceRef.current
-              ? toDocumentPoint(view, {
-                  x: surfaceRef.current.clientWidth / 2,
-                  y: surfaceRef.current.clientHeight / 2,
-                })
-              : null;
-          setPlacement(initialPlacement(image, drawing, center));
-        })
+        // Land it where you were looking: the middle of the window, in document
+        // coordinates. A picture bigger than the sheet lands at the origin
+        // instead and takes the page over (see `initialPlacement`).
+        .then(place)
         .catch((err: unknown) =>
           output.error(
             `Couldn't add that image — ${err instanceof Error ? err.message : String(err)}`,
@@ -408,6 +695,21 @@ export function CanvasScreen({
             }
             onPanelSwipe={() => setLayersOpen(true)}
             onCommit={store.addStroke}
+            // The marquee's drag: the marks it covered become the selection, and
+            // nothing reaches the document. A press that never moved sends
+            // `null` and clears it.
+            selection={selection}
+            onSelectBox={(box: Box | null) =>
+              setSelectedIds(
+                box && drawing
+                  ? strokesInBox(drawing, box).map((s) => s.id)
+                  : [],
+              )
+            }
+            // …and the hand's drag on it: the whole move, as one edit, once the
+            // finger lifts.
+            onMoveSelection={(dx, dy) => store.moveStrokes(selectedIds, dx, dy)}
+            onContextMenu={setMenuAt}
             // The dropper's press: the colour it sampled becomes the ink, pinned
             // the same way picking a swatch pins one.
             onPickColor={(picked) => update("color", picked)}
@@ -445,11 +747,11 @@ export function CanvasScreen({
               }
               ink={{
                 color: settings.color ?? ink,
-                size,
+                size: textSize,
                 font: settings.textFont,
                 bold: settings.textBold,
                 italic: settings.textItalic,
-                opacity: inkDials.opacity ?? 1,
+                opacity: textDials.opacity ?? 1,
               }}
               onFontChange={(font) => update("textFont", font)}
               onBoldChange={(bold) => update("textBold", bold)}
@@ -545,8 +847,8 @@ export function CanvasScreen({
 
       <Toolbar
         tool={tool}
-        onToolChange={(id) => update("activeTool", id)}
-        enabled={settings.enabledPlugins}
+        onToolChange={pickTool}
+        settings={settings}
         // The toolbar shows the *resolved* ink as selected, so the swatch row
         // reflects what the next mark will actually be even before one is
         // picked; picking one pins it (see `canvas.ts`).
@@ -574,6 +876,52 @@ export function CanvasScreen({
         // and the edit.
         onClearPage={() => setConfirmClear(true)}
         pageHasMarks={drawing.strokes.length > 0}
+      />
+
+      {/* The selection's menu — what a right-click opens on a desktop and a long
+          press opens on touch. The same three actions the keyboard has, plus the
+          one it can't reach without a keyboard at all: paste, and paste *here*,
+          which is the only way to say where on a phone. */}
+      <ContextMenu
+        position={menuAt}
+        onClose={() => setMenuAt(null)}
+        ariaLabel={t("canvas.selectionActions")}
+        actions={[
+          ...(selection
+            ? [
+                {
+                  label: t("canvas.copy"),
+                  icon: <CopyIcon className="h-4 w-4" />,
+                  onSelect: () => copySelection(),
+                },
+                {
+                  label: t("canvas.cut"),
+                  icon: <ScissorsIcon className="h-4 w-4" />,
+                  onSelect: () => {
+                    copySelection();
+                    deleteSelection();
+                  },
+                },
+              ]
+            : []),
+          {
+            label: t("canvas.paste"),
+            icon: <PasteIcon className="h-4 w-4" />,
+            // Where the menu was opened, in document coordinates — a paste from
+            // here lands under the finger that asked for it.
+            onSelect: () => pasteFromSystem(menuOnPage() ?? undefined),
+          },
+          ...(selection
+            ? [
+                {
+                  label: t("common.delete"),
+                  icon: <TrashIcon className="h-4 w-4" />,
+                  danger: true,
+                  onSelect: deleteSelection,
+                },
+              ]
+            : []),
+        ]}
       />
 
       {/* Resizing — the one page action with a question to ask. Mounted only

@@ -111,6 +111,10 @@ describe("pressMarks", () => {
   it("leaves nothing for a tool that leaves nothing", () => {
     expect(press("hand")).toEqual([]);
     expect(press("dropper")).toEqual([]);
+    // The marquee builds a two-corner draft like any shape tool, but the box
+    // chooses marks rather than becoming one and never reaches the document —
+    // so there is no press to show and no width that would change it.
+    expect(press("select")).toEqual([]);
     expect(pressMarks(undefined, ctx, reach)).toEqual([]);
   });
 });

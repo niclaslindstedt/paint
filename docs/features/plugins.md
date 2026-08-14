@@ -14,24 +14,56 @@ There are three kinds, and the only difference is how they are switched on:
 | **Optional**   | everything else                  | Off until you switch it on          |
 
 Core is the irreducible three — pencil, eraser, hand. On out of the box:
-paintbrush, paint bucket, colour dropper, text, rectangle, ellipse, line — the
-toolbox anyone who has opened a paint program already knows how to use. Waiting
-in Settings → Tools: the media this app adds to it (airbrush, marker,
-highlighter, crayon, calligraphy pen) and the arrow.
+airbrush, paint bucket, colour dropper, text, the shapes and the selection tool
+— the toolbox anyone who has opened a paint program already knows how to use,
+spray can included. Waiting in Settings → Tools: the rest of the media this app
+adds to it (the bristle paintbrush, marker, highlighter, crayon, calligraphy
+pen).
 
-Registration order is toolbar order, and it is deliberate: it reads down
-Photoshop's tool column, so a hand that already knows one toolbar finds this one
-where it expects to. Sample, then paint, then erase, then fill, then type, then
-the shapes, and the tool that moves the view last of all:
+The toolbar reads down Photoshop's tool column, so a hand that already knows one
+toolbar finds this one where it expects to. Sample, then paint, then erase, then
+fill, then type, then the shapes, then the marquee, and the tool that moves the
+view last of all:
 
 **dropper · pencil · paintbrush · airbrush · marker · highlighter · crayon ·
-calligraphy pen · eraser · paint bucket · text · rectangle · ellipse · line ·
-arrow · hand**
+calligraphy pen · eraser · paint bucket · text · shapes · select · hand**
 
-Photoshop's other blocks — selections, crop, pen paths — are tools this app has
-no business shipping, so the order is that column with the gaps closed up. Switching a tool on in Settings → Tools slots it into its place in that row
-rather than appending it, so the toolbar never reads in the order you happened
-to discover it in.
+Photoshop's other blocks — crop, pen paths — are tools this app has no business
+shipping, so the order is that column with the gaps closed up. Switching a tool
+on in Settings → Tools slots it into its place in that row rather than appending
+it, so the toolbar never reads in the order you happened to discover it in.
+
+That is the _default_ order. Settings → Tools lists the whole toolbar in the
+order the buttons sit in, and the up / down arrow beside each row moves it —
+the toolbar follows immediately. Only the rows you actually move are recorded,
+so a tool added by a later release still lands where its maker put it rather
+than at the end of an arrangement written before it existed.
+
+## Eleven shapes, one button
+
+A **group** is a family of tools that share one toolbar button and one switch.
+The shapes are the case, and they are the reason it exists: eleven of them as
+eleven buttons would be most of a phone's toolbar spent on one idea, and eleven
+switches in Settings → Tools for a question nobody asks eleven times.
+
+So the shapes button wears whichever shape you last held. Press it again and the
+family opens over the canvas — rectangle, ellipse, line, arrow, rounded
+rectangle, triangle, diamond, pentagon, hexagon, star, double arrow — with the
+fill toggle under them, showing the shape you have picked drawn hollow and drawn
+solid. It is the same "press it twice" gesture the eraser's wipe uses, and the
+same folded corner marks it.
+
+Grouping is only about how they are _offered_. Each shape is still its own
+plugin with its own painter, its own remembered width and its own persisted id,
+so every rectangle ever drawn in this app still says `rectangle` and still
+paints. The four that had a keyboard shortcut keep it (**R**, **O**, **L**,
+**A**); the rest are one press apart in the picker.
+
+Every shape is a two-corner drag. The polygons are inscribed in the box you
+drag, stretched to fill it — so a hexagon dragged square is a hexagon and one
+dragged wide is a squashed one — which means no new shape kind in the document
+and no field on the stroke saying which shape it is. The painter answers that,
+and the painter is chosen by the stroke's tool id, exactly as it always was.
 
 ## Brushes are their medium
 
@@ -48,8 +80,18 @@ what the mark is _made of_:
   of a long drag opens up into separate hairs. Drag it fast and it thins, which
   the stroke knows for free — the canvas samples every 1.5 document pixels at
   the slowest, so the gaps between stored points are how quickly you crossed
-  them. The hardness dial is how wet and how gathered the head is: hard covers
-  solidly, soft splays and leaves most of its length in streaks;
+  them. What decides how a mark reads is **how much paper is left showing**: a
+  charged head lays hairs wide enough to meet each other and pools a body in
+  between, so the mark closes into a slab with a few partings scratched through
+  it, while a dry one leaves the filaments' own width with bare sheet either
+  side. That is the hardness dial, and it spans a whole pressure series — dry
+  brush at the bottom, a loaded flat at the top — rather than restyling one
+  mark. The paper has a say too: a grain runs under every stroke and lifts the
+  whole head off the sheet for a moment as it passes, which is what breaks a
+  mark _across_ as well as along it. The grain is the **page's**, so it does not
+  shrink with the brush — a head narrower than the dips a wide one catches on
+  rides over them and leaves a line, which is why a small brush stays solid
+  where a wide one at the same setting is streaking;
 - the **airbrush** is a spray cone — a radial gradient stamped along the path at
   a fraction of its own radius, faint enough that coverage comes from _overlap_,
   so passing twice really is twice the paint, with a sparse grain over the top;
@@ -98,6 +140,13 @@ carries the flag and its second press offers both: rub out by hand, or clear the
 sheet. The toolbar only asks; the screen owns the confirmation and the edit. A
 button in the header would have been the other option, and this one puts the
 destructive action where the hand reaching for it already is.
+
+`selects` is the flag for the tool that chooses marks rather than making one.
+The **selection** tool drags an ordinary two-corner draft — so it inherits the
+whole gesture pipeline, down to abandoning itself when a second finger lands —
+and the canvas reads the flag to hand the finished box to the screen instead of
+filing it. No stroke ever carries the tool's id. What happens next is
+[selections](selection.md).
 
 `entersText` is the flag for the one mark that can't come from a pointer. The
 **text** tool's press opens a caret on the page instead of beginning a stroke,
@@ -155,23 +204,36 @@ tool shares; past it a paintbrush and a highlighter have nothing in common, and
 a hardness slider shown to the highlighter was a control that did nothing
 sitting where a control that did something should be.
 
-So a tool declares its own, two at most — the panel is something you reach into
-mid-drawing, with one thumb, and a third slider makes it a settings screen:
+So a tool declares its own, and the bar is high: the panel is something you
+reach into mid-drawing, with one thumb, so a dial has to change what the mark
+_is_ rather than restyle what another dial already did. For most tools that is
+one or two. The paintbrush is the exception and earns it — a head of hair is
+loaded or dry, milled fine or coarse, new or worn open, and on paper that wicks
+or paper that does not, and no one of those four is any of the others:
 
-| Tool                             | Advanced                  |
-| -------------------------------- | ------------------------- |
-| **Paintbrush**                   | hardness, hair            |
-| **Airbrush**                     | hardness, flow            |
-| **Crayon**                       | opacity, pressure         |
-| **Paint bucket**                 | opacity, feather          |
-| Pencil, marker, highlighter, pen | opacity                   |
-| Shapes, text                     | opacity                   |
-| Eraser, hand, dropper            | nothing — no fold appears |
+| Tool                             | Advanced                              |
+| -------------------------------- | ------------------------------------- |
+| **Paintbrush**                   | opacity, hardness, hair, splay, bleed |
+| **Airbrush**                     | hardness, flow                        |
+| **Crayon**                       | opacity, pressure                     |
+| **Paint bucket**                 | opacity, feather                      |
+| Pencil, marker, highlighter, pen | opacity                               |
+| Shapes, text                     | opacity                               |
+| Eraser, hand, dropper, select    | nothing — no fold appears             |
 
-Each one is wired to something the painter actually does. **Hair** is which
-brush off the rack: the head is milled from filament of a fixed gauge, so fine
-hair leaves many thin partings and coarse hair a few broad ones — and neither
-changes the width. **Flow** is the airbrush's trigger, and because its coverage
+Each one is wired to something the painter actually does. **Hardness** is how
+charged the head is, and it is the brush's main control: turned up it is a
+loaded flat that covers solidly, turned down a spent one that leaves most of its
+length in streaks. **Hair** is which brush off the rack: the head is milled from
+filament of a fixed gauge, so fine hair leaves many thin partings and coarse
+hair a few broad ones — and neither changes the width. **Splay** is the state of
+that head rather than its make — a brush out of its wrapper cuts a side you
+could rule against, one washed a hundred times has a fringe on it and strays out
+of its lanes. **Bleed** is the only thing here that belongs to the _paper_: how
+far a wet edge wicks into the sheet before it dries, which is the brush's one
+soft edge. It rests at nothing, because bristle on cartridge paper does not
+bleed and a mark that always did would look damp. **Flow** is the airbrush's
+trigger, and because its coverage
 is built from overlapping passes rather than one opaque dab, turning it down
 really does mean more passes. **Pressure** is how hard the crayon bears down:
 wax only sticks to the peaks it is pressed onto, so a light hand leaves the
@@ -207,10 +269,16 @@ the even-odd rule.
 
 ## Switching one on
 
-Settings → Tools is a rack: every tool wears the glyph it has in the toolbar,
-with its name, shortcut, one line of description, and an on/off switch on the
-right. The always-on three carry a switch too — shown on and locked, because a
-row that simply omitted it would read as a rendering fault next to the others.
+Settings → Tools is the toolbar with its lid off: one list, in the order the
+buttons actually sit in. Every tool wears the glyph it has in the toolbar, with
+its name, shortcut, one line of description, the two arrows that move it along
+the row, and an on/off switch on the right. The always-on three carry a switch
+too — shown on and locked, because a row that simply omitted it would read as a
+rendering fault next to the others — and they reorder like everything else,
+because they have a place in the row like everything else.
+
+A family is one row: one glyph, one description, one switch for all eleven
+shapes.
 
 Switching one on adds it to the toolbar straight away — the tab applies live
 rather than waiting for Save, because a tool you just enabled should be there
@@ -236,8 +304,10 @@ Three steps, none of which touch the canvas, the store, or the toolbar:
    doesn't lay down detail smaller than the screen can show.
 2. Register it in `registerBuiltinPlugins()` with an id, an icon, and its two
    catalog keys — plus `core` or `defaultOn` if it should be in the toolbar
-   without being asked for, `defaultSize` for the width it opens at, and `dials`
-   if it has anything of its own to tune.
+   without being asked for, `defaultSize` for the width it opens at, `dials` if
+   it has anything of its own to tune, and `group` if it belongs to a family
+   that already has a button (a twelfth shape is one line in the `SHAPES`
+   table).
 3. Add those two strings to `src/app/i18n/en.ts` (and `sv.ts`).
 
 Externally-loaded plugins are not implemented yet. When they land they register

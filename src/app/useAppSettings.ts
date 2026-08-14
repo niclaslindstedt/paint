@@ -47,13 +47,30 @@ export type AppSettings = {
    *  install picks up a newly-shipped default tool without a fresh install
    *  having to un-choose the ones it deliberately switched off. */
   settingsVersion: number;
-  /** The optional tool plugins the user has switched on. Core tools are always
-   *  available and never listed here — see `plugins/registry.ts`. Unknown ids
-   *  (a plugin this build no longer ships) are kept rather than pruned, so
-   *  downgrading and upgrading again doesn't silently forget a choice. */
+  /** The optional toolbar entries the user has switched on, by entry id — a
+   *  plugin id for a lone tool, a **group** id for a family that shares one
+   *  switch (the shapes). Core entries are always available and never listed
+   *  here — see `plugins/registry.ts`. Unknown ids (a plugin this build no
+   *  longer ships) are kept rather than pruned, so downgrading and upgrading
+   *  again doesn't silently forget a choice. */
   enabledPlugins: string[];
+  /** The toolbar's order, by entry id — what Settings → Tools reorders and the
+   *  toolbar renders.
+   *
+   *  Empty until someone moves a row, and then only as long as the ids it names:
+   *  entries it doesn't mention keep the place their plugin registered in, so a
+   *  tool added by a later release lands where its maker put it rather than at
+   *  the end of an order written before it existed (see `orderEntries`). */
+  toolOrder: string[];
   /** The tool the canvas opens with — the last one used. */
   activeTool: string;
+  /** Which member of each tool group was last in hand, by group id — the shape
+   *  the shapes button wears when you are holding something else.
+   *
+   *  Kept because a group button has to show *a* tool even when none of its
+   *  family is active, and the one you used last is the only defensible answer.
+   *  Sparse: a group nobody has picked from opens on its first member. */
+  groupTools: Record<string, string>;
   /** Whether the page is a light sheet or a dark one. `auto` follows the app
    *  theme, so a dark app draws on a dark page in light ink. */
   canvasTheme: CanvasTheme;
@@ -155,8 +172,12 @@ export const MAX_SIZE = 96;
  *      every tool opening at a width of its own.
  *  4 — the airbrush takes the brush's place in that toolbox: it is the spray
  *      can every paint program ships, where the bristle brush is this app's own
- *      idea of one. */
-export const SETTINGS_VERSION = 4;
+ *      idea of one.
+ *  5 — the shapes behind one button: eleven of them under a single `shapes`
+ *      group, and the selection tool on by default beside the hand. An install
+ *      carrying the old per-shape ids keeps them — they simply no longer name
+ *      anything switchable — and picks up the group and the marquee here. */
+export const SETTINGS_VERSION = 5;
 
 /** Everything a fresh install starts from *except* which tools are switched on
  *  — that one comes from the registry, so it can't be a constant here (see
@@ -168,7 +189,11 @@ const BASE_SETTINGS: Omit<AppSettings, "enabledPlugins"> = {
   devMode: false,
   captureLogs: false,
   settingsVersion: SETTINGS_VERSION,
+  // Empty on purpose: an untouched toolbar is the one its tools registered in,
+  // so this only ever holds the ways your toolbar differs from the box.
+  toolOrder: [],
   activeTool: "pencil",
+  groupTools: {},
   // Follow the app theme out of the box: a dark app opens a dark sheet, a light
   // one a white sheet, and the default ink flips with it.
   canvasTheme: "auto",
@@ -232,6 +257,18 @@ function numbers(value: unknown, max: number): number[] {
   return value.filter(
     (n): n is number => typeof n === "number" && n > 0 && n <= max,
   );
+}
+
+/** Clean a persisted map of string to string — the group memories. */
+function strings(value: unknown): Record<string, string> {
+  const out: Record<string, string> = {};
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return out;
+  }
+  for (const [key, at] of Object.entries(value)) {
+    if (typeof at === "string") out[key] = at;
+  }
+  return out;
 }
 
 /** Clean a persisted map of per-tool widths. A width for a tool this build no
@@ -328,6 +365,16 @@ export function parseSettings(raw: string): AppSettings {
     merged.enabledPlugins = [...seeded];
     merged.settingsVersion = SETTINGS_VERSION;
   }
+  // The toolbar's order and the group memories are both lists of *ids*, and an
+  // id this build doesn't know is harmless in both: `orderEntries` ignores one
+  // it can't place, and a group whose remembered member has gone opens on its
+  // first. So the shape is checked and the contents are left alone — the same
+  // "keep what you can't use, in case a downgrade wants it" rule the tunings
+  // follow.
+  merged.toolOrder = Array.isArray(merged.toolOrder)
+    ? merged.toolOrder.filter((id): id is string => typeof id === "string")
+    : [];
+  merged.groupTools = strings(stored.groupTools);
   merged.toolSizes = toolSizes(stored.toolSizes);
   // …and drop the one width every tool used to share. It is deliberately *not*
   // folded into the per-tool map: it was one number standing in for fifteen, and
@@ -493,7 +540,8 @@ export function useAppSettings() {
     [setSettings],
   );
 
-  /** Switch one optional tool plugin on or off. */
+  /** Switch one optional toolbar entry on or off — a lone tool, or a whole
+   *  group by its group id. */
   const setPluginEnabled = useCallback(
     (id: string, enabled: boolean) =>
       setSettings((prev) => ({
@@ -507,12 +555,47 @@ export function useAppSettings() {
     [setSettings],
   );
 
+  /** Move one toolbar entry to `to` in the order — what the up / down buttons in
+   *  Settings → Tools send, and what the toolbar then renders.
+   *
+   *  The caller passes the *whole* current order (every entry, in the order it
+   *  is showing them) rather than a delta, because that is the only thing the
+   *  stored list can be: a permutation of ids is meaningless without knowing
+   *  which entries it is a permutation of, and the settings blob is read by
+   *  builds that ship a different set of them. */
+  const moveTool = useCallback(
+    (order: readonly string[], from: number, to: number) =>
+      setSettings((prev) => {
+        if (from === to || from < 0 || to < 0) return prev;
+        if (from >= order.length || to >= order.length) return prev;
+        const next = [...order];
+        const [moved] = next.splice(from, 1);
+        next.splice(to, 0, moved!);
+        return { ...prev, toolOrder: next };
+      }),
+    [setSettings],
+  );
+
+  /** Remember which member of a group was last in hand — what its toolbar
+   *  button wears while you are holding something else. */
+  const setGroupTool = useCallback(
+    (group: string, tool: string) =>
+      setSettings((prev) =>
+        prev.groupTools[group] === tool
+          ? prev
+          : { ...prev, groupTools: { ...prev.groupTools, [group]: tool } },
+      ),
+    [setSettings],
+  );
+
   return {
     settings,
     update,
     reset,
     setSettings,
     setPluginEnabled,
+    moveTool,
+    setGroupTool,
     addCustomColor,
     removeCustomColor,
     setToolSize,
@@ -553,6 +636,25 @@ export function toolSize(settings: AppSettings, tool: string): number {
   const stored = settings.toolSizes[tool];
   if (typeof stored === "number" && stored > 0) return stored;
   return pluginById(tool)?.defaultSize ?? SIZES[1];
+}
+
+/** Which member of a tool group its toolbar button currently stands for: the
+ *  one in your hand if it is one of the family, otherwise the one you had last,
+ *  otherwise the first.
+ *
+ *  A group button has to show *a* tool even when none of its family is active —
+ *  it is a shape, not an idea of a shape — and "the one you used last" is the
+ *  only answer that doesn't send you back through the picker every time you pick
+ *  up the pencil and put it down again. */
+export function groupMemberFor(
+  settings: AppSettings,
+  entry: { id: string; members: readonly PaintPlugin[] },
+  activeTool: string,
+): PaintPlugin | undefined {
+  const inHand = entry.members.find((m) => m.id === activeTool);
+  if (inHand) return inHand;
+  const remembered = settings.groupTools[entry.id];
+  return entry.members.find((m) => m.id === remembered) ?? entry.members[0];
 }
 
 // --- Settings → modal backdrop projection ------------------------------------

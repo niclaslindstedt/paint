@@ -72,15 +72,27 @@ nothing needs setting up before it draws the way it should.
 
 ## More tools
 
-Settings → **Tools** is a rack of every tool the app has, each with its glyph
-and an on/off switch: a bristle paintbrush, a marker, a highlighter, a crayon, a
-calligraphy pen, and the arrow. Switch one on and it joins the toolbar
-immediately, in its own place in the row rather than at the end. Switching it
-off later only hides it; marks you already drew stay put.
+Settings → **Tools** is the toolbar with its lid off: every tool the app has, in
+the order the buttons sit in, each with its glyph, an on/off switch, and a pair
+of arrows that move it along the row. Switch one on — a bristle paintbrush, a
+marker, a highlighter, a crayon, a calligraphy pen — and it joins the toolbar
+immediately, in its own place in the row rather than at the end. Move a row and
+the toolbar moves with it. Switching a tool off later only hides it; marks you
+already drew stay put.
 
-The shapes that can be filled — rectangle and ellipse — wear a folded corner:
-press one again while you are already holding it and a small panel opens over
-the page offering the shape hollow or solid.
+The shapes share one button and one switch: press it again while you are already
+holding a shape and a panel opens over the page with the other ten — rounded
+rectangle, triangle, diamond, pentagon, hexagon, star and a double-headed arrow
+among them — and, under those, the toggle that draws them hollow or solid.
+
+## Picking marks up again
+
+The **selection** tool (`V`) drags a box over marks you have already drawn.
+Switch to the hand and drag from inside the outline to move them; copy, cut and
+delete them with `Ctrl/Cmd + C`, `X` and `Delete`, or from the menu a right-click
+— or a long press on touch — opens on them. `Ctrl/Cmd + V` pastes marks, a
+picture or words back into the page.
+[More about selections](features/selection.md).
 [More about the plugin model](features/plugins.md).
 
 ## Light page, dark page

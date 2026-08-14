@@ -120,6 +120,145 @@ export function CircleIcon({ className, filled }: IconProps) {
   );
 }
 
+/** A rectangle with rounded corners — the same box as `SquareIcon` with its
+ *  corners taken off, which is the only difference the tool draws and so the
+ *  only difference the glyph may show. */
+export function RoundSquareIcon({ className, filled }: IconProps) {
+  return (
+    <svg {...base} className={className} aria-hidden="true">
+      <rect
+        x="3.5"
+        y="5.5"
+        width="17"
+        height="13"
+        rx="3.6"
+        fill={filled ? "currentColor" : "none"}
+      />
+    </svg>
+  );
+}
+
+/** A triangle, point up. */
+export function TriangleIcon({ className, filled }: IconProps) {
+  return (
+    <svg {...base} className={className} aria-hidden="true">
+      <path
+        d="M12 3.6 21.4 20.4H2.6Z"
+        fill={filled ? "currentColor" : "none"}
+      />
+    </svg>
+  );
+}
+
+/** A diamond — a square on its corner, the flowchart decision. */
+export function DiamondIcon({ className, filled }: IconProps) {
+  return (
+    <svg {...base} className={className} aria-hidden="true">
+      <path
+        d="M12 2.6 21.4 12 12 21.4 2.6 12Z"
+        fill={filled ? "currentColor" : "none"}
+      />
+    </svg>
+  );
+}
+
+/** A pentagon, point up. */
+export function PentagonIcon({ className, filled }: IconProps) {
+  return (
+    <svg {...base} className={className} aria-hidden="true">
+      <path
+        d="M12 2.8 21.4 9.6 17.8 20.6H6.2L2.6 9.6Z"
+        fill={filled ? "currentColor" : "none"}
+      />
+    </svg>
+  );
+}
+
+/** A hexagon on its flats — the way everyone draws one, and the way the tool
+ *  draws it (see `hexagonBehaviour`). */
+export function HexagonIcon({ className, filled }: IconProps) {
+  return (
+    <svg {...base} className={className} aria-hidden="true">
+      <path
+        d="M7.2 3.6h9.6L21.6 12l-4.8 8.4H7.2L2.4 12Z"
+        fill={filled ? "currentColor" : "none"}
+      />
+    </svg>
+  );
+}
+
+/** A five-pointed star, at the pentagram ratio the tool draws (see
+ *  `starCorners`) so the glyph and the mark are the same star. */
+export function StarShapeIcon({ className, filled }: IconProps) {
+  return (
+    <svg {...base} className={className} aria-hidden="true">
+      <path
+        d="M12 2.6 15 9.4l7.4.7-5.6 4.9 1.7 7.2L12 18.4l-6.5 3.8 1.7-7.2L1.6 10l7.4-.7Z"
+        fill={filled ? "currentColor" : "none"}
+      />
+    </svg>
+  );
+}
+
+/** A double-headed arrow — the "these are the same distance apart" mark. */
+export function DoubleArrowIcon({ className }: IconProps) {
+  return (
+    <svg {...base} className={className} aria-hidden="true">
+      <path d="M8.4 15.6 15.6 8.4" />
+      <path d="M20.4 3.6 13.6 5.2l5.2 5.2z" fill="currentColor" />
+      <path d="M3.6 20.4 10.4 18.8 5.2 13.6z" fill="currentColor" />
+    </svg>
+  );
+}
+
+/** The shapes family, for the Settings row the whole group shares — a square,
+ *  a circle and a triangle overlapping, the universal "shapes" mark. The
+ *  toolbar button never wears this: it wears the shape you are holding. */
+export function ShapesIcon({ className }: IconProps) {
+  return (
+    <svg {...base} className={className} aria-hidden="true">
+      <circle cx="8" cy="8" r="5.2" />
+      <rect x="10.6" y="10.6" width="10.8" height="10.8" rx="1.2" />
+    </svg>
+  );
+}
+
+/** The selection tool — the dashed marquee it drags, which is the one mark this
+ *  tool leaves and the one thing that tells it from the rectangle. */
+export function SelectIcon({ className }: IconProps) {
+  return (
+    <svg {...base} className={className} aria-hidden="true">
+      <path
+        d="M3.4 3.4h17.2v17.2H3.4Z"
+        strokeDasharray="3.4 2.8"
+        strokeLinecap="butt"
+      />
+    </svg>
+  );
+}
+
+/** Cut — the scissors, for the selection menu's middle action. */
+export function ScissorsIcon({ className }: IconProps) {
+  return (
+    <svg {...base} className={className} aria-hidden="true">
+      <circle cx="6.2" cy="18" r="2.8" />
+      <circle cx="17.8" cy="18" r="2.8" />
+      <path d="M8.2 15.8 18.6 3.4" />
+      <path d="M15.8 15.8 5.4 3.4" />
+    </svg>
+  );
+}
+
+/** Paste — the clipboard with its clip. */
+export function PasteIcon({ className }: IconProps) {
+  return (
+    <svg {...base} className={className} aria-hidden="true">
+      <path d="M9 4.4H6.6a1.8 1.8 0 0 0-1.8 1.8v13.4a1.8 1.8 0 0 0 1.8 1.8h10.8a1.8 1.8 0 0 0 1.8-1.8V6.2a1.8 1.8 0 0 0-1.8-1.8H15" />
+      <rect x="9" y="2.4" width="6" height="4" rx="1.2" />
+    </svg>
+  );
+}
+
 /** A marker pen — a fat barrel on a chisel nib, over the opaque bar it lays
  *  down. The bar is the whole point: barrel and nib alone are a pen, and the
  *  toolbar already has one. */
