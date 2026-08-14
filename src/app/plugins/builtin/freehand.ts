@@ -32,12 +32,7 @@ const MIN_SAMPLE_DISTANCE = 1.5;
 /** Which painter lays the polyline down. The geometry is identical across all
  *  of them — a freehand tool's whole character is in this choice. */
 export type FreehandStyle =
-  | "line"
-  | "brush"
-  | "spray"
-  | "crayon"
-  | "calligraphy"
-  | "glow";
+  "line" | "brush" | "spray" | "crayon" | "calligraphy" | "glow";
 
 type FreehandInk = {
   /** Paint with the page background instead of the ink colour (the eraser). */
