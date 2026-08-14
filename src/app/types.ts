@@ -86,7 +86,30 @@ export type Stroke = {
   filled?: boolean;
   /** Ink opacity, 0–1. Absent means fully opaque; the highlighter uses it. */
   opacity?: number;
+  /** The id of the layer this mark sits on (see `layers.ts`).
+   *
+   *  Absent means the **base layer** — which is every mark on a drawing that
+   *  has never been given a second layer, and every mark drawn before layers
+   *  existed at all. That is why the field is optional rather than stamped on
+   *  everything: a one-layer sketch is byte-for-byte the document it always
+   *  was, and an old document needs no rewriting to grow a stack. */
+  layer?: string;
   shape: Shape;
+};
+
+/** One sheet of a drawing's stack — a name and whether it is showing. The marks
+ *  are not held here: a stroke names its layer (see `Stroke.layer`), so the
+ *  document stays one flat, ordered list of strokes and undo stays `pop()`.
+ *
+ *  What a layer changes is *paint order*: the renderer walks the stack from the
+ *  bottom up and paints each layer's marks in turn, so raising a layer lifts
+ *  everything drawn on it over everything below. See `layers.ts`. */
+export type Layer = {
+  id: string;
+  name: string;
+  /** Hidden layers are skipped by every painter — the screen, the exports, and
+   *  the page the bucket and the dropper read. Absent means showing. */
+  hidden?: boolean;
 };
 
 /** A group of drawings in the side menu. Flat by design — a sketchbook is a
@@ -118,6 +141,13 @@ export type Drawing = {
    *  the drawing when it syncs. */
   background?: string;
   strokes: Stroke[];
+  /** The stack the marks are painted in, **bottom first**. Absent — the usual
+   *  case, and every drawing until someone adds a layer to it — means one
+   *  implicit layer holding everything, which paints exactly as a document with
+   *  no layers ever did. */
+  layers?: Layer[];
+  /** The layer new marks land on. Absent falls back to the top of the stack. */
+  activeLayerId?: string;
   /** Optional framework glyph + accent colour, used by the side menu row and
    *  the browser-tab favicon (see the `glyphs` module). */
   glyph?: string;

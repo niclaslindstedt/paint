@@ -24,6 +24,12 @@ you just see less of it at once. [More](features/canvas.md).
 - `Ctrl/Cmd + Z` undoes the last mark, `Ctrl/Cmd + Shift + Z` redoes it. Every
   mark is one step.
 
+Swipe in from the **right edge** of the page for the drawing's layers: add one,
+pick which one you are drawing on, hide it, move it up or down the stack, or
+delete it. The layers button in the header opens the same panel, and a press on
+the page closes it. A drawing starts as a single layer, so this stays out of the
+way until you want it.
+
 ## Colour and size
 
 The two buttons at the end of the toolbar hold everything about the ink.

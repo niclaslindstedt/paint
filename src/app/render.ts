@@ -10,6 +10,7 @@
 // what you saw.
 
 import { strokeVisible, type Rect } from "./geometry.ts";
+import { visibleStrokes } from "./layers.ts";
 import { paintRegion } from "./plugins/brushes.ts";
 import { pluginById } from "./plugins/registry.ts";
 import { applyInk, paintPath, paintRect, paintSegment } from "./plugins/ink.ts";
@@ -169,9 +170,14 @@ function paintGrid(
  *  skipped, and neither can change the picture: marks that cannot reach the
  *  window being painted, and detail finer than the device pixels it would land
  *  in. Everything that is on screen is still painted from the document, in
- *  order, every frame. See `layer.ts` for the other half of the story — the
- *  canvas keeps the *committed* marks on a cached layer, so a repaint during a
- *  gesture is this function called with one stroke rather than a thousand. */
+ *  order, every frame. See `cache.ts` for the other half of the story — the
+ *  canvas keeps the *committed* marks as pixels, so a repaint during a gesture
+ *  is this function called with one stroke rather than a thousand.
+ *
+ *  "In order" is the drawing's *paint* order: the layer stack from the bottom
+ *  up, marks in the order they were drawn within each layer, and nothing at all
+ *  from a hidden layer (`layers.ts`). A drawing with no stack of its own is its
+ *  stroke list, exactly as before. */
 export function renderDrawing(
   ctx: CanvasRenderingContext2D,
   drawing: Drawing,
@@ -192,7 +198,7 @@ export function renderDrawing(
 
   if (options.grid) paintGrid(ctx, drawing, options.grid);
 
-  paintStrokes(ctx, drawing.strokes, options);
+  paintStrokes(ctx, visibleStrokes(drawing), options);
   if (draft) paintStroke(ctx, draft, options, detailFor(ctx, options));
 }
 

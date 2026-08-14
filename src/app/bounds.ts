@@ -8,6 +8,7 @@
 // renderer's generic painter uses. A tool that invents no new shape kind needs
 // no change here.
 
+import { visibleStrokes } from "./layers.ts";
 import type { Drawing, Point, Stroke } from "./types.ts";
 
 /** An axis-aligned rectangle in document pixels. */
@@ -88,10 +89,14 @@ export function strokeBounds(stroke: Stroke): Box | null {
   };
 }
 
-/** The area every mark on a drawing covers, or `null` for a blank page. */
+/** The area every mark on a drawing covers, or `null` for a blank page.
+ *
+ *  Only the marks that are actually painted — a hidden layer is not in the
+ *  file, so cropping an export to it would leave a margin of blank page around
+ *  what you can see. */
 export function drawingBounds(drawing: Drawing): Box | null {
   let box: Box | null = null;
-  for (const stroke of drawing.strokes) {
+  for (const stroke of visibleStrokes(drawing)) {
     const next = strokeBounds(stroke);
     if (!next) continue;
     box = box ? unionBox(box, next) : next;

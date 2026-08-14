@@ -2,7 +2,7 @@
 // Off-screen drawing surfaces.
 //
 // Two things in the app paint onto a canvas that is never shown: the airbrush's
-// cone stamp (`plugins/stamp.ts`) and the committed-strokes cache (`layer.ts`).
+// cone stamp (`plugins/stamp.ts`) and the committed-strokes cache (`cache.ts`).
 // Both want the same three lines of ceremony and the same failure mode, so they
 // share this.
 //

@@ -37,6 +37,10 @@ the same [`oss-framework`](https://github.com/niclaslindstedt/oss-framework).
   this screen's own resolution by default, Full HD, 4K, square, A4 at 300 dpi, a
   sheet larger than any screen, or a size you type. The page is fixed after
   that, so the sketch looks the same everywhere it opens.
+- **Layers when you want them.** Swipe in from the right edge for the stack: put
+  the photo underneath, the tracing over it, the labels on top, and hide any of
+  them. A drawing that never asks for a second layer is stored exactly as it was
+  before layers existed.
 - **Vector, not pixels.** Undo is exact, the document is small enough for a
   phone, and a synced copy is readable JSON rather than a blob.
 - **Local-first.** No account, no server, works offline. Sync to a folder,
@@ -134,9 +138,13 @@ npm run preview
   single-key shortcut; a shape that can be filled opens a hollow / solid picker
   over the page when you press its button a second time, and the eraser opens
   the same kind of picker offering itself or a clean sweep of the whole page.
-- **Header** — the drawing's name (edit in place), the favourite star, and the
-  download menu (PNG, JPG, SVG, or copy to the clipboard). Undo and redo are in
-  the sidebar's button island.
+- **Layers panel** — swipe in from the right edge of the page (or tap the layers
+  button in the header) for the drawing's stack, topmost first, each row showing
+  a preview of what is on it: add a layer, pick the one you draw on, show and
+  hide, reorder, delete. A press on the page closes it again.
+- **Header** — the drawing's name (edit in place), the favourite star, the
+  layers panel, and the download menu (PNG, JPG, SVG, or copy to the clipboard).
+  Undo and redo are in the sidebar's button island.
 
 ## Configuration
 

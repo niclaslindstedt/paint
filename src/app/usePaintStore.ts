@@ -10,6 +10,13 @@ import {
   type Handoff,
   type Mint,
 } from "./handoff.ts";
+import {
+  activeLayer,
+  activeLayerId,
+  drawingLayers,
+  reorderLayers,
+  strokesExcept,
+} from "./layers.ts";
 import { parseDoc, serializeDoc } from "./migrations.ts";
 import {
   DEFAULT_CANVAS,
@@ -18,6 +25,7 @@ import {
   type AppData,
   type Drawing,
   type Folder,
+  type Layer,
   type Stroke,
 } from "./types.ts";
 import type { DraftStroke } from "./plugins/types.ts";
@@ -320,7 +328,16 @@ export function usePaintStore(
     (draft: DraftStroke, options: { fitPage?: boolean } = {}) => {
       const active = activeDrawing;
       if (!active) return;
-      const stroke: Stroke = { ...draft, id: freshId("stroke") };
+      // The layer the mark lands on, stamped here and nowhere else. A drawing
+      // that has never been given a stack answers `undefined` and the stroke
+      // records no layer at all — a one-layer document stays byte-identical to
+      // what this app has always written.
+      const layer = activeLayerId(active);
+      const stroke: Stroke = {
+        ...draft,
+        id: freshId("stroke"),
+        ...(layer ? { layer } : {}),
+      };
       const bounds = options.fitPage ? strokeBounds(stroke) : null;
       patchActive({
         strokes: [...active.strokes, stroke],
@@ -352,6 +369,106 @@ export function usePaintStore(
   const setAppearance = useCallback(
     (patch: { glyph?: string; color?: string }) => patchActive(patch),
     [patchActive],
+  );
+
+  // --- Layers ----------------------------------------------------------------
+  //
+  // The stack lives on the drawing and the marks stay in one flat array (see
+  // `layers.ts`), so every action here is an ordinary page edit: one undo step,
+  // one `updatedAt`, one push to the cloud. The exception is selecting a layer,
+  // which is navigation rather than an edit and so is written without a history
+  // entry — the same treatment `setActive` gives opening a different drawing.
+
+  /** Add a layer directly above the selected one and draw on it. */
+  const addLayer = useCallback(
+    (name: string): string | null => {
+      const active = activeDrawing;
+      if (!active) return null;
+      const layers = drawingLayers(active);
+      const layer: Layer = { id: freshId("layer"), name };
+      const above =
+        layers.findIndex((l) => l.id === activeLayer(active).id) + 1;
+      const next = [...layers];
+      next.splice(above, 0, layer);
+      patchActive({ layers: next, activeLayerId: layer.id });
+      return layer.id;
+    },
+    [activeDrawing, patchActive],
+  );
+
+  /** Draw on a different layer. Not an edit: it makes no undo step and doesn't
+   *  restamp `updatedAt`, so picking a layer never reshuffles the menu's
+   *  most-recently-edited order. */
+  const selectLayer = useCallback(
+    (id: string) => {
+      const active = activeDrawing;
+      if (!active || active.activeLayerId === id) return;
+      markPersist();
+      setState((prev) => ({
+        ...prev,
+        data: {
+          ...prev.data,
+          drawings: prev.data.drawings.map((d) =>
+            d.id === active.id ? { ...d, activeLayerId: id } : d,
+          ),
+        },
+      }));
+    },
+    [activeDrawing, markPersist],
+  );
+
+  /** Show or hide a layer. Hiding takes its marks off the screen and out of
+   *  every export — but not out of the document. */
+  const setLayerHidden = useCallback(
+    (id: string, hidden: boolean) => {
+      const active = activeDrawing;
+      if (!active) return;
+      patchActive({
+        layers: drawingLayers(active).map((layer) =>
+          layer.id === id ? { ...layer, hidden } : layer,
+        ),
+      });
+    },
+    [activeDrawing, patchActive],
+  );
+
+  /** Move a layer to `to` in the stack, counting from the bottom — what raises
+   *  everything drawn on it over the layers it passes. */
+  const moveLayer = useCallback(
+    (id: string, to: number) => {
+      const active = activeDrawing;
+      if (!active) return;
+      const layers = drawingLayers(active);
+      const from = layers.findIndex((layer) => layer.id === id);
+      if (from < 0 || to < 0 || to >= layers.length || from === to) return;
+      patchActive({ layers: reorderLayers(layers, from, to) });
+    },
+    [activeDrawing, patchActive],
+  );
+
+  /** Delete a layer **and the marks on it** — one undo step brings both back.
+   *  The last layer is never deleted: a drawing always has somewhere to draw,
+   *  and "delete the only layer" is what the eraser's clean sweep is for. */
+  const deleteLayer = useCallback(
+    (id: string) => {
+      const active = activeDrawing;
+      if (!active) return;
+      const layers = drawingLayers(active);
+      if (layers.length < 2) return;
+      const at = layers.findIndex((layer) => layer.id === id);
+      if (at < 0) return;
+      const remaining = layers.filter((layer) => layer.id !== id);
+      // Land the selection on the layer that took its place in the stack —
+      // the one above it, or the new top when it was the top.
+      const landing = remaining[Math.min(at, remaining.length - 1)]!;
+      patchActive({
+        layers: remaining,
+        strokes: strokesExcept(active, id),
+        activeLayerId:
+          active.activeLayerId === id ? landing.id : active.activeLayerId,
+      });
+    },
+    [activeDrawing, patchActive],
   );
 
   /** Create a page and open it, optionally filed into a folder.
@@ -632,6 +749,11 @@ export function usePaintStore(
     renameActive,
     setBackground,
     setAppearance,
+    addLayer,
+    selectLayer,
+    setLayerHidden,
+    moveLayer,
+    deleteLayer,
     addDrawing,
     duplicateDrawing,
     renameDrawing,
