@@ -3,10 +3,11 @@
 //
 // Importing this module is what puts them in the registry — `src/main.tsx`
 // does it once, before the app mounts. Registration order *is* toolbar order,
-// and it is deliberate: the hand sits at the far left, where the tool that
-// moves the page rather than marking it is out of the way of the ones that do;
-// the eraser sits at the far right, opposite it, because it is the tool you
-// reach for by feel. Everything that draws lives between them.
+// and it is deliberate: it reads down Photoshop's tool column, so a hand that
+// already knows one toolbar finds this one where it expects to. Sample, then
+// paint, then erase, then fill, then the shapes, and the tool that moves the
+// view last of all — that column with the gaps closed up, since selections,
+// crop, type and pen paths are tools this app has no business shipping.
 //
 // Whether a tool is *in* the toolbar is a separate question from where it sits,
 // and it has three answers (see `plugins/types.ts`): `core` tools are always
@@ -56,22 +57,28 @@ import {
 /** Register the built-in tools. Idempotent — re-registering an id replaces it
  *  in place, so calling this twice (a hot reload, a test) is harmless. */
 export function registerBuiltinPlugins(): void {
-  // --- The far left: the tool that moves the page --------------------------
+  // --- Sample first --------------------------------------------------------
+  // Photoshop's eyedropper sits above the paint tools, on the reading that you
+  // choose the colour before you lay it down. Ours is the first button for the
+  // same reason — and being the leftmost tool costs nothing, because it draws
+  // nothing and `picksColor` keeps the canvas from ever falling back onto it.
 
   registerPlugin({
-    id: "hand",
-    core: true,
-    nameKey: "tools.hand.name",
-    descriptionKey: "tools.hand.description",
-    icon: HandIcon,
-    shortcut: "d",
-    // The one tool that moves the view instead of the document: drag to pan,
-    // double-tap to fit. See `hand.ts` for why it is a plugin at all.
-    navigates: true,
-    behaviour: handBehaviour,
+    id: "dropper",
+    defaultOn: true,
+    nameKey: "tools.dropper.name",
+    descriptionKey: "tools.dropper.description",
+    icon: DropperIcon,
+    shortcut: "i",
+    // Reads the page instead of marking it — the canvas samples the colour
+    // under the press and pins it as the ink (see `dropper.ts`).
+    picksColor: true,
+    behaviour: dropperBehaviour,
   });
 
-  // --- The drawing tools ---------------------------------------------------
+  // --- Then the tools that lay ink down ------------------------------------
+  // Photoshop's brush block, in the same place in the column: the hard nib
+  // first, then the soft ones, then the media, then the effect.
 
   registerPlugin({
     id: "pencil",
@@ -158,29 +165,50 @@ export function registerBuiltinPlugins(): void {
     behaviour: freehandBehaviour({ sizeScale: 1.5, style: "glow" }),
   });
 
-  // --- The shape tools -----------------------------------------------------
+  // --- Then taking ink off again -------------------------------------------
+  // Directly under the brushes, where Photoshop keeps it. It used to sit at the
+  // far right, opposite the hand; next to the tools whose marks it undoes is
+  // both the more familiar place and the shorter trip.
+
+  registerPlugin({
+    id: "eraser",
+    core: true,
+    nameKey: "tools.eraser.name",
+    descriptionKey: "tools.eraser.description",
+    icon: EraserIcon,
+    shortcut: "e",
+    // The eraser paints the page colour rather than removing strokes: a vector
+    // document has no pixels to clear, and painting over is what makes an
+    // eraser stroke undoable like any other mark.
+    usesBackground: true,
+    // Rubbing out one mark and wiping the page are the same intent at two
+    // scales, so they share a button: press the eraser a second time and it
+    // offers both. That is what took the bin out of the header.
+    clearsPage: true,
+    behaviour: freehandBehaviour({ useBackground: true, sizeScale: 2.5 }),
+  });
+
+  // --- Then filling an area ------------------------------------------------
+  // Photoshop's gradient/bucket slot: below the eraser, above the vector tools.
+
+  registerPlugin({
+    id: "filler",
+    defaultOn: true,
+    nameKey: "tools.filler.name",
+    descriptionKey: "tools.filler.description",
+    icon: BucketIcon,
+    shortcut: "f",
+    behaviour: fillBehaviour,
+  });
+
+  // --- Then the shapes -----------------------------------------------------
+  // Photoshop's shape group, in its order — rectangle, ellipse, then the line —
+  // and in its place near the bottom of the column.
+  //
   // Off out of the box. A sketchpad is opened to draw on, not to diagram in,
   // and four shape buttons on a phone toolbar crowd out the brushes for
   // something a minority of sessions ever reaches for. One tap in Settings →
   // Tools brings back whichever of them you actually want.
-
-  registerPlugin({
-    id: "line",
-    nameKey: "tools.line.name",
-    descriptionKey: "tools.line.description",
-    icon: LineIcon,
-    shortcut: "l",
-    behaviour: lineBehaviour,
-  });
-
-  registerPlugin({
-    id: "arrow",
-    nameKey: "tools.arrow.name",
-    descriptionKey: "tools.arrow.description",
-    icon: ArrowIcon,
-    shortcut: "a",
-    behaviour: arrowBehaviour,
-  });
 
   registerPlugin({
     id: "rectangle",
@@ -202,49 +230,41 @@ export function registerBuiltinPlugins(): void {
     behaviour: ellipseBehaviour,
   });
 
-  // --- The colour tools ----------------------------------------------------
-
   registerPlugin({
-    id: "filler",
-    defaultOn: true,
-    nameKey: "tools.filler.name",
-    descriptionKey: "tools.filler.description",
-    icon: BucketIcon,
-    shortcut: "f",
-    behaviour: fillBehaviour,
+    id: "line",
+    nameKey: "tools.line.name",
+    descriptionKey: "tools.line.description",
+    icon: LineIcon,
+    shortcut: "l",
+    behaviour: lineBehaviour,
   });
 
   registerPlugin({
-    id: "dropper",
-    defaultOn: true,
-    nameKey: "tools.dropper.name",
-    descriptionKey: "tools.dropper.description",
-    icon: DropperIcon,
-    shortcut: "i",
-    // Reads the page instead of marking it — the canvas samples the colour
-    // under the press and pins it as the ink (see `dropper.ts`).
-    picksColor: true,
-    behaviour: dropperBehaviour,
+    id: "arrow",
+    nameKey: "tools.arrow.name",
+    descriptionKey: "tools.arrow.description",
+    icon: ArrowIcon,
+    shortcut: "a",
+    behaviour: arrowBehaviour,
   });
 
-  // --- The far right: the eraser -------------------------------------------
+  // --- Last: the tool that moves the view ----------------------------------
+  // The hand is the bottom of Photoshop's column, under everything that touches
+  // the document, and it is the end of the row here for the same reason: the
+  // one tool that moves the page rather than marking it belongs out of the way
+  // of the ones that do.
 
   registerPlugin({
-    id: "eraser",
+    id: "hand",
     core: true,
-    nameKey: "tools.eraser.name",
-    descriptionKey: "tools.eraser.description",
-    icon: EraserIcon,
-    shortcut: "e",
-    // The eraser paints the page colour rather than removing strokes: a vector
-    // document has no pixels to clear, and painting over is what makes an
-    // eraser stroke undoable like any other mark.
-    usesBackground: true,
-    // Rubbing out one mark and wiping the page are the same intent at two
-    // scales, so they share a button: press the eraser a second time and it
-    // offers both. That is what took the bin out of the header.
-    clearsPage: true,
-    behaviour: freehandBehaviour({ useBackground: true, sizeScale: 2.5 }),
+    nameKey: "tools.hand.name",
+    descriptionKey: "tools.hand.description",
+    icon: HandIcon,
+    shortcut: "d",
+    // The one tool that moves the view instead of the document: drag to pan,
+    // double-tap to fit. See `hand.ts` for why it is a plugin at all.
+    navigates: true,
+    behaviour: handBehaviour,
   });
 
   // --- The painter with no button ------------------------------------------
