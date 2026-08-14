@@ -14,16 +14,18 @@ There are three kinds, and the only difference is how they are switched on:
 | **Optional**   | everything else                  | Off until you switch it on          |
 
 Core is the irreducible three — pencil, eraser, hand. On out of the box:
-airbrush, paint bucket, colour dropper, text, the shapes and the selection tool
+airbrush, paint bucket, colour dropper, text, the shapes and the selection tools
 — the toolbox anyone who has opened a paint program already knows how to use,
-spray can included. Waiting in Settings → Tools: the rest of the media this app
+spray can included. That is the _whole_ default toolbar: nine buttons, families
+counted as the one button they are, and everything else off until you ask for
+it. Waiting in Settings → Tools: the rest of the media this app
 adds to it (the bristle paintbrush, marker, highlighter, crayon, calligraphy
 pen).
 
 The toolbar reads down Photoshop's tool column, so a hand that already knows one
 toolbar finds this one where it expects to. Sample, then paint, then erase, then
-fill, then type, then the shapes, then the marquee, and the tool that moves the
-view last of all:
+fill, then type, then the shapes, then the selection tools, and the tool that
+moves the view last of all:
 
 **dropper · pencil · paintbrush · airbrush · marker · highlighter · crayon ·
 calligraphy pen · eraser · paint bucket · text · shapes · select · hand**
@@ -39,12 +41,13 @@ the toolbar follows immediately. Only the rows you actually move are recorded,
 so a tool added by a later release still lands where its maker put it rather
 than at the end of an arrangement written before it existed.
 
-## Eleven shapes, one button
+## Families behind one button
 
 A **group** is a family of tools that share one toolbar button and one switch.
-The shapes are the case, and they are the reason it exists: eleven of them as
-eleven buttons would be most of a phone's toolbar spent on one idea, and eleven
-switches in Settings → Tools for a question nobody asks eleven times.
+The shapes are the case it was built for, and they are the reason it exists:
+eleven of them as eleven buttons would be most of a phone's toolbar spent on one
+idea, and eleven switches in Settings → Tools for a question nobody asks eleven
+times. The four selection tools are the second (see below).
 
 So the shapes button wears whichever shape you last held. Press it again and the
 family opens over the canvas — rectangle, ellipse, line, arrow, rounded
@@ -64,6 +67,28 @@ drag, stretched to fill it — so a hexagon dragged square is a hexagon and one
 dragged wide is a squashed one — which means no new shape kind in the document
 and no field on the stroke saying which shape it is. The painter answers that,
 and the painter is chosen by the stroke's tool id, exactly as it always was.
+
+## Four ways to select
+
+The selection tools are the same arrangement, for the same reason: which _shape_
+you pick marks out with is a smaller question than which tool you are holding.
+So one button holds a **box** marquee (**V**), an **oval**, a freehand **lasso**,
+and a **trace** — and the button wears whichever you last used.
+
+They differ only in the gesture. Every one of them ends by answering one question
+— `selection(draft)`, "what did this gesture choose?" — with **closed contours in
+document coordinates**, and the screen takes contours and nothing else. That is
+why a lasso needed no new idea anywhere outside `plugins/`: the canvas, the store
+and the renderer are unchanged, and a build that adds a fifth way to select adds
+a fifth behaviour and nothing more.
+
+The trace tool is the interesting one. It has no shape of its own at all: it asks
+the same probe the paint bucket asks — a rasterised snapshot of the page, flooded
+from where you pressed and traced back into outlines (see `flood.ts`) — and hands
+those outlines over as the selection. So it stops where the bucket would stop,
+which is what makes it follow what is _drawn_ rather than a shape drawn over it.
+Nothing about it reaches the document; the outline is thrown away as soon as the
+marks are chosen.
 
 ## Brushes are their medium
 

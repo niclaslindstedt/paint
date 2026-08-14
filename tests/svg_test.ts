@@ -30,10 +30,12 @@ const drawing = (strokes: Stroke[]): Drawing => ({
   strokes,
 });
 
-/** A page that answers the two tools which read one (the bucket, the dropper),
- *  so a whole gesture can be driven with no canvas behind it. */
+/** A page that answers the tools which read one (the bucket, the dropper, the
+ *  tracing selection), so a whole gesture can be driven with no canvas behind
+ *  it. The colour is deliberately *not* the page's: it stands for a press that
+ *  landed on a mark, which is the only press the tracing tool acts on. */
 const probe: CanvasProbe = {
-  colorAt: () => "#ffffff",
+  colorAt: () => "#ef4444",
   regionAt: () => [
     [
       { x: 20, y: 20 },

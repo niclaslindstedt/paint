@@ -38,9 +38,10 @@ the same [`oss-framework`](https://github.com/niclaslindstedt/oss-framework).
   rectangle, triangle, diamond, pentagon, hexagon, star and double arrow share a
   single toolbar button and a single switch: press it again for the family, and
   for the toggle that fills them in.
-- **Pick marks up again.** Drag a box with the selection tool and what it
-  crosses is yours: move it with the hand, copy, cut or delete it from the
-  keyboard, a right-click or a long press. Ctrl/⌘+V pastes back — marks from
+- **Pick marks up again.** Draw a box, an oval or a lasso with the selection
+  tool — or trace the contours of what is already painted — and what you caught
+  is yours: move it with the hand, copy, cut or delete it from the keyboard, a
+  right-click or a long press. Ctrl/⌘+V pastes back — marks from
   another tab, a screenshot from anywhere, or words, which open the caption box
   so you can set the typeface and size before they land.
 - **Brushes that are their medium.** The paintbrush is a head of hair: it lays
@@ -173,21 +174,27 @@ npm run preview
   stays soft without softening anything else. Most tools have a single-key
   shortcut, and the shapes button opens the other ten — and the hollow / solid
   toggle — when you press it a second time.
-- **Selection** — the marquee (`V`) drags a box over marks you have already
-  drawn. Move them by switching to the hand and dragging from inside the
-  outline; copy, cut and delete them with `Ctrl/Cmd + C`, `X` and `Delete`, or
-  from the menu a right-click (or a long press) opens on them. `Ctrl/Cmd + V`
-  pastes marks, a picture or words back into the page.
-- **Layers panel** — swipe in from the right edge of the page (or tap the layers
-  button in the header) for the drawing's stack, topmost first, each row showing
-  a preview of what is on it: add a layer, pick the one you draw on, show and
-  hide, lock, reorder, delete. Every drawing starts with a locked **Background**
-  — the page itself — and **Layer 1** over it. The **Image** heading above the
+- **Selection** — one button, four ways to pick marks out: a box (`V`), an
+  oval, a freehand lasso, and a **trace** that follows the contours of whatever
+  is drawn under your finger rather than a shape you drew over it. Press the
+  button again to choose which. Move what you caught by switching to the hand
+  and dragging from inside the outline; copy, cut and delete with
+  `Ctrl/Cmd + C`, `X` and `Delete`, or from the menu a right-click (or a long
+  press) opens on them. `Ctrl/Cmd + V` pastes marks, a picture or words back
+  into the page.
+- **Layers panel** — swipe in from the right edge of the page (or tap the panel
+  button at the far right of the header) for the drawing's stack, topmost first,
+  each row showing a preview of what is on it: add a layer, pick the one you
+  draw on, show and hide, lock, reorder, delete. Every drawing starts with a
+  locked **Background** — the page itself — and **Layer 1** over it. The
+  Background stays at the bottom of the stack: it is the page, so it does not
+  move and nothing slides under it. The **Image** heading above the
   stack resizes, flips and mirrors the page, and its bin starts the drawing
   over. A press on the page closes it again.
 - **Header** — the drawing's name (edit in place), the favourite star, the
-  layers panel, and the download menu (PNG, JPG, SVG, or copy to the clipboard).
-  Undo and redo are in the sidebar's button island.
+  download menu (PNG, JPG, SVG, or copy to the clipboard), and — at the far
+  right — the button that opens the side panel. Undo and redo are in the
+  sidebar's button island.
 
 ## Configuration
 

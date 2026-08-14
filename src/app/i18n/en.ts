@@ -255,8 +255,8 @@ export const en = {
   },
   layers: {
     title: "Layers",
-    open: "Layers",
-    close: "Close the layers panel",
+    open: "Side panel",
+    close: "Close the side panel",
     add: "New layer",
     base: "Layer 1",
     background: "Background",
@@ -328,10 +328,28 @@ export const en = {
       name: "Double arrow",
       description: "A line with a head at both ends — for measuring a gap.",
     },
-    select: {
+    selection: {
       name: "Select",
       description:
-        "Drag a box to pick marks out. Move them with the hand; copy, cut or delete them with the keyboard, a right-click, or a long press.",
+        "Pick marks out — with a box, an oval, a lasso, or by tracing what is painted under the pointer. Press it again to choose which. Move what you picked with the hand; copy, cut or delete it with the keyboard, a right-click, or a long press.",
+    },
+    select: {
+      name: "Box select",
+      description: "Drag a rectangle to pick out the marks it covers.",
+    },
+    selectOval: {
+      name: "Oval select",
+      description: "The same drag, read as the oval inside it.",
+    },
+    selectLasso: {
+      name: "Lasso select",
+      description:
+        "Draw around the marks you want, freehand — the loop closes itself.",
+    },
+    selectTrace: {
+      name: "Trace select",
+      description:
+        "Press an area and the selection follows the contours of what is drawn there, rather than a shape you drew over it.",
     },
     marker: {
       name: "Marker",

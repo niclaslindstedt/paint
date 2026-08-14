@@ -254,6 +254,41 @@ export function drawableLayer(drawing: Drawing): Layer | null {
   return isLocked(layer) ? null : layer;
 }
 
+/** Where the sheet sits in the stack, or `-1` on a drawing that has none. */
+function backgroundIndex(layers: readonly Layer[]): number {
+  return layers.findIndex((layer) => layer.id === BACKGROUND_LAYER_ID);
+}
+
+/** Whether `layerId` can be moved to index `to` in the stack.
+ *
+ *  **The sheet doesn't move.** It is the page — every mark in the drawing is on
+ *  top of it by definition, and it is the layer that carries the page colour —
+ *  so it is pinned to the bottom, and nothing may be slid underneath it. A
+ *  background you can shuffle into the middle of a stack is a layer that paints
+ *  the page over half the drawing, which is not a thing anyone means to ask
+ *  for.
+ *
+ *  Both halves of the rule live here, so the panel dims the arrows with it and
+ *  the store refuses with it — a keyboard, a stale render and a future caller
+ *  all get the same answer (the same shape `canDeleteLayer` takes).
+ *
+ *  A layer that is *already* below the sheet — only reachable from a document
+ *  another build wrote — is not frozen by this: it may still move, just never
+ *  further under. */
+export function canMoveLayerTo(
+  drawing: Drawing,
+  layerId: string,
+  to: number,
+): boolean {
+  const layers = drawingLayers(drawing);
+  const from = layers.findIndex((layer) => layer.id === layerId);
+  if (from < 0 || from === to) return false;
+  if (to < 0 || to >= layers.length) return false;
+  if (layerId === BACKGROUND_LAYER_ID) return false;
+  const sheet = backgroundIndex(layers);
+  return !(sheet >= 0 && from > sheet && to <= sheet);
+}
+
 /** Whether `layerId` can be deleted from the drawing's stack.
  *
  *  Three things stop it, and they are the same three however you got here — the
