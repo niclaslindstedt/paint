@@ -75,10 +75,9 @@ produce identical grain instead of a mark that shimmers when you pan.
 The **hand** draws nothing. Its descriptor carries `navigates: true`, and that
 flag — not its id — is what tells the canvas a press should pan the page rather
 than start a stroke, and what dims the ink it would never use. The **dropper**
-works the same way through `picksColor`, and the soft brushes advertise
-`supportsHardness` so the size picker knows whether to offer the dial. That is
-the pattern for any tool that needs the app to treat it differently: a property
-on the descriptor, so nothing outside `plugins/` has to know a tool by name.
+works the same way through `picksColor`. That is the pattern for any tool that
+needs the app to treat it differently: a property on the descriptor, so nothing
+outside `plugins/` has to know a tool by name.
 
 `hidden` is the flag taken to its limit: a hidden plugin has no button anywhere
 and no gesture at all. The dropped image's painter is the one this build ships —
@@ -99,6 +98,49 @@ carries the flag and its second press offers both: rub out by hand, or clear the
 sheet. The toolbar only asks; the screen owns the confirmation and the edit. A
 button in the header would have been the other option, and this one puts the
 destructive action where the hand reaching for it already is.
+
+## Every tool tunes differently
+
+The size button opens the widths, and under them an **Advanced** fold holding
+the knobs belonging to the tool in your hand. Width is the only control every
+tool shares; past it a paintbrush and a highlighter have nothing in common, and
+a hardness slider shown to the highlighter was a control that did nothing
+sitting where a control that did something should be.
+
+So a tool declares its own, two at most — the panel is something you reach into
+mid-drawing, with one thumb, and a third slider makes it a settings screen:
+
+| Tool                             | Advanced                  |
+| -------------------------------- | ------------------------- |
+| **Paintbrush**                   | hardness, hair            |
+| **Airbrush**                     | hardness, flow            |
+| **Crayon**                       | opacity, pressure         |
+| **Neon pen**                     | opacity, halo             |
+| **Paint bucket**                 | opacity, feather          |
+| Pencil, marker, highlighter, pen | opacity                   |
+| Shapes                           | opacity                   |
+| Eraser, hand, dropper            | nothing — no fold appears |
+
+Each one is wired to something the painter actually does. **Hair** is which
+brush off the rack: the head is milled from filament of a fixed gauge, so fine
+hair leaves many thin partings and coarse hair a few broad ones — and neither
+changes the width. **Flow** is the airbrush's trigger, and because its coverage
+is built from overlapping passes rather than one opaque dab, turning it down
+really does mean more passes. **Pressure** is how hard the crayon bears down:
+wax only sticks to the peaks it is pressed onto, so a light hand leaves the
+paper's speckle showing and a heavy one fills the valleys in. **Feather** fades
+the bucket's edge out over a few pixels instead of stopping it, which turns the
+tool into a way of laying a soft wash behind a sketch — and it stays a vector
+fill, so the fade holds at eight hundred percent.
+
+The settings are **per tool** and they stick: a soft brush is soft the next time
+you pick it up, and it did not also make the airbrush soft. A dot beside
+Advanced says a tool is tuned; **Reset** puts it back.
+
+Marks remember what they were drawn with, the way they remember their colour and
+their width, so re-tuning a dial never re-draws work you already did. And a dial
+left alone is recorded nowhere at all — a drawing made without opening Advanced
+is exactly the document it would have been.
 
 ## The bucket and the dropper read the page
 
@@ -147,7 +189,7 @@ Three steps, none of which touch the canvas, the store, or the toolbar:
    doesn't lay down detail smaller than the screen can show.
 2. Register it in `registerBuiltinPlugins()` with an id, an icon, and its two
    catalog keys — plus `core` or `defaultOn` if it should be in the toolbar
-   without being asked for.
+   without being asked for, and `dials` if it has anything of its own to tune.
 3. Add those two strings to `src/app/i18n/en.ts` (and `sv.ts`).
 
 Externally-loaded plugins are not implemented yet. When they land they register

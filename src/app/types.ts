@@ -78,14 +78,25 @@ export type Stroke = {
   /** Stroke width in document pixels. */
   size: number;
   /** How crisp the mark's edge is, 0 (a soft airbrushed fade) to 1 (a hard
-   *  edge). Absent means hard — only the tools that advertise
-   *  `supportsHardness` ever record it, so a pencil line stays a pencil line
-   *  however the toolbar's hardness dial is set. */
+   *  edge). Absent means hard — only the tools that offer a hardness dial ever
+   *  record it, and only when it was turned off its default, so a pencil line
+   *  stays a pencil line however anyone's brush is set. */
   hardness?: number;
   /** Fill the shape with `color` instead of outlining it (shape tools only). */
   filled?: boolean;
-  /** Ink opacity, 0–1. Absent means fully opaque; the highlighter uses it. */
+  /** Ink opacity, 0–1. Absent means fully opaque; the highlighter uses it, and
+   *  so does every tool whose opacity dial has been turned down. */
   opacity?: number;
+  /** The tool dials this mark was drawn with, by dial id — a paintbrush's hair
+   *  gauge, an airbrush's flow (see `plugins/dials.ts`).
+   *
+   *  Only the dials that were moved off their default are here, and the field
+   *  itself is absent when none were: every painter takes its dial as an
+   *  argument that rests at the same value, so a page drawn without opening
+   *  Advanced serialises exactly the way it did before dials existed. Recorded
+   *  rather than resolved at paint time, like `hardness` and for the same
+   *  reason — re-tuning a dial must not re-draw marks you already made. */
+  dials?: Record<string, number>;
   /** The id of the layer this mark sits on (see `layers.ts`).
    *
    *  Absent means the **base layer** — which is every mark on a drawing that

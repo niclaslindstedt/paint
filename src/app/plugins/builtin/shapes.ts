@@ -3,6 +3,8 @@
 // another and the mark is recomputed from those two points on every move. They
 // share the drag bookkeeping and differ only in what they paint.
 
+import type { Point } from "../../types.ts";
+import { extraDials } from "../dials.ts";
 import {
   applyInk,
   isMeaningfulDrag,
@@ -39,16 +41,29 @@ export function shapeBehaviour(
       ? { from: draft.shape.from, to: draft.shape.to }
       : null;
 
-  return {
-    start: (p, ctx: ToolContext) => ({
+  const start = (p: Point, ctx: ToolContext): DraftStroke => {
+    // Anything this tool was tuned with, past the two dials that have a stroke
+    // field of their own (see `plugins/dials.ts`).
+    const extra = extraDials(ctx.dials);
+    return {
       tool: "",
       // Only a picked colour is recorded; otherwise the mark follows the
       // canvas theme's default ink (see `Stroke.color`).
       ...(ctx.color ? { color: ctx.color } : {}),
       size: ctx.size,
+      // The opacity dial, when it has been turned down — a shape is ink like
+      // any other mark.
+      ...(ctx.dials.opacity !== undefined && ctx.dials.opacity < 1
+        ? { opacity: ctx.dials.opacity }
+        : {}),
+      ...(extra ? { dials: extra } : {}),
       ...(options.supportsFill && ctx.filled ? { filled: true } : {}),
       shape: { kind, from: p, to: p },
-    }),
+    };
+  };
+
+  return {
+    start,
     move: (draft, p) => {
       const a = anchors(draft);
       if (!a) return draft;

@@ -120,15 +120,44 @@ export const sv: Catalog = {
     keepSize: "Spara",
     sizeKept: "Sparad",
     removeSize: "Glöm",
-    hardness: "Hårdhet: {percent} %",
-    hardnessHint: "Mjuk tonar ut kanten; hård håller den skarp.",
-    hardnessNotUsed: "Verktyget du håller i ritar en skarp kant ändå.",
     tool: "Verktyg",
     toolbar: "Verktyg",
     fitPage: "Anpassa sidan, eller visa den i 1:1",
     zoomPercent: "{percent} %",
     undo: "Ångra",
     redo: "Gör om",
+  },
+  dials: {
+    advanced: "Avancerat",
+    reset: "Återställ",
+    opacity: {
+      name: "Opacitet: {value} %",
+      hint: "Hur mycket av sidan som syns genom draget.",
+    },
+    hardness: {
+      name: "Hårdhet: {value} %",
+      hint: "Mjuk tonar ut kanten; hård håller den skarp.",
+    },
+    hair: {
+      name: "Strån: {value} %",
+      hint: "Fina strån ger många tunna streck, grova några få breda.",
+    },
+    flow: {
+      name: "Flöde: {value} %",
+      hint: "Hur mycket färg varje drag lägger. Lågt byggs upp långsamt.",
+    },
+    pressure: {
+      name: "Tryck: {value} %",
+      hint: "Tryck hårdare för att fylla papprets korn; lätta för att låta det synas.",
+    },
+    halo: {
+      name: "Sken: {value} %",
+      hint: "Hur långt skenet når utanför linjen.",
+    },
+    feather: {
+      name: "Mjuk kant: {value} px",
+      hint: "Tonar ut fyllningens kant i stället för att tvärt avsluta den.",
+    },
   },
   layers: {
     title: "Lager",

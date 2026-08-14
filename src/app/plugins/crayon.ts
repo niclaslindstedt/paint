@@ -195,6 +195,7 @@ function dragTip(
   half: number,
   size: number,
   cell: number,
+  bearDown: number,
 ): void {
   const count = along.length;
   const span = along[count - 1]!.at;
@@ -227,7 +228,11 @@ function dragTip(
     const lean = (driftNoise(p.at / 45, 29) - 0.5) * 1.1;
     // Wax needs friction and time; dragged fast, the stick leaves less of it.
     const hurry = Math.max(0.45, 1 / (1 + p.speed / 30));
-    const press = Math.max(0.1, bearing * settled * hurry);
+    // …and how hard the hand is bearing down over the whole mark, which is the
+    // one part of this the user sets. It multiplies the *deposit*, so a heavy
+    // hand fills the paper's valleys in until the mark closes up and a light
+    // one leaves the sheet showing through — never a wider or a darker line.
+    const press = Math.max(0.1, bearing * settled * hurry * bearDown);
 
     // The contact patch, rocking a little as the stick travels. It narrows at
     // the ends far less than it fades — the face of the stick is the width it
@@ -296,6 +301,7 @@ function stampTip(
   half: number,
   size: number,
   cell: number,
+  bearDown: number,
 ): void {
   const w = half * 0.94;
   const fray = Math.min(w * 0.6, 1.5 + w * 0.1);
@@ -314,27 +320,41 @@ function stampTip(
       const off = dx * -ty + dy * tx;
       const weight = 1 - 0.32 * Math.min(1, ((off / w - lean) / 1.15) ** 2);
       const streak = 0.78 + 0.22 * driftNoise(off / furrow, 19);
-      wax.lay(at.x + dx, at.y + dy, tx, ty, shape * weight * streak * 0.94);
+      wax.lay(
+        at.x + dx,
+        at.y + dy,
+        tx,
+        ty,
+        shape * weight * streak * 0.94 * bearDown,
+      );
     }
   }
 }
 
-/** Paint a crayon mark: wax pressed onto the page's tooth along a path. */
+/** Paint a crayon mark: wax pressed onto the page's tooth along a path.
+ *
+ *  `pressure` is how hard the hand bears down — a fraction of the ordinary,
+ *  1 being it. It reaches only the *deposit*, never the geometry: bearing down
+ *  fills the paper's valleys in, easing off leaves the sheet showing through,
+ *  and neither makes the stick any wider. */
 export function paintCrayon(
   ctx: CanvasRenderingContext2D,
   points: readonly Point[],
   size: number,
   scale = 1,
+  pressure = 1,
 ): void {
   const first = points[0];
   if (!first) return;
   const alpha = ctx.globalAlpha;
 
+  const bearDown = Math.max(0, pressure);
+
   if (size * scale < HAIRLINE) {
     // Pulled back far enough that the whole mark is inside one pixel. The
     // grain, the fray and the furrows are all smaller than that, so what is
     // left of a crayon here is a line at the weight the wax averages out to.
-    ctx.globalAlpha = alpha * 0.8;
+    ctx.globalAlpha = alpha * Math.min(1, 0.8 * bearDown);
     paintPath(ctx, points, size);
     ctx.globalAlpha = alpha;
     return;
@@ -345,8 +365,8 @@ export function paintCrayon(
   const half = Math.max(cell * 0.5, size / 2);
   const wax = openWax(cell);
   const along = trace(points, cell);
-  if (along.length < 2) stampTip(wax, first, half, size, cell);
-  else dragTip(wax, along, half, size, cell);
+  if (along.length < 2) stampTip(wax, first, half, size, cell, bearDown);
+  else dragTip(wax, along, half, size, cell, bearDown);
   wax.paint(ctx, alpha);
   ctx.globalAlpha = alpha;
 }

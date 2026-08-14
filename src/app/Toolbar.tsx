@@ -25,6 +25,11 @@ import { SizeDot, SizePicker } from "./toolbar/SizePicker.tsx";
 // be. Each opens its picker over the canvas; both close as soon as you have
 // chosen. The row that is left is tools, and it can afford to be.
 //
+// The size button is also where a tool's *own* settings live — its dials, under
+// an Advanced fold in the same panel (see `toolbar/SizePicker.tsx`). Which ones
+// those are is the descriptor's `dials`, so the toolbar hands the picker a list
+// it never reads.
+//
 // Fill is not a row either. It lives on the shape button: press the button you
 // are already holding a second time and a two-cell panel opens showing the
 // shape hollow and the shape solid. Which tools offer it is the descriptor's
@@ -54,8 +59,16 @@ type Props = {
   customSizes: readonly number[];
   onAddSize: (size: number) => void;
   onRemoveSize: (size: number) => void;
-  hardness: number;
-  onHardnessChange: (hardness: number) => void;
+  /** Where the active tool's dials sit, resolved — the size panel's Advanced
+   *  section. Which dials those are comes off the plugin descriptor, so the
+   *  toolbar never learns one by name (see `plugins/dials.ts`). */
+  dialValues: Readonly<Record<string, number>>;
+  /** Move one — or forget it with `null`, which is what the panel sends for a
+   *  dial dragged back to where it started. */
+  onDialChange: (id: string, value: number | null) => void;
+  onResetDials: () => void;
+  /** Whether any of them are off their default. */
+  dialsTuned: boolean;
   filled: boolean;
   onFilledChange: (filled: boolean) => void;
   /** Wipe every mark off the page — the action offered by the tool that
@@ -88,8 +101,10 @@ export function Toolbar({
   customSizes,
   onAddSize,
   onRemoveSize,
-  hardness,
-  onHardnessChange,
+  dialValues,
+  onDialChange,
+  onResetDials,
+  dialsTuned,
   filled,
   onFilledChange,
   onClearPage,
@@ -330,9 +345,11 @@ export function Toolbar({
         customSizes={customSizes}
         onAddSize={onAddSize}
         onRemoveSize={onRemoveSize}
-        hardness={hardness}
-        onHardnessChange={onHardnessChange}
-        hardnessApplies={Boolean(active?.supportsHardness)}
+        dials={active?.dials ?? []}
+        values={dialValues}
+        onDialChange={onDialChange}
+        onResetDials={onResetDials}
+        tuned={dialsTuned}
       />
     </div>
   );

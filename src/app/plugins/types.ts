@@ -52,6 +52,46 @@ export type CanvasProbe = {
   regionAt(p: Point): Point[][] | null;
 };
 
+/** One tunable a tool offers past its width — what the size panel puts under
+ *  **Advanced** when that tool is in your hand.
+ *
+ *  A dial is declared by the plugin, so the panel needs to know nothing about
+ *  which tool it is drawing controls for: a paintbrush offers hair gauge, an
+ *  airbrush offers flow, a crayon offers pressure, and the picker just renders
+ *  whatever the descriptor lists.
+ *
+ *  Values are usually **fractions of the tool's own normal**, so 1 is "the way
+ *  this tool draws" and the panel reads the dial out as a percentage; one that
+ *  measures a real distance on the page (the bucket's feather) carries document
+ *  pixels instead and says so with `unit`.
+ *
+ *  Either way a mark records only the dials that were actually moved: absent
+ *  means `default`, which is what every painter's own default argument already
+ *  is. A drawing made without touching a dial is byte-for-byte the document it
+ *  was before dials existed. */
+export type ToolDial = {
+  /** Stable id. It is persisted — in the settings blob and on every stroke
+   *  drawn off-default — so renaming one forgets that tuning. */
+  id: string;
+  /** Catalog key for the label, interpolated with `{value}`. The unit belongs
+   *  in the string itself ("Opacity: {value}%", "Feather: {value} px") — it is
+   *  part of the sentence, and not every language puts it in the same place. */
+  nameKey: TKey;
+  /** Catalog key for the one line under the slider saying what it does. */
+  hintKey: TKey;
+  min: number;
+  max: number;
+  step: number;
+  /** How the number reads. A fraction of the tool's normal shows as a
+   *  percentage (the default); a dial that measures a real distance on the page
+   *  shows the document pixels it is. */
+  unit?: "percent" | "px";
+  /** What the tool draws at untouched. 1 unless a dial's natural rest is
+   *  somewhere else — and whatever it is, the painter's own default argument
+   *  has to agree, because that is what an absent value resolves to. */
+  default?: number;
+};
+
 /** The ink the toolbar currently has selected, handed to a tool on every step
  *  of a gesture so it can build its draft. The page background travels with it
  *  because tools like the eraser paint *with* it. */
@@ -60,9 +100,10 @@ export type ToolContext = {
    *  records no colour and resolves it at paint time (see `Stroke.color`). */
   color: string | null;
   size: number;
-  /** Edge crispness, 0 (soft) to 1 (hard). Only honoured by the tools that
-   *  advertise `supportsHardness`. */
-  hardness: number;
+  /** The active tool's dials, and **only the ones moved off their default** —
+   *  see `dials.ts`. A behaviour reads them as `ctx.dials.flow ?? 1`, so a tool
+   *  that was never tuned builds exactly the draft it always did. */
+  dials: Readonly<Record<string, number>>;
   /** The shape tools' fill toggle. Ignored by tools that only stroke. */
   filled: boolean;
   /** The active drawing's page colour. */
@@ -160,6 +201,14 @@ export type PaintPlugin = {
   picksColor?: boolean;
   /** True when the tool honours the fill toggle. */
   supportsFill?: boolean;
+  /** What this tool offers under **Advanced** in the size panel, past the width
+   *  every tool shares. Two at most: the panel is a thing you reach into
+   *  mid-stroke, and a rack of sliders is a settings screen.
+   *
+   *  Declaring one is the whole of adding it — the picker renders the list, the
+   *  settings blob keeps a value per tool per dial, and the behaviour reads it
+   *  off `ToolContext.dials`. Nothing outside `plugins/` learns a dial's name. */
+  dials?: readonly ToolDial[];
   /** True when the tool offers *clearing the whole page* as a second way of
    *  erasing. Its button then opens a two-cell panel on a second press — the
    *  tool itself, and the action that wipes every mark — the same second-press
@@ -170,10 +219,6 @@ export type PaintPlugin = {
    *  that is where a hand reaching to rub something out already is — and it is
    *  a flag rather than a tool id so no screen has to know what an eraser is. */
   clearsPage?: boolean;
-  /** True when the tool honours the hardness dial — the soft-edged brushes. The
-   *  size picker dims the dial for every other tool rather than offering a
-   *  control that would do nothing. */
-  supportsHardness?: boolean;
   /** True when the plugin exists only to *paint* — it is never offered in the
    *  toolbar or listed in Settings → Tools, and its `start` returns nothing.
    *

@@ -149,3 +149,29 @@ describe("the crayon", () => {
     expect(specks(paint(points, 64)).length).toBeLessThan(60000);
   });
 });
+
+describe("bearing down", () => {
+  // The pressure dial reaches the *deposit* and nothing else. Wax only sticks
+  // to the peaks it is pressed onto, so a heavier hand clears more of the
+  // paper's tooth — and the stick is exactly as wide either way.
+  it("catches more of the paper the harder it is pressed", () => {
+    const points = curve();
+    const light = createFakeContext();
+    const heavy = createFakeContext();
+    paintCrayon(light, points, 18, 1, 0.5);
+    paintCrayon(heavy, points, 18, 1, 1.5);
+    expect(specks(heavy).length).toBeGreaterThan(specks(light).length);
+  });
+
+  it("keeps the mark inside the stick either way", () => {
+    // Bearing down fills the contact patch in — it does not widen it. What
+    // grows is how much of the fray catches, which is a couple of pixels of
+    // chipped face and not a wider crayon.
+    const points = curve();
+    for (const pressure of [0.5, 1, 1.5]) {
+      const ctx = createFakeContext();
+      paintCrayon(ctx, points, 18, 1, pressure);
+      expect(spread(ctx, points)).toBeLessThan(18 / 2 + 2.5);
+    }
+  });
+});

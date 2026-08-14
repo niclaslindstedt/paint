@@ -10,8 +10,10 @@
 
 import { describe, expect, it } from "vitest";
 
-import { paintCalligraphy } from "../src/app/plugins/brushes.ts";
+import { paintCalligraphy, paintRegion } from "../src/app/plugins/brushes.ts";
 import type { Point } from "../src/app/types.ts";
+
+import { createFakeContext } from "./support/fakeCanvas.ts";
 
 /** A 2D context that records the path it is given, split into subpaths. */
 function recordingContext(): {
@@ -109,5 +111,63 @@ describe("the calligraphy nib", () => {
     paintCalligraphy(ctx, doubledBack, 12);
     expect(subpaths.length).toBeGreaterThan(0);
     for (const loop of subpaths) expect(loop).toHaveLength(4);
+  });
+});
+
+describe("a feathered fill", () => {
+  /** A square area, as the bucket would have traced it. */
+  const square: Point[][] = [
+    [
+      { x: 0, y: 0 },
+      { x: 100, y: 0 },
+      { x: 100, y: 100 },
+      { x: 0, y: 100 },
+    ],
+  ];
+
+  it("is a hard edge until it is asked for one", () => {
+    const ctx = createFakeContext();
+    paintRegion(ctx, square);
+    // One fill, no skirt: the mark a bucket has always left.
+    expect(ctx.strokes).toHaveLength(0);
+    expect(ctx.calls.fill).toBe(1);
+  });
+
+  it("lays a skirt that widens as it fades", () => {
+    const ctx = createFakeContext();
+    ctx.globalAlpha = 1;
+    paintRegion(ctx, square, 8);
+    expect(ctx.strokes.length).toBeGreaterThan(1);
+    // Widest and faintest first, so each pass lands inside the last: that
+    // ordering *is* the ramp from the page to the solid fill.
+    for (let i = 1; i < ctx.strokes.length; i++) {
+      expect(ctx.strokes[i]!.lineWidth).toBeLessThan(
+        ctx.strokes[i - 1]!.lineWidth,
+      );
+      expect(ctx.strokes[i]!.alpha).toBeGreaterThan(ctx.strokes[i - 1]!.alpha);
+    }
+    // The widest pass is centred on the outline, so it reaches a feather past
+    // it and no further.
+    expect(ctx.strokes[0]!.lineWidth).toBeCloseTo(16);
+    // …and the solid fill still goes down over the top of it.
+    expect(ctx.calls.fill).toBe(1);
+  });
+
+  it("fades a fraction of the ink, so a wash feathers translucently", () => {
+    const ctx = createFakeContext();
+    ctx.globalAlpha = 0.5;
+    paintRegion(ctx, square, 8);
+    for (const pass of ctx.strokes) expect(pass.alpha).toBeLessThan(0.5);
+    // And the ink is left as it was found, for the fill that follows.
+    expect(ctx.globalAlpha).toBe(0.5);
+  });
+
+  it("skips a fade the screen is too far away to show", () => {
+    const ctx = createFakeContext();
+    // Pulled back until eight document pixels of skirt is a fraction of one
+    // device pixel: four passes of the same outline, for nothing.
+    paintRegion(ctx, square, 8, 0.02);
+    expect(ctx.strokes).toHaveLength(0);
+    expect(ctx.calls.fill).toBe(1);
   });
 });

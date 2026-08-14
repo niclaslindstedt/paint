@@ -82,6 +82,26 @@ describe("hairLayout", () => {
     expect(hairLayout(15).count).toBeGreaterThanOrEqual(5);
   });
 
+  it("takes the brush off a different rack when the gauge is turned", () => {
+    // The dial the size panel offers: same head, different filament. Fine hair
+    // means more, thinner streaks; coarse means fewer, broader ones — and
+    // neither touches the width of the mark.
+    const ordinary = hairLayout(60);
+    const fine = hairLayout(60, 1, 0.5);
+    const coarse = hairLayout(60, 1, 2);
+    expect(fine.pitch).toBeLessThan(ordinary.pitch);
+    expect(coarse.pitch).toBeGreaterThan(ordinary.pitch);
+    expect(fine.count).toBeGreaterThan(ordinary.count);
+    expect(coarse.count).toBeLessThan(ordinary.count);
+  });
+
+  it("still gives a coarse head hairs to draw with", () => {
+    // The floor holds however extreme the gauge: a head with one strand is a
+    // line, not a brush.
+    expect(hairLayout(4, 1, 2).count).toBeGreaterThanOrEqual(2);
+    expect(hairLayout(240, 1, 0.5).count).toBeLessThanOrEqual(56);
+  });
+
   it("drops hairs a screen cannot resolve and widens what is left", () => {
     // Zoomed out far enough that the head is a few pixels: most of the strands
     // would land inside a pixel another strand already covered.

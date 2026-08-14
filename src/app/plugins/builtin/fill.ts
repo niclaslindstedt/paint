@@ -14,8 +14,14 @@
 // draft is simply recomputed from wherever the pointer is now.
 
 import { paintRegion } from "../brushes.ts";
+import { extraDials, strokeDial } from "../dials.ts";
 import { applyInk } from "../ink.ts";
-import type { DraftStroke, ToolBehaviour, ToolContext } from "../types.ts";
+import {
+  FULL_DETAIL,
+  type DraftStroke,
+  type ToolBehaviour,
+  type ToolContext,
+} from "../types.ts";
 import type { Point } from "../../types.ts";
 
 /** The smallest area worth filing. A tap on a hairline gap traces a sliver
@@ -27,6 +33,7 @@ function meaningful(contours: Point[][]): boolean {
 function draftFor(p: Point, ctx: ToolContext): DraftStroke | null {
   const contours = ctx.probe?.regionAt(p);
   if (!contours || !meaningful(contours)) return null;
+  const extra = extraDials(ctx.dials);
   return {
     tool: "",
     // As everywhere else, only a *picked* colour is recorded — an unpicked fill
@@ -35,6 +42,12 @@ function draftFor(p: Point, ctx: ToolContext): DraftStroke | null {
     // A fill has no nib, but a stroke carries a width and the renderer's
     // fallback painter would read it, so it records the toolbar's.
     size: ctx.size,
+    // Its dials: a wash you can see the marks through, and an edge that fades
+    // out instead of stopping (see `plugins/dials.ts`).
+    ...(ctx.dials.opacity !== undefined && ctx.dials.opacity < 1
+      ? { opacity: ctx.dials.opacity }
+      : {}),
+    ...(extra ? { dials: extra } : {}),
     shape: { kind: "region", contours },
   };
 }
@@ -47,9 +60,16 @@ export const fillBehaviour: ToolBehaviour = {
   // Dragging re-aims the bucket rather than extending anything, so the preview
   // follows the pointer into whichever area it is over now.
   move: (draft, p, ctx) => draftFor(p, ctx) ?? draft,
-  paint: (ctx2d, stroke) => {
+  paint: (ctx2d, stroke, detail = FULL_DETAIL) => {
     if (stroke.shape.kind !== "region") return;
     applyInk(ctx2d, stroke);
-    paintRegion(ctx2d, stroke.shape.contours);
+    // A feathered edge is the one thing here the zoom can price out: past a
+    // certain distance the fade is thinner than a pixel (see `paintRegion`).
+    paintRegion(
+      ctx2d,
+      stroke.shape.contours,
+      strokeDial(stroke, "feather", 0),
+      detail.scale,
+    );
   },
 };

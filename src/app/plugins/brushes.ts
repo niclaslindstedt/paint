@@ -117,6 +117,7 @@ export function paintSpray(
   hardness: number,
   color: string,
   scale = 1,
+  flow = 1,
 ): void {
   const radius = Math.max(3, size * 1.6);
   const hard = Math.max(0, Math.min(1, hardness));
@@ -128,9 +129,12 @@ export function paintSpray(
   // How much of the cone is at full strength before it starts to fall away. A
   // hard setting is a tight, almost-solid core; a soft one fades from the axis.
   const core = 0.08 + hard * 0.55;
-  // Per-dab strength. Faint by design: coverage is built from overlap, and a
-  // heavy dab would make the first pass opaque and the tool uncontrollable.
-  const faint = 0.055 + hard * 0.05;
+  // Per-dab strength — how far the trigger is pulled. Faint by design: coverage
+  // is built from overlap, and a heavy dab would make the first pass opaque and
+  // the tool uncontrollable. `flow` is the user moving that line, and it is
+  // capped short of opaque for exactly the same reason: an airbrush that covers
+  // in one dab is a marker.
+  const faint = Math.min(0.4, (0.055 + hard * 0.05) * Math.max(0, flow));
 
   if (onScreen < HAIRLINE) {
     // Pulled back far enough that the whole cone is inside one pixel. A cloud
@@ -279,36 +283,59 @@ export function paintCalligraphy(
 }
 
 /** The neon pen: a wide, faint aura under a bright thin core, which is what
- *  reads as "glowing" without a filter. */
+ *  reads as "glowing" without a filter.
+ *
+ *  `halo` is how far the aura reaches past that core — the three passes spread
+ *  by it, while the core keeps its width, so turning it up blooms the light
+ *  rather than fattening the line. */
 export function paintGlow(
   ctx: CanvasRenderingContext2D,
   points: readonly Point[],
   size: number,
   scale = 1,
+  halo = 1,
 ): void {
   const alpha = ctx.globalAlpha;
+  const reach = Math.max(0, halo);
   for (const [spread, weight] of [
     [3.2, 0.1],
     [2.2, 0.14],
     [1.4, 0.22],
   ] as const) {
+    // Measured out from the core rather than scaled bodily, so a tight halo
+    // closes onto the line instead of shrinking under it.
+    const at = 0.55 + (spread - 0.55) * reach;
     // An aura that has closed to within a pixel of the core is not an aura.
-    if ((spread - 0.55) * size * scale < PIXEL) continue;
+    if ((at - 0.55) * size * scale < PIXEL) continue;
     ctx.globalAlpha = alpha * weight;
-    paintPath(ctx, points, size * spread);
+    paintPath(ctx, points, size * at);
   }
   ctx.globalAlpha = alpha;
   paintPath(ctx, points, Math.max(1, size * 0.55));
 }
 
+/** How many passes a feathered edge is built from. Three, like every other soft
+ *  edge here: enough that the fade reads as a fade, few enough that a page of
+ *  washes is still three strokes of a traced outline. */
+const FEATHER_PASSES = 3;
+
 /** Fill an area given as closed outlines — what the paint bucket leaves behind.
  *
  *  Even-odd, so a loop that lies inside another is a hole: an island of marks
  *  inside a flooded area stays unpainted, which is what makes a fill land
- *  *behind* the drawing rather than over it. */
+ *  *behind* the drawing rather than over it.
+ *
+ *  `feather` softens the boundary, in document pixels: the outline is stroked a
+ *  few times on the way out, widest and faintest first, and the solid fill goes
+ *  down over the top. That is the same shape `paintSoftPath` gives a soft line
+ *  — a solid core inside a fading skirt — and it feathers the holes as well as
+ *  the rim, since a hole's edge is an outline like any other. The fade is a
+ *  *fraction of the ink*, so a translucent wash feathers translucently. */
 export function paintRegion(
   ctx: CanvasRenderingContext2D,
   contours: readonly Point[][],
+  feather = 0,
+  scale = 1,
 ): void {
   ctx.beginPath();
   for (const loop of contours) {
@@ -332,6 +359,22 @@ export function paintRegion(
       ctx.quadraticCurveTo(here.x, here.y, to.x, to.y);
     }
     ctx.closePath();
+  }
+  // The skirt, before the fill so the solid colour lands on top of its inner
+  // half — a feather that reached over the fill would print as a dark ring just
+  // inside the edge. A fade thinner than a device pixel is four passes of the
+  // same outline, so it is simply not drawn.
+  if (feather > 0 && feather * scale >= PIXEL) {
+    const alpha = ctx.globalAlpha;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    for (let i = FEATHER_PASSES; i >= 1; i--) {
+      // Centred on the outline, so the widest pass reaches `feather` past it.
+      ctx.lineWidth = (feather * 2 * i) / FEATHER_PASSES;
+      ctx.globalAlpha = alpha * (0.22 / i);
+      ctx.stroke();
+    }
+    ctx.globalAlpha = alpha;
   }
   ctx.fill("evenodd");
 }

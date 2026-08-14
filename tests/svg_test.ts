@@ -49,7 +49,17 @@ function drawnWith(plugin: PaintPlugin): Stroke | null {
   const ctx: ToolContext = {
     color: "#ef4444",
     size: 8,
-    hardness: 0.5,
+    // Every tool tuned off its rest, so the export is exercised with the dials
+    // actually recorded on a mark rather than with a bare stroke.
+    dials: {
+      hardness: 0.5,
+      opacity: 0.8,
+      hair: 1.4,
+      flow: 1.5,
+      pressure: 1.2,
+      halo: 1.5,
+      feather: 6,
+    },
     filled: true,
     background: "#ffffff",
     probe,

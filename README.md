@@ -136,7 +136,11 @@ npm run preview
   nib. The ink button is split between the colour you draw with and the page
   colour that erases it, and opens the palette, your own mixed colours, and a
   free colour mixer; the nib button shows the width as a dot and opens the
-  widths, a slider for new ones, and the hardness dial. Each tool has a
+  widths, a slider for new ones, and — behind an **Advanced** fold — the two
+  knobs belonging to the tool in your hand: hair gauge for the paintbrush, flow
+  for the airbrush, pressure for the crayon, a feathered edge for the paint
+  bucket, opacity for most of the rest. They are kept per tool, so a soft brush
+  stays soft without softening anything else. Each tool has a
   single-key shortcut; a shape that can be filled opens a hollow / solid picker
   over the page when you press its button a second time, and the eraser opens
   the same kind of picker offering itself or a clean sweep of the whole page.

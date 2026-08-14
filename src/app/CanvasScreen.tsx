@@ -25,6 +25,8 @@ import { LayersPanel } from "./LayersPanel.tsx";
 import { PaintCanvas } from "./PaintCanvas.tsx";
 import { initialPlacement, type Placement } from "./placement.ts";
 import { imageStroke } from "./plugins/builtin/image.ts";
+import { resolveDials, tunedDials } from "./plugins/dials.ts";
+import { pluginById } from "./plugins/registry.ts";
 import { Toolbar } from "./Toolbar.tsx";
 import { ToolFlash } from "./ToolFlash.tsx";
 import type { AppSettings } from "./useAppSettings.ts";
@@ -48,14 +50,20 @@ import * as output from "../output.ts";
 // the wiring between them, plus the one piece of state that is neither document
 // nor gesture: an image that has been dropped but not yet settled.
 
-/** The four ways the toolbar's pickers write back to the user's own palette —
- *  the colours they mixed and the nib widths they added. Bundled rather than
- *  passed one by one because they travel together and always will. */
+/** The ways the toolbar's pickers write back to the user's own kit — the
+ *  colours they mixed, the nib widths they added, and how they have their tools
+ *  tuned. Bundled rather than passed one by one because they travel together
+ *  and always will. */
 export type PaletteActions = {
   addColor: (color: string) => void;
   removeColor: (color: string) => void;
   addSize: (size: number) => void;
   removeSize: (size: number) => void;
+  /** Move one of a tool's dials, or forget it with `null` (see
+   *  `plugins/dials.ts`). */
+  setDial: (tool: string, dial: string, value: number | null) => void;
+  /** Put every dial on one tool back where it started. */
+  resetDials: (tool: string) => void;
 };
 
 type Props = {
@@ -168,6 +176,15 @@ export function CanvasScreen({
   const pageColor = resolvePageColor(drawing.background, darkCanvas);
   const ink = defaultInk(darkCanvas);
 
+  // How the tool in hand is tuned. Two reads of the same thing: the panel wants
+  // every dial the tool offers so it has a slider per one, and the canvas wants
+  // only the dials actually moved, because that is what a stroke records (see
+  // `plugins/dials.ts`).
+  const activePlugin = pluginById(tool);
+  const tuning = settings.toolDials[tool];
+  const dialValues = resolveDials(activePlugin, tuning);
+  const inkDials = tunedDials(activePlugin, tuning);
+
   return (
     <div className="flex h-full min-h-0 flex-col">
       {/* The header pads by the top safe-area inset so its title and buttons
@@ -249,7 +266,7 @@ export function CanvasScreen({
           ink={{
             color: settings.color,
             size: settings.size,
-            hardness: settings.hardness,
+            dials: inkDials,
             filled: settings.filled,
           }}
           defaultInk={ink}
@@ -369,8 +386,10 @@ export function CanvasScreen({
         customSizes={settings.customSizes}
         onAddSize={palette.addSize}
         onRemoveSize={palette.removeSize}
-        hardness={settings.hardness}
-        onHardnessChange={(hardness) => update("hardness", hardness)}
+        dialValues={dialValues}
+        onDialChange={(dial, value) => palette.setDial(tool, dial, value)}
+        onResetDials={() => palette.resetDials(tool)}
+        dialsTuned={Object.keys(inkDials).length > 0}
         filled={settings.filled}
         onFilledChange={(filled) => update("filled", filled)}
         // Clearing is an edit on the document, not a tool: the toolbar offers

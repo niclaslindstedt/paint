@@ -95,6 +95,8 @@ export function App() {
     removeCustomColor,
     addCustomSize,
     removeCustomSize,
+    setToolDial,
+    resetToolDials,
   } = useAppSettings();
 
   // The sync engine — pushes the document to a folder / Dropbox / Google Drive
@@ -281,6 +283,8 @@ export function App() {
               removeColor: removeCustomColor,
               addSize: addCustomSize,
               removeSize: removeCustomSize,
+              setDial: setToolDial,
+              resetDials: resetToolDials,
             }}
             tool={tool}
             darkCanvas={darkCanvas}
