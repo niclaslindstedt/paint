@@ -37,15 +37,59 @@ import type { Drawing, Layer, Stroke } from "./types.ts";
  *  whichever layer had fallen to the bottom. */
 export const BASE_LAYER_ID = "base";
 
+/** The id of the sheet everything is drawn *on*.
+ *
+ *  It is a layer like any other — it can hold marks, be hidden, be reordered,
+ *  be unlocked and drawn on — with one thing no other layer does: **the page
+ *  colour is painted as part of it**. Hide it and the sheet goes with it, which
+ *  is what makes a transparent export a matter of leaving one layer out rather
+ *  than a separate rule buried in the exporter (see `render.ts`).
+ *
+ *  Fixed, like the base id, and for the same reason: it has to be recognisable
+ *  in a document written by another build. */
+export const BACKGROUND_LAYER_ID = "background";
+
+/** The stack a drawing has before anyone touches it: the sheet, locked, with
+ *  one layer to draw on above it.
+ *
+ *  Two rather than one, because one was a lie the panel had to keep: every mark
+ *  landed on a layer called "Background" that was not the background, and there
+ *  was nowhere to put the page colour. Locking the sheet is the other half —
+ *  the layer you never mean to draw on is the one directly under your pencil.
+ *
+ *  Implicit, not stamped: a drawing that carries no `layers` array *reads* as
+ *  this stack, so nothing on disk had to be rewritten and a fresh document is
+ *  still byte-for-byte what this app has always written. Materialising it is
+ *  what the first hide / lock / add does. */
+export function defaultLayers(): Layer[] {
+  return [
+    { id: BACKGROUND_LAYER_ID, name: "", locked: true },
+    { id: BASE_LAYER_ID, name: "" },
+  ];
+}
+
 /** The stack, bottom first — always at least one layer. A drawing that has
- *  never been given a second one reads as a single unnamed base holding
- *  everything, which is what lets every caller work in terms of layers without
- *  first asking whether this drawing has any. */
+ *  never been given one of its own reads as `defaultLayers`, which is what lets
+ *  every caller work in terms of layers without first asking whether this
+ *  drawing has any. */
 export function drawingLayers(drawing: Drawing): Layer[] {
   const layers = drawing.layers;
-  return layers && layers.length > 0
-    ? layers
-    : [{ id: BASE_LAYER_ID, name: "" }];
+  return layers && layers.length > 0 ? layers : defaultLayers();
+}
+
+/** Whether a layer refuses marks (see `Layer.locked`). */
+export function isLocked(layer: Layer): boolean {
+  return layer.locked === true;
+}
+
+/** Whether the drawing's sheet is switched off — the background layer is in the
+ *  stack and hidden. The renderer asks before it fills the page: hiding the
+ *  sheet has to take the colour with it, or the layer would be the only one in
+ *  the stack whose eye did nothing. */
+export function backgroundHidden(drawing: Drawing): boolean {
+  return drawingLayers(drawing).some(
+    (layer) => layer.id === BACKGROUND_LAYER_ID && layer.hidden === true,
+  );
 }
 
 /** Whether the drawing carries a stack of its own, as opposed to the implicit
@@ -80,9 +124,18 @@ export function strokeLayer(stroke: Stroke, drawing: Drawing): Layer {
   return layers[indexOfStroke(stroke, order, base)]!;
 }
 
+/** How much of the stack a painter wants. */
+export type PaintScope = {
+  /** Leave the background layer out entirely — the sheet *and* anything drawn
+   *  on it. What a transparent export asks for: the marks then land on nothing
+   *  rather than on a page that happens to be the same colour. */
+  withoutBackground?: boolean;
+};
+
 /** Every mark that should be painted, in the order it should be painted: layer
  *  by layer from the bottom of the stack up, and within a layer in the order it
- *  was drawn. Marks on a hidden layer are left out entirely.
+ *  was drawn. Marks on a hidden layer are left out entirely, and so are the
+ *  background layer's when `withoutBackground` is asked for.
  *
  *  This is the list the renderer folds over, so it is also what the exports,
  *  the bucket's snapshot and the crop-to-marks bounds see — one answer to "what
@@ -93,17 +146,36 @@ export function strokeLayer(stroke: Stroke, drawing: Drawing): Layer {
  *  decides whether a frame can be blitted by comparing strokes one by one, so
  *  handing back a fresh copy of the same marks would be correct but would cost
  *  an allocation on every frame of every gesture for the common case. */
-export function visibleStrokes(drawing: Drawing): readonly Stroke[] {
+export function visibleStrokes(
+  drawing: Drawing,
+  scope: PaintScope = {},
+): readonly Stroke[] {
+  const drop = scope.withoutBackground === true;
   const layers = drawing.layers;
-  if (!layers || layers.length === 0) return drawing.strokes;
-  if (layers.length === 1) return layers[0]!.hidden ? [] : drawing.strokes;
+  if (!layers || layers.length === 0) return whole(drawing.strokes, drop);
+  if (layers.length === 1) {
+    if (layers[0]!.hidden) return [];
+    if (drop && layers[0]!.id === BACKGROUND_LAYER_ID) return [];
+    return whole(drawing.strokes, drop);
+  }
 
   const buckets = bucketsOf(drawing, layers);
   const painted: Stroke[] = [];
   layers.forEach((layer, index) => {
-    if (!layer.hidden) painted.push(...buckets[index]!);
+    if (layer.hidden) return;
+    if (drop && layer.id === BACKGROUND_LAYER_ID) return;
+    painted.push(...buckets[index]!);
   });
   return painted;
+}
+
+/** A flat stroke list, with the background layer's marks dropped if they are
+ *  not wanted. The array itself is handed back untouched whenever nothing has
+ *  to come out of it — see the identity note on `visibleStrokes`. */
+function whole(strokes: readonly Stroke[], drop: boolean): readonly Stroke[] {
+  if (!drop) return strokes;
+  const onSheet = (s: Stroke) => s.layer === BACKGROUND_LAYER_ID;
+  return strokes.some(onSheet) ? strokes.filter((s) => !onSheet(s)) : strokes;
 }
 
 /** The drawing's marks split by layer, keyed by layer id and in the order they
@@ -139,12 +211,47 @@ export function strokesExcept(drawing: Drawing, layerId: string): Stroke[] {
   );
 }
 
-/** The layer new marks land on: the one the drawing points at, or the top of
- *  the stack when it points at nothing (or at a layer that has since gone). */
+/** The layer new marks land on: the one the drawing points at, or the topmost
+ *  one that will take a mark when it points at nothing (or at a layer that has
+ *  since gone, or at a locked one).
+ *
+ *  Locked layers are skipped rather than selected-and-refused, so a fresh
+ *  drawing — whose bottom layer is the locked sheet — lands its first pencil
+ *  line on the layer above it without anyone having chosen anything. A stack
+ *  that is locked all the way down has no answer and hands back the top: it is
+ *  `drawableLayer` that reports there is nowhere to draw. */
 export function activeLayer(drawing: Drawing): Layer {
   const layers = drawingLayers(drawing);
   const picked = layers.find((layer) => layer.id === drawing.activeLayerId);
-  return picked ?? layers[layers.length - 1]!;
+  if (picked && !isLocked(picked)) return picked;
+  const open = [...layers].reverse().find((layer) => !isLocked(layer));
+  return open ?? picked ?? layers[layers.length - 1]!;
+}
+
+/** The layer a mark drawn now would land on, or `null` when every layer in the
+ *  stack is locked and none would take it. */
+export function drawableLayer(drawing: Drawing): Layer | null {
+  const layer = activeLayer(drawing);
+  return isLocked(layer) ? null : layer;
+}
+
+/** Whether `layerId` can be deleted from the drawing's stack.
+ *
+ *  Three things stop it, and they are the same three however you got here — the
+ *  panel dims the bin with this, and the store refuses with it, so a keyboard,
+ *  a stale render and a future caller all get the same answer:
+ *
+ *    - the last layer stays (a drawing always has somewhere to draw);
+ *    - a locked layer stays (that is most of what a lock is);
+ *    - and the last *unlocked* layer stays, or deleting it would leave a stack
+ *      that takes no marks at all — a page you can't draw on, reachable in one
+ *      press and only escapable by adding a layer or unlocking one. */
+export function canDeleteLayer(drawing: Drawing, layerId: string): boolean {
+  const layers = drawingLayers(drawing);
+  if (layers.length < 2) return false;
+  const doomed = layers.find((layer) => layer.id === layerId);
+  if (!doomed || isLocked(doomed)) return false;
+  return layers.some((layer) => layer.id !== layerId && !isLocked(layer));
 }
 
 /** The id to stamp on a mark drawn now, or `undefined` on a drawing that has no
@@ -174,13 +281,17 @@ export function reorderLayers(
 /** The number a freshly added layer should wear: one past the highest already
  *  in use, so a stack that has had layers deleted from it doesn't hand out a
  *  name it is still showing. `name` renders the number the way the catalog
- *  does, which is the only thing this needs to know about language. */
+ *  does, which is the only thing this needs to know about language.
+ *
+ *  The sheet is not counted. It is a layer, but it is not *Layer n* — the
+ *  drawing's first numbered layer sits on top of it, so counting it would open
+ *  every new drawing on "Layer 1" and offer "Layer 3" next. */
 export function nextLayerName(
   layers: readonly Layer[],
   name: (n: number) => string,
 ): string {
   const taken = new Set(layers.map((layer) => layer.name));
-  let n = layers.length + 1;
+  let n = layers.filter((layer) => layer.id !== BACKGROUND_LAYER_ID).length + 1;
   while (taken.has(name(n))) n++;
   return name(n);
 }

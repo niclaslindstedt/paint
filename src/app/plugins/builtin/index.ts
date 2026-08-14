@@ -229,10 +229,6 @@ export function registerBuiltinPlugins(): void {
     // document has no pixels to clear, and painting over is what makes an
     // eraser stroke undoable like any other mark.
     usesBackground: true,
-    // Rubbing out one mark and wiping the page are the same intent at two
-    // scales, so they share a button: press the eraser a second time and it
-    // offers both. That is what took the bin out of the header.
-    clearsPage: true,
     behaviour: freehandBehaviour({ useBackground: true, sizeScale: 2.5 }),
   });
 

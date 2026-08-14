@@ -109,6 +109,21 @@ describe("the SVG export", () => {
     expect(toSvg(drawing([]), true)).not.toContain('fill="#ffffff"');
   });
 
+  it("leaves the page out when the background layer is hidden", () => {
+    // The sheet is the background layer's to paint, so its eye switches the
+    // page colour off exactly as a transparent export does.
+    const page = drawing([]);
+    expect(
+      toSvg({
+        ...page,
+        layers: [
+          { id: "background", name: "", locked: true, hidden: true },
+          { id: "base", name: "" },
+        ],
+      }),
+    ).not.toContain('fill="#ffffff"');
+  });
+
   it("writes a freehand gesture as a path with the ink on it", () => {
     const svg = toSvg(
       drawing([

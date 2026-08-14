@@ -227,16 +227,6 @@ export type PaintPlugin = {
    *  settings blob keeps a value per tool per dial, and the behaviour reads it
    *  off `ToolContext.dials`. Nothing outside `plugins/` learns a dial's name. */
   dials?: readonly ToolDial[];
-  /** True when the tool offers *clearing the whole page* as a second way of
-   *  erasing. Its button then opens a two-cell panel on a second press — the
-   *  tool itself, and the action that wipes every mark — the same second-press
-   *  gesture `supportsFill` uses.
-   *
-   *  Clearing is not a tool: it begins no gesture and leaves no stroke, it is a
-   *  single undoable edit on the document. It rides on a tool's button because
-   *  that is where a hand reaching to rub something out already is — and it is
-   *  a flag rather than a tool id so no screen has to know what an eraser is. */
-  clearsPage?: boolean;
   /** True when the plugin exists only to *paint* — it is never offered in the
    *  toolbar or listed in Settings → Tools, and its `start` returns nothing.
    *

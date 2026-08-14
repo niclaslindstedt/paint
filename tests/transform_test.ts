@@ -3,12 +3,15 @@ import { describe, expect, it } from "vitest";
 
 import {
   anchorOffset,
+  cornerAnchor,
+  dragCorner,
   keepProportions,
   mirrorDrawing,
   resizeCanvas,
   scaleDrawing,
   turnDrawing,
 } from "../src/app/transform.ts";
+import { MAX_CANVAS_SIDE, MIN_CANVAS_SIDE } from "../src/app/canvasSize.ts";
 import type { Drawing, Stroke } from "../src/app/types.ts";
 
 // Turning the whole page around. Every rule is arithmetic over the document, so
@@ -292,6 +295,69 @@ describe("keepProportions", () => {
     expect(keepProportions({ width: 0, height: 0 }, "width", 10)).toEqual({
       width: 0,
       height: 0,
+    });
+  });
+});
+
+describe("pulling a corner", () => {
+  const start = { width: 1000, height: 500 };
+
+  it("holds the opposite corner still", () => {
+    // The whole gesture in one line: which corner you have decides which way a
+    // positive drag grows the page.
+    expect(cornerAnchor("bottom-right")).toBe("top-left");
+    expect(cornerAnchor("top-left")).toBe("bottom-right");
+    expect(cornerAnchor("top-right")).toBe("bottom-left");
+    expect(cornerAnchor("bottom-left")).toBe("top-right");
+  });
+
+  it("grows the page away from the anchor and shrinks it back", () => {
+    expect(dragCorner(start, "bottom-right", { x: 200, y: 100 })).toEqual({
+      width: 1200,
+      height: 600,
+    });
+    // The same drag on the top-left corner pulls the page the other way: down
+    // and right is *smaller* when the bottom-right is pinned.
+    expect(dragCorner(start, "top-left", { x: 200, y: 100 })).toEqual({
+      width: 800,
+      height: 400,
+    });
+    expect(dragCorner(start, "top-right", { x: 200, y: 100 })).toEqual({
+      width: 1200,
+      height: 400,
+    });
+    expect(dragCorner(start, "bottom-left", { x: 200, y: 100 })).toEqual({
+      width: 800,
+      height: 600,
+    });
+  });
+
+  it("is reversible — out and back is the size it was", () => {
+    const out = dragCorner(start, "bottom-right", { x: 340, y: -60 });
+    expect(dragCorner(out, "bottom-right", { x: -340, y: 60 })).toEqual(start);
+  });
+
+  it("keeps the proportions from the axis that moved further", () => {
+    // Mostly sideways: the width leads and the height follows it.
+    expect(
+      dragCorner(start, "bottom-right", { x: 500, y: 10 }, { keepRatio: true }),
+    ).toEqual({ width: 1500, height: 750 });
+    // Mostly downwards: the height leads instead.
+    expect(
+      dragCorner(start, "bottom-right", { x: 10, y: 250 }, { keepRatio: true }),
+    ).toEqual({ width: 1500, height: 750 });
+  });
+
+  it("holds a wild drag inside the sizes a page can be", () => {
+    expect(dragCorner(start, "bottom-right", { x: -99999, y: -99999 })).toEqual(
+      {
+        width: MIN_CANVAS_SIDE,
+        height: MIN_CANVAS_SIDE,
+      },
+    );
+    expect(dragCorner(start, "bottom-right", { x: 99999, y: 99999 })).toEqual({
+      width: MAX_CANVAS_SIDE,
+      height: MAX_CANVAS_SIDE,
     });
   });
 });

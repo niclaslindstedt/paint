@@ -163,11 +163,32 @@ layer a mark belongs to, the paint order that falls out of it, and the counts th
 panel shows.
 
 The flat array is what makes it cheap. Undo is still `pop()` on one list; the
-migration is _nothing_ (a document with no `layers` reads as a single implicit
-layer, so anything written before the feature opens untouched); and a one-layer
-drawing still writes the bytes it always did, because a stroke records a layer
-only once the drawing has a stack of its own. A tree of per-layer stroke arrays
-would have bought a nicer type and cost all three.
+migration is _nothing_ (a document with no `layers` reads as the **default
+stack**, so anything written before the feature opens untouched); and a drawing
+nobody has restacked still writes the bytes it always did, because a stroke
+records a layer only once the drawing has a stack of its own. A tree of
+per-layer stroke arrays would have bought a nicer type and cost all three.
+
+That default stack is two layers, not one: a locked **background** at the
+bottom and the **base** above it. Both ids are fixed, both are implicit, and
+that is what lets the change be free — an existing document's marks name no
+layer, so they read as the base, and the background is simply an empty locked
+sheet under them.
+
+The background is the one layer that is more than a group of marks: **the page
+colour is painted as part of it**. `renderDrawing` fills the sheet only while
+that layer is in play, so hiding it and exporting transparently are the same
+mechanism rather than two — and `visibleStrokes(drawing, { withoutBackground })`
+is what a transparent export asks for, taking the marks drawn on the sheet out
+with the colour. Because the fill is not a stroke, `cache.ts` compares
+`backgroundHidden` alongside the stroke list: it is the one document edit the
+identity comparison cannot see.
+
+`Layer.locked` is a guard rather than a mode. A locked layer takes no marks,
+cannot be selected, moved or deleted, and paints exactly as it did — so
+`activeLayer` skips locked layers when it resolves where a mark lands, and
+`drawableLayer` is how the store asks whether there is anywhere to put one at
+all.
 
 Two rules keep it honest, and both live in `visibleStrokes`:
 
@@ -187,8 +208,9 @@ only on copies — the document never sees it.
 `visibleStrokes` is the single answer to "what is on this page": the renderer
 folds over it, so the screen, the PNG / JPG / SVG downloads, the crop-to-marks
 bounds and the bucket's snapshot all agree about what a hidden layer means. For a
-single-layer drawing it hands back the document's own array by reference, which
-keeps the frame cache's identity comparison allocation-free on the common path.
+drawing with one showing layer it hands back the document's own array by
+reference, which keeps the frame cache's identity comparison allocation-free on
+the common path.
 
 Rasterising happens through the same renderer everywhere: onto the screen
 canvas, and onto an off-screen canvas for the PNG and JPG downloads. There is no

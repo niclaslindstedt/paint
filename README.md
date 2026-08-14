@@ -46,10 +46,13 @@ the same [`oss-framework`](https://github.com/niclaslindstedt/oss-framework).
   screen, Full HD, 4K, A4), so you pick by comparing rectangles rather than by
   reading numbers. The page is fixed after that, so the sketch looks the same
   everywhere it opens.
-- **Layers when you want them.** Swipe in from the right edge for the stack: put
-  the photo underneath, the tracing over it, the labels on top, and hide any of
-  them. A drawing that never asks for a second layer is stored exactly as it was
-  before layers existed.
+- **Layers, from the first stroke.** Every drawing opens as a locked
+  **Background** — the page colour itself — with **Layer 1** over it, so nothing
+  you draw lands under everything else by accident. Swipe in from the right edge
+  for the stack: put the photo underneath, the tracing over it, the labels on
+  top, hide or lock any of them. Hiding the background takes the page colour
+  with it, and a transparent export leaves that layer out. A drawing nobody
+  restacks is stored exactly as it was before layers existed.
 - **Vector, not pixels.** Undo is exact, the document is small enough for a
   phone, and a synced copy is readable JSON rather than a blob.
 - **Local-first.** No account, no server, works offline. Sync to a folder,
@@ -150,13 +153,15 @@ npm run preview
   for the airbrush, pressure for the crayon, a feathered edge for the paint
   bucket, opacity for most of the rest. They are kept per tool, so a soft brush
   stays soft without softening anything else. Each tool has a
-  single-key shortcut; a shape that can be filled opens a hollow / solid picker
-  over the page when you press its button a second time, and the eraser opens
-  the same kind of picker offering itself or a clean sweep of the whole page.
+  single-key shortcut, and a shape that can be filled opens a hollow / solid
+  picker over the page when you press its button a second time.
 - **Layers panel** — swipe in from the right edge of the page (or tap the layers
   button in the header) for the drawing's stack, topmost first, each row showing
   a preview of what is on it: add a layer, pick the one you draw on, show and
-  hide, reorder, delete. A press on the page closes it again.
+  hide, lock, reorder, delete. Every drawing starts with a locked **Background**
+  — the page itself — and **Layer 1** over it. The **Image** heading above the
+  stack resizes, flips and mirrors the page, and its bin starts the drawing
+  over. A press on the page closes it again.
 - **Header** — the drawing's name (edit in place), the favourite star, the
   layers panel, and the download menu (PNG, JPG, SVG, or copy to the clipboard).
   Undo and redo are in the sidebar's button island.

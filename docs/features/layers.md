@@ -5,8 +5,11 @@ photo on the bottom, the tracing over it, the labels over that — then hide the
 photo when you want to see the tracing alone, or slide a layer under something
 you drew earlier without redrawing it.
 
-Every drawing starts as one layer, called **Background**, holding everything you
-have already drawn. Nothing changes until you add a second one.
+Every drawing starts with **two** layers: **Background** at the bottom, which is
+the page itself, and **Layer 1** above it, which is where your marks land. The
+background is **locked**, so nothing you draw can end up underneath everything
+else by accident — and because it _is_ the page, hiding it takes the page colour
+with it and leaves the drawing on transparency.
 
 ## Getting to the panel
 
@@ -48,20 +51,30 @@ preview can never disagree with the drawing.
   preview, so you can still see what you have put away. It is off the page, out of every
   download, and invisible to the paint bucket and the colour dropper, which read
   what is painted rather than what was drawn. It is not deleted — the marks are
-  still in the document and come back with the eye.
+  still in the document and come back with the eye. Hiding the **Background**
+  hides the page colour too, which is the quickest way to see your drawing on
+  nothing.
+- **Lock / unlock** — the padlock, beside the eye. A locked layer takes no
+  marks: you cannot draw on it, select it, move it in the stack or delete it,
+  and the marks already on it are left exactly as they are. The Background is
+  locked out of the box; unlock it if you want to paint the sheet itself.
 - **Reorder** — the up and down arrows on the selected row. Raising a layer
   lifts everything drawn on it over the layers it passes.
-- **Delete** — the bin. It takes the marks on that layer with it, so a layer
-  with anything on it asks first. The last layer is never deleted: a drawing
-  always has somewhere to draw, and wiping one clean is what the eraser's own
-  sweep of the page is for. (Undo brings a deleted layer and its marks back in
-  one step, as with every other edit.)
+- **Delete** — the bin on the selected row. It takes the marks on that layer
+  with it, so a layer with anything on it asks first. The last layer is never
+  deleted, and neither is a locked one: a drawing always has somewhere to draw.
+  To empty a drawing outright, use **Start over** — the bin at the end of the
+  **Image** heading, which throws away every mark, every layer and the page
+  colour in one step. (Undo brings any of it back in one step, as with every
+  other edit.)
 
 ## What layers are not, yet
 
 Deliberately simple for now: no per-layer opacity, no blend modes, no renaming,
 no merging, and no moving marks from one layer to another after they are drawn.
 The stack, what is on it, and what order it is in — that is the whole feature.
+The Background carries the page colour but is not where you _choose_ it — that
+is still Settings → Canvas.
 
 ## How it is stored
 
@@ -71,5 +84,6 @@ tool that drew it. The stack is a short list of names beside it.
 
 That keeps undo exact (one mark is still one step), keeps the document small
 enough for a phone, and means a drawing made before layers existed needs no
-conversion: it opens as a single Background layer, and if you never add a second
-one it is saved as the same bytes it always was.
+conversion: it opens as the Background plus Layer 1 with everything already on
+Layer 1, and if you never add, hide or lock anything it is saved as the same
+bytes it always was.

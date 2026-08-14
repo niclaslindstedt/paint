@@ -44,26 +44,6 @@ export function EraserIcon({ className }: IconProps) {
   );
 }
 
-/** Clearing the page — a blank sheet, sparkling clean.
- *  Deliberately not a second eraser: it sits beside `EraserIcon` in the eraser's
- *  panel, and two rubber blocks a few pixels apart would say nothing. The frame
- *  is what makes it "all of it" rather than "some of it"; the sheet inside it is
- *  empty, and the sparkle sits *on the corner* rather than in the middle, where
- *  it would read as a mark someone left behind. It is filled because a hollow
- *  four-pointed star closes up into a blob at toolbar size. */
-export function ClearPageIcon({ className }: IconProps) {
-  return (
-    <svg {...base} className={className} aria-hidden="true">
-      <rect x="2.6" y="5.6" width="15.2" height="14.4" rx="2" />
-      <path
-        d="M19 1.6 19.95 4.45 22.8 5.4 19.95 6.35 19 9.2 18.05 6.35 15.2 5.4 18.05 4.45Z"
-        fill="currentColor"
-        stroke="none"
-      />
-    </svg>
-  );
-}
-
 /** A straight line, with its two ends marked. A bare diagonal says nothing in
  *  particular; the endpoints are what make it a segment someone drew. */
 export function LineIcon({ className }: IconProps) {
@@ -425,6 +405,31 @@ export function EyeOffIcon({ className }: IconProps) {
       <path d="M9.5 6c.8-.3 1.6-.5 2.5-.5 6 0 9.5 6.5 9.5 6.5a17 17 0 0 1-3.4 4" />
       <path d="M6.3 8.2A16.6 16.6 0 0 0 2.5 12S6 18.5 12 18.5c1.4 0 2.6-.3 3.7-.8" />
       <path d="M10.2 10.3a3 3 0 0 0 3.9 4.2" />
+    </svg>
+  );
+}
+
+/** A locked layer — a closed padlock. The shackle sits *on* the body rather
+ *  than floating over it, because at 16 pixels a gap of less than two units
+ *  between the two closes up and the glyph reads as a blob with a hat. */
+export function LockIcon({ className }: IconProps) {
+  return (
+    <svg {...base} className={className} aria-hidden="true">
+      <rect x="4.5" y="10.5" width="15" height="10" rx="2" />
+      <path d="M8 10.5V7a4 4 0 0 1 8 0v3.5" />
+    </svg>
+  );
+}
+
+/** An unlocked layer — the same padlock with the shackle swung clear. It is the
+ *  *open* one that has to read as the quiet state, so the shackle leans off to
+ *  the right instead of standing up: the two glyphs then differ in silhouette
+ *  rather than in one hidden line. */
+export function UnlockIcon({ className }: IconProps) {
+  return (
+    <svg {...base} className={className} aria-hidden="true">
+      <rect x="4.5" y="10.5" width="15" height="10" rx="2" />
+      <path d="M8 10.5V7a4 4 0 0 1 7.6-1.7" />
     </svg>
   );
 }

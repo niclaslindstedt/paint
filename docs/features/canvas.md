@@ -39,19 +39,24 @@ The page is fixed, but it is not permanent. The right-hand panel's **Image**
 section is what you can do to the whole drawing rather than to one mark — and
 every one of them is a single undo step.
 
-**Resize** asks which of two things you mean, because the word covers both:
+**Resize** asks which of two things you mean, because the word covers both. In
+both, the new page is drawn over the old one and **you can pull it by its
+corners**, the way a crop tool works: the corner opposite the one in your hand
+stays put, and the width and height below follow the drag. The **Keep
+proportions** latch beside them holds the page's shape while you pull. (The
+handles take arrow keys too, if a pointer is not what you have.)
 
 - **Everything** scales the drawing. The page and every mark on it grow or
   shrink together — the same picture, at a different size — and the nib widths
-  go with them. Keep proportions is on by default, so one side follows the
-  other. A page with pictures on it also offers **Smooth** or **Nearest**: how a
+  go with them. A page with pictures on it also offers **Smooth** or **Nearest**: how a
   bitmap is filtered when it is painted larger than it is. Nearest keeps the
   pixels square, which is what pixel art and screenshots want, and it holds at
   any zoom rather than being baked into the file.
 - **Canvas only** changes the sheet and leaves the marks exactly where they are.
   A bigger sheet gives you room; a smaller one **crops**. The nine-way anchor
   says where the current page sits inside the new one, and the picture above it
-  shows the overhang — which is the edge about to go.
+  shows the overhang — which is the edge about to go. Pulling a corner sets the
+  anchor for you: grab the bottom-right and the top-left is pinned.
 
 Nothing is deleted by a crop: marks that fall outside the sheet stay in the
 document, unpainted and unexported, and growing the page again brings them back.
@@ -128,11 +133,11 @@ a readable JSON file rather than a blob of pixels.
 - The eraser paints with the page colour. In a vector document there are no
   pixels to clear, and painting over means an eraser stroke is undoable like any
   other mark.
-- **Clearing the page** is the eraser's other half, and it wears the same folded
-  corner. Press the eraser again once it is the tool you are holding and the
-  panel offers the two scales of rubbing out: the eraser itself, and a swept
-  page that wipes every mark. The wipe asks first, and undo brings the drawing
-  back either way. It is dimmed on a page with nothing on it.
+- **Starting over** is not the eraser's job. Throwing a drawing away is an
+  action on the whole document, so it is the bin at the end of the **Image**
+  heading in the right-hand panel: every mark, every layer and the page colour
+  in one step. It asks first, undo brings the drawing back, and it is dimmed on
+  a page that is already blank (see [layers](layers.md)).
 - The **paint bucket** fills the empty space you tap, up to the marks around it
   — and files that area as a vector shape, so it stays crisp however far you
   zoom in. Marks stranded inside the area stay unpainted. Tap a gap in your

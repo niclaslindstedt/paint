@@ -59,7 +59,7 @@
 // (This file was `layer.ts` until the drawing itself grew layers. The bitmap
 // gave the word back.)
 
-import { visibleStrokes } from "./layers.ts";
+import { backgroundHidden, visibleStrokes } from "./layers.ts";
 import { paintStrokes, renderDrawing, type RenderOptions } from "./render.ts";
 import { createSurface, resizeSurface, type Surface } from "./surface.ts";
 import type { Drawing, Stroke } from "./types.ts";
@@ -351,6 +351,10 @@ function sameFrame(a: CacheSpec, b: CacheSpec): boolean {
     a.drawing.id === b.drawing.id &&
     a.drawing.width === b.drawing.width &&
     a.drawing.height === b.drawing.height &&
+    // The sheet is a layer now, so switching its eye off changes the picture
+    // without changing a stroke — the one document edit the stroke comparison
+    // below cannot see.
+    backgroundHidden(a.drawing) === backgroundHidden(b.drawing) &&
     a.view.scale === b.view.scale &&
     a.view.tx === b.view.tx &&
     a.view.ty === b.view.ty &&

@@ -10,7 +10,7 @@
 // what you saw.
 
 import { strokeVisible, type Rect } from "./geometry.ts";
-import { visibleStrokes } from "./layers.ts";
+import { backgroundHidden, visibleStrokes } from "./layers.ts";
 import { paintRegion } from "./plugins/brushes.ts";
 import { pluginById } from "./plugins/registry.ts";
 import { applyInk, paintPath, paintRect, paintSegment } from "./plugins/ink.ts";
@@ -106,10 +106,12 @@ function paintGeneric(ctx: CanvasRenderingContext2D, stroke: Stroke): void {
 
 /** How a repaint treats the page, and what it inks unpicked strokes with. */
 export type RenderOptions = InkContext & {
-  /** Clear to transparent instead of filling with the page colour. Nothing sets
-   *  it today — both the screen and the export paint the sheet — but a caller
-   *  compositing the marks over something of its own can. The page colour is
-   *  required either way: the eraser paints with it. */
+  /** Leave the background layer out: no page fill, and none of the marks drawn
+   *  on the sheet either. What a transparent export asks for — the drawing then
+   *  lands on nothing rather than on a page that happens to match.
+   *
+   *  The page colour is still required: the eraser paints with it, whether or
+   *  not the sheet under it is being painted. */
   transparentPage?: boolean;
   /** Rule a grid of this spacing (document pixels) across the page, under the
    *  marks. A **screen-only** drawing aid: the PNG export leaves it unset, so a
@@ -188,11 +190,14 @@ export function renderDrawing(
   draft: Stroke | null,
   options: RenderOptions,
 ): void {
+  // The sheet is the background layer's to paint (see `layers.ts`), so it goes
+  // down only while that layer is in play: hidden by its own eye, or dropped by
+  // a transparent export, and the page comes up empty.
+  const withoutBackground =
+    options.transparentPage === true || backgroundHidden(drawing);
   ctx.save();
   ctx.globalAlpha = 1;
-  if (options.transparentPage) {
-    // The on-screen canvas leaves the page colour to CSS so the optional grid
-    // can sit *behind* the marks — painting an opaque page here would bury it.
+  if (withoutBackground) {
     ctx.clearRect(0, 0, drawing.width, drawing.height);
   } else {
     ctx.fillStyle = options.pageColor;
@@ -202,7 +207,13 @@ export function renderDrawing(
 
   if (options.grid) paintGrid(ctx, drawing, options.grid);
 
-  paintStrokes(ctx, visibleStrokes(drawing), options);
+  // Hiding the sheet takes the colour but keeps what was drawn on it; a
+  // transparent export takes both, which is what makes it transparent.
+  paintStrokes(
+    ctx,
+    visibleStrokes(drawing, { withoutBackground: options.transparentPage }),
+    options,
+  );
   if (draft) paintStroke(ctx, draft, options, detailFor(ctx, options));
 }
 
