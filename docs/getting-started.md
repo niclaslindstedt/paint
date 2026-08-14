@@ -58,9 +58,13 @@ the page colour that rubs it out below. Press it for the palette and for **Mix a
 colour…**, which opens a hue strip and a brightness field — drag either and the
 ink changes as you go, then **Keep** adds it to your own swatches for good.
 
-The **nib button** shows the width as a dot the size it will draw. Press it for
-the widths, a slider that adds your own, and — under **Advanced** — whatever the
-tool in your hand has of its own to tune.
+The **nib button** shows a **press with the tool in your hand** — the mark that
+width actually leaves, on your page, in your ink. An airbrush is a soft cone, a
+highlighter a translucent band, the pen its flat edge, the eraser a bite out of
+the ink. Press it for the widths, a slider that adds your own, and — under
+**Advanced** — whatever the tool in your hand has of its own to tune. Every
+width in the panel is the same press at that width, so the row reads as marks
+rather than as numbers, and turning a dial redraws them under your thumb.
 
 The width belongs to the tool: a pencil width, a paintbrush width, a type size,
 each remembered separately. Every tool also opens at a width chosen for it, so

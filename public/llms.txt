@@ -29,8 +29,10 @@ connect a storage backend yourself.
 - Type on the page: the text tool opens a caret where you tap, in four
   typefaces, five type sizes, bold and italic.
 - Pick colour and stroke width from two buttons: a palette with a free colour
-  mixer that remembers what you mix, and a nib picker with your own widths. The
-  width is remembered per tool, and each tool opens at a width of its own.
+  mixer that remembers what you mix, and a nib picker with your own widths. Every
+  width is shown as a real press with the tool in your hand — the mark it would
+  leave, on your page, in your ink — rather than as a dot. The width is
+  remembered per tool, and each tool opens at a width of its own.
 - Tune the tool in your hand under the nib picker's Advanced fold — how charged
   the head is, its hair gauge, how far it has splayed and how far the paper
   bleeds for the paintbrush, flow for the airbrush, pressure for the crayon, a

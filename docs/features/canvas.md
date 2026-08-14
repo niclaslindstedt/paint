@@ -156,12 +156,18 @@ own. **Mix a colour…** opens a hue strip and a saturation/brightness field —
 drag either and the ink changes as you go; **Keep** adds it to your own swatches
 for good, and a swatch you no longer want has a small × on it.
 
-The **nib button** shows the width as a dot the size it will actually draw.
-Press it for the three widths it ships with, plus any you have added: the slider
-sets a width live, and **Keep** puts it in the row, sorted fine to broad.
-**Hardness** is under it — soft feathers a brush's edge, hard keeps it crisp. It
-is dimmed under a tool that draws a hard edge either way, which is most of
-them.
+The **nib button** shows a press with the tool in your hand: not a dot the size
+of the nib, but the mark that width actually leaves — painted by the same
+painter that paints the page, on the page colour, in the ink you have picked.
+Press it for the three widths it ships with, plus any you have added: each is
+that same press at that width, so the row reads fine-to-broad as marks rather
+than as numbers. The slider sets a width live, and **Keep** puts it in the row,
+sorted fine to broad. Under **Advanced** are the knobs belonging to the tool
+itself, and the presses above them redraw as you drag one — turning hardness
+down softens the dab while your thumb is still on the slider.
+
+A tool that leaves no mark at all — the hand, the dropper — has no press to
+show, and its nib button is dimmed and back to a plain dot.
 
 ## The header
 
