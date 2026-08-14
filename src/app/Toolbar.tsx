@@ -63,7 +63,9 @@ type Props = {
    *  section. Which dials those are comes off the plugin descriptor, so the
    *  toolbar never learns one by name (see `plugins/dials.ts`). */
   dialValues: Readonly<Record<string, number>>;
-  onDialChange: (id: string, value: number) => void;
+  /** Move one — or forget it with `null`, which is what the panel sends for a
+   *  dial dragged back to where it started. */
+  onDialChange: (id: string, value: number | null) => void;
   onResetDials: () => void;
   /** Whether any of them are off their default. */
   dialsTuned: boolean;
