@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import {
   Button,
   ImageUpIcon,
+  LABELED_FIELD_CLASS,
   Modal,
   SegmentedControl,
   SpinnerIcon,
@@ -17,6 +18,10 @@ import {
 import {
   canvasPresets,
   currentScreenCanvasSize,
+  CUSTOM_CANVAS,
+  MAX_CANVAS_SIDE,
+  MIN_CANVAS_SIDE,
+  parseCanvasSize,
   previewScale,
   type CanvasPreset,
   type CanvasSize,
@@ -50,8 +55,13 @@ import * as output from "../output.ts";
 // **The sizes are drawn, not listed.** Four rectangles at one shared scale
 // answer "how much bigger is 4K than Full HD" and "is A4 taller than my screen"
 // in the way a dropdown of numbers never did — the choice is a comparison, so
-// the control is one too. Four is the whole list on purpose: past that the shelf
-// stops being comparable and starts being a catalogue.
+// the control is one too. Four named sizes is the whole list on purpose: past
+// that the shelf stops being comparable and starts being a catalogue.
+//
+// **Custom** is the fifth cell, and it is drawn too: type a size and its
+// rectangle takes its place on the shelf at the same scale as the rest, so a
+// typed page is compared the way a named one is rather than being a number you
+// have to imagine. It opens on a big square — the page nobody offers by name.
 
 /** Which of the three the dialog is showing. */
 type Source = "blank" | "file" | "clipboard";
@@ -86,6 +96,14 @@ export function NewDrawingModal({
   const [size, setSize] = useState<CanvasSize>(
     () => presets[0]?.size ?? { width: 1920, height: 1080 },
   );
+  // The typed page, and whether it is the one chosen. Held as text so a
+  // half-typed number is the user's business rather than something to round on
+  // every keystroke.
+  const [custom, setCustom] = useState({
+    width: String(CUSTOM_CANVAS.width),
+    height: String(CUSTOM_CANVAS.height),
+  });
+  const [typedSize, setTypedSize] = useState(false);
   // A picture chosen from disk, waiting for Create.
   const [picked, setPicked] = useState<{
     image: ImportedImage;
@@ -134,15 +152,21 @@ export function NewDrawingModal({
     onDrop: (files) => take(firstFileOfType(files, "image/")),
   });
 
+  const customSize = parseCanvasSize(custom.width, custom.height);
+  // The page a blank drawing would be made at: the typed one when Custom is the
+  // cell in hand, otherwise whichever rectangle is lit.
+  const blankSize = typedSize ? customSize : size;
+
   const chosen = source === "file" ? picked?.image : undefined;
   const ready =
-    source === "blank" ||
+    (source === "blank" && blankSize) ||
     (source === "file" && picked) ||
     (source === "clipboard" && pasted);
 
   const create = () => {
-    if (source === "blank") onCreate(size);
-    else if (source === "file" && picked) {
+    if (source === "blank") {
+      if (blankSize) onCreate(blankSize);
+    } else if (source === "file" && picked) {
       onCreateFromImage(picked.image, picked.name);
     } else if (source === "clipboard" && pasted) {
       onCreateFromImage(pasted, t("newDrawing.clipboardName"));
@@ -208,12 +232,45 @@ export function NewDrawingModal({
         />
 
         {source === "blank" && (
-          <SizeShelf
-            presets={presets}
-            value={size}
-            onPick={setSize}
-            dimensions={dimensions}
-          />
+          <>
+            <SizeShelf
+              presets={presets}
+              value={blankSize}
+              custom={customSize}
+              typed={typedSize}
+              onPick={(next) => {
+                setTypedSize(false);
+                setSize(next);
+              }}
+              onPickCustom={() => setTypedSize(true)}
+              dimensions={dimensions}
+            />
+            {typedSize && (
+              <div className="flex flex-col gap-1.5">
+                <div className="flex items-end gap-2">
+                  <SideField
+                    label={t("newDrawing.width")}
+                    value={custom.width}
+                    onChange={(width) => setCustom((c) => ({ ...c, width }))}
+                  />
+                  <span className="pb-2 text-sm text-muted">×</span>
+                  <SideField
+                    label={t("newDrawing.height")}
+                    value={custom.height}
+                    onChange={(height) => setCustom((c) => ({ ...c, height }))}
+                  />
+                </div>
+                <p
+                  className={`text-xs ${customSize ? "text-muted" : "text-danger"}`}
+                >
+                  {t("newDrawing.sizeHint", {
+                    min: String(MIN_CANVAS_SIDE),
+                    max: String(MAX_CANVAS_SIDE),
+                  })}
+                </p>
+              </div>
+            )}
+          </>
         )}
 
         {source === "file" && (
@@ -289,30 +346,45 @@ export function NewDrawingModal({
   );
 }
 
-/** The four page sizes, drawn to one shared scale so they can be compared
- *  rather than read. */
+/** The page sizes, drawn to one shared scale so they can be compared rather than
+ *  read — the four named ones and the one you type. */
 function SizeShelf({
   presets,
   value,
+  custom,
+  typed,
   onPick,
+  onPickCustom,
   dimensions,
 }: {
   presets: readonly CanvasPreset[];
-  value: CanvasSize;
+  /** The page currently chosen, or `null` while a typed one is unusable. */
+  value: CanvasSize | null;
+  /** The typed page, or `null` when the fields don't describe one. */
+  custom: CanvasSize | null;
+  /** Whether the typed cell is the one in hand. */
+  typed: boolean;
   onPick: (size: CanvasSize) => void;
+  onPickCustom: () => void;
   dimensions: (size: CanvasSize) => string;
 }) {
   const t = useT();
-  const scale = previewScale(presets, PREVIEW_BOX);
+  // The typed page is on the shelf, so it is in the scale too: type a bigger
+  // page than 4K and the whole shelf shrinks to keep the comparison honest.
+  const scale = previewScale(
+    [...presets.map((p) => p.size), custom ?? CUSTOM_CANVAS],
+    PREVIEW_BOX,
+  );
   return (
     <div
-      className="grid grid-cols-2 gap-2 sm:grid-cols-4"
+      className="grid grid-cols-3 gap-2 sm:grid-cols-5"
       role="radiogroup"
       aria-label={t("newDrawing.sizeLabel")}
     >
       {presets.map((preset) => {
         const active =
-          preset.size.width === value.width &&
+          !typed &&
+          preset.size.width === value?.width &&
           preset.size.height === value.height;
         return (
           <button
@@ -360,6 +432,78 @@ function SizeShelf({
           </button>
         );
       })}
+
+      {/* The typed page, drawn like the rest — the fields for it appear under
+          the shelf once this is the cell in hand. A size the fields can't make
+          a page of shows as a dashed outline of the last usable one, so the
+          cell never collapses to nothing while you are mid-number. */}
+      <button
+        type="button"
+        role="radio"
+        aria-checked={typed}
+        onClick={onPickCustom}
+        className={`flex cursor-pointer flex-col items-center gap-1.5 rounded-lg border p-2 ${
+          typed
+            ? "border-accent bg-accent/10"
+            : "border-line hover:bg-surface-2"
+        }`}
+      >
+        <span
+          aria-hidden="true"
+          className="flex items-end justify-center"
+          style={{ height: `${PREVIEW_BOX.height}px` }}
+        >
+          <span
+            className={`block rounded-[2px] border border-dashed ${
+              typed ? "border-accent bg-accent/20" : "border-muted bg-surface-2"
+            }`}
+            style={{
+              width: `${Math.max(6, Math.round((custom ?? CUSTOM_CANVAS).width * scale))}px`,
+              height: `${Math.max(6, Math.round((custom ?? CUSTOM_CANVAS).height * scale))}px`,
+            }}
+          />
+        </span>
+        <span
+          className={`text-xs whitespace-nowrap ${
+            typed ? "text-accent" : "text-fg-bright"
+          }`}
+        >
+          {t("newDrawing.custom")}
+        </span>
+        <span className="text-[10px] whitespace-nowrap text-muted tabular-nums">
+          {custom ? dimensions(custom) : t("newDrawing.customEmpty")}
+        </span>
+      </button>
     </div>
+  );
+}
+
+/** One side of a typed page. A plain input rather than the framework's
+ *  `LabeledInput`, which commits on blur and keeps its own draft — here the two
+ *  sides are validated together on every keystroke so the Create button can go
+ *  dim the moment the pair stops being a page. It wears the framework's field
+ *  class, so it is the same box either way. */
+function SideField({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (next: string) => void;
+}) {
+  return (
+    <label className="flex min-w-0 flex-1 flex-col gap-1">
+      <span className="text-xs text-muted">{label}</span>
+      <input
+        type="number"
+        inputMode="numeric"
+        min={MIN_CANVAS_SIDE}
+        max={MAX_CANVAS_SIDE}
+        value={value}
+        onChange={(e) => onChange(e.currentTarget.value)}
+        className={`${LABELED_FIELD_CLASS} tabular-nums`}
+      />
+    </label>
   );
 }

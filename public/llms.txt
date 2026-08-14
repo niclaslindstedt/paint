@@ -11,11 +11,11 @@ connect a storage backend yourself.
 
 ## What it does
 
-- Draw with a pencil, a bristle paintbrush, an eraser, a paint bucket, a colour
-  dropper, a text tool, and the three shapes (rectangle, ellipse, line), plus a
-  hand tool that drags the page around — the toolbar out of the box.
-- Switch more tools on in Settings → Tools (airbrush, marker, highlighter,
-  crayon, calligraphy pen, arrow). Every tool is a plugin behind one interface,
+- Draw with a pencil, an airbrush, an eraser, a paint bucket, a colour dropper,
+  a text tool, and the three shapes (rectangle, ellipse, line), plus a hand tool
+  that drags the page around — the toolbar out of the box.
+- Switch more tools on in Settings → Tools (a bristle paintbrush, marker,
+  highlighter, crayon, calligraphy pen, arrow). Every tool is a plugin behind one interface,
   so the list grows without the app changing shape.
 - Type on the page: the text tool opens a caret where you tap, in four
   typefaces, five type sizes, bold and italic.
@@ -28,7 +28,11 @@ connect a storage backend yourself.
   keeps its own settings, and a mark remembers what it was drawn with.
 - Start a drawing from an empty page, an image file, or an image on the
   clipboard. An empty one asks its canvas size up front — this screen, Full HD,
-  4K or A4, drawn to one shared scale so the four can be compared at a glance.
+  4K, A4 or a size you type, drawn to one shared scale so they can be compared
+  at a glance.
+- Resize, flip (a quarter turn either way) and mirror a whole drawing from the
+  right-hand panel; resizing can scale the drawing or change only the sheet,
+  which is how a page is cropped or given more room.
 - Draw on a page bigger than the window: the canvas is a window onto it, with
   pinch-to-zoom, two-finger panning, and one-finger panning under the hand.
 - Stack a drawing into layers: swipe in from the right edge of the canvas (or

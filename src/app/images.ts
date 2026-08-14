@@ -179,6 +179,42 @@ export async function importImageFile(file: File): Promise<ImportedImage> {
   return { src, width, height };
 }
 
+/** Redraw a bitmap mirrored or turned a quarter, as a new data URL — the
+ *  `BitmapTurn` the page transforms take (see `transform.ts`).
+ *
+ *  A page transform is exact for everything else in the document, because
+ *  everything else is geometry. A picture has pixels of its own, so mapping its
+ *  frame would leave the picture inside it facing the wrong way; the bytes have
+ *  to be redrawn. That is the one lossy step in the whole operation, and it is
+ *  the same one every paint program takes.
+ *
+ *  `null` when there is nothing to redraw with — no DOM, or an image that hasn't
+ *  finished decoding — and the caller then keeps the bytes it had. */
+export function turnBitmap(
+  src: string,
+  op: { mirror?: "horizontal" | "vertical"; turn?: "left" | "right" },
+): string | null {
+  const img = cachedImage(src);
+  if (!img || typeof document === "undefined") return null;
+  const w = img.naturalWidth || img.width;
+  const h = img.naturalHeight || img.height;
+  if (!w || !h) return null;
+  const quarter = op.turn !== undefined;
+  const canvas = document.createElement("canvas");
+  canvas.width = quarter ? h : w;
+  canvas.height = quarter ? w : h;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return null;
+  ctx.translate(canvas.width / 2, canvas.height / 2);
+  if (op.turn) ctx.rotate((op.turn === "right" ? 1 : -1) * (Math.PI / 2));
+  if (op.mirror === "horizontal") ctx.scale(-1, 1);
+  if (op.mirror === "vertical") ctx.scale(1, -1);
+  ctx.drawImage(img, -w / 2, -h / 2, w, h);
+  // PNG throughout: a turn is not the moment to re-compress a photo, and the
+  // bytes were already capped on the way in (`MAX_IMPORT_EDGE`).
+  return canvas.toDataURL("image/png");
+}
+
 /** A drawing's name for an imported file: the file name with its extension
  *  taken off, so `holiday-photo.jpg` becomes `holiday-photo`. */
 export function imageFileStem(name: string): string {

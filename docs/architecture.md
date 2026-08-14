@@ -16,7 +16,7 @@ index.html → src/main.tsx ─┬─ src/App.tsx
                            │    │     └── SideMenuRows (its presentational leaves)
                            │    ├── CanvasScreen      (header, page, toolbar)
                            │    │     ├── PaintCanvas (the gesture in flight)
-                           │    │     ├── LayersPanel (the stack, on a swipe)
+                           │    │     ├── SidePanel   (page actions + the stack)
                            │    │     └── Toolbar     (enabled tools + ink)
                            │    ├── ArchiveScreen     (lazy)
                            │    └── SettingsModal     (lazy)
@@ -24,7 +24,8 @@ index.html → src/main.tsx ─┬─ src/App.tsx
 
 stores:   usePaintStore · useAppSettings · useNamespaces · useSyncEngine
 domain:   types · layers · render · plugins/* · migrations · canvas · export
-          handoff (between namespaces) · sidebarDnd (which drops are legal)
+          transform (mirror / turn / resize) · handoff (between namespaces)
+          sidebarDnd (which drops are legal)
 platform: @niclaslindstedt/oss-framework (UI kit, storage, theme, i18n, PWA)
 ```
 
@@ -247,6 +248,17 @@ four presets, what "this screen" resolves to, and the one scale all four are
 _drawn_ at so they can be compared as rectangles) live in `canvasSize.ts`, pure
 and node-testable; `NewDrawingModal.tsx` is only the dialog around them, and the
 size reaches the document as the `init` patch `addDrawing` already took.
+
+`transform.ts` is the other half of that story: mirroring, quarter turns,
+scaling, and resizing the sheet alone. All four are one map from a point on the
+page to another, applied to every stroke's geometry — pure and node-testable,
+because a vector document has nothing to resample. Two shapes need more than
+their corners mapped and both are handled there: a caption's _box_ is mapped
+while the words stay upright, and a bitmap's pixels are redrawn through an
+injected callback (`turnBitmap` in `images.ts`) so the module itself stays
+DOM-free. The store turns any of them into one undo step (`transformActive`),
+and the screen re-fits the view afterwards, because a page that changed shape is
+one the window is no longer pointed at.
 
 That dialog also asks what the drawing is made of — an empty page, an image file,
 or an image on the clipboard (`clipboard.ts`, where every failure to read one is

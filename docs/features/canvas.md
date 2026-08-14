@@ -3,15 +3,19 @@
 The page you draw on is a fixed pixel size, and you choose it when the drawing
 is made: **New drawing** asks how big the page should be before it opens one.
 
-| Size              | What it is                                                     |
-| ----------------- | -------------------------------------------------------------- |
-| **This screen**   | Your display's own resolution — the default, and usually right |
-| **Full HD**       | 1920 × 1080                                                    |
-| **4K**            | 3840 × 2160                                                    |
-| **Large sheet**   | 3200 × 2000 — bigger than any screen, for a diagram that grows |
-| **Square**        | 2048 × 2048                                                    |
-| **A4 at 300 dpi** | 2480 × 3508, portrait — a page to print                        |
-| **Custom size…**  | Type a width and a height, 64–8192 px on each side             |
+| Size            | What it is                                                     |
+| --------------- | -------------------------------------------------------------- |
+| **This screen** | Your display's own resolution — the default, and usually right |
+| **Full HD**     | 1920 × 1080                                                    |
+| **4K**          | 3840 × 2160                                                    |
+| **A4**          | 2480 × 3508 at 300 dpi, portrait — a page to print             |
+| **Custom**      | Type a width and a height, 64–8192 px on each side             |
+
+They are **drawn rather than listed**: five rectangles at one shared scale, so
+"how much bigger is 4K than Full HD" and "is A4 taller than my screen" are
+questions you answer by looking. The custom cell is drawn too — type a size and
+its rectangle takes its place on the shelf beside the named ones. It opens on
+2048 × 2048, the big square nobody offers by name.
 
 "This screen" is the resolution the display actually has, pixel ratio included,
 so a page made on a retina laptop exports at its native size rather than at half
@@ -28,6 +32,41 @@ Because the size is fixed rather than reflowed, a sketch made on a laptop looks
 the same on a phone — you just see less of it at once. The page also grows on
 its own in one case: a picture dropped past its edge takes the sheet with it
 (see [images](images.md)).
+
+## Changing the page afterwards
+
+The page is fixed, but it is not permanent. The right-hand panel's **Image**
+section is what you can do to the whole drawing rather than to one mark — and
+every one of them is a single undo step.
+
+**Resize** asks which of two things you mean, because the word covers both:
+
+- **Everything** scales the drawing. The page and every mark on it grow or
+  shrink together — the same picture, at a different size — and the nib widths
+  go with them. Keep proportions is on by default, so one side follows the
+  other. A page with pictures on it also offers **Smooth** or **Nearest**: how a
+  bitmap is filtered when it is painted larger than it is. Nearest keeps the
+  pixels square, which is what pixel art and screenshots want, and it holds at
+  any zoom rather than being baked into the file.
+- **Canvas only** changes the sheet and leaves the marks exactly where they are.
+  A bigger sheet gives you room; a smaller one **crops**. The nine-way anchor
+  says where the current page sits inside the new one, and the picture above it
+  shows the overhang — which is the edge about to go.
+
+Nothing is deleted by a crop: marks that fall outside the sheet stay in the
+document, unpainted and unexported, and growing the page again brings them back.
+
+**Flip** turns the page a quarter turn, left or right. The sheet's sides swap
+with it — a landscape drawing turned is a portrait one — and the view fits the
+new page so you can see what happened.
+
+**Mirror** reflects it: **horizontal** swaps left and right, **vertical** swaps
+top and bottom. Both are their own undo, so doing one twice is where you started.
+
+Captions stay upright through all of it — type turned upside down is type you
+cannot read — and their boxes move with the page. Pictures are redrawn, because
+a bitmap has pixels of its own that mapping its frame would leave facing the
+wrong way.
 
 ## Zooming and panning
 

@@ -134,9 +134,24 @@ export function App() {
   } | null>(null);
 
   // Wide screens (≥ the smallest iPad) dock the sidebar permanently; phones
-  // collapse it to a draggable drawer.
-  const pinned = useMediaQuery("(min-width: 768px)");
+  // collapse it to a draggable drawer. Either way the header's hamburger is the
+  // way to it — on a wide screen it folds the docked column away for the canvas,
+  // on a phone it opens the drawer, and `toggleMenu` below is the one place that
+  // knows which of the two it is doing.
+  const wide = useMediaQuery("(min-width: 768px)");
+  const [menuFolded, setMenuFolded] = useState(false);
+  const pinned = wide && !menuFolded;
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const menuShowing = pinned || drawerOpen;
+  const toggleMenu = () => {
+    if (wide) setMenuFolded((folded) => !folded);
+    else setDrawerOpen((open) => !open);
+  };
+
+  // …and the right-hand panel docks where there is room for a second column
+  // beside the canvas. A wider bar than the sidebar's on purpose: at 768 the
+  // two docked columns leave a phone-sized window to draw in.
+  const dockPanel = useMediaQuery("(min-width: 1024px)");
   const [position, setPosition] = usePersistentMenuPosition(
     "paint:menu-position",
   );
@@ -161,8 +176,9 @@ export function App() {
     enabled: !import.meta.env.DEV,
   });
 
-  // "Open sidebar with" (Settings → General): on phones, the user picks between
-  // the floating button and an inward edge swipe.
+  // "Open sidebar with" (Settings → General): on phones the header button is
+  // always there, and this is whether an inward edge swipe opens the drawer as
+  // well.
   const swipeToOpen = !pinned && settings.menuMode === "swipe";
   useEdgeSwipeOpen({
     side: position.side,
@@ -244,15 +260,15 @@ export function App() {
         onClose={() => setDrawerOpen(false)}
         position={position}
         onPositionChange={setPosition}
-        // On phones the button shows only in "Floating button" mode; in swipe
-        // mode the edge gesture opens the drawer instead.
-        showButton={!pinned && !swipeToOpen}
+        // No floating button any more: the canvas header's hamburger is the one
+        // way in, and it costs the page no corner (see `CanvasScreen`).
+        showButton={false}
         swipeToClose
         panelScroll={false}
         labels={{
           nav: t("menu.nav"),
-          open: "Open sidebar",
-          close: "Close sidebar",
+          open: t("menu.open"),
+          close: t("menu.close"),
         }}
       >
         <SideMenuContent
@@ -315,6 +331,9 @@ export function App() {
             }}
             tool={tool}
             darkCanvas={darkCanvas}
+            onToggleMenu={toggleMenu}
+            menuOpen={menuShowing}
+            dockPanel={dockPanel}
             // The edge the drawer's open-swipe is watching, so the canvas can
             // hold that swipe back instead of drawing it. `null` whenever
             // nothing is listening — a docked sidebar, the floating button, or
