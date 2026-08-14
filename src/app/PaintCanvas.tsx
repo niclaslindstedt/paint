@@ -7,20 +7,24 @@ import {
   useState,
 } from "react";
 
+import { boxFromCorners, type Box } from "./bounds.ts";
 import {
   classifyEdgeDrag,
   inEdgeZone,
   isDoubleTap,
   isTap,
+  LONG_PRESS_MS,
   type MenuEdge,
 } from "./gestures.ts";
+import { paintFrame } from "./frame.ts";
 import { onImageDecoded } from "./images.ts";
-import { createCache, paintCommitted, type MarkCache } from "./cache.ts";
+import type { MarkCache } from "./cache.ts";
+import { isMeaningfulDrag } from "./plugins/ink.ts";
 import { pluginById } from "./plugins/registry.ts";
 import type { CanvasProbe, DraftStroke, ToolContext } from "./plugins/types.ts";
 import { createProbe } from "./probe.ts";
-import { paintStrokes } from "./render.ts";
-import type { Drawing, Point } from "./types.ts";
+import { inBox } from "./selection.ts";
+import type { Drawing, Point, Stroke } from "./types.ts";
 import {
   clampView,
   fitView,
@@ -52,11 +56,15 @@ import {
 // The gesture split is the Procreate one, and it is the whole interaction model:
 //
 //   one finger / pen / mouse   draws — or pans, under a tool that `navigates`,
-//                              samples, under one that `picksColor`, or opens a
-//                              caret, under one that `entersText`
+//                              samples, under one that `picksColor`, opens a
+//                              caret, under one that `entersText`, or drags a
+//                              marquee, under one that `selects`
+//   …on a selection, with the  moves the marks instead of the page: the hand is
+//   hand                       what picks things up, and it is the same drag
 //   two fingers                pinch to zoom, drag to pan
 //   wheel                      pans; ctrl/⌘ + wheel (and a trackpad pinch) zooms
 //   double-tap (hand only)     fits the page, again for 1:1
+//   long press / right click   opens the selection's menu — copy, cut, delete
 //   inward swipe from the edge opens the sidebar — or, from the right, the
 //                              layers panel — and draws nothing
 //
@@ -94,6 +102,21 @@ type Props = {
    *  the document: the caption arrives later, as a finished mark (see
    *  `TextEntry.tsx`). */
   onEnterText?: (at: Point) => void;
+  /** Called with the box a tool that `selects` dragged, in document
+   *  coordinates — or `null` for a press that never moved, which means "select
+   *  nothing". The marks inside it are the screen's to work out (see
+   *  `selection.ts`); nothing reaches the document. */
+  onSelectBox?: (box: Box | null) => void;
+  /** The marks currently selected, and the page they cover. The canvas outlines
+   *  the box, and a drag on it under the hand moves them. */
+  selection?: { ids: readonly string[]; box: Box } | null;
+  /** Called once, when a drag that moved the selection lifts — the whole move,
+   *  as one edit. The drag itself is shown live here and touches no document. */
+  onMoveSelection?: (dx: number, dy: number) => void;
+  /** Called where a right-click, or a long press on touch, asks for the
+   *  selection's menu — in viewport coordinates, which is where a floating menu
+   *  is placed. */
+  onContextMenu?: (at: Point) => void;
   /** Paint a faint grid behind the page as a drawing aid. Never exported. */
   showGrid?: boolean;
   /** Bumped by the zoom pill to toggle between fitting the page and 1:1. */
@@ -124,9 +147,6 @@ type Props = {
   ariaLabel: string;
 };
 
-/** Grid spacing in document pixels. */
-const GRID_STEP = 40;
-
 /** How much one wheel notch zooms. Small enough that a trackpad pinch (which
  *  arrives as a stream of ctrl+wheel events) feels continuous. */
 const WHEEL_ZOOM_RATE = 0.0015;
@@ -140,6 +160,10 @@ export function PaintCanvas({
   onCommit,
   onPickColor,
   onEnterText,
+  onSelectBox,
+  selection = null,
+  onMoveSelection,
+  onContextMenu,
   showGrid = false,
   fitToken = 0,
   onScaleChange,
@@ -186,6 +210,23 @@ export function PaintCanvas({
   // Only a navigating tool ever arms these (see the header note).
   const tapStart = useRef<{ pointerId: number; point: Point } | null>(null);
   const lastTap = useRef<{ time: number; point: Point } | null>(null);
+  // A drag that is moving the selection rather than the page. It carries the
+  // marks it picked up, so a frame can paint them where the finger has got to
+  // without going anywhere near the document, and a set of their ids, which the
+  // repaint hides from the cached page underneath (see `RenderOptions.omit`).
+  // The set is made once per drag and kept: the cache compares it by identity,
+  // so a fresh one each frame would repaint the whole page each frame.
+  const moveStart = useRef<{
+    pointerId: number;
+    origin: Point;
+    strokes: Stroke[];
+    ids: Set<string>;
+    box: Box;
+  } | null>(null);
+  const moveBy = useRef<Point>({ x: 0, y: 0 });
+  // A press that may still become a long one: the timer that decides, and where
+  // it landed — a finger that wanders is not being held still.
+  const hold = useRef<{ timer: number; from: Point } | null>(null);
   // A touch that landed in a watched edge strip and has begun nothing yet: it
   // may be an inward swipe — the sidebar's, or the layers panel's. `viewport`
   // is where it landed on the screen (what the swipe is measured in), `point`
@@ -218,8 +259,22 @@ export function PaintCanvas({
   // Everything else a repaint reads. The paint runs from an animation frame,
   // outside React's render, so it takes its inputs from here rather than from a
   // closure that may be a frame out of date.
-  const inks = useRef({ drawing, pageColor, defaultInk, showGrid, decodedAt });
-  inks.current = { drawing, pageColor, defaultInk, showGrid, decodedAt };
+  const inks = useRef({
+    drawing,
+    pageColor,
+    defaultInk,
+    showGrid,
+    decodedAt,
+    selection,
+  });
+  inks.current = {
+    drawing,
+    pageColor,
+    defaultInk,
+    showGrid,
+    decodedAt,
+    selection,
+  };
   // The committed marks, as pixels (see `cache.ts`). Opened on the first paint
   // and kept for the life of the canvas.
   const cacheRef = useRef<MarkCache | null>(null);
@@ -350,84 +405,23 @@ export function PaintCanvas({
     onViewChange?.(view);
   }, [view, onScaleChange, onViewChange]);
 
-  /** Paint one frame.
-   *
-   *  The committed marks come off the cache — a blit while a stroke is being
-   *  drawn, a repaint when the document or the view actually changed (see
-   *  `cache.ts`). The gesture in flight and the sheet's outline go on top,
-   *  every frame, because both change every frame. */
+  /** Paint one frame — everything it depends on, gathered from the refs above
+   *  and handed to `frame.ts`, which owns what a frame looks like. */
   const paint = useCallback(() => {
     const canvas = canvasRef.current;
     const view = viewRef.current;
-    const window_ = viewportRef.current;
     if (!canvas || !view) return;
-    const { drawing, pageColor, defaultInk, showGrid, decodedAt } =
-      inks.current;
-    const dpr = Math.min(window.devicePixelRatio || 1, 3);
-    const width = Math.round(window_.width * dpr);
-    const height = Math.round(window_.height * dpr);
-    if (width === 0 || height === 0) return;
-    if (canvas.width !== width) canvas.width = width;
-    if (canvas.height !== height) canvas.height = height;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    const options = {
-      pageColor,
-      defaultInk,
-      grid: showGrid ? GRID_STEP : undefined,
-    };
-
-    // Paint from a view whose pan is a whole number of device pixels. The view
-    // itself keeps its exact value — panning stays smooth and reversible, and
-    // the clamp still bites where it bit — but a *frame* is drawn on the pixel
-    // grid, which is what lets a drag reuse the frame before it by copying it
-    // sideways rather than resampling it (see `cache.ts`). Half a device pixel
-    // is below anything a screen can show; a smeared drawing is not.
-    const snapped = {
-      scale: view.scale,
-      tx: Math.round(view.tx * dpr) / dpr,
-      ty: Math.round(view.ty * dpr) / dpr,
-    };
-
-    // Clear the whole window first — what shows through around the sheet is the
-    // container's own background, so the page reads as a sheet on a desk.
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.clearRect(0, 0, width, height);
-
-    // The committed marks: a blit while a stroke is being drawn, a repaint when
-    // the document or the view actually changed (see `cache.ts`).
-    cacheRef.current ??= createCache(width, height);
-    paintCommitted(ctx, canvas, cacheRef.current, {
-      drawing,
-      view: snapped,
-      width,
-      height,
-      dpr,
-      options,
-      decodedAt,
+    const moving = moveStart.current;
+    paintFrame({
+      canvas,
+      view,
+      viewport: viewportRef.current,
+      ...inks.current,
+      selection: inks.current.selection?.box ?? null,
+      draft: draftRef.current,
+      moving: moving ? { ...moving, offset: moveBy.current } : null,
+      cache: cacheRef,
     });
-
-    // Then the view: device pixels, then the view's scale and pan. From here on
-    // this works in document coordinates exactly as the PNG export does.
-    ctx.setTransform(
-      dpr * snapped.scale,
-      0,
-      0,
-      dpr * snapped.scale,
-      dpr * snapped.tx,
-      dpr * snapped.ty,
-    );
-    const draft = draftRef.current;
-    if (draft) paintStrokes(ctx, [{ ...draft, id: "draft" }], options);
-    // Outline the sheet so its edge is visible against the desk. Screen-only —
-    // it is chrome, not a mark, so it lives here rather than in the renderer
-    // the PNG export shares, and it stays off the cache so a cached frame never
-    // has to be thrown away to redraw it. The width is divided by the zoom so
-    // the line stays a hairline at any scale instead of fattening as you zoom.
-    ctx.strokeStyle = "rgba(120,130,145,0.4)";
-    ctx.lineWidth = 1 / view.scale;
-    ctx.strokeRect(0, 0, drawing.width, drawing.height);
   }, []);
 
   /** Ask for a repaint on the next animation frame, at most one per frame.
@@ -464,6 +458,7 @@ export function PaintCanvas({
     defaultInk,
     showGrid,
     decodedAt,
+    selection,
     requestPaint,
   ]);
 
@@ -484,6 +479,33 @@ export function PaintCanvas({
       tapStart.current = null;
     }
   }, []);
+
+  /** Drop the selection drag without moving anything — what a pinch, a
+   *  cancelled pointer or an unmount does to one in flight. */
+  const dropMove = useCallback(
+    (pointerId?: number) => {
+      if (
+        pointerId !== undefined &&
+        moveStart.current?.pointerId !== pointerId
+      ) {
+        return;
+      }
+      if (!moveStart.current) return;
+      moveStart.current = null;
+      moveBy.current = { x: 0, y: 0 };
+      requestPaint();
+    },
+    [requestPaint],
+  );
+
+  /** Forget the press that might have become a long one. */
+  const dropHold = useCallback(() => {
+    if (!hold.current) return;
+    clearTimeout(hold.current.timer);
+    hold.current = null;
+  }, []);
+
+  useEffect(() => () => dropHold(), [dropHold]);
 
   /** Start whatever gesture the active tool makes of a press at `at` (an
    *  element point). Split out from the pointer handler because a press held
@@ -522,6 +544,22 @@ export function PaintCanvas({
     // starting a stroke, and is a tap until it travels far enough not to be.
     if (plugin.navigates) {
       if (!viewRef.current) return;
+      // …unless it landed on a selection, in which case it grabs *that*. The
+      // hand is what picks things up, and the drag is the same drag — what
+      // moves is the marks rather than the window behind them.
+      const picked = selection;
+      if (picked && picked.ids.length > 0 && inBox(picked.box, toDoc(at))) {
+        const held = new Set(picked.ids);
+        moveStart.current = {
+          pointerId,
+          origin: toDoc(at),
+          strokes: pageRef.current.strokes.filter((s) => held.has(s.id)),
+          ids: held,
+          box: picked.box,
+        };
+        moveBy.current = { x: 0, y: 0 };
+        return;
+      }
       panStart.current = { pointerId, view: viewRef.current, origin: at };
       tapStart.current = { pointerId, point: at };
       return;
@@ -563,10 +601,52 @@ export function PaintCanvas({
     }
   };
 
+  /** Whether a press here should offer the selection's menu.
+   *
+   *  Two ways it can: it landed on the selection (whatever tool is in hand — the
+   *  marks under your finger are what the menu is about), or the marquee tool is
+   *  the one you are holding, which is where "paste it here" belongs even with
+   *  nothing selected. Anywhere else the press is a mark, and a menu opening
+   *  over a drawing hand is exactly the interruption the sidebar's long press
+   *  was taken away for. */
+  const menuHere = (at: Point): boolean => {
+    if (
+      selection &&
+      selection.ids.length > 0 &&
+      inBox(selection.box, toDoc(at))
+    ) {
+      return true;
+    }
+    return Boolean(pluginById(tool)?.selects);
+  };
+
   const handleDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
     e.currentTarget.setPointerCapture(e.pointerId);
     const at = elementPoint(e);
     pointers.current.set(e.pointerId, at);
+    dropHold();
+
+    // A finger held still over a selection asks for its menu — the touch half of
+    // a right-click. Armed only where the menu means something (see `menuHere`),
+    // and dropped the moment the press moves, lifts, or is joined by a second
+    // finger.
+    if (e.pointerType === "touch" && pointers.current.size === 1) {
+      if (menuHere(at)) {
+        const point = { x: e.clientX, y: e.clientY };
+        hold.current = {
+          from: at,
+          timer: window.setTimeout(() => {
+            hold.current = null;
+            // Whatever the press had begun is abandoned: the menu is the gesture
+            // now, and half a marquee behind it is not.
+            abandon();
+            endPan();
+            dropMove();
+            onContextMenu?.(point);
+          }, LONG_PRESS_MS),
+        };
+      }
+    }
 
     // Two pointers down: this is a pinch, not a stroke. Drop any stroke the
     // first finger had begun — the user is zooming, and half a line they never
@@ -574,11 +654,13 @@ export function PaintCanvas({
     if (pointers.current.size === 2) {
       const [a, b] = [...pointers.current.values()];
       abandon();
-      // …and any pan or half-made tap, for the same reason: a pinch is not the
-      // second half of a double-tap. A held edge press goes with them: two
-      // fingers are not the drawer's swipe either.
+      // …and any pan, half-made tap, or selection being dragged, for the same
+      // reason: a pinch is not the second half of a double-tap. A held edge
+      // press goes with them: two fingers are not the drawer's swipe either.
       endPan();
+      dropMove();
       dropHeld();
+      dropHold();
       lastTap.current = null;
       if (viewRef.current && a && b) {
         pinchStart.current = { view: viewRef.current, a, b };
@@ -611,6 +693,19 @@ export function PaintCanvas({
     if (!pointers.current.has(e.pointerId)) return;
     const at = elementPoint(e);
     pointers.current.set(e.pointerId, at);
+    // A press that has wandered from where it landed is not being held still,
+    // whatever else it turns out to be.
+    if (hold.current && !isTap(hold.current.from, at)) dropHold();
+
+    // A selection being dragged: the marks follow the finger, and nothing
+    // reaches the document until it lifts.
+    const move = moveStart.current;
+    if (move && move.pointerId === e.pointerId) {
+      const to = documentPoint(e);
+      moveBy.current = { x: to.x - move.origin.x, y: to.y - move.origin.y };
+      requestPaint();
+      return;
+    }
 
     // A pinch in progress owns the gesture: scale by how far the fingers have
     // spread since it began, pan by how far their midpoint moved.
@@ -684,6 +779,22 @@ export function PaintCanvas({
 
   const finish = (e: React.PointerEvent<HTMLCanvasElement>) => {
     release(e);
+    dropHold();
+
+    // A selection that was being dragged lands here, once: the canvas has been
+    // showing the move all along without touching a thing, and this is the
+    // single edit (and the single undo step) the whole drag costs.
+    const move = moveStart.current;
+    if (move && move.pointerId === e.pointerId) {
+      const { x: dx, y: dy } = moveBy.current;
+      moveStart.current = null;
+      moveBy.current = { x: 0, y: 0 };
+      if (dx !== 0 || dy !== 0) onMoveSelection?.(dx, dy);
+      // A drag that went nowhere changes no document, so nothing else will ask
+      // for the frame that puts the marks back on the page.
+      else requestPaint();
+      return;
+    }
 
     // A press still held at the edge when the finger lifts was never the
     // drawer's — the swipe would have fired long before this. Start it now so
@@ -725,6 +836,20 @@ export function PaintCanvas({
       committed = plugin.behaviour.end
         ? plugin.behaviour.end(current, context())
         : current;
+      // A marquee's box never reaches the document: the tool chooses marks
+      // rather than making one, so the box goes to the screen and the frame
+      // below clears the ants off the page. A press that never moved means
+      // "select nothing" — a drag that did means "select what this covers".
+      if (plugin.selects) {
+        const box =
+          committed?.shape.kind === "box" &&
+          isMeaningfulDrag(committed.shape.from, committed.shape.to)
+            ? boxFromCorners(committed.shape.from, committed.shape.to)
+            : null;
+        onSelectBox?.(box);
+        requestPaint();
+        return;
+      }
       if (committed) onCommit(committed);
     }
     // A committed stroke asks for no frame here: it arrives as a new document,
@@ -742,9 +867,23 @@ export function PaintCanvas({
     release(e);
     endPan(e.pointerId);
     dropHeld(e.pointerId);
+    dropHold();
+    // A cancelled drag puts the marks back where they were: nothing was moved,
+    // because nothing reached the document until the finger lifted.
+    dropMove(e.pointerId);
     lastTap.current = null;
     if (drawingPointer.current !== e.pointerId) return;
     abandon();
+  };
+
+  /** The desktop half of the selection menu. The browser's own menu is refused
+   *  where ours means something and left alone everywhere else — a right-click
+   *  on a drawing surface with nothing selected has no business being swallowed. */
+  const contextMenu = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!onContextMenu) return;
+    if (!menuHere(elementPoint(e))) return;
+    e.preventDefault();
+    onContextMenu({ x: e.clientX, y: e.clientY });
   };
 
   // Wheel: pan by default, zoom with ctrl/⌘ held. A trackpad pinch arrives as
@@ -780,7 +919,9 @@ export function PaintCanvas({
   // moved, crosshairs when the next press would leave a mark.
   const navigates = Boolean(pluginById(tool)?.navigates);
   const typing = Boolean(pluginById(tool)?.entersText);
-  const holding = Boolean(pinchStart.current || panStart.current);
+  const holding = Boolean(
+    pinchStart.current || panStart.current || moveStart.current,
+  );
 
   return (
     <canvas
@@ -791,6 +932,7 @@ export function PaintCanvas({
       onPointerMove={handleMove}
       onPointerUp={finish}
       onPointerCancel={cancel}
+      onContextMenu={contextMenu}
       // `touch-none` hands every touch to this component: without it a drag on
       // the canvas scrolls or zooms the page instead of drawing and pinching.
       className="h-full w-full touch-none"

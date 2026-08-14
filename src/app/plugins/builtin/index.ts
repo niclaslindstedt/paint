@@ -2,23 +2,29 @@
 // The tools this build ships, registered in toolbar order.
 //
 // Importing this module is what puts them in the registry — `src/main.tsx`
-// does it once, before the app mounts. Registration order *is* toolbar order,
-// and it is deliberate: it reads down Photoshop's tool column, so a hand that
-// already knows one toolbar finds this one where it expects to. Sample, then
-// paint, then erase, then fill, then type, then the shapes, and the tool that
-// moves the view last of all — that column with the gaps closed up, since
-// selections, crop and pen paths are tools this app has no business shipping.
+// does it once, before the app mounts. Registration order is the toolbar's
+// *default* order, and it is deliberate: it reads down Photoshop's tool column,
+// so a hand that already knows one toolbar finds this one where it expects to.
+// Sample, then paint, then erase, then fill, then type, then the shapes, then
+// the marquee, and the tool that moves the view last of all — that column with
+// the gaps closed up, since crop and pen paths are tools this app has no
+// business shipping. Anyone who disagrees can drag the rows into another order
+// in Settings → Tools, and the toolbar follows (see `orderEntries`).
 //
 // Whether a tool is *in* the toolbar is a separate question from where it sits,
 // and it has three answers (see `plugins/types.ts`): `core` tools are always
 // there, `defaultOn` ones are there until you switch them off, and the rest
 // wait in Settings → Tools until you switch them on. Switching one on slots it
-// into its registration position rather than appending it, so the toolbar's
-// order never depends on the order you discovered it in.
+// into its place in the order rather than appending it, so the toolbar never
+// depends on the order you discovered it in.
+//
+// A fourth answer sits above those three: a tool may belong to a **group**, and
+// then the group carries the switch and the toolbar button for the whole family.
+// The eleven shapes are the case — see the shapes block below.
 //
 // **What a first run finds is the shape of Paint**: a nib, a brush, a rubber, a
-// bucket, a dropper, type, and the three shapes — the toolbox anyone who has
-// opened a paint program has already used. The media (marker, crayon, chalk
+// bucket, a dropper, type, the shapes and the marquee — the toolbox anyone who
+// has opened a paint program has already used. The media (marker, crayon, chalk
 // nib, airbrush, highlighter) are the app's own additions and are one tap away
 // in Settings → Tools; they are not what an empty page should open holding.
 //
@@ -49,29 +55,48 @@ import {
   BucketIcon,
   CircleIcon,
   CrayonIcon,
+  DiamondIcon,
+  DoubleArrowIcon,
   DropperIcon,
   EraserIcon,
   HandIcon,
+  HexagonIcon,
   HighlighterIcon,
   LineIcon,
   MarkerIcon,
   NibIcon,
+  PentagonIcon,
+  RoundSquareIcon,
+  SelectIcon,
+  ShapesIcon,
   SprayIcon,
   SquareIcon,
+  StarShapeIcon,
   TextIcon,
+  TriangleIcon,
 } from "../../icons.tsx";
-import { registerPlugin } from "../registry.ts";
+import { registerGroup, registerPlugin } from "../registry.ts";
+import type { PaintPlugin } from "../types.ts";
 import { FEATHER, FLOW, HAIR, HARDNESS, OPACITY, PRESSURE } from "./dials.ts";
 import { dropperBehaviour } from "./dropper.ts";
 import { fillBehaviour } from "./fill.ts";
 import { freehandBehaviour } from "./freehand.ts";
 import { handBehaviour } from "./hand.ts";
 import { imageBehaviour, IMAGE_TOOL_ID } from "./image.ts";
+import { selectBehaviour, SELECT_TOOL_ID } from "./select.ts";
 import {
   arrowBehaviour,
+  SHAPES_GROUP_ID,
+  diamondBehaviour,
+  doubleArrowBehaviour,
   ellipseBehaviour,
+  hexagonBehaviour,
   lineBehaviour,
+  pentagonBehaviour,
   rectangleBehaviour,
+  roundRectBehaviour,
+  starBehaviour,
+  triangleBehaviour,
 } from "./shapes.ts";
 import {
   DEFAULT_TEXT_SIZE,
@@ -79,6 +104,106 @@ import {
   TEXT_TOOL_ID,
   textBehaviour,
 } from "./text.ts";
+
+/** The shapes, in the order the picker lays them out: the four a paint program
+ *  has always had first — rectangle, ellipse, line, arrow — then the ones a
+ *  diagram wants, closed shapes before open ones.
+ *
+ *  Only those four carry a keyboard shortcut. A letter each for eleven shapes
+ *  would eat most of the alphabet for marks that are one press apart in the
+ *  picker anyway; the four that had one keep it. */
+const SHAPES: readonly Omit<PaintPlugin, "group" | "defaultSize" | "dials">[] =
+  [
+    {
+      id: "rectangle",
+      nameKey: "tools.rectangle.name",
+      descriptionKey: "tools.rectangle.description",
+      icon: SquareIcon,
+      shortcut: "r",
+      supportsFill: true,
+      behaviour: rectangleBehaviour,
+    },
+    {
+      id: "ellipse",
+      nameKey: "tools.ellipse.name",
+      descriptionKey: "tools.ellipse.description",
+      icon: CircleIcon,
+      shortcut: "o",
+      supportsFill: true,
+      behaviour: ellipseBehaviour,
+    },
+    {
+      id: "line",
+      nameKey: "tools.line.name",
+      descriptionKey: "tools.line.description",
+      icon: LineIcon,
+      shortcut: "l",
+      behaviour: lineBehaviour,
+    },
+    {
+      id: "arrow",
+      nameKey: "tools.arrow.name",
+      descriptionKey: "tools.arrow.description",
+      icon: ArrowIcon,
+      shortcut: "a",
+      behaviour: arrowBehaviour,
+    },
+    {
+      id: "roundrect",
+      nameKey: "tools.roundrect.name",
+      descriptionKey: "tools.roundrect.description",
+      icon: RoundSquareIcon,
+      supportsFill: true,
+      behaviour: roundRectBehaviour,
+    },
+    {
+      id: "triangle",
+      nameKey: "tools.triangle.name",
+      descriptionKey: "tools.triangle.description",
+      icon: TriangleIcon,
+      supportsFill: true,
+      behaviour: triangleBehaviour,
+    },
+    {
+      id: "diamond",
+      nameKey: "tools.diamond.name",
+      descriptionKey: "tools.diamond.description",
+      icon: DiamondIcon,
+      supportsFill: true,
+      behaviour: diamondBehaviour,
+    },
+    {
+      id: "pentagon",
+      nameKey: "tools.pentagon.name",
+      descriptionKey: "tools.pentagon.description",
+      icon: PentagonIcon,
+      supportsFill: true,
+      behaviour: pentagonBehaviour,
+    },
+    {
+      id: "hexagon",
+      nameKey: "tools.hexagon.name",
+      descriptionKey: "tools.hexagon.description",
+      icon: HexagonIcon,
+      supportsFill: true,
+      behaviour: hexagonBehaviour,
+    },
+    {
+      id: "star",
+      nameKey: "tools.star.name",
+      descriptionKey: "tools.star.description",
+      icon: StarShapeIcon,
+      supportsFill: true,
+      behaviour: starBehaviour,
+    },
+    {
+      id: "doublearrow",
+      nameKey: "tools.doublearrow.name",
+      descriptionKey: "tools.doublearrow.description",
+      icon: DoubleArrowIcon,
+      behaviour: doubleArrowBehaviour,
+    },
+  ];
 
 /** Register the built-in tools. Idempotent — re-registering an id replaces it
  *  in place, so calling this twice (a hot reload, a test) is harmless. */
@@ -273,64 +398,67 @@ export function registerBuiltinPlugins(): void {
     behaviour: textBehaviour,
   });
 
-  // --- Then the shapes -----------------------------------------------------
-  // Photoshop's shape group, in its order — rectangle, ellipse, then the line —
-  // and in its place near the bottom of the column.
+  // --- Then the shapes, behind one button ----------------------------------
+  // Photoshop's shape slot, in its place near the bottom of the column — and,
+  // like Photoshop's, it is one button with the family behind it rather than a
+  // row of near-identical squares.
   //
-  // The three a paint program has always had are on out of the box; the arrow,
-  // which is a diagramming tool rather than a drawing one, waits in Settings →
-  // Tools with the media.
+  // Eleven shapes as eleven buttons would be most of a phone's toolbar spent on
+  // one idea, and eleven switches in Settings → Tools for a question nobody asks
+  // eleven times. So they share a `ToolGroup`: the button wears the shape you
+  // last held, a second press on it opens the rest of the family (and the fill
+  // toggle), and Settings offers the lot as one row.
+  //
+  // Grouping is only about how they are *offered*. Each shape is still its own
+  // plugin with its own painter, its own width and its own persisted id, so
+  // every rectangle ever drawn in this app still says `rectangle` and still
+  // paints — merging the buttons was not a change to the document.
 
-  registerPlugin({
-    id: "rectangle",
+  registerGroup({
+    id: SHAPES_GROUP_ID,
     defaultOn: true,
-    nameKey: "tools.rectangle.name",
-    descriptionKey: "tools.rectangle.description",
-    icon: SquareIcon,
-    shortcut: "r",
-    // An outline you can see without zooming in, on a page that is bigger than
-    // the screen. The same for all four two-point tools — they draw at the
-    // width they are given, so the number is the line.
-    defaultSize: 4,
-    dials: [OPACITY],
-    supportsFill: true,
-    behaviour: rectangleBehaviour,
+    nameKey: "tools.shapes.name",
+    descriptionKey: "tools.shapes.description",
+    icon: ShapesIcon,
   });
 
-  registerPlugin({
-    id: "ellipse",
-    defaultOn: true,
-    nameKey: "tools.ellipse.name",
-    descriptionKey: "tools.ellipse.description",
-    icon: CircleIcon,
-    shortcut: "o",
-    defaultSize: 4,
-    dials: [OPACITY],
-    supportsFill: true,
-    behaviour: ellipseBehaviour,
-  });
+  // The order below is the order the picker lays them out in: the four a paint
+  // program has always had first — rectangle, ellipse, line, arrow — then the
+  // ones a diagram wants, closed shapes before open ones.
+  //
+  // Only these four carry a keyboard shortcut. A letter each for eleven shapes
+  // would eat most of the alphabet for marks that are one press apart in the
+  // picker anyway; the four that had one keep it.
+
+  for (const member of SHAPES) {
+    registerPlugin({
+      group: SHAPES_GROUP_ID,
+      // An outline you can see without zooming in, on a page that is bigger
+      // than the screen. The same for every shape — they draw at the width they
+      // are given, so the number is the line.
+      defaultSize: 4,
+      dials: [OPACITY],
+      ...member,
+    });
+  }
+
+  // --- Then choosing marks rather than making them --------------------------
+  // Photoshop keeps its marquee at the very top; this one sits beside the hand,
+  // because the two are a pair here: you select with one and move what you
+  // selected with the other.
 
   registerPlugin({
-    id: "line",
+    id: SELECT_TOOL_ID,
     defaultOn: true,
-    nameKey: "tools.line.name",
-    descriptionKey: "tools.line.description",
-    icon: LineIcon,
-    shortcut: "l",
-    defaultSize: 4,
-    dials: [OPACITY],
-    behaviour: lineBehaviour,
-  });
-
-  registerPlugin({
-    id: "arrow",
-    nameKey: "tools.arrow.name",
-    descriptionKey: "tools.arrow.description",
-    icon: ArrowIcon,
-    shortcut: "a",
-    defaultSize: 4,
-    dials: [OPACITY],
-    behaviour: arrowBehaviour,
+    nameKey: "tools.select.name",
+    descriptionKey: "tools.select.description",
+    icon: SelectIcon,
+    shortcut: "v",
+    // The drag chooses marks instead of leaving one: the canvas reads the flag
+    // and hands the box to the screen rather than the document (see
+    // `select.ts`).
+    selects: true,
+    behaviour: selectBehaviour,
   });
 
   // --- Last: the tool that moves the view ----------------------------------

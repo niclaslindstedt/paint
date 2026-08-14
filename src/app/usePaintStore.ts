@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { DEFAULT_NAMESPACE_SLUG } from "@niclaslindstedt/oss-framework/namespaces";
 
-import { pageFitting, strokeBounds } from "./bounds.ts";
+import { pageFitting, strokeBounds, unionBox, type Box } from "./bounds.ts";
 import {
   handOffDrawing,
   handOffFolder,
@@ -18,6 +18,7 @@ import {
   strokesExcept,
 } from "./layers.ts";
 import { parseDoc, serializeDoc } from "./migrations.ts";
+import { translateStroke } from "./selection.ts";
 import {
   DEFAULT_CANVAS,
   liveDrawings,
@@ -341,6 +342,90 @@ export function usePaintStore(
       const bounds = options.fitPage ? strokeBounds(stroke) : null;
       patchActive({
         strokes: [...active.strokes, stroke],
+        ...(bounds ? pageFitting(active, bounds) : {}),
+      });
+    },
+    [activeDrawing, patchActive],
+  );
+
+  /** File several finished marks at once — what a paste is.
+   *
+   *  One edit and one undo step for the lot, which is what a paste has to be:
+   *  undoing it must put the page back the way it was, not peel the pasted marks
+   *  off one at a time. They land on the layer being drawn on, in the order
+   *  given, and the page grows around them exactly as it does for a dropped
+   *  picture — a paste is as likely as a drop to arrive past the edge.
+   *
+   *  Returns the ids it minted, so the caller can leave the pasted marks
+   *  selected — which is what makes "paste, then drag it where you wanted it"
+   *  one gesture rather than two. */
+  const addStrokes = useCallback(
+    (drafts: readonly DraftStroke[], options: { fitPage?: boolean } = {}) => {
+      const active = activeDrawing;
+      if (!active || drafts.length === 0) return [];
+      const layer = activeLayerId(active);
+      const strokes: Stroke[] = drafts.map((draft) => ({
+        ...draft,
+        id: freshId("stroke"),
+        ...(layer ? { layer } : {}),
+      }));
+      let bounds: Box | null = null;
+      if (options.fitPage) {
+        for (const stroke of strokes) {
+          const next = strokeBounds(stroke);
+          if (next) bounds = bounds ? unionBox(bounds, next) : next;
+        }
+      }
+      patchActive({
+        strokes: [...active.strokes, ...strokes],
+        ...(bounds ? pageFitting(active, bounds) : {}),
+      });
+      return strokes.map((s) => s.id);
+    },
+    [activeDrawing, patchActive],
+  );
+
+  /** Take marks off the active page — what deleting (or cutting) a selection
+   *  does. One undo step brings the lot back. */
+  const deleteStrokes = useCallback(
+    (ids: readonly string[]) => {
+      const active = activeDrawing;
+      if (!active || ids.length === 0) return;
+      const doomed = new Set(ids);
+      const strokes = active.strokes.filter((s) => !doomed.has(s.id));
+      if (strokes.length === active.strokes.length) return;
+      patchActive({ strokes });
+    },
+    [activeDrawing, patchActive],
+  );
+
+  /** Shift marks across the page by (`dx`, `dy`) — the drag that moves a
+   *  selection. One edit for the whole drag: the canvas shows the move live
+   *  without touching the document, and this lands once when the finger lifts,
+   *  so undo steps back over the whole move rather than over every frame of it.
+   *
+   *  Paint order is untouched: a mark keeps its place in the stack (and its
+   *  layer) and only its geometry changes. */
+  const moveStrokes = useCallback(
+    (ids: readonly string[], dx: number, dy: number) => {
+      const active = activeDrawing;
+      if (!active || ids.length === 0) return;
+      if (dx === 0 && dy === 0) return;
+      const moving = new Set(ids);
+      const strokes = active.strokes.map((s) =>
+        moving.has(s.id) ? translateStroke(s, dx, dy) : s,
+      );
+      // Marks dragged past the right or bottom edge take the sheet with them,
+      // the way a dropped picture does — a selection half off the page is not
+      // where anyone meant to put it.
+      let bounds: Box | null = null;
+      for (const stroke of strokes) {
+        if (!moving.has(stroke.id)) continue;
+        const next = strokeBounds(stroke);
+        if (next) bounds = bounds ? unionBox(bounds, next) : next;
+      }
+      patchActive({
+        strokes,
         ...(bounds ? pageFitting(active, bounds) : {}),
       });
     },
@@ -745,6 +830,9 @@ export function usePaintStore(
     adoptRemote,
     setActive,
     addStroke,
+    addStrokes,
+    deleteStrokes,
+    moveStrokes,
     clearActive,
     renameActive,
     setBackground,

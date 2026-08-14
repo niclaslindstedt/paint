@@ -12,11 +12,20 @@ connect a storage backend yourself.
 ## What it does
 
 - Draw with a pencil, a bristle paintbrush, an eraser, a paint bucket, a colour
-  dropper, a text tool, and the three shapes (rectangle, ellipse, line), plus a
-  hand tool that drags the page around — the toolbar out of the box.
+  dropper, a text tool, the shapes and a selection marquee, plus a hand tool that
+  drags the page around — the toolbar out of the box.
+- Draw eleven shapes from one toolbar button: rectangle, ellipse, line, arrow,
+  rounded rectangle, triangle, diamond, pentagon, hexagon, star and double
+  arrow. Press the button a second time for the family and the fill toggle.
+- Pick marks up again with the selection tool: drag a box over what you drew,
+  move it with the hand, and copy, cut or delete it with the keyboard, a
+  right-click or a long press. Ctrl/Cmd+V pastes marks, a picture or words back
+  into the drawing — words open the caption box so the typeface and size are
+  yours to set first.
 - Switch more tools on in Settings → Tools (airbrush, marker, highlighter,
-  crayon, calligraphy pen, arrow). Every tool is a plugin behind one interface,
-  so the list grows without the app changing shape.
+  crayon, calligraphy pen), and drag the rows into the order you want the
+  toolbar in. Every tool is a plugin behind one interface, so the list grows
+  without the app changing shape.
 - Type on the page: the text tool opens a caret where you tap, in four
   typefaces, five type sizes, bold and italic.
 - Pick colour and stroke width from two buttons: a palette with a free colour

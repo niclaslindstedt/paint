@@ -19,6 +19,13 @@
 // and offers no gesture. It exists to paint a mark that arrives another way —
 // today, an image dropped onto the canvas.
 //
+// A plugin may also join a **group** (`ToolGroup`): a family of tools that share
+// one toolbar button and one switch. The shapes are the case — eleven of them
+// would be eleven buttons and eleven switches for one idea — so they register as
+// eleven plugins (each keeps its own painter, its own width, its own persisted
+// id) and are *offered* as one. Grouping changes nothing about a stroke: a
+// rectangle is still drawn by the `rectangle` plugin and still records it.
+//
 // That is the whole extension story for now, and it is deliberately the *same*
 // contract the built-in tools use: when externally-loaded plugins land later,
 // they register through this interface rather than a second, parallel one.
@@ -164,6 +171,33 @@ export type ToolBehaviour = {
   ): void;
 };
 
+/** A family of tools that share one toolbar button and one switch.
+ *
+ *  A group is *how tools are offered*, never how they are drawn or stored: its
+ *  members stay ordinary plugins with their own ids, painters, widths and dials,
+ *  and a stroke drawn by one still names that plugin. What the group replaces is
+ *  the row of near-identical buttons — press it once for the shape you had, once
+ *  more for the rest of the family (see `toolbar/GroupPicker.tsx`).
+ *
+ *  Switching it on or off in Settings → Tools switches the whole family, which
+ *  is the only setting eleven shapes ever wanted between them. */
+export type ToolGroup = {
+  /** Stable id. It is persisted — in the enabled list and in the toolbar's
+   *  order — but never on a stroke, because a group draws nothing. */
+  id: string;
+  /** Always offered, like a `core` plugin: no switch, because there is nothing
+   *  to switch. */
+  core?: boolean;
+  /** In the toolbar out of the box, but switchable off. */
+  defaultOn?: boolean;
+  nameKey: TKey;
+  descriptionKey: TKey;
+  /** The glyph the settings row wears. The *toolbar* button wears the member's
+   *  own glyph instead — the button is the shape you are holding, not the idea
+   *  of a shape. */
+  icon: (props: { className?: string; filled?: boolean }) => ReactNode;
+};
+
 /** A tool plugin: what the toolbar shows, what Settings → Tools lists, and the
  *  behaviour behind it. */
 export type PaintPlugin = {
@@ -177,6 +211,10 @@ export type PaintPlugin = {
   /** Switchable, but on out of the box — the tools a first run should already
    *  have in its hand. Ignored on a `core` plugin, which is on regardless. */
   defaultOn?: boolean;
+  /** The id of the `ToolGroup` this tool belongs to, if any. A grouped tool
+   *  shares one toolbar button and one switch with the rest of its family, so
+   *  its own `core` / `defaultOn` are the group's to answer — see `ToolGroup`. */
+  group?: string;
   /** Catalog keys for the toolbar tooltip and the settings row. */
   nameKey: TKey;
   descriptionKey: TKey;
@@ -201,6 +239,16 @@ export type PaintPlugin = {
   picksColor?: boolean;
   /** True when the tool honours the fill toggle. */
   supportsFill?: boolean;
+  /** True when the tool's drag *chooses marks* rather than leaving one — the
+   *  selection tool.
+   *
+   *  It draws an ordinary two-corner draft (so the whole drag pipeline and the
+   *  marquee painter are the ones every shape tool uses), but the box never
+   *  reaches the document: the canvas reads this flag and hands it to the screen
+   *  as a selection instead of committing it. Like `navigates`, `picksColor` and
+   *  `entersText`, it is a descriptor flag rather than a tool id anything
+   *  recognises. */
+  selects?: boolean;
   /** True when the tool's mark is *typed* rather than drawn — the text tool.
    *
    *  A press begins no gesture; it opens a caret on the page instead, and the

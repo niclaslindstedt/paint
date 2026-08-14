@@ -95,6 +95,8 @@ type Props = {
   settings: AppSettings;
   commitSettings: (next: AppSettings) => void;
   setPluginEnabled: (id: string, enabled: boolean) => void;
+  /** Reorder the toolbar — applied live, like the switches beside it. */
+  moveTool: (order: readonly string[], from: number, to: number) => void;
   /** Commit one setting straight through, bypassing the draft — for the tabs
    *  whose controls apply live (see the note at the top of this file). */
   updateLive: <K extends keyof AppSettings>(
@@ -115,6 +117,7 @@ export function SettingsModal({
   settings,
   commitSettings,
   setPluginEnabled,
+  moveTool,
   updateLive,
   darkCanvas,
   store,
@@ -187,6 +190,9 @@ export function SettingsModal({
       if (!wanted.has(id)) setPluginEnabled(id, false);
     }
     for (const id of wanted) setPluginEnabled(id, true);
+    // …and so does the order they sit in: back to the one their plugins
+    // registered in.
+    updateLive("toolOrder", fresh.toolOrder);
     updateLive("canvasTheme", fresh.canvasTheme);
     setDraft(fresh);
   }
@@ -333,7 +339,11 @@ export function SettingsModal({
             />
           )}
           {activeTab === "tools" && (
-            <ToolsTab settings={settings} setPluginEnabled={setPluginEnabled} />
+            <ToolsTab
+              settings={settings}
+              setPluginEnabled={setPluginEnabled}
+              moveTool={moveTool}
+            />
           )}
           {activeTab === "canvas" && (
             <CanvasTab
