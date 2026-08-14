@@ -1,13 +1,27 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" role="img" aria-label="Paint">
-  <!-- The app mark: one brush swipe in the amber gradient, on the app surface.
-       Kept in lockstep with scripts/generate-icons.mjs, which rasterises the
-       same curve into the PWA install icons, the favicon, and og.png. -->
+  <!-- The app mark: a bristle brush — handle, ferrule, splayed head — held at
+       45° and painted solid in the amber gradient on the app surface. The same
+       object the toolbar's brush glyph draws, at the weight the sibling notes /
+       checklist marks wear, with the seam between the pieces cut out of the
+       silhouette rather than drawn on it. The shapes are filled *and* stroked
+       with a round-joined stroke, which is what softens their corners. Kept in
+       lockstep with scripts/generate-icons.mjs, which rasterises these very
+       points into the PWA install icons, the favicon, and og.png. -->
   <defs>
-    <linearGradient id="paint-swipe" x1="0" y1="25" x2="0" y2="76" gradientUnits="userSpaceOnUse">
+    <linearGradient id="paint-brush" x1="0" y1="14" x2="0" y2="86" gradientUnits="userSpaceOnUse">
       <stop offset="0" stop-color="#fde047" />
       <stop offset="1" stop-color="#f97316" />
     </linearGradient>
   </defs>
   <rect width="100" height="100" rx="20" fill="#0b0d10" />
-  <path d="M 17.00 50.00 L 19.06 54.49 L 21.13 58.80 L 23.19 62.78 L 25.25 66.26 L 27.31 69.12 L 29.38 71.25 L 31.44 72.56 L 33.50 73.00 L 35.56 72.56 L 37.63 71.25 L 39.69 69.12 L 41.75 66.26 L 43.81 62.78 L 45.88 58.80 L 47.94 54.49 L 50.00 50.00 L 52.06 45.51 L 54.13 41.20 L 56.19 37.22 L 58.25 33.74 L 60.31 30.88 L 62.38 28.75 L 64.44 27.44 L 66.50 27.00 L 68.56 27.44 L 70.63 28.75 L 72.69 30.88 L 74.75 33.74 L 76.81 37.22 L 78.88 41.20 L 80.94 45.51 L 83.00 50.00" fill="none" stroke="url(#paint-swipe)" stroke-width="15" stroke-linecap="round" stroke-linejoin="round" />
+  <!-- The outer group is the install icons' safe zone: the generator insets the
+       mark by 12% of the tile (its `pad`), and this keeps the vector twin
+       framed the same way. -->
+  <g transform="translate(50 50) scale(0.76) translate(-50 -50)">
+    <g transform="translate(3 -3) rotate(45 50 50)" fill="url(#paint-brush)" stroke="url(#paint-brush)" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M50 6V52" fill="none" stroke-width="13" />
+      <path d="M34 54H66V68H34Z" stroke-width="6" />
+      <path d="M37 78H63L56 106H44Z" stroke-width="6" />
+    </g>
+  </g>
 </svg>

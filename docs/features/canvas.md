@@ -121,12 +121,20 @@ them.
 
 ## The header
 
-- The drawing's name is edited in place — type over the title.
+- The drawing's name is the page's heading, edited in place: press it and type
+  over it. The press selects the whole name, `Enter` keeps what you typed, and
+  `Esc` puts the old name back. Nothing takes the keyboard until you ask for
+  it — opening a drawing leaves the title alone.
 - The star adds the drawing to Favorites (see [drawings](drawings.md)).
 - The layers button opens the stack (see [layers](layers.md)) — the same panel
   an inward swipe from the right edge of the page brings out.
 - The download button opens a menu — PNG, JPG, SVG, or copy to the clipboard
   (see [export](export.md)).
+
+The buttons up here wear the same box the toolbar's do — a bordered square that
+tints accent while it is on — so a starred drawing and an open layers panel are
+readable at a glance, and the header, the toolbar and the sibling `notes` and
+`contacts` apps all read as one set of chrome.
 
 There is no bin up here any more. Wiping the page is erasing at its largest
 scale, so it moved to where erasing lives — the eraser's own button, one press
