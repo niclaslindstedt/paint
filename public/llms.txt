@@ -31,7 +31,14 @@ connect a storage backend yourself.
   on the selected layer; a hidden layer leaves the screen and every export.
 - Keep several drawings, group them into folders, star the ones you return to,
   and archive the rest instead of deleting them.
-- Keep several namespaces (separate sketchbooks), each with its own document.
+- Tidy the sidebar with the gesture at hand: on touch, swipe a row right to
+  archive it or left to bare a Delete button, and hold it to pick it up and drag
+  it onto a folder, out to the top level, onto another sketchbook, or onto the
+  archive — every target outlines itself as the row lifts. On a desktop the same
+  actions live behind a right-click menu, and rows drag with the mouse.
+- Keep several namespaces (separate sketchbooks), each with its own document,
+  and move a drawing (or a whole folder, drawings and all) between them by
+  dragging it onto another sketchbook's row.
 - Drop an image file onto the canvas to add it to a drawing — move and scale it
   before settling it, and the page grows if the picture is bigger than the sheet
   — or onto the drawings list to start a new drawing named after the file.

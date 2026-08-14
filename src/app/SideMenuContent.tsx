@@ -21,9 +21,12 @@ import {
   ShieldIcon,
   SparklesIcon,
   StarIcon,
+  SwipeableRow,
   TrashIcon,
   UndoIcon,
   type FloatingPlacement,
+  type FloatingPoint,
+  type RowAction,
 } from "@niclaslindstedt/oss-framework/components";
 import {
   dragHasFilesOfType,
@@ -40,14 +43,20 @@ import type {
   Namespace,
   NamespaceAppearance,
 } from "@niclaslindstedt/oss-framework/namespaces";
+import { useDragDrop } from "@niclaslindstedt/oss-framework/sidebar";
 
 import type { CanvasSize } from "./canvasSize.ts";
+import { CanvasIcon } from "./icons.tsx";
 import { useT } from "./i18n/index.ts";
 import { imageFileStem, importImageFile } from "./images.ts";
 import { imageStroke } from "./plugins/builtin/image.ts";
+import { MoveToFolderMenu } from "./MoveToFolderMenu.tsx";
 import {
   BarButton,
+  DragPreview,
+  DraggableRow,
   DrawingRow,
+  DropCue,
   FolderEditRow,
   FolderRow,
   FooterCollapseRail,
@@ -55,6 +64,7 @@ import {
   FooterRow,
   SectionHeader,
 } from "./SideMenuRows.tsx";
+import { canDrop, type DragItem, type DropTarget } from "./sidebarDnd.ts";
 import {
   archivedCount,
   drawingsInFolder,
@@ -70,9 +80,37 @@ import * as output from "../output.ts";
 // grouped into folders, the button island, the collapse rail, and the footer.
 //
 // The framework owns the drawer itself (`Sidebar`), the namespace switcher, the
-// row action menus, the floating panel behind "About", and the update row; this
-// component owns what a drawing row looks like and which app action each button
-// runs. The presentational leaves live in `SideMenuRows.tsx`.
+// row action menus, the swipe strips, the drag gesture, the floating panel
+// behind "About", and the update row; this component owns what a drawing row
+// looks like, which app action each button runs, and which drops are legal.
+// The presentational leaves live in `SideMenuRows.tsx`.
+//
+// ## Reaching a row's actions
+//
+// Every row offers the same set of moves — file it, shelve it, bin it — through
+// whichever gesture the pointer in your hand actually has:
+//
+//   • **Touch.** Swipe a row **right** to archive it, **left** to bare a Delete
+//     button. Press and *hold* to pick the row up and drag it onto a folder, the
+//     top level, another sketchbook, or Archive. There is deliberately no
+//     long-press menu (`touchLongPress={false}`): a hold is how you lift a row,
+//     and a gesture can only mean one thing.
+//   • **Mouse / pen.** Right-click for the full action menu, or press and drag a
+//     row to the same places the finger drags it. Swipe is off there — the
+//     framework's `SwipeableRow` gates itself on the pointer — because a mouse
+//     drag latching a row open is nobody's intention.
+//
+// Both halves reach the same store actions, so neither is a second-class way in.
+//
+// ## Where a dragged row can land
+//
+// Four kinds of target, each of which draws its own "let go here" cue: a folder
+// row (an accent ring around the row), the scrolling list itself (a dashed frame
+// — "move it out of the folder"), a namespace row in the switcher (the framework
+// draws that one), and the island's Archive cell. Every legal target outlines
+// itself the moment a row is lifted, so the landing spots are visible before the
+// pointer goes looking for them. Which of them is legal for a given row is
+// `sidebarDnd.ts`; what each drop *does* is `onDrop` below.
 
 // The page-size dialog is a click away, never a first paint away — like every
 // other dialog in the app it loads when it is asked for (see `App.tsx`).
@@ -145,6 +183,13 @@ export function SideMenuContent({
   const [pendingDelete, setPendingDelete] = useState<string | null>(null);
   const doomed = store.data.drawings.find((d) => d.id === pendingDelete);
 
+  // The "Move to folder" submenu. `movePointer` records where a row was
+  // right-clicked — captured on the way down, before the row's action menu
+  // opens — so the folder picker springs from the same spot; `movePicker` holds
+  // which drawing is being filed once that action is chosen.
+  const movePointer = useRef<FloatingPoint>({ x: 0, y: 0 });
+  const [movePicker, setMovePicker] = useState<string | null>(null);
+
   // A new drawing in the making: which folder it is destined for, held while
   // the page-size dialog is up. `null` means no dialog; a pending drawing filed
   // at the top level carries `{ folderId: null }`.
@@ -213,6 +258,38 @@ export function SideMenuContent({
   const archived = archivedCount(store.data);
   const privacyUrl = `${import.meta.env.BASE_URL}privacy`;
 
+  // Drag-and-drop. The framework hook owns the gesture — recognising it,
+  // following the pointer, hit-testing the registered zones — and this app owns
+  // the two domain questions it asks: which drops make sense (`canDrop`, which
+  // also decides which targets light up) and what each one means (`onDrop`).
+  //
+  // Overlapping zones resolve smallest-first, so a folder row inside the list
+  // claims a drop the list would otherwise take.
+  const dnd = useDragDrop<DragItem, DropTarget>({
+    canDrop: (drag, target) => canDrop(store.data, drag, target),
+    onDrop: (drag, target) => {
+      switch (target.kind) {
+        case "folder":
+          store.moveDrawingToFolder(drag.id, target.id);
+          break;
+        case "root":
+          store.moveDrawingToFolder(drag.id, null);
+          break;
+        case "namespace":
+          if (drag.kind === "drawing")
+            store.moveDrawingToNamespace(drag.id, target.slug);
+          else store.moveFolderToNamespace(drag.id, target.slug);
+          break;
+        case "archive":
+          if (drag.kind === "drawing") store.setDrawingArchived(drag.id, true);
+          else store.setFolderArchived(drag.id, true);
+          break;
+      }
+    },
+  });
+  const archiveZone = dnd.dropZone("archive", { kind: "archive" });
+  const rootZone = dnd.dropZone("root", { kind: "root" });
+
   function toggleFolder(id: string) {
     setCollapsedFolders((prev) => {
       const next = new Set(prev);
@@ -254,82 +331,99 @@ export function SideMenuContent({
     onNavigate();
   }
 
-  // One drawing row, wrapped in the framework's right-click / long-press action
-  // menu. The star toggle rides in the row itself (a favorite is toggled often
-  // enough to deserve a tap target); filing, archiving, duplicating and
-  // deleting live in the menu.
+  // One drawing row, wearing all three ways into its actions: it is a drag
+  // source, it bares a swipe strip under a finger, and it opens the full action
+  // menu under a right-click. The star toggle rides in the row itself (a
+  // favorite is toggled often enough to deserve a tap target).
+  //
+  // The two destructive halves of the swipe are deliberately asymmetric.
+  // Archiving is reversible and commits on the flick; deleting latches a red
+  // button that then asks — the same confirmation the menu's Delete raises — so
+  // a drawing is never lost to a stray sideways brush of the thumb.
   function renderDrawing(drawing: Drawing, indented: boolean): ReactNode {
+    const archiveAction: RowAction = {
+      label: t("menu.archive"),
+      icon: <ArchiveIcon className="h-4 w-4" />,
+      onSelect: () => store.setDrawingArchived(drawing.id, true),
+    };
+    const deleteAction: RowAction = {
+      label: t("common.delete"),
+      icon: <TrashIcon className="h-4 w-4" />,
+      danger: true,
+      onSelect: () => setPendingDelete(drawing.id),
+    };
     // Filing is offered only when there is somewhere to file to — a folder to
     // move into, or (for a filed drawing) the top level to lift back to.
-    const moveActions = [
-      ...folders
-        .filter((f) => f.id !== drawing.folderId)
-        .map((folder) => ({
-          label: t("menu.moveToFolder", { name: folder.name }),
-          icon: <FolderOpenIcon className="h-4 w-4" />,
-          onSelect: () => store.moveDrawingToFolder(drawing.id, folder.id),
-        })),
-      ...(drawing.folderId
-        ? [
-            {
-              label: t("menu.moveToTopLevel"),
-              icon: <FolderIcon className="h-4 w-4" />,
-              onSelect: () => store.moveDrawingToFolder(drawing.id, null),
-            },
-          ]
-        : []),
-    ];
+    const canFile = folders.length > 0 || drawing.folderId != null;
     return (
       <li key={drawing.id}>
-        <RowActionMenu
-          ariaLabel={drawing.name.trim() || t("menu.untitled")}
-          actions={[
-            {
-              label: drawing.favorite
-                ? t("menu.unfavorite")
-                : t("menu.favorite"),
-              icon: <StarIcon className="h-4 w-4" filled={drawing.favorite} />,
-              onSelect: () => store.toggleFavorite(drawing.id),
-            },
-            ...moveActions,
-            {
-              label: t("common.duplicate"),
-              icon: <CopyIcon className="h-4 w-4" />,
-              onSelect: () => {
-                store.duplicateDrawing(drawing.id);
-                onShowCanvas();
-                onNavigate();
-              },
-            },
-            {
-              label: t("menu.archive"),
-              icon: <ArchiveIcon className="h-4 w-4" />,
-              onSelect: () => store.setDrawingArchived(drawing.id, true),
-            },
-            {
-              label: t("common.delete"),
-              icon: <TrashIcon className="h-4 w-4" />,
-              danger: true,
-              onSelect: () => setPendingDelete(drawing.id),
-            },
-          ]}
+        <DraggableRow
+          handle={dnd.dragHandle({ kind: "drawing", id: drawing.id })}
         >
-          <DrawingRow
-            name={drawing.name.trim() || t("menu.untitled")}
-            active={view === "canvas" && drawing.id === store.activeDrawing?.id}
-            indented={indented}
-            onClick={() => openDrawing(drawing.id)}
-            trailing={
-              drawing.favorite ? (
-                <StarIcon
-                  className="h-3.5 w-3.5 shrink-0 text-accent"
-                  filled
-                  aria-label={t("menu.favorite")}
-                />
-              ) : undefined
-            }
-          />
-        </RowActionMenu>
+          <RowActionMenu
+            ariaLabel={t("menu.drawingActions")}
+            touchLongPress={false}
+            actions={[
+              {
+                label: drawing.favorite
+                  ? t("menu.unfavorite")
+                  : t("menu.favorite"),
+                icon: (
+                  <StarIcon className="h-4 w-4" filled={drawing.favorite} />
+                ),
+                onSelect: () => store.toggleFavorite(drawing.id),
+              },
+              ...(canFile
+                ? [
+                    {
+                      label: t("menu.moveToFolder"),
+                      icon: <FolderOpenIcon className="h-4 w-4" />,
+                      onSelect: () => setMovePicker(drawing.id),
+                    },
+                  ]
+                : []),
+              {
+                label: t("common.duplicate"),
+                icon: <CopyIcon className="h-4 w-4" />,
+                onSelect: () => {
+                  store.duplicateDrawing(drawing.id);
+                  onShowCanvas();
+                  onNavigate();
+                },
+              },
+              archiveAction,
+              deleteAction,
+            ]}
+          >
+            <SwipeableRow
+              leading={{
+                kind: "commit",
+                onCommit: archiveAction.onSelect,
+                label: t("menu.archive"),
+                icon: <ArchiveIcon className="h-5 w-5" />,
+              }}
+              actions={[deleteAction]}
+            >
+              <DrawingRow
+                name={drawing.name.trim() || t("menu.untitled")}
+                active={
+                  view === "canvas" && drawing.id === store.activeDrawing?.id
+                }
+                indented={indented}
+                onClick={() => openDrawing(drawing.id)}
+                trailing={
+                  drawing.favorite ? (
+                    <StarIcon
+                      className="h-3.5 w-3.5 shrink-0 text-accent"
+                      filled
+                      aria-label={t("menu.favorite")}
+                    />
+                  ) : undefined
+                }
+              />
+            </SwipeableRow>
+          </RowActionMenu>
+        </DraggableRow>
       </li>
     );
   }
@@ -344,15 +438,33 @@ export function SideMenuContent({
     <div
       ref={panelRef}
       className="relative flex h-[calc(100%+env(safe-area-inset-bottom))] min-h-0 flex-col"
+      // Record where a right-click landed — in the capture phase, before the
+      // row's action menu opens — so the "Move to folder" submenu it spawns can
+      // spring from the same spot. On the whole panel rather than the list, so
+      // a starred row in the Favorites section above it is covered too.
+      onContextMenuCapture={(e) => {
+        movePointer.current = { x: e.clientX, y: e.clientY };
+      }}
     >
+      {/* The namespace switcher — and, once it is unfolded, four more drop
+          targets: a row dropped onto another sketchbook is handed over to it.
+          The framework draws the switcher's own drop cues; a folded switcher
+          stays folded through a drag, so the choice to keep it out of the way
+          survives the gesture. */}
       <NamespaceSwitcher
         namespaces={namespaces}
         activeNamespace={activeNamespace.slug}
         onSwitch={(slug: string) => onSwitchNamespace(slug)}
         onManage={onOpenNamespaces}
+        dropZone={(slug) =>
+          dnd.dropZone(`ns:${slug}`, { kind: "namespace", slug })
+        }
         labels={{
+          heading: t("namespaces.heading"),
           manage: t("namespaces.heading"),
           switchTo: (name: string) => t("namespaces.switchTo", { name }),
+          expand: t("menu.showNamespaces"),
+          collapse: t("menu.hideNamespaces"),
         }}
       />
 
@@ -372,88 +484,135 @@ export function SideMenuContent({
 
       <SectionHeader label={t("menu.drawings")} border={favorites.length > 0} />
 
-      <nav
-        aria-label={t("menu.drawings")}
-        className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-2"
-      >
-        {creatingFolder && (
-          <FolderEditRow
-            placeholder={t("menu.folderName")}
-            onCommit={(name) => {
-              store.addFolder(name);
-              setCreatingFolder(false);
-            }}
-            onCancel={() => setCreatingFolder(false)}
-          />
-        )}
+      {/* The scrolling list — and the "top level" drop target: a drawing dragged
+          out of a folder and released anywhere in here is lifted out of it. The
+          cue floats over the rows rather than inside the scroller, so it stays
+          put as the list scrolls under a dragging finger. */}
+      <div className="relative flex min-h-0 flex-1 flex-col">
+        <nav
+          ref={rootZone.ref}
+          aria-label={t("menu.drawings")}
+          className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-2"
+        >
+          {creatingFolder && (
+            <FolderEditRow
+              placeholder={t("menu.folderName")}
+              onCommit={(name) => {
+                store.addFolder(name);
+                setCreatingFolder(false);
+              }}
+              onCancel={() => setCreatingFolder(false)}
+            />
+          )}
 
-        {folders.map((folder) => {
-          if (renamingFolder === folder.id) {
-            return (
-              <FolderEditRow
-                key={folder.id}
-                initial={folder.name}
-                placeholder={t("menu.folderName")}
-                onCommit={(name) => {
-                  store.renameFolder(folder.id, name);
-                  setRenamingFolder(null);
-                }}
-                onCancel={() => setRenamingFolder(null)}
-              />
-            );
-          }
-          const inside = drawingsInFolder(store.data, folder.id);
-          const expanded = !collapsedFolders.has(folder.id);
-          return (
-            <div key={folder.id}>
-              <RowActionMenu
-                ariaLabel={folder.name}
-                actions={[
-                  {
-                    label: t("menu.newDrawingIn", { name: folder.name }),
-                    icon: <PlusIcon className="h-4 w-4" />,
-                    onSelect: () => createDrawing(folder.id),
-                  },
-                  {
-                    label: t("common.rename"),
-                    icon: <PencilIcon className="h-4 w-4" />,
-                    onSelect: () => setRenamingFolder(folder.id),
-                  },
-                  {
-                    label: t("menu.archive"),
-                    icon: <ArchiveIcon className="h-4 w-4" />,
-                    onSelect: () => store.setFolderArchived(folder.id, true),
-                  },
-                  {
-                    label: t("menu.deleteFolder"),
-                    icon: <TrashIcon className="h-4 w-4" />,
-                    danger: true,
-                    onSelect: () => store.deleteFolder(folder.id),
-                  },
-                ]}
-              >
-                <FolderRow
-                  name={folder.name}
-                  count={inside.length}
-                  expanded={expanded}
-                  addLabel={t("menu.newDrawingIn", { name: folder.name })}
-                  onToggle={() => toggleFolder(folder.id)}
-                  onAdd={() => createDrawing(folder.id)}
+          {folders.map((folder) => {
+            if (renamingFolder === folder.id) {
+              return (
+                <FolderEditRow
+                  key={folder.id}
+                  initial={folder.name}
+                  placeholder={t("menu.folderName")}
+                  onCommit={(name) => {
+                    store.renameFolder(folder.id, name);
+                    setRenamingFolder(null);
+                  }}
+                  onCancel={() => setRenamingFolder(null)}
                 />
-              </RowActionMenu>
-              {expanded && (
-                <ul className="flex flex-col">
-                  {inside.map((drawing) => renderDrawing(drawing, true))}
-                </ul>
-              )}
-            </div>
-          );
-        })}
+              );
+            }
+            const inside = drawingsInFolder(store.data, folder.id);
+            const expanded = !collapsedFolders.has(folder.id);
+            const zone = dnd.dropZone(`folder:${folder.id}`, {
+              kind: "folder",
+              id: folder.id,
+            });
+            const archiveFolder = () =>
+              store.setFolderArchived(folder.id, true);
+            return (
+              // The header is both a drag source (drop it on another sketchbook to
+              // hand the whole group over, or on Archive to shelve it) and a drop
+              // target for the drawings filed into it.
+              <div key={folder.id} ref={zone.ref}>
+                <DraggableRow
+                  handle={dnd.dragHandle({ kind: "folder", id: folder.id })}
+                >
+                  <RowActionMenu
+                    ariaLabel={t("menu.folderActions")}
+                    touchLongPress={false}
+                    actions={[
+                      {
+                        label: t("menu.newDrawingIn", { name: folder.name }),
+                        icon: <PlusIcon className="h-4 w-4" />,
+                        onSelect: () => createDrawing(folder.id),
+                      },
+                      {
+                        label: t("common.rename"),
+                        icon: <PencilIcon className="h-4 w-4" />,
+                        onSelect: () => setRenamingFolder(folder.id),
+                      },
+                      {
+                        label: t("menu.archive"),
+                        icon: <ArchiveIcon className="h-4 w-4" />,
+                        onSelect: archiveFolder,
+                      },
+                      {
+                        label: t("menu.deleteFolder"),
+                        icon: <TrashIcon className="h-4 w-4" />,
+                        danger: true,
+                        onSelect: () => store.deleteFolder(folder.id),
+                      },
+                    ]}
+                  >
+                    {/* Same swipe pair as a drawing row — right archives the
+                      group, left bares Delete. Deleting a folder keeps its
+                      drawings (they lift to the top level), so unlike a
+                      drawing's it needs no confirmation. `highlighted` is the
+                      drop cue: the framework paints it *over* the sliding
+                      foreground, which would otherwise hide a tint set on the
+                      zone element behind it. */}
+                    <SwipeableRow
+                      highlighted={zone.isOver}
+                      leading={{
+                        kind: "commit",
+                        onCommit: archiveFolder,
+                        label: t("menu.archive"),
+                        icon: <ArchiveIcon className="h-5 w-5" />,
+                      }}
+                      actions={[
+                        {
+                          label: t("menu.deleteFolder"),
+                          icon: <TrashIcon className="h-4 w-4" />,
+                          danger: true,
+                          onSelect: () => store.deleteFolder(folder.id),
+                        },
+                      ]}
+                    >
+                      <FolderRow
+                        name={folder.name}
+                        count={inside.length}
+                        expanded={expanded}
+                        addLabel={t("menu.newDrawingIn", { name: folder.name })}
+                        onToggle={() => toggleFolder(folder.id)}
+                        onAdd={() => createDrawing(folder.id)}
+                      />
+                    </SwipeableRow>
+                  </RowActionMenu>
+                </DraggableRow>
+                {expanded && (
+                  <ul className="flex flex-col">
+                    {inside.map((drawing) => renderDrawing(drawing, true))}
+                  </ul>
+                )}
+              </div>
+            );
+          })}
 
-        <ul className="flex flex-col">
-          {ungrouped.map((drawing) => renderDrawing(drawing, false))}
-        </ul>
-      </nav>
+          <ul className="flex flex-col">
+            {ungrouped.map((drawing) => renderDrawing(drawing, false))}
+          </ul>
+        </nav>
+        {rootZone.isOver && <DropCue label={t("menu.dropToTopLevel")} />}
+      </div>
 
       {/* The button island: New drawing / New folder / Archive over Undo /
           Redo / the cloud glyph, sharing one bordered block pinned above the
@@ -475,10 +634,16 @@ export function SideMenuContent({
             >
               <FolderIcon className="h-5 w-5" />
             </BarButton>
+            {/* Also the archive drop target: a row dragged onto this cell is
+                shelved. Mid-drag its label says so, so the cue reads the same
+                to a screen reader as it does to the eye. */}
             <BarButton
-              label={t("menu.archive")}
+              label={dnd.dragging ? t("menu.dropToArchive") : t("menu.archive")}
               badge={archived > 0 ? String(archived) : undefined}
               current={view === "archive"}
+              dropRef={archiveZone.ref}
+              over={archiveZone.isOver}
+              active={archiveZone.isActive}
               onClick={() => {
                 onShowArchive();
                 onNavigate();
@@ -629,6 +794,53 @@ export function SideMenuContent({
           />
         </Suspense>
       )}
+
+      {/* What is in the hand right now, following the pointer — portalled to
+          the body so it rides above the drawer rather than clipping to it. */}
+      {dnd.dragging &&
+        (() => {
+          const drag = dnd.dragging;
+          const drawing =
+            drag.kind === "drawing"
+              ? store.data.drawings.find((d) => d.id === drag.id)
+              : undefined;
+          const folder =
+            drag.kind === "folder"
+              ? folders.find((f) => f.id === drag.id)
+              : undefined;
+          return (
+            <DragPreview
+              pointer={dnd.pointer}
+              label={
+                drag.kind === "folder"
+                  ? (folder?.name ?? "")
+                  : drawing?.name.trim() || t("menu.untitled")
+              }
+              icon={
+                drag.kind === "folder" ? (
+                  <FolderIcon className="h-4 w-4" />
+                ) : (
+                  <CanvasIcon className="h-4 w-4" />
+                )
+              }
+            />
+          );
+        })()}
+
+      {/* The right-click "Move to folder" submenu, opened at the pointer. */}
+      <MoveToFolderMenu
+        folders={folders.filter(
+          (f) =>
+            f.id !==
+            store.data.drawings.find((d) => d.id === movePicker)?.folderId,
+        )}
+        position={movePicker ? movePointer.current : null}
+        onMove={(folderId) => {
+          if (movePicker) store.moveDrawingToFolder(movePicker, folderId);
+          setMovePicker(null);
+        }}
+        onClose={() => setMovePicker(null)}
+      />
 
       <ConfirmDialog
         open={pendingDelete !== null}

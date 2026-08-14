@@ -53,6 +53,10 @@ the same [`oss-framework`](https://github.com/niclaslindstedt/oss-framework).
 - **Findable when there are many.** Star the ones you keep coming back to, group
   the rest into folders, and archive what you're done with instead of deleting
   it.
+- **Tidy it with the gesture you have.** Swipe a sidebar row to archive or
+  delete it, or hold it and drag it onto a folder, another sketchbook, or the
+  archive — every target lights up as you lift the row. On a desktop it's a
+  right-click menu and a mouse drag instead.
 
 ## Prerequisites
 
@@ -118,7 +122,10 @@ npm run preview
 ### In the app
 
 - **Sidebar** — namespaces (separate sketchbooks), your starred drawings, and
-  the drawing list grouped into folders. The button island at its foot holds new
+  the drawing list grouped into folders. Rows swipe (right archives, left bares
+  Delete), drag (onto a folder, the top level, another sketchbook, or the
+  archive) and, on a desktop, right-click for the full menu. The button island
+  at its foot holds new
   drawing (which asks for the page size first), new folder, the archive, undo,
   redo, and the cloud sync glyph; the
   footer below it (foldable behind a chevron) holds Donate, About — What's new,

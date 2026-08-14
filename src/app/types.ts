@@ -249,6 +249,16 @@ export function favoriteDrawings(data: AppData): Drawing[] {
   return liveDrawings(data).filter((d) => d.favorite);
 }
 
+/** Which drawing should be open, given `drawings` and the one that is open now:
+ *  keep the current page if it is still there and still live, otherwise fall to
+ *  the first live one — so removing a drawing (deleting it, shelving it, handing
+ *  it to another sketchbook) never leaves the canvas pointed at a gone page. */
+export function nextActiveId(drawings: Drawing[], current: string): string {
+  const live = drawings.filter((d) => !d.archived);
+  if (live.some((d) => d.id === current)) return current;
+  return live[0]?.id ?? drawings[0]?.id ?? "";
+}
+
 /** How many items the Archive holds — archived drawings plus archived folders.
  *  The badge on the menu's Archive button. */
 export function archivedCount(data: AppData): number {
