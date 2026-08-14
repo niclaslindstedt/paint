@@ -144,7 +144,9 @@ npm run preview
 - **Toolbar** — the enabled tools, then one button for colour and one for the
   nib. The ink button is split between the colour you draw with and the page
   colour that erases it, and opens the palette, your own mixed colours, and a
-  free colour mixer; the nib button shows the width as a dot and opens the
+  free colour mixer; the nib button shows a **press with the tool in your
+  hand** — the mark that width actually leaves, painted by the painter that
+  paints the page — and opens the
   widths, a slider for new ones, and — behind an **Advanced** fold — the two
   knobs belonging to the tool in your hand: hair gauge for the paintbrush, flow
   for the airbrush, pressure for the crayon, a feathered edge for the paint

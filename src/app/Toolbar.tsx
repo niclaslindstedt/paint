@@ -8,7 +8,8 @@ import { sizesFor } from "./useAppSettings.ts";
 import { ClearPicker } from "./toolbar/ClearPicker.tsx";
 import { ColorPicker } from "./toolbar/ColorPicker.tsx";
 import { FillPicker } from "./toolbar/FillPicker.tsx";
-import { SizeDot, SizePicker } from "./toolbar/SizePicker.tsx";
+import { PressPreview } from "./toolbar/PressPreview.tsx";
+import { SizePicker } from "./toolbar/SizePicker.tsx";
 
 // The toolbar: the enabled tools, then two buttons for everything about the
 // ink.
@@ -22,9 +23,10 @@ import { SizeDot, SizePicker } from "./toolbar/SizePicker.tsx";
 // nib buttons ate half a phone's toolbar for choices most strokes never change,
 // and it grew every time the palette did. Now the colour button shows the two
 // colours that matter — the ink, and what the eraser paints — split across one
-// square, and the size button shows the nib as a dot the size it will actually
-// be. Each opens its picker over the canvas; both close as soon as you have
-// chosen. The row that is left is tools, and it can afford to be.
+// square, and the size button shows a *press* with the tool in your hand: the
+// mark that width actually leaves, painted by the painter that would paint it.
+// Each opens its picker over the canvas; both close as soon as you have chosen.
+// The row that is left is tools, and it can afford to be.
 //
 // The size button is also where a tool's *own* settings live — its dials, under
 // an Advanced fold in the same panel (see `toolbar/SizePicker.tsx`). Which ones
@@ -279,7 +281,10 @@ export function Toolbar({
           />
         </button>
 
-        {/* The nib button — the dot is the width, at the width. */}
+        {/* The nib button — a press with the tool in your hand, on your page,
+            in your ink. Not a dot the width of the nib: what a width *is* is
+            different for every tool, and the mark itself is the only preview
+            that can say so (see `toolbar/PressPreview.tsx`). */}
         <button
           ref={sizeAnchor}
           type="button"
@@ -296,7 +301,16 @@ export function Toolbar({
             nibIrrelevant ? "opacity-40" : ""
           }`}
         >
-          <SizeDot size={size} of={sizesFor(active, customSizes).at(-1)} />
+          <PressPreview
+            plugin={active}
+            size={size}
+            of={sizesFor(active, customSizes).at(-1) ?? size}
+            color={color}
+            background={background}
+            dials={dialValues}
+            filled={filled}
+            box={26}
+          />
         </button>
       </div>
 
@@ -353,6 +367,9 @@ export function Toolbar({
         plugin={active}
         size={size}
         onPick={onSizeChange}
+        color={color}
+        background={background}
+        filled={filled}
         customSizes={customSizes}
         onAddSize={onAddSize}
         onRemoveSize={onRemoveSize}

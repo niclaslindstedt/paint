@@ -121,6 +121,32 @@ tool whose scale is its own says so too — the text tool offers type sizes
 (`sizes`) where everything else offers the three nib widths — and the size panel
 renders whatever it is handed without knowing which tool it is drawing for.
 
+## A width is shown as the mark it makes
+
+The size button and every width in its panel used to be a grey dot the width of
+the nib, which told you a number you could already read. It is now a **press**:
+the mark that width would leave, simulated through the same behaviour that would
+make it and painted by the same painter that would paint it, on the page colour
+and in the ink you have picked. So an airbrush is a soft cone, a highlighter a
+translucent band, the crayon its speckle, the calligraphy pen its flat, the
+rectangle a rectangle at that line width, the text tool a letter at that type
+size — and the eraser, which paints _with_ the page, is a bite out of a blot of
+ink, because on its own it would preview as page on page.
+
+A tool has nothing to add for this. The simulation drives the contract every
+tool already implements: `start` at a point and `end` is what a press _is_; a
+tool that drops a press because its mark needs two anchors (the shapes) is given
+the shortest gesture that does leave one; a tool that reads the page is lent one
+(`ToolContext.probe`), which is how the bucket previews a real feathered fill;
+and `entersText` is the flag that says to ask for a caption instead. A tool
+whose press leaves nothing at all — the hand, the dropper — falls back to the
+plain dot, which is the honest answer for a button that is dimmed anyway.
+
+How far past its own geometry a medium's ink actually reaches — an airbrush cone
+is over three times its nib — is **measured** rather than declared: the mark is
+painted once into an off-screen tile and read back as the box its pixels reach.
+That is what keeps the preview right for a painter nobody has written yet.
+
 ## Every tool tunes differently
 
 The size button opens the widths, and under them an **Advanced** fold holding

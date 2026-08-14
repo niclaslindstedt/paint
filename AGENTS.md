@@ -83,6 +83,10 @@ The app owns the domain and the stores ("store stays in the app"):
 - `src/app/render.ts` — paints a drawing onto a 2D context by dispatching each
   stroke to the plugin that drew it. The screen, the in-flight gesture, and the
   PNG export all go through it, so there is one painting path.
+- `src/app/press.ts` — what a press with a tool leaves behind, built by driving
+  the plugin contract (`start` / `move` / `end`) rather than by knowing any tool.
+  It is what the size button and the size panel preview, painted through
+  `render.ts` like anything else.
 - `src/app/PaintCanvas.tsx`, `CanvasScreen.tsx`, `Toolbar.tsx`,
   `SideMenuContent.tsx`, `SettingsModal.tsx` + `settings/` — the screens.
 - `src/output.ts` — the §19.4 central output module (semantic log helpers over
