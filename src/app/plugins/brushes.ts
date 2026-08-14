@@ -40,11 +40,11 @@ import { paintPath } from "./ink.ts";
 /** The finest detail worth drawing, in device pixels. Two stamps closer
  *  together than this, or two hairs, land on the same pixel: the second one is
  *  arithmetic with nothing to show for it. */
-const PIXEL = 1;
+export const PIXEL = 1;
 
 /** Below this, in device pixels, a mark is a hairline — every painter here
  *  collapses to a plain path rather than building a texture nobody can see. */
-const HAIRLINE = 0.75;
+export const HAIRLINE = 0.75;
 
 /** A deterministic pseudo-random number in [0, 1) for a lattice of inputs. A
  *  cheap integer hash (three shifts and two multiplies) — good enough to look
@@ -149,11 +149,11 @@ export function paintSoftPath(
  *  stroke actually stored are how quickly the pointer crossed them. It costs
  *  nothing to store and it is the difference between a stroke that swells as
  *  you slow into a corner and one that is the same slab all the way round. */
-type Trace = { x: number; y: number; speed: number; at: number };
+export type Trace = { x: number; y: number; speed: number; at: number };
 
 /** Resample a stroke evenly and carry the local speed along with it, smoothed
  *  over a few samples so one jittery pointer report can't pinch the mark. */
-function trace(points: readonly Point[], spacing: number): Trace[] {
+export function trace(points: readonly Point[], spacing: number): Trace[] {
   const first = points[0];
   if (!first) return [];
   // Raw speed per stored sample, in document pixels between reports.
@@ -206,7 +206,7 @@ function trace(points: readonly Point[], spacing: number): Trace[] {
 
 /** The unit normal at `i` — the direction "across" the stroke, which is what a
  *  bristle is offset along and what a nib is measured across. */
-function normalAt(
+export function normalAt(
   trace: readonly Trace[],
   i: number,
 ): { nx: number; ny: number } {
@@ -601,58 +601,10 @@ function ribbon(
   ctx.closePath();
 }
 
-/** The crayon: several thin, jittered passes instead of one clean line, so the
- *  mark breaks up the way wax on paper does. The jitter is hashed off the
- *  position, so it is the same grain on every repaint. */
-export function paintCrayon(
-  ctx: CanvasRenderingContext2D,
-  points: readonly Point[],
-  size: number,
-  scale = 1,
-): void {
-  const onScreen = size * scale;
-  if (onScreen < HAIRLINE) {
-    // The wobble and the skips are all inside one pixel: what is left of a
-    // crayon at this size is a line at the weight the strands build up to.
-    const alpha = ctx.globalAlpha;
-    ctx.globalAlpha = alpha * 0.85;
-    paintPath(ctx, points, size);
-    ctx.globalAlpha = alpha;
-    return;
-  }
-  const along = resample(points, Math.max(1, size / 2, PIXEL / scale));
-  if (along.length === 0) return;
-  // Five waxy passes when there is room for five; fewer as the mark narrows,
-  // because strands laid down inside the same pixel are one strand.
-  const strands = Math.max(2, Math.min(5, Math.round(onScreen / 2)));
-  const alpha = ctx.globalAlpha;
-  // Darkened to stand for the passes that were dropped, so the wax does not
-  // fade as you pull back from it (see the airbrush for the same sum).
-  ctx.globalAlpha = alpha * (1 - (1 - 0.42) ** (5 / strands));
-  ctx.lineWidth = Math.max(0.6, size / 3);
-  for (let strand = 0; strand < strands; strand++) {
-    ctx.beginPath();
-    let drawing = false;
-    for (const [index, p] of along.entries()) {
-      const wobble = (hashedRandom(p.x, p.y, strand) - 0.5) * size;
-      const across = (hashedRandom(p.x, p.y, strand + 40) - 0.5) * size * 0.6;
-      // Wax skips: a strand lifts off where the hash says the paper was low.
-      const contact = hashedRandom(p.x, p.y, strand + 90) > 0.18;
-      const x = p.x + wobble * 0.5 + across * 0.2;
-      const y = p.y + across * 0.5 + wobble * 0.2;
-      if (!contact) {
-        drawing = false;
-        continue;
-      }
-      if (!drawing || index === 0) {
-        ctx.moveTo(x, y);
-        drawing = true;
-      } else ctx.lineTo(x, y);
-    }
-    ctx.stroke();
-  }
-  ctx.globalAlpha = alpha;
-}
+// The crayon used to live here — five jittered passes of a plain line, with a
+// wobble scaled off the stroke's own width. It has moved to `crayon.ts` and is
+// built out of the paper's grain instead: see that file's header for why the
+// texture of a wax mark cannot be a function of how wide the stick is.
 
 /** The calligraphy nib: a flat edge held at a fixed angle, so the line is broad
  *  across the nib and hairline along it. Each step is a quad between the two

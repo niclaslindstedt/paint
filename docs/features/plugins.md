@@ -26,7 +26,8 @@ you reach for by feel. Everything that draws lives between them.
 ## Brushes are their medium
 
 A tool that differs from the pencil only in `lineWidth` is not a tool. The
-painters in `src/app/plugins/brushes.ts` model what the mark is _made of_:
+painters in `src/app/plugins/brushes.ts` (and `crayon.ts`) model what the mark
+is _made of_:
 
 - the **paintbrush** is a head of separate hairs — a low-alpha body with 5–16
   bristles dragged through it, each with its own load and its own dry patches,
@@ -36,8 +37,18 @@ painters in `src/app/plugins/brushes.ts` model what the mark is _made of_:
 - the **airbrush** is a spray cone — a radial gradient stamped along the path at
   a fraction of its own radius, faint enough that coverage comes from _overlap_,
   so passing twice really is twice the paint, with a sparse grain over the top;
-- the **crayon** skips over the tooth of the page, the **calligraphy pen** is a
-  flat nib held at an angle, the **neon pen** is a bright core inside its halo.
+- the **crayon** is wax caught on the paper's tooth. The page carries a fixed
+  lattice of peaks and valleys; wax lands on the peaks and smears along the way
+  you were going, and the valleys stay the colour of the sheet. The tooth
+  belongs to the **paper, not the stick**, so a wide crayon is a wider band of
+  the same fine speckle rather than a thin one blown up — and because two marks
+  that cross read the same lattice, they skip the same valleys and the page
+  reads as one sheet. The edges chip and fray over a few pixels however broad
+  the stick is, the face leans as you turn through a stroke so one side goes
+  down solid and the other frays, and the ends fade in instead of starting
+  square;
+- the **calligraphy pen** is a flat nib held at an angle, the **neon pen** is a
+  bright core inside its halo.
 
 All of it is a pure function of the stored stroke: the scatter is hashed off
 position rather than drawn at random, so a repaint, an undo and the PNG export

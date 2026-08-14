@@ -301,6 +301,9 @@ lives by: **nothing outside it may branch on a tool id.**
 - `brushes.ts` — the characterful painters: bristles, spray cones, grain. Pure
   functions of the stroke, with every scatter hashed off position rather than
   drawn at random, so a repaint and the PNG export grain identically.
+- `crayon.ts` — the wax painter, split out because it models the _page_ rather
+  than the stroke: a fixed lattice of paper tooth that decides where wax sticks,
+  anchored in document coordinates so it is the same sheet under every mark.
 
 A tool that needs the app to treat it differently says so on its descriptor —
 `usesBackground` for the eraser, `navigates` for the hand, `picksColor` for the

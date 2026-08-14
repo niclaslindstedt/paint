@@ -10,12 +10,12 @@ import type { Point } from "../../types.ts";
 import {
   paintBrush,
   paintCalligraphy,
-  paintCrayon,
   paintGlow,
   paintSoftPath,
   paintSpray,
   strokeHardness,
 } from "../brushes.ts";
+import { paintCrayon } from "../crayon.ts";
 import { applyInk, distance, paintPath, strokeColor } from "../ink.ts";
 import {
   FULL_DETAIL,
