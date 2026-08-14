@@ -122,13 +122,13 @@ describe("registry", () => {
   });
 
   it("opens on a paint program's toolbox and nothing else", () => {
-    // What a first run finds: a nib, a brush, a rubber, a bucket, a dropper,
-    // type and the three shapes — the tools anyone who has opened a paint
-    // program already knows.
+    // What a first run finds: a nib, a spray can, a rubber, a bucket, a
+    // dropper, type and the three shapes — the tools anyone who has opened a
+    // paint program already knows.
     expect(enabledPlugins(defaultEnabledPlugins()).map((p) => p.id)).toEqual([
       "dropper",
       "pencil",
-      "paintbrush",
+      "airspray",
       "eraser",
       "filler",
       "text",
@@ -137,10 +137,10 @@ describe("registry", () => {
       "line",
       "hand",
     ]);
-    // …and the media deliberately not: they are the app's own additions, and
-    // they are one tap away in Settings → Tools.
+    // …and the rest of the media deliberately not: they are the app's own
+    // additions, and they are one tap away in Settings → Tools.
     for (const id of [
-      "airspray",
+      "paintbrush",
       "marker",
       "highlighter",
       "crayon",

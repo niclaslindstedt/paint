@@ -136,10 +136,11 @@ describe("canvasPresets", () => {
 
 describe("previewScale", () => {
   const presets = canvasPresets({ width: 2560, height: 1440 });
+  const sizes = presets.map((p) => p.size);
 
   it("fits the largest page in the box, in whichever direction it is largest", () => {
     const box = { width: 100, height: 60 };
-    const scale = previewScale(presets, box);
+    const scale = previewScale(sizes, box);
     for (const preset of presets) {
       expect(preset.size.width * scale).toBeLessThanOrEqual(box.width + 0.001);
       expect(preset.size.height * scale).toBeLessThanOrEqual(
@@ -160,7 +161,7 @@ describe("previewScale", () => {
     // 4K is exactly twice Full HD on each side, and it has to *draw* twice as
     // big — a per-cell fit would make them identical, which is the one thing a
     // picture of a page size must not do.
-    const scale = previewScale(presets, { width: 100, height: 60 });
+    const scale = previewScale(sizes, { width: 100, height: 60 });
     const hd = presets.find((p) => p.id === "hd")!;
     const uhd = presets.find((p) => p.id === "uhd")!;
     expect(uhd.size.width * scale).toBeCloseTo(hd.size.width * scale * 2, 6);

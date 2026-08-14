@@ -10,24 +10,45 @@ import {
   TrashIcon,
 } from "@niclaslindstedt/oss-framework/components";
 
-import { EyeIcon, EyeOffIcon } from "./icons.tsx";
+import {
+  EyeIcon,
+  EyeOffIcon,
+  MirrorHorizontalIcon,
+  MirrorVerticalIcon,
+  ResizeIcon,
+  TurnLeftIcon,
+  TurnRightIcon,
+} from "./icons.tsx";
 import { useT } from "./i18n/index.ts";
 import { drawingLayers, groupByLayer, nextLayerName } from "./layers.ts";
 import { LayerThumbnail } from "./LayerThumbnail.tsx";
+import {
+  mirrorDrawing,
+  turnDrawing,
+  type BitmapTurn,
+  type PageEdit,
+} from "./transform.ts";
 import type { Drawing } from "./types.ts";
 import type { PaintStore } from "./usePaintStore.ts";
 
-// The layers panel: a strip down the right edge of the canvas listing the
-// drawing's stack, topmost first — the way every drawing app has shown a stack
-// since the idea existed, and the way the marks actually sit on the page.
+// The right-hand panel: what you can do to the *drawing* rather than to a mark.
+// Two sections, in the order you reach for them — the page actions (resize,
+// flip, mirror) at the top, and the layer stack under them, topmost first, the
+// way every drawing app has shown a stack since the idea existed.
 //
-// It is a **temporary** panel rather than a second sidebar. It comes in on a
-// swipe from the right edge (or the header button), it floats over the page
-// instead of taking width from it, and a press anywhere on the canvas closes it
-// again — the scrim that does that lives in `CanvasScreen`, which owns the
-// space the panel floats in. Deliberately not a docked column: a phone has no
-// width to give one, and the panel is something you visit between strokes, not
-// something you draw next to.
+// **It docks where there is room and floats where there isn't.** On a wide
+// screen it is a column of its own beside the canvas, always there, because a
+// panel you have to summon is one you forget you have; on a phone it comes in on
+// a swipe from the right edge (or the header button), floats over the page, and
+// a press anywhere on the canvas closes it again — the scrim that does that
+// lives in `CanvasScreen`, which owns the space the panel floats in. The two
+// modes differ by one prop and a close button: there is no second component and
+// no second set of behaviour to keep in step.
+//
+// The page actions are at the top because they are the ones with a *destination*
+// — you open the panel to resize, where you open it to pick a layer while you
+// are already drawing. They are three rows of paired buttons rather than a menu:
+// each pair is one decision (which way?), and both halves are one tap.
 //
 // Actions hang off the *selected* row rather than every row. A layer stack is a
 // list you pick from far more often than you reorder, and four glyphs on every
@@ -51,6 +72,19 @@ type Props = {
    *  the same sheet the drawing does. */
   pageColor: string;
   defaultInk: string;
+  /** Docked beside the canvas rather than floating over it. A docked panel has
+   *  no close button and no Escape: it is part of the screen, not a thing you
+   *  opened. */
+  docked?: boolean;
+  /** Open the resize dialog. Owned by the screen, like every other dialog. */
+  onResize: () => void;
+  /** Turn the page around (see `transform.ts`). Routed through the screen
+   *  rather than straight to the store because a transform that changes the
+   *  page's shape also changes what the *view* should be looking at, and the
+   *  view is the screen's. */
+  onTransform: (
+    edit: (drawing: Drawing, bitmap: BitmapTurn) => PageEdit,
+  ) => void;
   onClose: () => void;
 };
 
@@ -87,24 +121,29 @@ function PanelButton({
   );
 }
 
-export function LayersPanel({
+export function SidePanel({
   store,
   drawing,
   pageColor,
   defaultInk,
+  docked = false,
+  onResize,
+  onTransform,
   onClose,
 }: Props) {
   const t = useT();
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
 
-  // Escape closes the panel, like every other transient surface in the app.
+  // Escape closes the panel, like every other transient surface in the app —
+  // but only while it *is* one. A docked panel has nothing to close.
   useEffect(() => {
+    if (docked) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
+  }, [docked, onClose]);
 
   const layers = drawingLayers(drawing);
   const marks = groupByLayer(drawing);
@@ -120,10 +159,88 @@ export function LayersPanel({
 
   return (
     <aside
-      role="dialog"
+      {...(docked ? {} : { role: "dialog" })}
       aria-label={t("layers.title")}
-      className="absolute inset-y-0 right-0 z-20 flex w-56 max-w-[80%] flex-col border-l border-line bg-surface shadow-2xl"
+      className={
+        docked
+          ? "relative flex w-56 shrink-0 flex-col border-l border-line bg-surface"
+          : "absolute inset-y-0 right-0 z-20 flex w-56 max-w-[80%] flex-col border-l border-line bg-surface shadow-2xl"
+      }
     >
+      {/* What you can do to the whole drawing. First because it is what you
+          come here *for*; the stack below is what you come here with. */}
+      <div className="shrink-0 border-b border-line">
+        <div className="flex items-center gap-1 px-2 py-1.5">
+          <span className="flex-1 pl-1 text-xs font-bold tracking-wide text-muted uppercase">
+            {t("page.title")}
+          </span>
+          {!docked && (
+            <PanelButton label={t("layers.close")} onClick={onClose}>
+              <CloseIcon className="h-4 w-4" />
+            </PanelButton>
+          )}
+        </div>
+        <div className="flex flex-col gap-1 px-2 pb-2">
+          <button
+            type="button"
+            onClick={onResize}
+            className="flex cursor-pointer items-center gap-2 rounded border border-line px-2 py-1.5 text-sm text-fg hover:bg-surface-2 hover:text-fg-bright"
+          >
+            <ResizeIcon className="h-4 w-4 shrink-0 text-muted" />
+            <span className="min-w-0 flex-1 truncate text-left">
+              {t("page.resize")}
+            </span>
+            <span className="shrink-0 text-[11px] text-muted tabular-nums">
+              {drawing.width} × {drawing.height}
+            </span>
+          </button>
+
+          <ActionPair label={t("page.flip")}>
+            <ActionButton
+              label={t("page.left")}
+              title={t("page.flipLeft")}
+              onClick={() =>
+                onTransform((d, bitmap) => turnDrawing(d, "left", bitmap))
+              }
+            >
+              <TurnLeftIcon className="h-4 w-4" />
+            </ActionButton>
+            <ActionButton
+              label={t("page.right")}
+              title={t("page.flipRight")}
+              onClick={() =>
+                onTransform((d, bitmap) => turnDrawing(d, "right", bitmap))
+              }
+            >
+              <TurnRightIcon className="h-4 w-4" />
+            </ActionButton>
+          </ActionPair>
+
+          <ActionPair label={t("page.mirror")}>
+            <ActionButton
+              label={t("page.horizontal")}
+              title={t("page.mirrorHorizontal")}
+              onClick={() =>
+                onTransform((d, bitmap) =>
+                  mirrorDrawing(d, "horizontal", bitmap),
+                )
+              }
+            >
+              <MirrorHorizontalIcon className="h-4 w-4" />
+            </ActionButton>
+            <ActionButton
+              label={t("page.vertical")}
+              title={t("page.mirrorVertical")}
+              onClick={() =>
+                onTransform((d, bitmap) => mirrorDrawing(d, "vertical", bitmap))
+              }
+            >
+              <MirrorVerticalIcon className="h-4 w-4" />
+            </ActionButton>
+          </ActionPair>
+        </div>
+      </div>
+
       <header className="flex shrink-0 items-center gap-1 border-b border-line px-2 py-1.5">
         <span className="flex-1 pl-1 text-xs font-bold tracking-wide text-muted uppercase">
           {t("layers.title")}
@@ -139,9 +256,6 @@ export function LayersPanel({
           }
         >
           <PlusIcon className="h-4 w-4" />
-        </PanelButton>
-        <PanelButton label={t("layers.close")} onClick={onClose}>
-          <CloseIcon className="h-4 w-4" />
         </PanelButton>
       </header>
 
@@ -247,8 +361,13 @@ export function LayersPanel({
         })}
       </ul>
 
+      {/* How marks find their layer — and, on a phone, the gesture that opened
+          this. A docked panel was never opened, so it says only the half that
+          is still true. */}
       <p className="shrink-0 border-t border-line px-3 py-2 text-[11px] leading-snug text-muted">
-        {t("layers.hint")}
+        {docked
+          ? t("layers.hint")
+          : `${t("layers.hint")} ${t("layers.swipeHint")}`}
       </p>
 
       {/* Losing a layer loses every mark on it. Undo brings both back, but the
@@ -270,5 +389,52 @@ export function LayersPanel({
         onCancel={() => setConfirmDelete(null)}
       />
     </aside>
+  );
+}
+
+/** One labelled pair of page actions — "Flip: left / right". The label is part
+ *  of the row rather than a heading over it: two words and two buttons fit on
+ *  one line of a 224-pixel panel, and a heading per pair would double the
+ *  section's height for no more meaning. */
+function ActionPair({
+  label,
+  children,
+}: {
+  label: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className="flex items-center gap-2">
+      <span className="min-w-0 flex-1 truncate pl-0.5 text-sm text-fg">
+        {label}
+      </span>
+      <div className="flex shrink-0 gap-1">{children}</div>
+    </div>
+  );
+}
+
+/** One half of a pair: a glyph that says which way, and the word under the
+ *  pointer for the half that isn't obvious from the mark. */
+function ActionButton({
+  label,
+  title,
+  onClick,
+  children,
+}: {
+  label: string;
+  title: string;
+  onClick: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={title}
+      title={`${label} — ${title}`}
+      className="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded border border-line text-muted hover:bg-surface-2 hover:text-fg-bright"
+    >
+      {children}
+    </button>
   );
 }

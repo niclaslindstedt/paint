@@ -10,16 +10,22 @@ have already drawn. Nothing changes until you add a second one.
 
 ## Getting to the panel
 
-**Swipe in from the right edge of the page** and the layers panel comes out over
-the canvas — the same edge gesture that opens the sidebar, on the other side. On
-a desktop, or if you would rather tap than swipe, the **layers button in the
-header** does the same thing.
+**On a wide screen the panel is simply there**, docked down the right-hand side
+beside the canvas: a panel you have to summon is one you forget you have, and
+there is width to spare. Above the stack it carries the **Image** actions —
+resize, flip, mirror — which act on the whole drawing (see
+[the canvas](canvas.md)).
 
-**Press anywhere on the page and the panel goes away again.** It is something you
-visit between strokes, not a column you draw next to, so it takes no width from
-the page and never stays in the way. The toolbar and the header stay live while
-it is open — picking a colour for the layer you just selected does not cost you
-the panel. Escape closes it too.
+**On a narrower screen it is a button in the top right**, and the panel comes out
+over the page when you press it. **Swipe in from the right edge** does the same —
+the edge gesture that opens the sidebar, on the other side.
+
+A floating panel **goes away again when you press anywhere on the page**. It is
+something you visit between strokes, so it takes no width from the page and never
+stays in the way. The toolbar and the header stay live while it is open — picking
+a colour for the layer you just selected does not cost you the panel. Escape
+closes it too. (A docked panel has no close button: it is part of the screen
+rather than something you opened.)
 
 If you have set the sidebar to open from the **right** edge (Settings → General),
 that edge is already spoken for: the swipe opens the sidebar and the header

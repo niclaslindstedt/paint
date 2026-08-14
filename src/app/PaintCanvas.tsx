@@ -98,6 +98,13 @@ type Props = {
   showGrid?: boolean;
   /** Bumped by the zoom pill to toggle between fitting the page and 1:1. */
   fitToken?: number;
+  /** Bumped when the *page itself* changed shape — a turn, a resize. The view
+   *  then fits the whole sheet, because the window it was looking through no
+   *  longer describes the page it was looking at: a landscape drawing turned
+   *  portrait leaves the marks somewhere off the bottom, and hunting for them is
+   *  not what "turn the page" should mean. Distinct from `fitToken`, which is a
+   *  *toggle* — this one only ever fits. */
+  refitToken?: number;
   /** Reports the live zoom so the header can show it. */
   onScaleChange?: (scale: number) => void;
   /** Reports the whole view, so an overlay drawn over the canvas — the dropped
@@ -142,6 +149,7 @@ export function PaintCanvas({
   onEnterText,
   showGrid = false,
   fitToken = 0,
+  refitToken = 0,
   onScaleChange,
   onViewChange,
   placing = false,
@@ -343,6 +351,17 @@ export function PaintCanvas({
     toggleFit();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fitToken]);
+
+  // A page that changed shape under the view. Fits it, rather than toggling:
+  // after a turn or a resize the question is "what does the page look like
+  // now", and the answer is the whole of it.
+  useEffect(() => {
+    if (refitToken === 0) return;
+    const window_ = viewportRef.current;
+    if (window_.width === 0 || window_.height === 0) return;
+    applyView(fitView(pageRef.current, window_));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [refitToken]);
 
   useEffect(() => {
     if (!view) return;

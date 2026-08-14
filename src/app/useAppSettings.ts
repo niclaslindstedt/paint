@@ -151,10 +151,12 @@ export const MAX_SIZE = 96;
  *  1 — the original five-tool toolbar.
  *  2 — the brush shelf: paintbrush, airbrush, bucket and dropper on by
  *      default, the shape tools moved off it.
- *  3 — the paint-program toolbox: type and the three shapes on by default, the
- *      airbrush off with the rest of the media, and every tool opening at a
- *      width of its own. */
-export const SETTINGS_VERSION = 3;
+ *  3 — the paint-program toolbox: type and the three shapes on by default, and
+ *      every tool opening at a width of its own.
+ *  4 — the airbrush takes the brush's place in that toolbox: it is the spray
+ *      can every paint program ships, where the bristle brush is this app's own
+ *      idea of one. */
+export const SETTINGS_VERSION = 4;
 
 /** Everything a fresh install starts from *except* which tools are switched on
  *  — that one comes from the registry, so it can't be a constant here (see

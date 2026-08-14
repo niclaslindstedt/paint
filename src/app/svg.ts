@@ -31,6 +31,7 @@ type PaintedState = {
   globalAlpha: number;
   font: string;
   textBaseline: CanvasTextBaseline;
+  imageSmoothingEnabled: boolean;
   tx: number;
   ty: number;
 };
@@ -44,6 +45,7 @@ const INITIAL: Omit<PaintedState, "tx" | "ty"> = {
   globalAlpha: 1,
   font: "10px sans-serif",
   textBaseline: "alphabetic",
+  imageSmoothingEnabled: true,
 };
 
 /** Two decimals is finer than any screen and keeps the file readable. */
@@ -111,6 +113,7 @@ export class SvgCanvas {
   globalAlpha = INITIAL.globalAlpha;
   font = INITIAL.font;
   textBaseline: CanvasTextBaseline = INITIAL.textBaseline;
+  imageSmoothingEnabled = INITIAL.imageSmoothingEnabled;
 
   save(): void {
     this.stack.push({
@@ -123,6 +126,7 @@ export class SvgCanvas {
       globalAlpha: this.globalAlpha,
       font: this.font,
       textBaseline: this.textBaseline,
+      imageSmoothingEnabled: this.imageSmoothingEnabled,
       tx: this.tx,
       ty: this.ty,
     });
@@ -139,6 +143,7 @@ export class SvgCanvas {
     this.globalAlpha = prev.globalAlpha;
     this.font = prev.font;
     this.textBaseline = prev.textBaseline;
+    this.imageSmoothingEnabled = prev.imageSmoothingEnabled;
     this.tx = prev.tx;
     this.ty = prev.ty;
   }
@@ -309,9 +314,15 @@ export class SvgCanvas {
   ): void {
     const href = typeof source.src === "string" ? source.src : "";
     if (!href) return;
+    // A picture the page asked to keep square-pixelled says so in the file too,
+    // or an SVG of a scaled-up screenshot comes out blurred where the app
+    // showed it crisp.
+    const rendering = this.imageSmoothingEnabled
+      ? ""
+      : ` image-rendering="pixelated"`;
     this.elements.push(
       `<image x="${n(x + this.tx)}" y="${n(y + this.ty)}" width="${n(width)}" height="${n(height)}"` +
-        ` preserveAspectRatio="none" href="${esc(href)}"${this.opacity()}/>`,
+        ` preserveAspectRatio="none"${rendering} href="${esc(href)}"${this.opacity()}/>`,
     );
   }
 
