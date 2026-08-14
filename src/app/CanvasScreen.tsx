@@ -17,9 +17,11 @@ import { defaultInk, resolvePageColor } from "./canvas.ts";
 import { DownloadMenu } from "./DownloadMenu.tsx";
 import type { MenuEdge } from "./gestures.ts";
 import { HeaderIconButton } from "./HeaderIconButton.tsx";
+import { LayersIcon } from "./icons.tsx";
 import { useT } from "./i18n/index.ts";
 import { ImagePlacement } from "./ImagePlacement.tsx";
 import { importImageFile } from "./images.ts";
+import { LayersPanel } from "./LayersPanel.tsx";
 import { PaintCanvas } from "./PaintCanvas.tsx";
 import { initialPlacement, type Placement } from "./placement.ts";
 import { imageStroke } from "./plugins/builtin/image.ts";
@@ -95,6 +97,9 @@ export function CanvasScreen({
   // on purpose: nothing is in the document — and nothing is undoable — until
   // the placement is kept.
   const [placement, setPlacement] = useState<Placement | null>(null);
+  // The layers panel, floating over the right edge of the page. Screen state
+  // too: which panels are open is not part of the drawing.
+  const [layersOpen, setLayersOpen] = useState(false);
   const surfaceRef = useRef<HTMLDivElement>(null);
   const drawing = store.activeDrawing;
 
@@ -103,6 +108,8 @@ export function CanvasScreen({
   // it there would file the picture onto a page it was never dropped on.
   const openPage = drawing?.id;
   useEffect(() => setPlacement(null), [openPage]);
+  // The panel is about the page it was opened over, so it closes with it.
+  useEffect(() => setLayersOpen(false), [openPage]);
 
   /** Keep the floating image: file it as one mark on the page. */
   const settle = useCallback(() => {
@@ -192,6 +199,18 @@ export function CanvasScreen({
               filled={drawing.favorite}
             />
           </HeaderIconButton>
+          {/* The layers panel's other door. The swipe from the right edge is
+              the phone gesture; this button is how it is *found*, and the only
+              way in on a desktop where no thumb is near an edge. */}
+          <HeaderIconButton
+            label={t("layers.open")}
+            pressed={layersOpen}
+            onClick={() => setLayersOpen((open) => !open)}
+          >
+            <LayersIcon
+              className={`h-[18px] w-[18px] ${layersOpen ? "text-accent" : ""}`}
+            />
+          </HeaderIconButton>
           {/* No undo / redo here. They are one tap away in the sidebar's
               button island and on the keyboard, and the header is the one row
               a phone has to fit a drawing's name into — two glyphs it can
@@ -240,6 +259,14 @@ export function CanvasScreen({
           placing={placement !== null}
           onPlacingPress={settle}
           menuSwipeEdge={menuSwipeEdge}
+          // The layers panel's edge — unless the sidebar is already watching
+          // that side, in which case its swipe owns it and the header button is
+          // the way in. Nothing is armed while the panel is open: the scrim
+          // below has the canvas then.
+          panelSwipeEdge={
+            layersOpen || menuSwipeEdge === "right" ? null : "right"
+          }
+          onPanelSwipe={() => setLayersOpen(true)}
           onCommit={store.addStroke}
           // The dropper's press: the colour it sampled becomes the ink, pinned
           // the same way picking a swatch pins one.
@@ -256,6 +283,28 @@ export function CanvasScreen({
             onSettle={settle}
             onCancel={() => setPlacement(null)}
           />
+        )}
+
+        {/* The layers panel, and the sheet of nothing that closes it. A press
+            on the page dismisses the panel rather than drawing — the same
+            "click outside it" rule a floating menu follows — while the header
+            and the toolbar stay live, so picking a colour for the layer you
+            just selected doesn't cost you the panel. */}
+        {layersOpen && (
+          <>
+            <div
+              className="absolute inset-0 z-10"
+              onPointerDown={() => setLayersOpen(false)}
+              aria-hidden="true"
+            />
+            <LayersPanel
+              store={store}
+              drawing={drawing}
+              pageColor={pageColor}
+              defaultInk={ink}
+              onClose={() => setLayersOpen(false)}
+            />
+          </>
         )}
 
         {/* The cue while an image is dragged over the canvas: the surface says

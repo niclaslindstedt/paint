@@ -123,6 +123,8 @@ them.
 
 - The drawing's name is edited in place — type over the title.
 - The star adds the drawing to Favorites (see [drawings](drawings.md)).
+- The layers button opens the stack (see [layers](layers.md)) — the same panel
+  an inward swipe from the right edge of the page brings out.
 - The download button opens a menu — PNG, JPG, SVG, or copy to the clipboard
   (see [export](export.md)).
 
@@ -145,6 +147,13 @@ it lives in the sidebar's button island (see [cloud sync](cloud-sync.md)).
   `B` paintbrush, `S` airbrush, `F` the bucket, `I` the dropper, `E` eraser,
   `D` the hand (drag), `L` line, `R` rectangle, `O` ellipse, and one
   per optional tool.
+
+## Layers
+
+Swipe in from the right edge of the page — or tap the layers button in the
+header — for the drawing's stack: add a layer, pick the one new marks land on,
+show and hide, reorder, delete. A press on the page closes the panel again.
+[More](layers.md).
 
 ## Dropping in an image
 

@@ -123,6 +123,25 @@ export const sv: Catalog = {
     undo: "Ångra",
     redo: "Gör om",
   },
+  layers: {
+    title: "Lager",
+    open: "Lager",
+    close: "Stäng lagerpanelen",
+    add: "Nytt lager",
+    base: "Bakgrund",
+    numbered: "Lager {n}",
+    select: "Rita på {name}",
+    show: "Visa {name}",
+    hide: "Dölj {name}",
+    moveUp: "Flytta {name} uppåt",
+    moveDown: "Flytta {name} nedåt",
+    delete: "Ta bort {name}",
+    deleteConfirm:
+      "Ta bort ”{name}” och de {n} streck som ligger där? Ångra tar tillbaka dem.",
+    marks: "{n} streck",
+    empty: "Tomt",
+    hint: "Nya streck hamnar på det valda lagret. Svep in från högerkanten för att öppna panelen.",
+  },
   tools: {
     pencil: {
       name: "Penna",

@@ -126,6 +126,25 @@ export const en = {
     undo: "Undo",
     redo: "Redo",
   },
+  layers: {
+    title: "Layers",
+    open: "Layers",
+    close: "Close the layers panel",
+    add: "New layer",
+    base: "Background",
+    numbered: "Layer {n}",
+    select: "Draw on {name}",
+    show: "Show {name}",
+    hide: "Hide {name}",
+    moveUp: "Move {name} up",
+    moveDown: "Move {name} down",
+    delete: "Delete {name}",
+    deleteConfirm:
+      "Delete “{name}” and the {n} marks on it? Undo still brings them back.",
+    marks: "{n} marks",
+    empty: "Empty",
+    hint: "New marks land on the selected layer. Swipe in from the right edge to open this panel.",
+  },
   tools: {
     pencil: {
       name: "Pencil",

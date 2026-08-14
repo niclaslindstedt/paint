@@ -103,6 +103,36 @@ describe("drawingBounds", () => {
   it("is null for a blank page, so a caller can fall back to the sheet", () => {
     expect(drawingBounds(drawing([]))).toBe(null);
   });
+
+  it("ignores a hidden layer, so a crop is around what you can see", () => {
+    // A hidden layer is not in the file. Measuring it would crop the download
+    // to a mark that isn't there — a margin of blank page with nothing in it.
+    const shown = stroke({
+      id: "shown",
+      size: 2,
+      layer: "base",
+      shape: { kind: "path", points: [{ x: 50, y: 50 }] },
+    });
+    const hidden = stroke({
+      id: "hidden",
+      size: 2,
+      layer: "top",
+      shape: { kind: "path", points: [{ x: 600, y: 500 }] },
+    });
+    const page: Drawing = {
+      ...drawing([shown, hidden]),
+      layers: [
+        { id: "base", name: "" },
+        { id: "top", name: "Layer 2", hidden: true },
+      ],
+    };
+    expect(drawingBounds(page)).toEqual({
+      x: 49,
+      y: 49,
+      width: 2,
+      height: 2,
+    });
+  });
 });
 
 describe("clipToPage", () => {

@@ -25,6 +25,10 @@ connect a storage backend yourself.
   square, A4 at 300 dpi), or a size you type.
 - Draw on a page bigger than the window: the canvas is a window onto it, with
   pinch-to-zoom, two-finger panning, and one-finger panning under the hand.
+- Stack a drawing into layers: swipe in from the right edge of the canvas (or
+  use the header button) for a panel that adds, selects, shows, hides, reorders
+  and deletes them, each row previewing the marks on that layer. New marks land
+  on the selected layer; a hidden layer leaves the screen and every export.
 - Keep several drawings, group them into folders, star the ones you return to,
   and archive the rest instead of deleting them.
 - Keep several namespaces (separate sketchbooks), each with its own document.

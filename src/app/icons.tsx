@@ -253,6 +253,39 @@ export function ToolboxIcon({ className }: IconProps) {
   );
 }
 
+/** The layer stack — three sheets seen edge on. Opens the layers panel. */
+export function LayersIcon({ className }: IconProps) {
+  return (
+    <svg {...base} className={className} aria-hidden="true">
+      <path d="m12 3 9 5-9 5-9-5Z" />
+      <path d="m3.5 12.5 8.5 4.7 8.5-4.7" />
+      <path d="m3.5 16.5 8.5 4.7 8.5-4.7" />
+    </svg>
+  );
+}
+
+/** A showing layer — the open eye. */
+export function EyeIcon({ className }: IconProps) {
+  return (
+    <svg {...base} className={className} aria-hidden="true">
+      <path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
+  );
+}
+
+/** A hidden layer — the eye struck through. */
+export function EyeOffIcon({ className }: IconProps) {
+  return (
+    <svg {...base} className={className} aria-hidden="true">
+      <path d="M4 5.5 20 18.5" />
+      <path d="M9.5 6c.8-.3 1.6-.5 2.5-.5 6 0 9.5 6.5 9.5 6.5a17 17 0 0 1-3.4 4" />
+      <path d="M6.3 8.2A16.6 16.6 0 0 0 2.5 12S6 18.5 12 18.5c1.4 0 2.6-.3 3.7-.8" />
+      <path d="M10.2 10.3a3 3 0 0 0 3.9 4.2" />
+    </svg>
+  );
+}
+
 /** The canvas / page — used for a drawing row and the page settings. */
 export function CanvasIcon({ className }: IconProps) {
   return (
