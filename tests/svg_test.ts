@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { exportRegion } from "../src/app/export.ts";
 import { primeImageCache, resetImageCache } from "../src/app/images.ts";
 import { registerBuiltinPlugins } from "../src/app/plugins/builtin/index.ts";
+import { TEXT_LINE_HEIGHT } from "../src/app/plugins/builtin/text.ts";
 import { allPlugins, resetPlugins } from "../src/app/plugins/registry.ts";
 import type {
   CanvasProbe,
@@ -57,7 +58,6 @@ function drawnWith(plugin: PaintPlugin): Stroke | null {
       hair: 1.4,
       flow: 1.5,
       pressure: 1.2,
-      halo: 1.5,
       feather: 6,
     },
     filled: true,
@@ -172,6 +172,35 @@ describe("the SVG export", () => {
     expect(svg).toContain(
       `<image x="20" y="30" width="100" height="100" preserveAspectRatio="none" href="${src}"`,
     );
+  });
+
+  it("sets a caption in its own face, hung from its top edge", () => {
+    // A canvas anchors text wherever `textBaseline` says; an SVG `<text>`
+    // always on the alphabetic baseline. Without the crossing-over below,
+    // every exported caption would sit a line higher than it did on screen.
+    const svg = toSvg(
+      drawing([
+        {
+          id: "s1",
+          tool: "text",
+          size: 32,
+          color: "#111827",
+          shape: {
+            kind: "text",
+            at: { x: 40, y: 60 },
+            text: "two\nlines",
+            font: "serif",
+            bold: true,
+          },
+        },
+      ]),
+    );
+    expect(svg).toContain('dominant-baseline="text-before-edge"');
+    expect(svg).toContain("700 32px");
+    expect(svg).toContain("Georgia");
+    // One `<text>` per line, the second one a line further down the page.
+    expect(svg).toContain('y="60"');
+    expect(svg).toContain(`y="${32 * TEXT_LINE_HEIGHT + 60}"`);
   });
 
   it("escapes document text rather than emitting a broken file", () => {

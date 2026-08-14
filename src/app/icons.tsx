@@ -237,22 +237,36 @@ export function NibIcon({ className }: IconProps) {
   );
 }
 
-/** The neon pen — a stroke wearing its own glow: a fat core between two pale
- *  flanks. It used to be a sun, which is a brightness control, not a pen. */
-export function GlowIcon({ className }: IconProps) {
+/** The text tool — the printer's A with its serif foot, the mark every paint
+ *  program has used for typing since the first one. A capital letter is the one
+ *  glyph that says "words" without being a word. */
+export function TextIcon({ className }: IconProps) {
   return (
     <svg {...base} className={className} aria-hidden="true">
-      <path d="M4.8 18.8c3.2-8.4 8.8-11.4 14.4-13.6" strokeWidth="3.2" />
-      <path
-        d="M3.6 17.2c3.2-8.4 8.8-11.4 14.4-13.6"
-        strokeWidth="1.4"
-        opacity=".45"
-      />
-      <path
-        d="M6 20.4c3.2-8.4 8.8-11.4 14.4-13.6"
-        strokeWidth="1.4"
-        opacity=".45"
-      />
+      <path d="M4.4 19.6 11.4 4.4h1.2l7 15.2" />
+      <path d="M7.4 14.4h9.2" />
+    </svg>
+  );
+}
+
+/** Bold — the B of a type shelf, drawn heavy so the weight is the glyph. */
+export function BoldIcon({ className }: IconProps) {
+  return (
+    <svg {...base} className={className} aria-hidden="true" strokeWidth="2.4">
+      <path d="M7.4 4.6h5.4a3.7 3.7 0 0 1 0 7.4H7.4Z" />
+      <path d="M7.4 12h6.2a3.8 3.8 0 0 1 0 7.6H7.4Z" />
+    </svg>
+  );
+}
+
+/** Italic — the leaning I, top and bottom rules included so the slant reads as
+ *  a typographic mark rather than as a stray stroke. */
+export function ItalicIcon({ className }: IconProps) {
+  return (
+    <svg {...base} className={className} aria-hidden="true">
+      <path d="M15.4 4.6H9.8" />
+      <path d="M14.2 19.4H8.6" />
+      <path d="M13.4 4.6 10.6 19.4" />
     </svg>
   );
 }

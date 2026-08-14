@@ -282,38 +282,6 @@ export function paintCalligraphy(
   ctx.fill();
 }
 
-/** The neon pen: a wide, faint aura under a bright thin core, which is what
- *  reads as "glowing" without a filter.
- *
- *  `halo` is how far the aura reaches past that core — the three passes spread
- *  by it, while the core keeps its width, so turning it up blooms the light
- *  rather than fattening the line. */
-export function paintGlow(
-  ctx: CanvasRenderingContext2D,
-  points: readonly Point[],
-  size: number,
-  scale = 1,
-  halo = 1,
-): void {
-  const alpha = ctx.globalAlpha;
-  const reach = Math.max(0, halo);
-  for (const [spread, weight] of [
-    [3.2, 0.1],
-    [2.2, 0.14],
-    [1.4, 0.22],
-  ] as const) {
-    // Measured out from the core rather than scaled bodily, so a tight halo
-    // closes onto the line instead of shrinking under it.
-    const at = 0.55 + (spread - 0.55) * reach;
-    // An aura that has closed to within a pixel of the core is not an aura.
-    if ((at - 0.55) * size * scale < PIXEL) continue;
-    ctx.globalAlpha = alpha * weight;
-    paintPath(ctx, points, size * at);
-  }
-  ctx.globalAlpha = alpha;
-  paintPath(ctx, points, Math.max(1, size * 0.55));
-}
-
 /** How many passes a feathered edge is built from. Three, like every other soft
  *  edge here: enough that the fade reads as a fade, few enough that a page of
  *  washes is still three strokes of a traced outline. */

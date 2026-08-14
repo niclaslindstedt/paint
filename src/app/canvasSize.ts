@@ -27,22 +27,20 @@ export const MAX_CANVAS_SIDE = 8192;
 /** The sizes the new-drawing picker offers by name. `screen` is not listed
  *  here: it is whatever the device you are holding actually is, so it is
  *  computed rather than written down. */
-export type CanvasPresetId =
-  "screen" | "hd" | "uhd" | "sheet" | "square" | "print";
+export type CanvasPresetId = "screen" | "hd" | "uhd" | "print";
 
 export type CanvasPreset = { id: CanvasPresetId; size: CanvasSize };
 
 /** The named sizes, in the order they are offered under "This screen".
  *
- *  `sheet` is the page every drawing used to get — deliberately bigger than any
- *  screen, so there is always room to the right of what you have drawn. It stays
- *  on the list because that is still the right answer for a diagram that will
- *  grow; it is no longer the answer chosen *for* you. */
+ *  Four sizes, and no more. The dialog *draws* them (see `NewDrawingModal`), so
+ *  the list is read by comparing four rectangles rather than by reading four
+ *  numbers — and a shelf of a dozen shapes is a thing you compare instead of a
+ *  thing you choose from. What is left is the two displays anything is made
+ *  for, the display it will be shown on, and the piece of paper. */
 const NAMED_PRESETS: readonly CanvasPreset[] = [
   { id: "hd", size: { width: 1920, height: 1080 } },
   { id: "uhd", size: { width: 3840, height: 2160 } },
-  { id: "sheet", size: { ...DEFAULT_CANVAS } },
-  { id: "square", size: { width: 2048, height: 2048 } },
   // A4 at 300 dpi — the one preset that is a piece of paper rather than a
   // display, and the only portrait one.
   { id: "print", size: { width: 2480, height: 3508 } },
@@ -129,25 +127,19 @@ export function matchPreset(
   return presets.find((p) => sameCanvasSize(p.size, size));
 }
 
-/** A typed side, or `null` when it isn't a usable one. Out-of-range is `null`
- *  rather than clamped: silently turning the 20000 someone typed into 8192
- *  would create a page they didn't ask for, so the field says no instead. */
-export function parseSide(text: string): number | null {
-  const trimmed = text.trim();
-  if (!trimmed) return null;
-  const value = Number(trimmed);
-  if (!Number.isFinite(value)) return null;
-  const side = Math.round(value);
-  if (side < MIN_CANVAS_SIDE || side > MAX_CANVAS_SIDE) return null;
-  return side;
-}
-
-/** A hand-typed page size, or `null` when either side fails. */
-export function parseCanvasSize(
-  width: string,
-  height: string,
-): CanvasSize | null {
-  const w = parseSide(width);
-  const h = parseSide(height);
-  return w !== null && h !== null ? { width: w, height: h } : null;
+/** How large each preset should be *drawn*, so a shelf of them can be compared
+ *  at a glance: one scale across the whole list, chosen so the widest fits the
+ *  box's width and the tallest its height.
+ *
+ *  One scale is the whole point — four rectangles each fitted to its own cell
+ *  would all be the same size, which is the opposite of the question being
+ *  asked. Kept here rather than in the dialog because it is arithmetic over the
+ *  sizes, and it is worth a test. */
+export function previewScale(
+  presets: readonly CanvasPreset[],
+  box: { width: number; height: number },
+): number {
+  const widest = Math.max(...presets.map((p) => p.size.width), 1);
+  const tallest = Math.max(...presets.map((p) => p.size.height), 1);
+  return Math.min(box.width / widest, box.height / tallest);
 }

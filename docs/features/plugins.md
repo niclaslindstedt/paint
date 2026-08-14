@@ -14,22 +14,22 @@ There are three kinds, and the only difference is how they are switched on:
 | **Optional**   | everything else                  | Off until you switch it on          |
 
 Core is the irreducible three — pencil, eraser, hand. On out of the box:
-paintbrush, airbrush, paint bucket, colour dropper. Waiting in Settings → Tools:
-marker, highlighter, crayon, calligraphy pen, neon pen, line, arrow, rectangle,
-ellipse.
+paintbrush, paint bucket, colour dropper, text, rectangle, ellipse, line — the
+toolbox anyone who has opened a paint program already knows how to use. Waiting
+in Settings → Tools: the media this app adds to it (airbrush, marker,
+highlighter, crayon, calligraphy pen) and the arrow.
 
 Registration order is toolbar order, and it is deliberate: it reads down
 Photoshop's tool column, so a hand that already knows one toolbar finds this one
-where it expects to. Sample, then paint, then erase, then fill, then the shapes,
-and the tool that moves the view last of all:
+where it expects to. Sample, then paint, then erase, then fill, then type, then
+the shapes, and the tool that moves the view last of all:
 
 **dropper · pencil · paintbrush · airbrush · marker · highlighter · crayon ·
-calligraphy pen · neon pen · eraser · paint bucket · rectangle · ellipse · line
-· arrow · hand**
+calligraphy pen · eraser · paint bucket · text · rectangle · ellipse · line ·
+arrow · hand**
 
-Photoshop's other blocks — selections, crop, type, pen paths — are tools this
-app has no business shipping, so the order is that column with the gaps closed
-up. Switching a tool on in Settings → Tools slots it into its place in that row
+Photoshop's other blocks — selections, crop, pen paths — are tools this app has
+no business shipping, so the order is that column with the gaps closed up. Switching a tool on in Settings → Tools slots it into its place in that row
 rather than appending it, so the toolbar never reads in the order you happened
 to discover it in.
 
@@ -63,8 +63,8 @@ what the mark is _made of_:
   the stick is, the face leans as you turn through a stroke so one side goes
   down solid and the other frays, and the ends fade in instead of starting
   square;
-- the **calligraphy pen** is a flat nib held at an angle, the **neon pen** is a
-  bright core inside its halo.
+- the **calligraphy pen** is a flat nib held at an angle: broad across the
+  stroke, hairline along it.
 
 All of it is a pure function of the stored stroke: the scatter is hashed off
 position rather than drawn at random, so a repaint, an undo and the PNG export
@@ -99,6 +99,28 @@ sheet. The toolbar only asks; the screen owns the confirmation and the edit. A
 button in the header would have been the other option, and this one puts the
 destructive action where the hand reaching for it already is.
 
+`entersText` is the flag for the one mark that can't come from a pointer. The
+**text** tool's press opens a caret on the page instead of beginning a stroke,
+and the words become a mark when you are finished with them — so its behaviour's
+`start` returns nothing at all, exactly like the hand's. What you type into is a
+real text box sitting where the caption will land, set in the face, size and ink
+it will land in, so there is no "now render it" beat between typing and having
+typed. Four typefaces, bold and italic ride in a small bar above the caret: they
+are properties of the caption rather than of the gesture, and they mean nothing
+when nothing is being typed. Enter breaks the line, Escape throws it away, and a
+press anywhere else on the page keeps it.
+
+## One width per tool
+
+Width is the one control every tool shares — and for a long time it was one
+_number_ shared by all of them, which meant reaching for a fat brush left you
+with a fat pencil. It is now per tool: a pencil width, a paintbrush width, a type
+size, each remembered separately, and each opening at a value the tool itself
+declares (`defaultSize`) rather than at one number applied to fifteen tools. A
+tool whose scale is its own says so too — the text tool offers type sizes
+(`sizes`) where everything else offers the three nib widths — and the size panel
+renders whatever it is handed without knowing which tool it is drawing for.
+
 ## Every tool tunes differently
 
 The size button opens the widths, and under them an **Advanced** fold holding
@@ -115,10 +137,9 @@ mid-drawing, with one thumb, and a third slider makes it a settings screen:
 | **Paintbrush**                   | hardness, hair            |
 | **Airbrush**                     | hardness, flow            |
 | **Crayon**                       | opacity, pressure         |
-| **Neon pen**                     | opacity, halo             |
 | **Paint bucket**                 | opacity, feather          |
 | Pencil, marker, highlighter, pen | opacity                   |
-| Shapes                           | opacity                   |
+| Shapes, text                     | opacity                   |
 | Eraser, hand, dropper            | nothing — no fold appears |
 
 Each one is wired to something the painter actually does. **Hair** is which
@@ -189,7 +210,8 @@ Three steps, none of which touch the canvas, the store, or the toolbar:
    doesn't lay down detail smaller than the screen can show.
 2. Register it in `registerBuiltinPlugins()` with an id, an icon, and its two
    catalog keys — plus `core` or `defaultOn` if it should be in the toolbar
-   without being asked for, and `dials` if it has anything of its own to tune.
+   without being asked for, `defaultSize` for the width it opens at, and `dials`
+   if it has anything of its own to tune.
 3. Add those two strings to `src/app/i18n/en.ts` (and `sv.ts`).
 
 Externally-loaded plugins are not implemented yet. When they land they register

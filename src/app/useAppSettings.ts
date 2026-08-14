@@ -15,7 +15,13 @@ import {
   type DownloadFormat,
   type ExportScope,
 } from "./export.ts";
-import { allPlugins, defaultEnabledPlugins } from "./plugins/registry.ts";
+import {
+  allPlugins,
+  defaultEnabledPlugins,
+  pluginById,
+} from "./plugins/registry.ts";
+import { DEFAULT_TEXT_FONT, TEXT_FONTS } from "./plugins/builtin/text.ts";
+import type { PaintPlugin } from "./plugins/types.ts";
 
 // The app's own (non-theme) settings — how the side menu opens, which optional
 // tool plugins are switched on, the last-used ink, developer mode, and log
@@ -57,10 +63,26 @@ export type AppSettings = {
   /** Colours the user mixed for themselves, kept beside the built-in palette in
    *  the colour picker. Most recent first, capped at `MAX_CUSTOM_COLORS`. */
   customColors: string[];
-  size: number;
-  /** Nib widths the user added to the three the picker ships with, in document
-   *  pixels. Kept sorted, capped at `MAX_CUSTOM_SIZES`. */
+  /** How wide each tool draws, by tool id — the nib the size button sets.
+   *
+   *  Per tool because that is what a width *is*: a pencil, a paintbrush and a
+   *  line of type share the word and nothing else, and one shared number meant
+   *  fattening the brush fattened the pencil with it. Sparse — a tool nobody has
+   *  resized has no entry and opens at the width its plugin declares
+   *  (`PaintPlugin.defaultSize`), so the kit out of the box is the one its
+   *  makers chose rather than one number applied to fifteen tools. */
+  toolSizes: Record<string, number>;
+  /** Nib widths the user added to the ones the picker ships with, in document
+   *  pixels. Kept sorted, capped at `MAX_CUSTOM_SIZES`, and shared across the
+   *  tools — a width you went to the trouble of keeping is yours, not one
+   *  tool's. */
   customSizes: number[];
+  /** The typeface the text tool is set in — an id from `TEXT_FONTS` (see
+   *  `plugins/builtin/text.ts`). Kept here rather than on the plugin because it
+   *  is a *choice*, and it should still be the one you made last time. */
+  textFont: string;
+  textBold: boolean;
+  textItalic: boolean;
   /** How each tool is tuned, by tool id and then by dial id — the sliders
    *  behind **Advanced** in the size panel (see `plugins/dials.ts`).
    *
@@ -108,7 +130,10 @@ export const PALETTE = [
 
 /** The three nib widths the size picker offers out of the box, in document
  *  pixels — fine, medium, broad. Three is what fits a picker you can hit
- *  without looking; anything else the user adds themselves. */
+ *  without looking; anything else the user adds themselves.
+ *
+ *  A tool with a scale of its own (the text tool's type sizes) declares its own
+ *  row instead — see `PaintPlugin.sizes`. */
 export const SIZES = [2, 6, 16] as const;
 
 /** How many colours and sizes a user can keep. Both pickers are meant to be hit
@@ -125,8 +150,11 @@ export const MAX_SIZE = 96;
  *
  *  1 — the original five-tool toolbar.
  *  2 — the brush shelf: paintbrush, airbrush, bucket and dropper on by
- *      default, the shape tools moved off it. */
-export const SETTINGS_VERSION = 2;
+ *      default, the shape tools moved off it.
+ *  3 — the paint-program toolbox: type and the three shapes on by default, the
+ *      airbrush off with the rest of the media, and every tool opening at a
+ *      width of its own. */
+export const SETTINGS_VERSION = 3;
 
 /** Everything a fresh install starts from *except* which tools are switched on
  *  — that one comes from the registry, so it can't be a constant here (see
@@ -144,8 +172,13 @@ const BASE_SETTINGS: Omit<AppSettings, "enabledPlugins"> = {
   canvasTheme: "auto",
   color: null,
   customColors: [],
-  size: SIZES[1],
+  // Empty on purpose: an unresized tool opens at the width its own plugin
+  // declares, so this only ever holds the ways your kit differs from the box.
+  toolSizes: {},
   customSizes: [],
+  textFont: DEFAULT_TEXT_FONT,
+  textBold: false,
+  textItalic: false,
   // Every tool as its maker intended out of the box — a brush that feathers,
   // a crayon pressed light, are choices, and they should be ones you made.
   toolDials: {},
@@ -197,6 +230,23 @@ function numbers(value: unknown, max: number): number[] {
   return value.filter(
     (n): n is number => typeof n === "number" && n > 0 && n <= max,
   );
+}
+
+/** Clean a persisted map of per-tool widths. A width for a tool this build no
+ *  longer ships is kept for the same reason a tuning is — downgrading and
+ *  upgrading again shouldn't forget how you had it set — but a value that isn't
+ *  a usable width at all is dropped, because the picker can't recover from one. */
+function toolSizes(value: unknown): Record<string, number> {
+  const out: Record<string, number> = {};
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return out;
+  }
+  for (const [tool, size] of Object.entries(value)) {
+    if (typeof size !== "number" || !Number.isFinite(size)) continue;
+    if (size <= 0 || size > MAX_SIZE) continue;
+    out[tool] = size;
+  }
+  return out;
 }
 
 /** Clean a persisted map of tool tunings, and fold in the one setting this
@@ -276,10 +326,19 @@ export function parseSettings(raw: string): AppSettings {
     merged.enabledPlugins = [...seeded];
     merged.settingsVersion = SETTINGS_VERSION;
   }
-  if (typeof merged.size !== "number" || merged.size <= 0) {
-    merged.size = base.size;
-  }
+  merged.toolSizes = toolSizes(stored.toolSizes);
+  // …and drop the one width every tool used to share. It is deliberately *not*
+  // folded into the per-tool map: it was one number standing in for fifteen, and
+  // seeding it everywhere would hand an upgrading install the very thing this
+  // replaced — a paintbrush set to a pencil's width — instead of the widths each
+  // tool now declares for itself.
+  delete (merged as { size?: number }).size;
   merged.toolDials = toolDials(stored.toolDials, stored.hardness);
+  if (!TEXT_FONTS.some((f) => f.id === merged.textFont)) {
+    merged.textFont = base.textFont;
+  }
+  merged.textBold = Boolean(merged.textBold);
+  merged.textItalic = Boolean(merged.textItalic);
   // …and drop the field it was folded in from, so the next write is the last
   // time this install carries it. Left in place it would be re-seeded on every
   // load, which would quietly undo resetting a hardness dial back to default.
@@ -353,8 +412,19 @@ export function useAppSettings() {
     [setSettings],
   );
 
+  /** Set the width one tool draws at. Per tool, so the brush you fattened stays
+   *  fat and the pencil beside it stays a pencil. */
+  const setToolSize = useCallback(
+    (tool: string, size: number) =>
+      setSettings((prev) => ({
+        ...prev,
+        toolSizes: { ...prev.toolSizes, [tool]: size },
+      })),
+    [setSettings],
+  );
+
   /** Remember a nib width. Kept sorted so the picker reads fine-to-broad
-   *  however they were added, and silently ignored when it is one of the three
+   *  however they were added, and silently ignored when it is one of the widths
    *  the picker already offers. */
   const addCustomSize = useCallback(
     (size: number) =>
@@ -443,6 +513,7 @@ export function useAppSettings() {
     setPluginEnabled,
     addCustomColor,
     removeCustomColor,
+    setToolSize,
     addCustomSize,
     removeCustomSize,
     setToolDial,
@@ -457,12 +528,29 @@ export function paletteFor(settings: AppSettings): string[] {
   return [...PALETTE, ...settings.customColors];
 }
 
-/** Every nib width on offer, fine to broad: the three the picker ships with
- *  plus the user's own. */
-export function sizesFor(settings: AppSettings): number[] {
-  return [...new Set([...SIZES, ...settings.customSizes])].sort(
-    (a, b) => a - b,
-  );
+/** The widths a tool's size panel offers as buttons, fine to broad: the ones the
+ *  tool declares (or the app's three, for the tools that draw an ordinary line)
+ *  plus whatever the user kept. */
+export function sizesFor(
+  plugin: PaintPlugin | undefined,
+  customSizes: readonly number[],
+): number[] {
+  const own = plugin?.sizes ?? SIZES;
+  return [...new Set([...own, ...customSizes])].sort((a, b) => a - b);
+}
+
+/** How wide `tool` draws right now: the width it was last set to, or the one
+ *  its plugin opens at.
+ *
+ *  The fallback is the plugin's, not the app's, which is the whole point of
+ *  making this a function: the toolbar, the canvas and the size panel all ask
+ *  here, so "what a tool opens at" is answered in one place by the tool. A tool
+ *  this build doesn't ship falls back to the middle of the shared row rather
+ *  than to nothing. */
+export function toolSize(settings: AppSettings, tool: string): number {
+  const stored = settings.toolSizes[tool];
+  if (typeof stored === "number" && stored > 0) return stored;
+  return pluginById(tool)?.defaultSize ?? SIZES[1];
 }
 
 // --- Settings → modal backdrop projection ------------------------------------

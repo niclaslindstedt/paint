@@ -5,8 +5,8 @@ import { FloatingPanel } from "@niclaslindstedt/oss-framework/components";
 
 import { useT } from "../i18n/index.ts";
 import { dialReadout } from "../plugins/dials.ts";
-import type { ToolDial } from "../plugins/types.ts";
-import { MAX_SIZE, SIZES } from "../useAppSettings.ts";
+import type { PaintPlugin, ToolDial } from "../plugins/types.ts";
+import { MAX_SIZE, sizesFor } from "../useAppSettings.ts";
 
 // The nib picker: the widths, behind one button — and, behind one more press,
 // whatever else the tool in your hand has to tune.
@@ -21,6 +21,13 @@ import { MAX_SIZE, SIZES } from "../useAppSettings.ts";
 // keeps whatever the slider is on, and kept widths sit in the row from then on,
 // sorted fine-to-broad rather than in the order they were discovered.
 //
+// **The width belongs to the tool.** What this panel sets is the width of the
+// tool in your hand, and it is remembered per tool — one pencil width, one
+// paintbrush width, one type size — so reaching for the brush no longer costs
+// you the pencil you had set. A tool with a scale of its own says so on its
+// descriptor (`PaintPlugin.sizes`, `defaultSize`), which is how the type sizes
+// below reach a panel that has never heard of the text tool.
+//
 // **The panel is per tool below that line.** Width is the one control every tool
 // shares; past it they stop agreeing, and a hardness slider shown to a
 // highlighter was a control that did nothing sitting where a control that did
@@ -34,6 +41,9 @@ type Props = {
   open: boolean;
   onClose: () => void;
   anchor: React.RefObject<HTMLButtonElement | null>;
+  /** The tool the panel is opened over — it supplies the width row, and it is
+   *  the one whose width is being set. */
+  plugin: PaintPlugin | undefined;
   size: number;
   onPick: (size: number) => void;
   customSizes: readonly number[];
@@ -60,6 +70,7 @@ export function SizePicker({
   open,
   onClose,
   anchor,
+  plugin,
   size,
   onPick,
   customSizes,
@@ -77,7 +88,7 @@ export function SizePicker({
   // a menu, and it stays folded out for as long as the session wants it — but
   // it is not a choice worth carrying across reloads.
   const [advanced, setAdvanced] = useState(false);
-  const sizes = [...new Set([...SIZES, ...customSizes])].sort((a, b) => a - b);
+  const sizes = sizesFor(plugin, customSizes);
   const known = sizes.includes(Math.round(draft));
 
   // Open the slider on the nib in use, so "a bit fatter than this" starts here.
@@ -126,7 +137,7 @@ export function SizePicker({
                     : "border-line hover:bg-surface-2"
                 }`}
               >
-                <SizeDot size={option} />
+                <SizeDot size={option} of={sizes[sizes.length - 1]} />
               </button>
               {customSizes.includes(option) && (
                 <button
@@ -258,17 +269,32 @@ export function SizePicker({
 }
 
 /** The nib, previewed at the size it will actually be — capped so a broad one
- *  still fits its button. */
+ *  still fits its button.
+ *
+ *  `of` is the widest width on the row it belongs to, and it switches the dot
+ *  from absolute to *relative*: at the nib widths a drawing tool offers the two
+ *  readings are the same thing (the broadest is about a button wide anyway),
+ *  but a tool whose scale runs past the cap — type sizes — would otherwise draw
+ *  five identical dots for five sizes. Relative, the row reads small-to-large
+ *  whatever the numbers are, and nothing here has to know which tool it is
+ *  drawing for. */
 export function SizeDot({
   size,
+  of,
   cap = 18,
   className = "bg-fg",
 }: {
   size: number;
+  of?: number;
   cap?: number;
   className?: string;
 }) {
-  const d = Math.max(2, Math.min(size, cap));
+  const d =
+    of && of > cap
+      ? // The floor keeps the smallest size on the row a visible dot rather
+        // than a speck.
+        Math.round(3 + (Math.min(size, of) / of) * (cap - 3))
+      : Math.max(2, Math.min(size, cap));
   return (
     <span
       aria-hidden="true"

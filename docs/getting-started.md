@@ -17,11 +17,15 @@ the reach is the one you already have:
 - **Pencil** (`P`) draws freehand.
 - **Paintbrush** (`B`) is a bristle brush: the mark swells and tapers, thins
   where your hand moved fast, and frays at the edges.
-- **Airbrush** (`S`) lays down a soft cloud that builds up the longer you hold
-  it over one spot.
 - **Eraser** (`E`) paints over marks with the page colour.
 - **Paint bucket** (`F`) fills the empty space you tap, up to the marks around
   it.
+- **Text** (`T`) drops a caret where you tap and you type into the drawing
+  itself. A small bar over the caret offers four typefaces, bold and italic;
+  Enter breaks the line, Escape throws it away, and a press anywhere else on the
+  page keeps it.
+- **Rectangle** (`R`), **Ellipse** (`O`) and **Line** (`L`) are dragged from one
+  corner (or end) to the other.
 - **Hand** (`D`), at the far right, drags the page around instead of drawing on
   it — and double-tapping with it fits the whole page, again for 1:1.
 - `Ctrl/Cmd + Z` undoes the last mark, `Ctrl/Cmd + Shift + Z` redoes it. Every
@@ -43,17 +47,20 @@ colour…**, which opens a hue strip and a brightness field — drag either and 
 ink changes as you go, then **Keep** adds it to your own swatches for good.
 
 The **nib button** shows the width as a dot the size it will draw. Press it for
-the three widths, a slider that adds your own, and **Hardness** — how softly a
-brush's edge fades.
+the widths, a slider that adds your own, and — under **Advanced** — whatever the
+tool in your hand has of its own to tune.
+
+The width belongs to the tool: a pencil width, a paintbrush width, a type size,
+each remembered separately. Every tool also opens at a width chosen for it, so
+nothing needs setting up before it draws the way it should.
 
 ## More tools
 
 Settings → **Tools** is a rack of every tool the app has, each with its glyph
-and an on/off switch: a marker, a highlighter, a crayon, a calligraphy pen, a
-neon pen, and the shapes (rectangle, ellipse, line, arrow). Switch one on and it
-joins the toolbar immediately, in its own place in the row rather than at the
-end. Switching it off later only hides it; marks you already
-drew stay put.
+and an on/off switch: an airbrush, a marker, a highlighter, a crayon, a
+calligraphy pen, and the arrow. Switch one on and it joins the toolbar
+immediately, in its own place in the row rather than at the end. Switching it
+off later only hides it; marks you already drew stay put.
 
 The shapes that can be filled — rectangle and ellipse — wear a folded corner:
 press one again while you are already holding it and a small panel opens over
@@ -83,6 +90,14 @@ it, archive it, delete it — or drag it with the mouse.
 The block of buttons at the foot of the sidebar is where the rest lives — **new
 drawing**, **new folder**, the **archive**, **undo**, **redo**, and the **cloud
 sync** glyph, which shows the sync state and opens the sync details.
+
+**New drawing** gets the sidebar out of the way and asks what the drawing is
+made of: **New** for an empty page, **Load** for an image from disk (or dropped
+onto the dialog), and **Clipboard** when there is a picture on it — a drawing
+made from a picture is cut to the picture's size. An empty one asks how big it
+is, and the four sizes are drawn rather than listed: this screen, Full HD, 4K
+and A4, all at one shared scale, so you can see how much bigger 4K is before you
+pick it. The page is fixed once the drawing exists.
 
 Star a drawing with the star in the canvas header and it appears under
 **Favorites** at the top of the sidebar, wherever it happens to be filed.

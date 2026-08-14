@@ -9,6 +9,7 @@
 // no change here.
 
 import { visibleStrokes } from "./layers.ts";
+import { textBox } from "./plugins/builtin/text.ts";
 import type { Drawing, Point, Stroke } from "./types.ts";
 
 /** An axis-aligned rectangle in document pixels. */
@@ -77,16 +78,16 @@ export function strokeBounds(stroke: Stroke): Box | null {
   }
   // A bitmap ends exactly where its frame does — no nib to account for.
   if (shape.kind === "image") return boxFromCorners(shape.from, shape.to);
-  // Text is anchored at a point and painted at `size * 6`; the box below is a
-  // deliberate over-estimate rather than a measurement (measuring needs a
-  // canvas, and this module stays DOM-free).
-  const height = stroke.size * 6;
-  return {
-    x: shape.at.x,
-    y: shape.at.y - height,
-    width: shape.text.length * height * 0.6,
-    height: height * 1.3,
-  };
+  // A caption hangs from its top-left anchor and is as big as the type in it —
+  // measured by the tool that sets it, in the face it was set in, so a crop to
+  // "just the marks" ends where the words do (see `plugins/builtin/text.ts`).
+  const box = textBox(shape.text, {
+    size: stroke.size,
+    font: shape.font,
+    bold: shape.bold,
+    italic: shape.italic,
+  });
+  return { x: shape.at.x, y: shape.at.y, ...box };
 }
 
 /** The area every mark on a drawing covers, or `null` for a blank page.

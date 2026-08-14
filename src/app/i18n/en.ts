@@ -62,20 +62,22 @@ export const en = {
   newDrawing: {
     title: "New drawing",
     titleIn: "New drawing in {name}",
+    sourceLabel: "Start from",
+    sourceBlank: "New",
+    sourceFile: "Load",
+    sourceClipboard: "Clipboard",
     sizeLabel: "Canvas size",
     dimensions: "{width} × {height} px",
     presets: {
       screen: "This screen",
       hd: "Full HD",
       uhd: "4K",
-      sheet: "Large sheet",
-      square: "Square",
-      print: "A4 at 300 dpi",
+      print: "A4",
     },
-    custom: "Custom size…",
-    width: "Width",
-    height: "Height",
-    sizeHint: "Pixels, {min}–{max} on each side.",
+    chooseImage: "Choose an image…",
+    chooseImageHint: "Or drop one here. The page is cut to the picture's size.",
+    dropImage: "Drop the image to start a drawing from it",
+    clipboardName: "Pasted image",
     create: "Create",
   },
   archive: {
@@ -156,14 +158,22 @@ export const en = {
       name: "Pressure: {value}%",
       hint: "Bear down to fill the paper's grain in; ease off to let it show.",
     },
-    halo: {
-      name: "Halo: {value}%",
-      hint: "How far the glow reaches past the line.",
-    },
     feather: {
       name: "Feather: {value} px",
       hint: "Fades the fill's edge out instead of stopping it.",
     },
+  },
+  // The text tool's entry box and the bar of type controls over it. The
+  // typefaces themselves are not here: each is shown set in its own face, which
+  // names it in every language at once (see `plugins/builtin/text.ts`).
+  text: {
+    field: "Caption",
+    placeholder: "Type…",
+    font: "Typeface",
+    bold: "Bold",
+    italic: "Italic",
+    keep: "Keep the text",
+    discard: "Discard the text",
   },
   layers: {
     title: "Layers",
@@ -239,9 +249,10 @@ export const en = {
       description:
         "A flat nib held at an angle — broad across the stroke, hairline along it.",
     },
-    glow: {
-      name: "Neon pen",
-      description: "A bright core inside its own halo, for marks that shine.",
+    text: {
+      name: "Text",
+      description:
+        "Tap the page and type. Pick a typeface, a size, bold or italic while you write.",
     },
     filler: {
       name: "Paint bucket",

@@ -59,20 +59,22 @@ export const sv: Catalog = {
   newDrawing: {
     title: "Ny teckning",
     titleIn: "Ny teckning i {name}",
+    sourceLabel: "Utgå från",
+    sourceBlank: "Ny",
+    sourceFile: "Öppna",
+    sourceClipboard: "Urklipp",
     sizeLabel: "Ritytans storlek",
     dimensions: "{width} × {height} px",
     presets: {
       screen: "Den här skärmen",
       hd: "Full HD",
       uhd: "4K",
-      sheet: "Stort ark",
-      square: "Kvadratisk",
-      print: "A4 i 300 dpi",
+      print: "A4",
     },
-    custom: "Egen storlek…",
-    width: "Bredd",
-    height: "Höjd",
-    sizeHint: "Bildpunkter, {min}–{max} på varje sida.",
+    chooseImage: "Välj en bild…",
+    chooseImageHint: "Eller släpp en här. Sidan blir lika stor som bilden.",
+    dropImage: "Släpp bilden för att börja en teckning från den",
+    clipboardName: "Inklistrad bild",
     create: "Skapa",
   },
   archive: {
@@ -150,14 +152,19 @@ export const sv: Catalog = {
       name: "Tryck: {value} %",
       hint: "Tryck hårdare för att fylla papprets korn; lätta för att låta det synas.",
     },
-    halo: {
-      name: "Sken: {value} %",
-      hint: "Hur långt skenet når utanför linjen.",
-    },
     feather: {
       name: "Mjuk kant: {value} px",
       hint: "Tonar ut fyllningens kant i stället för att tvärt avsluta den.",
     },
+  },
+  text: {
+    field: "Bildtext",
+    placeholder: "Skriv…",
+    font: "Typsnitt",
+    bold: "Fet",
+    italic: "Kursiv",
+    keep: "Behåll texten",
+    discard: "Släng texten",
   },
   layers: {
     title: "Lager",
@@ -232,9 +239,10 @@ export const sv: Catalog = {
       description:
         "En platt spets på sned — bred tvärs över draget, hårfin längs med det.",
     },
-    glow: {
-      name: "Neonpenna",
-      description: "En ljus kärna i sin egen gloria, för streck som lyser.",
+    text: {
+      name: "Text",
+      description:
+        "Tryck på sidan och skriv. Välj typsnitt, storlek, fet eller kursiv medan du skriver.",
     },
     filler: {
       name: "Färgburk",

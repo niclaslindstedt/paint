@@ -7,6 +7,7 @@ import {
   pageFitting,
   strokeBounds,
 } from "../src/app/bounds.ts";
+import { TEXT_LINE_HEIGHT } from "../src/app/plugins/builtin/text.ts";
 import type { Drawing, Stroke } from "../src/app/types.ts";
 
 // What a mark covers. Two features lean on these numbers — cropping a download
@@ -76,6 +77,33 @@ describe("strokeBounds", () => {
     expect(strokeBounds(stroke({ shape: { kind: "path", points: [] } }))).toBe(
       null,
     );
+  });
+
+  it("hangs a caption from its anchor, one line per line typed", () => {
+    // Anchored at the top-left — the point the caret was on — rather than on a
+    // baseline, so the box runs *down* from it.
+    const one = strokeBounds(
+      stroke({
+        tool: "text",
+        size: 40,
+        shape: { kind: "text", at: { x: 100, y: 60 }, text: "hi" },
+      }),
+    )!;
+    expect(one.x).toBe(100);
+    expect(one.y).toBe(60);
+    expect(one.width).toBeGreaterThan(0);
+    expect(one.height).toBeCloseTo(40 * TEXT_LINE_HEIGHT, 6);
+
+    const two = strokeBounds(
+      stroke({
+        tool: "text",
+        size: 40,
+        shape: { kind: "text", at: { x: 100, y: 60 }, text: "hi\nthere" },
+      }),
+    )!;
+    expect(two.height).toBeCloseTo(one.height * 2, 6);
+    // …and as wide as its *longest* line, not its first.
+    expect(two.width).toBeGreaterThan(one.width);
   });
 });
 

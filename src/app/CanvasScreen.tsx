@@ -25,11 +25,14 @@ import { LayersPanel } from "./LayersPanel.tsx";
 import { PaintCanvas } from "./PaintCanvas.tsx";
 import { initialPlacement, type Placement } from "./placement.ts";
 import { imageStroke } from "./plugins/builtin/image.ts";
+import { textStroke } from "./plugins/builtin/text.ts";
 import { resolveDials, tunedDials } from "./plugins/dials.ts";
 import { pluginById } from "./plugins/registry.ts";
+import { TextEntry } from "./TextEntry.tsx";
 import { Toolbar } from "./Toolbar.tsx";
 import { ToolFlash } from "./ToolFlash.tsx";
-import type { AppSettings } from "./useAppSettings.ts";
+import { toolSize, type AppSettings } from "./useAppSettings.ts";
+import type { Point } from "./types.ts";
 import type { PaintStore } from "./usePaintStore.ts";
 import { toDocumentPoint, type CanvasView } from "./viewport.ts";
 import * as output from "../output.ts";
@@ -57,6 +60,8 @@ import * as output from "../output.ts";
 export type PaletteActions = {
   addColor: (color: string) => void;
   removeColor: (color: string) => void;
+  /** Set the width of one tool — the widths are per tool (see `toolSize`). */
+  setSize: (tool: string, size: number) => void;
   addSize: (size: number) => void;
   removeSize: (size: number) => void;
   /** Move one of a tool's dials, or forget it with `null` (see
@@ -106,17 +111,38 @@ export function CanvasScreen({
   // on purpose: nothing is in the document — and nothing is undoable — until
   // the placement is kept.
   const [placement, setPlacement] = useState<Placement | null>(null);
+  // A caption being typed: where its caret is, and the words so far. Screen
+  // state for exactly the same reason — a half-typed word is not a mark, and
+  // nothing reaches the document (or the undo history) until the typing is
+  // finished (see `TextEntry.tsx`).
+  const [typing, setTyping] = useState<{ at: Point; text: string } | null>(
+    null,
+  );
   // The layers panel, floating over the right edge of the page. Screen state
   // too: which panels are open is not part of the drawing.
   const [layersOpen, setLayersOpen] = useState(false);
   const surfaceRef = useRef<HTMLDivElement>(null);
   const drawing = store.activeDrawing;
 
+  // How the tool in hand is tuned, and how wide it draws. Two reads of the
+  // dials: the panel wants every dial the tool offers so it has a slider per
+  // one, and the canvas wants only the dials actually moved, because that is
+  // what a stroke records (see `plugins/dials.ts`). The width is per tool —
+  // `toolSize` answers with the plugin's own default for a tool nobody has
+  // resized (see `useAppSettings.ts`).
+  const activePlugin = pluginById(tool);
+  const tuning = settings.toolDials[tool];
+  const dialValues = resolveDials(activePlugin, tuning);
+  const inkDials = tunedDials(activePlugin, tuning);
+  const size = toolSize(settings, tool);
+
   // A placement belongs to the page it was dropped on. Opening another drawing
   // with one still floating drops it rather than carrying it across — settling
   // it there would file the picture onto a page it was never dropped on.
   const openPage = drawing?.id;
   useEffect(() => setPlacement(null), [openPage]);
+  // A caption belongs to the page it was begun on, for the same reason.
+  useEffect(() => setTyping(null), [openPage]);
   // The panel is about the page it was opened over, so it closes with it.
   useEffect(() => setLayersOpen(false), [openPage]);
 
@@ -133,6 +159,53 @@ export function CanvasScreen({
       return null;
     });
   }, [store]);
+
+  /** Keep the caption being typed: file the words as one mark on the page.
+   *
+   *  Nothing typed means nothing filed — an empty box is a press that changed
+   *  its mind, and it should cost neither a mark nor an undo step. */
+  const commitText = useCallback(() => {
+    setTyping((current) => {
+      if (!current) return null;
+      // Trailing blank lines are the Enter you pressed on the way out, not part
+      // of the caption.
+      const words = current.text.replace(/\s+$/, "");
+      if (words) {
+        store.addStroke(
+          textStroke(words, current.at, {
+            color: settings.color,
+            size,
+            font: settings.textFont,
+            bold: settings.textBold,
+            italic: settings.textItalic,
+            opacity: inkDials.opacity,
+          }),
+          // A caption typed past the sheet's edge grows the sheet around it,
+          // exactly as a picture dropped past it does.
+          { fitPage: true },
+        );
+      }
+      return null;
+    });
+  }, [
+    store,
+    size,
+    settings.color,
+    settings.textFont,
+    settings.textBold,
+    settings.textItalic,
+    inkDials.opacity,
+  ]);
+
+  // Picking another tool finishes the caption rather than abandoning it: the
+  // words are on the page in front of you, and reaching for the eraser to rub
+  // something else out should not be what throws them away.
+  const lastTool = useRef(tool);
+  useEffect(() => {
+    if (lastTool.current === tool) return;
+    lastTool.current = tool;
+    commitText();
+  }, [tool, commitText]);
 
   // Dropping an image file anywhere on the canvas places it. The whole surface
   // is the target rather than a dropzone you have to find, and the drag is
@@ -175,15 +248,6 @@ export function CanvasScreen({
   // so screen and file agree.
   const pageColor = resolvePageColor(drawing.background, darkCanvas);
   const ink = defaultInk(darkCanvas);
-
-  // How the tool in hand is tuned. Two reads of the same thing: the panel wants
-  // every dial the tool offers so it has a slider per one, and the canvas wants
-  // only the dials actually moved, because that is what a stroke records (see
-  // `plugins/dials.ts`).
-  const activePlugin = pluginById(tool);
-  const tuning = settings.toolDials[tool];
-  const dialValues = resolveDials(activePlugin, tuning);
-  const inkDials = tunedDials(activePlugin, tuning);
 
   return (
     <div className="flex h-full min-h-0 flex-col">
@@ -255,7 +319,7 @@ export function CanvasScreen({
           tool={tool}
           ink={{
             color: settings.color,
-            size: settings.size,
+            size,
             dials: inkDials,
             filled: settings.filled,
           }}
@@ -279,6 +343,13 @@ export function CanvasScreen({
           // The dropper's press: the colour it sampled becomes the ink, pinned
           // the same way picking a swatch pins one.
           onPickColor={(picked) => update("color", picked)}
+          // The text tool's press: a caret opens where it landed. Pressing
+          // again while one is open keeps what is in it first, so a second
+          // caption never eats the first.
+          onEnterText={(at) => {
+            commitText();
+            setTyping({ at, text: "" });
+          }}
           ariaLabel={drawing.name.trim() || t("menu.untitled")}
         />
 
@@ -290,6 +361,33 @@ export function CanvasScreen({
             onChange={setPlacement}
             onSettle={settle}
             onCancel={() => setPlacement(null)}
+          />
+        )}
+
+        {/* The caption being typed, in the face and size it will land in. The
+            layer under it takes a press anywhere else on the page as "I'm
+            done", which is how a caption is normally finished. */}
+        {typing && view && (
+          <TextEntry
+            view={view}
+            at={typing.at}
+            value={typing.text}
+            onChange={(text) =>
+              setTyping((current) => (current ? { ...current, text } : null))
+            }
+            ink={{
+              color: settings.color ?? ink,
+              size,
+              font: settings.textFont,
+              bold: settings.textBold,
+              italic: settings.textItalic,
+              opacity: inkDials.opacity ?? 1,
+            }}
+            onFontChange={(font) => update("textFont", font)}
+            onBoldChange={(bold) => update("textBold", bold)}
+            onItalicChange={(italic) => update("textItalic", italic)}
+            onCommit={commitText}
+            onCancel={() => setTyping(null)}
           />
         )}
 
@@ -371,8 +469,8 @@ export function CanvasScreen({
         customColors={settings.customColors}
         onAddColor={palette.addColor}
         onRemoveColor={palette.removeColor}
-        size={settings.size}
-        onSizeChange={(size) => update("size", size)}
+        size={size}
+        onSizeChange={(next) => palette.setSize(tool, next)}
         customSizes={settings.customSizes}
         onAddSize={palette.addSize}
         onRemoveSize={palette.removeSize}
