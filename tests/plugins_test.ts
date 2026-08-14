@@ -45,8 +45,10 @@ describe("registry", () => {
   });
 
   it("keeps registration order", () => {
+    // Photoshop's column, top to bottom: sample, paint, erase, fill, shapes,
+    // and the tool that moves the view last.
     expect(allPlugins().map((p) => p.id)).toEqual([
-      "hand",
+      "dropper",
       "pencil",
       "paintbrush",
       "airspray",
@@ -55,23 +57,29 @@ describe("registry", () => {
       "crayon",
       "calligraphy",
       "glow",
-      "line",
-      "arrow",
+      "eraser",
+      "filler",
       "rectangle",
       "ellipse",
-      "filler",
-      "dropper",
-      "eraser",
+      "line",
+      "arrow",
+      "hand",
       // Registered, but never in the toolbar: the painter behind a dropped
       // image (see `toolPlugins`).
       "image",
     ]);
   });
 
-  it("puts the hand at the far left and the eraser at the far right", () => {
+  it("samples at the far left and pans at the far right", () => {
     const ids = toolPlugins().map((p) => p.id);
-    expect(ids[0]).toBe("hand");
-    expect(ids[ids.length - 1]).toBe("eraser");
+    expect(ids[0]).toBe("dropper");
+    expect(ids[ids.length - 1]).toBe("hand");
+  });
+
+  it("keeps the eraser directly under the tools it undoes", () => {
+    const ids = toolPlugins().map((p) => p.id);
+    expect(ids[ids.indexOf("eraser") - 1]).toBe("glow");
+    expect(ids[ids.indexOf("eraser") + 1]).toBe("filler");
   });
 
   it("keeps a hidden plugin out of every list a user picks from", () => {
@@ -96,29 +104,29 @@ describe("registry", () => {
 
   it("offers only the core tools with nothing switched on", () => {
     expect(enabledPlugins([]).map((p) => p.id)).toEqual([
-      "hand",
       "pencil",
       "eraser",
+      "hand",
     ]);
   });
 
   it("ships the brush shelf switched on by default", () => {
     expect(defaultEnabledPlugins()).toEqual([
+      "dropper",
       "paintbrush",
       "airspray",
       "filler",
-      "dropper",
     ]);
     // …and the shape tools deliberately not: they are opt-in now.
     expect(defaultEnabledPlugins()).not.toContain("rectangle");
     expect(enabledPlugins(defaultEnabledPlugins()).map((p) => p.id)).toEqual([
-      "hand",
+      "dropper",
       "pencil",
       "paintbrush",
       "airspray",
-      "filler",
-      "dropper",
       "eraser",
+      "filler",
+      "hand",
     ]);
   });
 
@@ -133,17 +141,18 @@ describe("registry", () => {
     // `marker` registers before `arrow`, so enabling them the other way round
     // must not order the toolbar by when the user switched them on.
     expect(enabledPlugins(["arrow", "marker"]).map((p) => p.id)).toEqual([
-      "hand",
       "pencil",
       "marker",
-      "arrow",
       "eraser",
+      "arrow",
+      "hand",
     ]);
   });
 
   it("lists only the non-core plugins as optional", () => {
     expect(optionalPlugins().every((p) => !p.core)).toBe(true);
     expect(optionalPlugins().map((p) => p.id)).toEqual([
+      "dropper",
       "paintbrush",
       "airspray",
       "marker",
@@ -151,12 +160,11 @@ describe("registry", () => {
       "crayon",
       "calligraphy",
       "glow",
-      "line",
-      "arrow",
+      "filler",
       "rectangle",
       "ellipse",
-      "filler",
-      "dropper",
+      "line",
+      "arrow",
     ]);
   });
 
@@ -192,9 +200,9 @@ describe("registry", () => {
     });
 
     it("never falls back onto a tool that leaves no mark", () => {
-      // The hand is the first tool in the toolbar and the dropper sits beside
-      // the bucket; landing a stale settings blob on either would look exactly
-      // like a canvas that has stopped working.
+      // The dropper is the first tool in the toolbar and the hand is the last;
+      // landing a stale settings blob on either would look exactly like a
+      // canvas that has stopped working.
       expect(resolveActiveTool("quill", defaultEnabledPlugins())).toBe(
         "pencil",
       );

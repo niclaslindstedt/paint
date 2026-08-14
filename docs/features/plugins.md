@@ -18,10 +18,20 @@ paintbrush, airbrush, paint bucket, colour dropper. Waiting in Settings → Tool
 marker, highlighter, crayon, calligraphy pen, neon pen, line, arrow, rectangle,
 ellipse.
 
-Registration order is toolbar order, and it is deliberate: the **hand** at the
-far left, where the tool that moves the page rather than marking it is out of
-the way, and the **eraser** at the far right, opposite it, because it is the one
-you reach for by feel. Everything that draws lives between them.
+Registration order is toolbar order, and it is deliberate: it reads down
+Photoshop's tool column, so a hand that already knows one toolbar finds this one
+where it expects to. Sample, then paint, then erase, then fill, then the shapes,
+and the tool that moves the view last of all:
+
+**dropper · pencil · paintbrush · airbrush · marker · highlighter · crayon ·
+calligraphy pen · neon pen · eraser · paint bucket · rectangle · ellipse · line
+· arrow · hand**
+
+Photoshop's other blocks — selections, crop, type, pen paths — are tools this
+app has no business shipping, so the order is that column with the gaps closed
+up. Switching a tool on in Settings → Tools slots it into its place in that row
+rather than appending it, so the toolbar never reads in the order you happened
+to discover it in.
 
 ## Brushes are their medium
 

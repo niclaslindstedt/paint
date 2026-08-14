@@ -93,8 +93,9 @@ make install
 npm run dev          # http://localhost:5173
 ```
 
-Draw on the page. `P` pencil, `B` paintbrush, `S` airbrush, `F` the paint
-bucket, `I` the colour dropper, `E` eraser, `D` the hand (drag the page around);
+Draw on the page. `I` the colour dropper, `P` pencil, `B` paintbrush, `S`
+airbrush, `E` eraser, `F` the paint bucket, `D` the hand (drag the page around)
+— left to right in the order Photoshop's column runs top to bottom;
 `Ctrl/Cmd + Z` undoes a mark. Open the sidebar for more drawings, and Settings →
 Tools to switch the shapes and the rest on.
 
