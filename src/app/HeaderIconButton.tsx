@@ -4,7 +4,15 @@ import type { Ref, ReactNode } from "react";
 /** A square icon button in the canvas header row — the same affordance
  *  repeated across the header, so it is one component rather than a copy of the
  *  class list per button. Lives on its own because the download menu's trigger
- *  is one of them and has to look identical to the rest of the row. */
+ *  is one of them and has to look identical to the rest of the row.
+ *
+ *  It wears the family's header button: a 36px box with a border, tinted accent
+ *  while it is on. That is the shape the sibling apps' headers use and the one
+ *  this app's own toolbar already uses for a picked tool, so the header no
+ *  longer floats a row of bare glyphs over chrome that boxes everything else.
+ *  A button that reports state — the star, the layers panel, an open menu —
+ *  carries the tint, which is why the glyphs inside no longer colour
+ *  themselves. */
 export function HeaderIconButton({
   label,
   onClick,
@@ -35,8 +43,10 @@ export function HeaderIconButton({
       aria-haspopup={expanded === undefined ? undefined : "menu"}
       aria-expanded={expanded}
       title={label}
-      className={`inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded hover:bg-surface-2 hover:text-fg disabled:cursor-default disabled:opacity-30 disabled:hover:bg-transparent ${
-        expanded ? "bg-surface-2 text-fg" : "text-muted"
+      className={`inline-flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-md border transition-colors disabled:cursor-default disabled:opacity-30 ${
+        pressed || expanded
+          ? "border-accent bg-accent/15 text-accent"
+          : "border-line text-muted hover:bg-surface-2 hover:text-fg disabled:hover:bg-transparent"
       }`}
     >
       {children}

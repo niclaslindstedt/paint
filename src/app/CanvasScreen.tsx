@@ -4,7 +4,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ConfirmDialog,
   ImageUpIcon,
-  InlineEditField,
   StarIcon,
 } from "@niclaslindstedt/oss-framework/components";
 import {
@@ -15,6 +14,7 @@ import {
 
 import { defaultInk, resolvePageColor } from "./canvas.ts";
 import { DownloadMenu } from "./DownloadMenu.tsx";
+import { DrawingTitle } from "./DrawingTitle.tsx";
 import type { MenuEdge } from "./gestures.ts";
 import { HeaderIconButton } from "./HeaderIconButton.tsx";
 import { LayersIcon } from "./icons.tsx";
@@ -192,19 +192,14 @@ export function CanvasScreen({
           which paints edge to edge (`viewport-fit=cover`). */}
       <header className="flex shrink-0 items-center gap-2 border-b border-line bg-surface px-3 pb-2 pt-[calc(0.5rem+env(safe-area-inset-top))]">
         {/* The name is edited in place — a drawing is named by typing over its
-            title, not through a dialog. */}
-        <div className="min-w-0 flex-1">
-          <InlineEditField
-            initial={drawing.name}
-            placeholder={t("menu.untitled")}
-            ariaLabel={t("menu.drawingName")}
-            onCommit={(next) => store.renameActive(next)}
-            onCancel={() => {}}
-            className="w-full"
-          />
-        </div>
+            title, not through a dialog. It reads as the page's heading until
+            it is pressed (see `DrawingTitle`). */}
+        <DrawingTitle
+          value={drawing.name}
+          onCommit={(next) => store.renameActive(next)}
+        />
 
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-2">
           {/* The star — where favouriting is discovered, and what puts the
               drawing in the side menu's Favorites section. */}
           <HeaderIconButton
@@ -212,10 +207,7 @@ export function CanvasScreen({
             pressed={Boolean(drawing.favorite)}
             onClick={() => store.toggleFavorite(drawing.id)}
           >
-            <StarIcon
-              className={`h-[18px] w-[18px] ${drawing.favorite ? "text-accent" : ""}`}
-              filled={drawing.favorite}
-            />
+            <StarIcon className="h-[18px] w-[18px]" filled={drawing.favorite} />
           </HeaderIconButton>
           {/* The layers panel's other door. The swipe from the right edge is
               the phone gesture; this button is how it is *found*, and the only
@@ -225,9 +217,7 @@ export function CanvasScreen({
             pressed={layersOpen}
             onClick={() => setLayersOpen((open) => !open)}
           >
-            <LayersIcon
-              className={`h-[18px] w-[18px] ${layersOpen ? "text-accent" : ""}`}
-            />
+            <LayersIcon className="h-[18px] w-[18px]" />
           </HeaderIconButton>
           {/* No undo / redo here. They are one tap away in the sidebar's
               button island and on the keyboard, and the header is the one row

@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 // Generate the PWA install icons and the social-preview image from the same
-// geometry as public/icons/icon.svg — a brush swipe drawn as a gradient stroke
-// on the app's dark surface (the line-art style shared with the sibling notes,
-// checklist and contacts apps). Pure Node (zlib + a minimal PNG encoder), so
+// geometry as public/icons/icon.svg — a bristle brush drawn as gradient line
+// art on the app's dark surface (the style shared with the sibling notes,
+// checklist and contacts marks). Pure Node (zlib + a minimal PNG encoder), so
 // the pipeline needs no native image dependencies. Rerun with `npm run icons` /
 // `make icons` after changing the mark.
 import { deflateSync } from "node:zlib";
@@ -21,9 +21,9 @@ const BG = [11, 13, 16]; // #0b0d10
 const GRAD_TOP = [253, 224, 71]; // #fde047
 const GRAD_BOT = [249, 115, 22]; // #f97316
 // The gradient runs top-to-bottom over the mark's vertical extent (unit space),
-// matching the userSpaceOnUse y1=0.25 / y2=0.76 span in the SVG.
-const GRAD_Y0 = 0.25;
-const GRAD_Y1 = 0.76;
+// matching the `y1` / `y2` of the userSpaceOnUse gradient in the SVG, over 100.
+const GRAD_Y0 = 0.14;
+const GRAD_Y1 = 0.86;
 
 // The stroke ink at unit-space height `y`, interpolated along the gradient.
 function markInk(y) {
@@ -105,32 +105,133 @@ function encodePng(width, height, rgba) {
 
 // --- the mark ----------------------------------------------------------------
 
-// A single brush swipe: one sine-shaped stroke across the tile, thick enough to
-// stay legible at 16 px. Sampling the curve into a polyline and measuring the
-// distance to it gives round caps and joins for free — the same shape the
-// <path> in public/icons/icon.svg traces.
+// The app mark: a bristle brush held at 45° — the same object the toolbar's
+// `BrushIcon` draws, at the weight a launcher tile wants. It is built the way
+// the sibling marks are (the notes page, the checklist tick): **solid** shapes
+// in a vertical gradient, filling the tile corner to corner, with the detail
+// cut *out* of them in the background colour rather than drawn as thin lines.
+// A hairline outline survives neither a 16 px favicon nor a phone's home screen
+// two rows down; a solid silhouette does, and it is what puts this icon in the
+// same family as the others rather than beside them.
+//
+// The geometry is written upright — handle, ferrule, then the splayed head —
+// and turned as a whole, which is how `icon.svg` states it too
+// (`transform="translate(3 -3) rotate(45 50 50)"`). Kept in lockstep with that
+// file: the point lists below are its `d` attributes.
 
-// Half the stroke width in unit space (matching stroke-width 15 / linecap round
-// on the 100 viewBox in icon.svg).
-const STROKE_HALF = 0.075;
+// Every solid piece is drawn *and* outlined with a round-joined stroke this
+// wide, which is what rounds its corners — the soft-cornered geometry the
+// sibling marks wear (`stroke-linejoin="round"` on a filled path in the SVG).
+const ROUND = 6;
+// The handle is a bar rather than a shape: a segment this wide with round ends.
+const HANDLE_WIDTH = 13;
 
-// The swipe, sampled once at module load: a full sine wave across x ∈ [0.17,
-// 0.83] — up, over, down — the shape a brush leaves when you wave it across a
-// page, and one that still reads at 16 px.
-const SWIPE = Array.from({ length: 96 }, (_, i) => {
-  const t = i / 95;
-  return { x: 0.17 + t * 0.66, y: 0.5 + 0.23 * Math.sin(2 * Math.PI * t) };
-});
+const UPRIGHT = {
+  // The handle. It starts above the tile's box because the mark is turned onto
+  // the diagonal, which is where the room is: upright it would be half again
+  // too long, turned it fills the tile corner to corner.
+  bars: [
+    [
+      [50, 6],
+      [50, 52],
+    ],
+  ],
+  fills: [
+    // The ferrule — the metal band that holds the hair, and the widest part of
+    // the brush, so the head reads as hair coming out of it rather than as
+    // more handle.
+    [
+      [34, 54],
+      [66, 54],
+      [66, 68],
+      [34, 68],
+    ],
+    // The head, tapering to the tip it paints with. The taper is steep on
+    // purpose: turned 45° and seen at 16 px, a gentle one reads as another
+    // block of handle.
+    [
+      [37, 78],
+      [63, 78],
+      [56, 106],
+      [44, 106],
+    ],
+  ],
+};
 
-// Whether unit-space point (x, y) lands on the swipe.
-function inStroke(x, y) {
-  let best = Infinity;
-  for (const p of SWIPE) {
-    const d = Math.hypot(x - p.x, y - p.y);
-    if (d < best) best = d;
-    if (best < STROKE_HALF) return true;
+// Nothing is drawn *on* the mark: the seam between the ferrule and the hair is
+// the gap between two solid pieces, so the unlit tile shows through it — the
+// way the notes page's lines are cut out of its silhouette rather than ruled
+// across it.
+
+// Rotate 45° about the tile's centre, then nudge the turned mark back onto it
+// (the head is wider and longer than the handle, so the rotation alone leaves
+// it hanging low and left). Applied once at module load; everything downstream
+// works in unit space.
+const COS45 = Math.SQRT1_2;
+const NUDGE_X = 3;
+const NUDGE_Y = -3;
+const turn = (points) =>
+  points.map(([x, y]) => {
+    const dx = x - 50;
+    const dy = y - 50;
+    return [
+      (50 + (dx - dy) * COS45 + NUDGE_X) / 100,
+      (50 + (dx + dy) * COS45 + NUDGE_Y) / 100,
+    ];
+  });
+const BARS = UPRIGHT.bars.map(turn);
+const FILLS = UPRIGHT.fills.map(turn);
+
+const ROUND_HALF = ROUND / 2 / 100;
+const HANDLE_HALF = HANDLE_WIDTH / 2 / 100;
+
+// Distance from unit-space (px, py) to the segment (ax, ay)–(bx, by). A segment
+// within half a width of the point is a capsule, so round caps and joins fall
+// out of the distance field rather than being drawn.
+function distToSegment(px, py, ax, ay, bx, by) {
+  const dx = bx - ax;
+  const dy = by - ay;
+  const len2 = dx * dx + dy * dy;
+  const t =
+    len2 === 0
+      ? 0
+      : Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / len2));
+  return Math.hypot(px - (ax + t * dx), py - (ay + t * dy));
+}
+
+/** Whether (px, py) is within `half` of any segment of `polylines`. */
+function nearAny(polylines, px, py, half, closed = false) {
+  for (const line of polylines) {
+    const last = closed ? line.length : line.length - 1;
+    for (let i = 0; i < last; i++) {
+      const [ax, ay] = line[i];
+      const [bx, by] = line[(i + 1) % line.length];
+      if (distToSegment(px, py, ax, ay, bx, by) < half) return true;
+    }
   }
-  return best < STROKE_HALF;
+  return false;
+}
+
+/** Whether (px, py) is inside `polygon` — even-odd ray crossing. */
+function inPolygon(polygon, px, py) {
+  let inside = false;
+  for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+    const [xi, yi] = polygon[i];
+    const [xj, yj] = polygon[j];
+    if (yi > py !== yj > py && px < ((xj - xi) * (py - yi)) / (yj - yi) + xi)
+      inside = !inside;
+  }
+  return inside;
+}
+
+// Whether unit-space point (x, y) lands on the brush: inside a solid piece, or
+// within the round-join outline that softens its corners, or on the handle bar.
+function inStroke(x, y) {
+  return (
+    FILLS.some((polygon) => inPolygon(polygon, x, y)) ||
+    nearAny(FILLS, x, y, ROUND_HALF, true) ||
+    nearAny(BARS, x, y, HANDLE_HALF)
+  );
 }
 
 // Render size×size RGBA. `pad` insets the mark (maskable icons need a safe
@@ -145,10 +246,14 @@ function renderIcon(size, { pad = 0.12, radius = 0.2 } = {}) {
       const dx = Math.max(r - px, px - (size - 1 - r), 0);
       const dy = Math.max(r - py, py - (size - 1 - r), 0);
       const outside = Math.hypot(dx, dy) - r;
-      const bgAlpha = Math.max(0, Math.min(1, 0.5 - outside));
-      // Stroke coverage in padded unit space, 3×3 supersampled for smooth
-      // edges on the thin outline. The gradient ink is sampled at the pixel's
-      // own height so the stroke shades top-to-bottom.
+      // A square tile has no corner to fall outside of, so it is opaque
+      // throughout: the coverage formula below only describes a *rounded* one
+      // (at `radius: 0` every pixel sits exactly on its own edge, which read as
+      // half-transparent and left the maskable and apple-touch icons ghosted).
+      const bgAlpha = r === 0 ? 1 : Math.max(0, Math.min(1, 0.5 - outside));
+      // Mark coverage in padded unit space, 3×3 supersampled for smooth edges.
+      // The gradient ink is sampled at the pixel's own height so the mark
+      // shades top-to-bottom.
       let hit = 0;
       for (const oy of [1 / 6, 0.5, 5 / 6]) {
         for (const ox of [1 / 6, 0.5, 5 / 6]) {
