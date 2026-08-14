@@ -16,71 +16,16 @@
 // intended.
 
 import type { Point } from "../types.ts";
-import { HAIRLINE, PIXEL, driftNoise, hashedRandom } from "./grain.ts";
+import {
+  HAIRLINE,
+  PIXEL,
+  driftNoise,
+  hashedRandom,
+  normalAt,
+  trace,
+  type Trace,
+} from "./grain.ts";
 import { paintPath } from "./ink.ts";
-
-/** Where along a path each sample sits, and how fast the hand was moving when
- *  it passed through — the two things a real brush's mark depends on.
- *
- *  Speed is read back out of the *sampled* geometry: the canvas records a point
- *  every 1.5 document pixels at the slowest, so the gaps between the points a
- *  stroke actually stored are how quickly the pointer crossed them. It costs
- *  nothing to store and it is the difference between a stroke that swells as
- *  you slow into a corner and one that is the same slab all the way round. */
-type Trace = { x: number; y: number; speed: number; at: number };
-
-/** Resample a stroke evenly and carry the local speed along with it, smoothed
- *  over a few samples so one jittery pointer report can't pinch the mark. */
-function trace(points: readonly Point[], spacing: number): Trace[] {
-  const first = points[0];
-  if (!first) return [];
-  // Raw speed per stored sample, in document pixels between reports.
-  const speeds: number[] = [0];
-  for (let i = 1; i < points.length; i++) {
-    const a = points[i - 1]!;
-    const b = points[i]!;
-    speeds.push(Math.hypot(b.x - a.x, b.y - a.y));
-  }
-  const smoothed = speeds.map((_, i) => {
-    const from = Math.max(0, i - 2);
-    const to = Math.min(speeds.length - 1, i + 2);
-    let sum = 0;
-    for (let k = from; k <= to; k++) sum += speeds[k]!;
-    return sum / (to - from + 1);
-  });
-
-  if (points.length === 1) {
-    return [{ x: first.x, y: first.y, speed: 0, at: 0 }];
-  }
-  const step = Math.max(0.5, spacing);
-  const out: Trace[] = [
-    { x: first.x, y: first.y, speed: smoothed[0] ?? 0, at: 0 },
-  ];
-  let carry = 0;
-  let travelledTotal = 0;
-  for (let i = 1; i < points.length; i++) {
-    const a = points[i - 1]!;
-    const b = points[i]!;
-    const span = Math.hypot(b.x - a.x, b.y - a.y);
-    if (span === 0) continue;
-    let travelled = step - carry;
-    while (travelled <= span) {
-      const t = travelled / span;
-      out.push({
-        x: a.x + (b.x - a.x) * t,
-        y: a.y + (b.y - a.y) * t,
-        speed:
-          (smoothed[i - 1] ?? 0) +
-          ((smoothed[i] ?? 0) - (smoothed[i - 1] ?? 0)) * t,
-        at: travelledTotal + travelled,
-      });
-      travelled += step;
-    }
-    travelledTotal += span;
-    carry = (carry + span) % step;
-  }
-  return out;
-}
 
 /** Stiffen a traced path to what a head that wide could actually have drawn.
  *
@@ -117,20 +62,6 @@ function stiffen(along: Trace[], radius: number, spacing: number): Trace[] {
     out[i] = { ...along[i]!, x: sx / n, y: sy / n };
   }
   return out;
-}
-
-/** The unit normal at `i` — the direction "across" the stroke, which is what a
- *  bristle is offset along and what a nib is measured across. */
-function normalAt(
-  trace: readonly Trace[],
-  i: number,
-): { nx: number; ny: number } {
-  const prev = trace[Math.max(0, i - 1)]!;
-  const next = trace[Math.min(trace.length - 1, i + 1)]!;
-  const dx = next.x - prev.x;
-  const dy = next.y - prev.y;
-  const len = Math.hypot(dx, dy) || 1;
-  return { nx: -dy / len, ny: dx / len };
 }
 
 /** How much of its load the head still has after travelling `at` document

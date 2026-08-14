@@ -298,14 +298,19 @@ lives by: **nothing outside it may branch on a tool id.**
   shape) plus their ink configuration, and the three that begin no stroke of
   their own: the hand, the dropper, and the bucket (which files the area the
   probe traced for it).
-- `brushes.ts` — the characterful painters: spray cones, wax, nibs, halos.
+- `brushes.ts` — the characterful painters: spray cones, nibs, halos.
 - `bristle.ts` — the paintbrush, which needs a module of its own because it is
   the only painter modelling a physical _object_: a head that holds a load and
   spends it, that is wider than the wiggles you ask it to follow, that cannot
   turn inside its own width, and that leaves an opaque mark with the hairs'
   partings scratched through it.
-- `grain.ts` — the hashes both of them scatter with, and the floor below which a
-  detail is too small to draw.
+- `crayon.ts` — the wax, which needs one for the opposite reason: it is the only
+  painter modelling the _page_. A fixed lattice of paper tooth decides where wax
+  sticks, anchored in document coordinates, so it is the same sheet under every
+  mark and the texture is a property of the paper rather than of the stick.
+- `grain.ts` — the hashes all three scatter with, the even walk along a path
+  they lay texture down on, and the floor below which a detail is too small to
+  draw.
 
 All of them are pure functions of the stroke, with every scatter hashed off
 position rather than drawn at random, so a repaint and the PNG export grain

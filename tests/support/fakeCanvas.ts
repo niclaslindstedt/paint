@@ -13,12 +13,27 @@
 // what `setTransform` was last given so the detail the painters resolve is real
 // rather than assumed.
 
+/** One `stroke()`, with the pen it was drawn with and the runs it drew.
+ *
+ *  Enough to measure a *texture* rather than just count calls: the painters
+ *  that build a mark out of many small marks (the crayon's grain, the brush's
+ *  hairs) put their whole character into the size and spread of those runs, and
+ *  a tally of `lineTo` says nothing about either. */
+export type FakeStroke = {
+  lineWidth: number;
+  alpha: number;
+  /** Every `moveTo`/`lineTo` pair, as `[x1, y1, x2, y2]`. */
+  runs: [number, number, number, number][];
+};
+
 /** A recording 2D context, plus the tallies the tests assert on. */
 export type FakeContext = CanvasRenderingContext2D & {
   calls: Record<string, number>;
   /** Images blitted onto it, in order — the layer's evidence that a frame was
    *  served from the cache. */
   blits: unknown[];
+  /** Each `stroke()` since the context was made, in order. */
+  strokes: FakeStroke[];
 };
 
 const METHODS = [
@@ -31,13 +46,10 @@ const METHODS = [
   "fill",
   "fillRect",
   "fillText",
-  "lineTo",
-  "moveTo",
   "quadraticCurveTo",
   "rect",
   "restore",
   "save",
-  "stroke",
   "strokeRect",
   "translate",
 ] as const;
@@ -45,14 +57,20 @@ const METHODS = [
 export function createFakeContext(): FakeContext {
   const calls: Record<string, number> = {};
   const blits: unknown[] = [];
+  const strokes: FakeStroke[] = [];
   let transform = { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 };
   const tick = (name: string) => {
     calls[name] = (calls[name] ?? 0) + 1;
   };
+  // The pen's position, and the runs drawn since the last `stroke()`.
+  let atX = 0;
+  let atY = 0;
+  let pending: [number, number, number, number][] = [];
 
   const ctx: Record<string, unknown> = {
     calls,
     blits,
+    strokes,
     globalAlpha: 1,
     globalCompositeOperation: "source-over",
     lineWidth: 1,
@@ -84,6 +102,26 @@ export function createFakeContext(): FakeContext {
     createLinearGradient() {
       tick("createLinearGradient");
       return { addColorStop() {} };
+    },
+    moveTo(x: number, y: number) {
+      tick("moveTo");
+      atX = x;
+      atY = y;
+    },
+    lineTo(x: number, y: number) {
+      tick("lineTo");
+      pending.push([atX, atY, x, y]);
+      atX = x;
+      atY = y;
+    },
+    stroke() {
+      tick("stroke");
+      strokes.push({
+        lineWidth: ctx.lineWidth as number,
+        alpha: ctx.globalAlpha as number,
+        runs: pending,
+      });
+      pending = [];
     },
   };
   for (const name of METHODS) ctx[name] = () => tick(name);
