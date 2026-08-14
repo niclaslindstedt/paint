@@ -48,8 +48,18 @@ what the mark is _made of_:
   of a long drag opens up into separate hairs. Drag it fast and it thins, which
   the stroke knows for free — the canvas samples every 1.5 document pixels at
   the slowest, so the gaps between stored points are how quickly you crossed
-  them. The hardness dial is how wet and how gathered the head is: hard covers
-  solidly, soft splays and leaves most of its length in streaks;
+  them. What decides how a mark reads is **how much paper is left showing**: a
+  charged head lays hairs wide enough to meet each other and pools a body in
+  between, so the mark closes into a slab with a few partings scratched through
+  it, while a dry one leaves the filaments' own width with bare sheet either
+  side. That is the hardness dial, and it spans a whole pressure series — dry
+  brush at the bottom, a loaded flat at the top — rather than restyling one
+  mark. The paper has a say too: a grain runs under every stroke and lifts the
+  whole head off the sheet for a moment as it passes, which is what breaks a
+  mark _across_ as well as along it. The grain is the **page's**, so it does not
+  shrink with the brush — a head narrower than the dips a wide one catches on
+  rides over them and leaves a line, which is why a small brush stays solid
+  where a wide one at the same setting is streaking;
 - the **airbrush** is a spray cone — a radial gradient stamped along the path at
   a fraction of its own radius, faint enough that coverage comes from _overlap_,
   so passing twice really is twice the paint, with a sparse grain over the top;
@@ -129,23 +139,36 @@ tool shares; past it a paintbrush and a highlighter have nothing in common, and
 a hardness slider shown to the highlighter was a control that did nothing
 sitting where a control that did something should be.
 
-So a tool declares its own, two at most — the panel is something you reach into
-mid-drawing, with one thumb, and a third slider makes it a settings screen:
+So a tool declares its own, and the bar is high: the panel is something you
+reach into mid-drawing, with one thumb, so a dial has to change what the mark
+_is_ rather than restyle what another dial already did. For most tools that is
+one or two. The paintbrush is the exception and earns it — a head of hair is
+loaded or dry, milled fine or coarse, new or worn open, and on paper that wicks
+or paper that does not, and no one of those four is any of the others:
 
-| Tool                             | Advanced                  |
-| -------------------------------- | ------------------------- |
-| **Paintbrush**                   | hardness, hair            |
-| **Airbrush**                     | hardness, flow            |
-| **Crayon**                       | opacity, pressure         |
-| **Paint bucket**                 | opacity, feather          |
-| Pencil, marker, highlighter, pen | opacity                   |
-| Shapes, text                     | opacity                   |
-| Eraser, hand, dropper            | nothing — no fold appears |
+| Tool                             | Advanced                              |
+| -------------------------------- | ------------------------------------- |
+| **Paintbrush**                   | opacity, hardness, hair, splay, bleed |
+| **Airbrush**                     | hardness, flow                        |
+| **Crayon**                       | opacity, pressure                     |
+| **Paint bucket**                 | opacity, feather                      |
+| Pencil, marker, highlighter, pen | opacity                               |
+| Shapes, text                     | opacity                               |
+| Eraser, hand, dropper            | nothing — no fold appears             |
 
-Each one is wired to something the painter actually does. **Hair** is which
-brush off the rack: the head is milled from filament of a fixed gauge, so fine
-hair leaves many thin partings and coarse hair a few broad ones — and neither
-changes the width. **Flow** is the airbrush's trigger, and because its coverage
+Each one is wired to something the painter actually does. **Hardness** is how
+charged the head is, and it is the brush's main control: turned up it is a
+loaded flat that covers solidly, turned down a spent one that leaves most of its
+length in streaks. **Hair** is which brush off the rack: the head is milled from
+filament of a fixed gauge, so fine hair leaves many thin partings and coarse
+hair a few broad ones — and neither changes the width. **Splay** is the state of
+that head rather than its make — a brush out of its wrapper cuts a side you
+could rule against, one washed a hundred times has a fringe on it and strays out
+of its lanes. **Bleed** is the only thing here that belongs to the _paper_: how
+far a wet edge wicks into the sheet before it dries, which is the brush's one
+soft edge. It rests at nothing, because bristle on cartridge paper does not
+bleed and a mark that always did would look damp. **Flow** is the airbrush's
+trigger, and because its coverage
 is built from overlapping passes rather than one opaque dab, turning it down
 really does mean more passes. **Pressure** is how hard the crayon bears down:
 wax only sticks to the peaks it is pressed onto, so a light hand leaves the

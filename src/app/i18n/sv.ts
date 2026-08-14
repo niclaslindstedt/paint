@@ -200,6 +200,14 @@ export const sv: Catalog = {
       name: "Strån: {value} %",
       hint: "Fina strån ger många tunna streck, grova några få breda.",
     },
+    splay: {
+      name: "Spretighet: {value} %",
+      hint: "En ny pensel ger en skarp kant, en sliten fransar sig.",
+    },
+    bleed: {
+      name: "Blödning: {value} %",
+      hint: "Hur långt en våt kant suger sig in i papperet.",
+    },
     flow: {
       name: "Flöde: {value} %",
       hint: "Hur mycket färg varje drag lägger. Lågt byggs upp långsamt.",

@@ -35,8 +35,12 @@ the same [`oss-framework`](https://github.com/niclaslindstedt/oss-framework).
   costs you a fine pencil.
 - **Brushes that are their medium.** The paintbrush is a head of hair: it lays
   down opaque paint with the hairs' partings scratched through it, frays at the
-  sides, and runs dry towards the end of a long drag. The airbrush is a spray
-  cone that builds up where you linger. Not a pencil at a different width.
+  sides, and runs dry towards the end of a long drag. Turn it down and you get
+  the whole pressure series off a reference sheet — a loaded flat that covers
+  edge to edge, a medium mark streaked through, a dry brush that is mostly
+  paper — and it can be worn open until its side is a fringe, or set on paper
+  that wicks its edges soft. The airbrush is a spray cone that builds up where
+  you linger. Not a pencil at a different width.
 - **Type on the page.** The text tool drops a caret wherever you tap and you
   type into the drawing itself, in the size, colour and typeface it will land
   in — four faces, bold and italic.
@@ -145,8 +149,9 @@ npm run preview
   nib. The ink button is split between the colour you draw with and the page
   colour that erases it, and opens the palette, your own mixed colours, and a
   free colour mixer; the nib button shows the width as a dot and opens the
-  widths, a slider for new ones, and — behind an **Advanced** fold — the two
-  knobs belonging to the tool in your hand: hair gauge for the paintbrush, flow
+  widths, a slider for new ones, and — behind an **Advanced** fold — the knobs
+  belonging to the tool in your hand: how charged the head is, its hair gauge,
+  how far it has splayed and how far the paper bleeds for the paintbrush, flow
   for the airbrush, pressure for the crayon, a feathered edge for the paint
   bucket, opacity for most of the rest. They are kept per tool, so a soft brush
   stays soft without softening anything else. Each tool has a
