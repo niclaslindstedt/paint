@@ -26,13 +26,20 @@ you reach for by feel. Everything that draws lives between them.
 ## Brushes are their medium
 
 A tool that differs from the pencil only in `lineWidth` is not a tool. The
-painters in `src/app/plugins/brushes.ts` model what the mark is _made of_:
+painters in `src/app/plugins/brushes.ts` and `bristle.ts` model what the mark is
+_made of_:
 
-- the **paintbrush** is a head of separate hairs — a low-alpha body with 5–16
-  bristles dragged through it, each with its own load and its own dry patches,
-  tapering at both ends and thinning where your hand moved fast (which the
-  stroke knows for free: the canvas samples every 1.5 document pixels at the
-  slowest, so the gaps between stored points are how quickly you crossed them);
+- the **paintbrush** is a head of hair, and the mark it leaves is opaque paint
+  with the hairs' partings scratched through it. The hair is a fixed gauge, not
+  a share of the width — widen the brush and you get _more_ streaks rather than
+  fatter ones, the way a rack of real brushes works. The head lands blunt and
+  holds its width, it is too wide to follow a wiggle finer than itself and it
+  cannot turn inside its own width, and it carries a load it spends: the far end
+  of a long drag opens up into separate hairs. Drag it fast and it thins, which
+  the stroke knows for free — the canvas samples every 1.5 document pixels at
+  the slowest, so the gaps between stored points are how quickly you crossed
+  them. The hardness dial is how wet and how gathered the head is: hard covers
+  solidly, soft splays and leaves most of its length in streaks;
 - the **airbrush** is a spray cone — a radial gradient stamped along the path at
   a fraction of its own radius, faint enough that coverage comes from _overlap_,
   so passing twice really is twice the paint, with a sparse grain over the top;

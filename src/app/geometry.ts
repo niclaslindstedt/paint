@@ -4,7 +4,7 @@
 // A repaint is a loop over every mark in the document, and at a zoom past
 // fitting the page most of those marks are off screen. Painting them is not
 // wasted in the sense of being wrong — the canvas clips them — but the clip
-// happens *after* the painter has resampled the path, splayed sixteen bristles
+// happens *after* the painter has resampled the path, splayed fifty bristles
 // through it and stamped four hundred cones along it. The cheapest work is the
 // work that never starts.
 //

@@ -30,9 +30,10 @@ the same [`oss-framework`](https://github.com/niclaslindstedt/oss-framework).
   one interface. A few are always on, a few more come switched on, and the rest
   — shapes, a crayon, a calligraphy nib, a neon pen — wait in Settings → Tools,
   so the toolbar stays as simple as you want it and grows when you need it.
-- **Brushes that are their medium.** The paintbrush is a head of separate hairs
-  that thins when you move fast and runs dry at the edges; the airbrush is a
-  spray cone that builds up where you linger. Not a pencil at a different width.
+- **Brushes that are their medium.** The paintbrush is a head of hair: it lays
+  down opaque paint with the hairs' partings scratched through it, frays at the
+  sides, and runs dry towards the end of a long drag. The airbrush is a spray
+  cone that builds up where you linger. Not a pencil at a different width.
 - **A page the size you meant.** A new drawing asks how big its canvas is —
   this screen's own resolution by default, Full HD, 4K, square, A4 at 300 dpi, a
   sheet larger than any screen, or a size you type. The page is fixed after

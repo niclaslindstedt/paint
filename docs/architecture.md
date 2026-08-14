@@ -298,9 +298,18 @@ lives by: **nothing outside it may branch on a tool id.**
   shape) plus their ink configuration, and the three that begin no stroke of
   their own: the hand, the dropper, and the bucket (which files the area the
   probe traced for it).
-- `brushes.ts` — the characterful painters: bristles, spray cones, grain. Pure
-  functions of the stroke, with every scatter hashed off position rather than
-  drawn at random, so a repaint and the PNG export grain identically.
+- `brushes.ts` — the characterful painters: spray cones, wax, nibs, halos.
+- `bristle.ts` — the paintbrush, which needs a module of its own because it is
+  the only painter modelling a physical _object_: a head that holds a load and
+  spends it, that is wider than the wiggles you ask it to follow, that cannot
+  turn inside its own width, and that leaves an opaque mark with the hairs'
+  partings scratched through it.
+- `grain.ts` — the hashes both of them scatter with, and the floor below which a
+  detail is too small to draw.
+
+All of them are pure functions of the stroke, with every scatter hashed off
+position rather than drawn at random, so a repaint and the PNG export grain
+identically.
 
 A tool that needs the app to treat it differently says so on its descriptor —
 `usesBackground` for the eraser, `navigates` for the hand, `picksColor` for the
