@@ -133,7 +133,6 @@ export const sv: Catalog = {
     select: "Rita på {name}",
     show: "Visa {name}",
     hide: "Dölj {name}",
-    hidden: "Dolt",
     moveUp: "Flytta {name} uppåt",
     moveDown: "Flytta {name} nedåt",
     delete: "Ta bort {name}",

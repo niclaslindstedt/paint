@@ -27,14 +27,19 @@ button is the way into layers.
 
 ## What you can do
 
-The panel lists the stack **top first**, the way the marks sit on the page.
+The panel lists the stack **top first**, the way the marks sit on the page. Each
+row shows a **preview of that layer's marks** on the page — where the boxes are,
+where the labels are, which one holds the photo. That is what tells two layers
+apart at a glance, and it is painted through the same renderer the page is, so a
+preview can never disagree with the drawing.
 
 - **New layer** — the `+` in the panel header. It lands directly above the one
   you have selected, and it becomes the selected one.
 - **Draw on a layer** — tap its row. New marks land on the selected layer, and
   they land _in_ the stack: draw on a lower layer and the strokes appear under
   everything above it.
-- **Show / hide** — the eye. A hidden layer is off the page, out of every
+- **Show / hide** — the eye. A hidden layer dims in the list but keeps its
+  preview, so you can still see what you have put away. It is off the page, out of every
   download, and invisible to the paint bucket and the colour dropper, which read
   what is painted rather than what was drawn. It is not deleted — the marks are
   still in the document and come back with the eye.
@@ -42,8 +47,9 @@ The panel lists the stack **top first**, the way the marks sit on the page.
   lifts everything drawn on it over the layers it passes.
 - **Delete** — the bin. It takes the marks on that layer with it, so a layer
   with anything on it asks first. The last layer is never deleted: a drawing
-  always has somewhere to draw. (Undo brings a deleted layer and its marks back
-  in one step, as with every other edit.)
+  always has somewhere to draw, and wiping one clean is what the eraser's own
+  sweep of the page is for. (Undo brings a deleted layer and its marks back in
+  one step, as with every other edit.)
 
 ## What layers are not, yet
 

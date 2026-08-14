@@ -136,7 +136,6 @@ export const en = {
     select: "Draw on {name}",
     show: "Show {name}",
     hide: "Hide {name}",
-    hidden: "Hidden",
     moveUp: "Move {name} up",
     moveDown: "Move {name} down",
     delete: "Delete {name}",

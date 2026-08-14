@@ -447,7 +447,7 @@ export function usePaintStore(
 
   /** Delete a layer **and the marks on it** — one undo step brings both back.
    *  The last layer is never deleted: a drawing always has somewhere to draw,
-   *  and "delete the only layer" is what Clear canvas is for. */
+   *  and "delete the only layer" is what the eraser's clean sweep is for. */
   const deleteLayer = useCallback(
     (id: string) => {
       const active = activeDrawing;

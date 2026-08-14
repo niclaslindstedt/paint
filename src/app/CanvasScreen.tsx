@@ -300,6 +300,8 @@ export function CanvasScreen({
             <LayersPanel
               store={store}
               drawing={drawing}
+              pageColor={pageColor}
+              defaultInk={ink}
               onClose={() => setLayersOpen(false)}
             />
           </>

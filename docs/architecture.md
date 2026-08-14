@@ -114,6 +114,13 @@ Two rules keep it honest, and both live in `visibleStrokes`:
 - a stroke naming a layer that isn't there belongs to the base too. Losing a
   layer must never mean losing a mark to invisibility.
 
+The panel's per-row preview (`LayerThumbnail`) paints that layer's group through
+the same `paintStrokes` everything else uses, so a new tool shows up in it the
+day it is registered. It takes one liberty, and it is what makes it a picture
+rather than a smudge: a mark thinner than a pixel at preview scale is painted
+_at_ a pixel. Only `size` is touched, only on the strokes that would vanish, and
+only on copies — the document never sees it.
+
 `visibleStrokes` is the single answer to "what is on this page": the renderer
 folds over it, so the screen, the PNG / JPG / SVG downloads, the crop-to-marks
 bounds and the bucket's snapshot all agree about what a hidden layer means. For a

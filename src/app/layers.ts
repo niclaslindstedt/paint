@@ -98,11 +98,7 @@ export function visibleStrokes(drawing: Drawing): readonly Stroke[] {
   if (!layers || layers.length === 0) return drawing.strokes;
   if (layers.length === 1) return layers[0]!.hidden ? [] : drawing.strokes;
 
-  const { order, base } = stackOrder(layers);
-  const buckets: Stroke[][] = layers.map(() => []);
-  for (const stroke of drawing.strokes) {
-    buckets[indexOfStroke(stroke, order, base)]!.push(stroke);
-  }
+  const buckets = bucketsOf(drawing, layers);
   const painted: Stroke[] = [];
   layers.forEach((layer, index) => {
     if (!layer.hidden) painted.push(...buckets[index]!);
@@ -110,18 +106,25 @@ export function visibleStrokes(drawing: Drawing): readonly Stroke[] {
   return painted;
 }
 
-/** How many marks sit on each layer, keyed by layer id. Hidden layers are
- *  counted like any other — the panel says what is *on* a layer, not what is
- *  currently showing. */
-export function countByLayer(drawing: Drawing): Map<string, number> {
+/** The drawing's marks split by layer, keyed by layer id and in the order they
+ *  were drawn. What the panel paints each row's preview from — and what it
+ *  counts for the delete prompt. Hidden layers are grouped like any other: the
+ *  panel shows what is *on* a layer, not what is currently showing. */
+export function groupByLayer(drawing: Drawing): Map<string, Stroke[]> {
   const layers = drawingLayers(drawing);
+  const buckets = bucketsOf(drawing, layers);
+  return new Map(layers.map((layer, index) => [layer.id, buckets[index]!]));
+}
+
+/** The marks of each layer, by stack position. The one pass both the paint
+ *  order and the panel's grouping are built from. */
+function bucketsOf(drawing: Drawing, layers: readonly Layer[]): Stroke[][] {
   const { order, base } = stackOrder(layers);
-  const counts = new Map(layers.map((layer) => [layer.id, 0]));
+  const buckets: Stroke[][] = layers.map(() => []);
   for (const stroke of drawing.strokes) {
-    const layer = layers[indexOfStroke(stroke, order, base)]!;
-    counts.set(layer.id, (counts.get(layer.id) ?? 0) + 1);
+    buckets[indexOfStroke(stroke, order, base)]!.push(stroke);
   }
-  return counts;
+  return buckets;
 }
 
 /** The drawing's marks with everything on `layerId` dropped — what deleting a

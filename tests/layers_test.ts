@@ -11,7 +11,7 @@ import {
   BASE_LAYER_ID,
   activeLayer,
   activeLayerId,
-  countByLayer,
+  groupByLayer,
   drawingLayers,
   hasLayers,
   nextLayerName,
@@ -124,23 +124,40 @@ describe("paint order", () => {
   });
 });
 
-describe("what the panel counts", () => {
-  it("counts the marks on each layer, hidden ones included", () => {
+describe("what the panel previews", () => {
+  it("groups the marks by layer, hidden ones included", () => {
+    // The panel paints each row's preview from these, so a hidden layer still
+    // has to be grouped — the row shows what is *on* the layer, not what is
+    // currently showing.
+    const legacy = stroke();
+    const above = stroke("top");
+    const filed = stroke(BASE_LAYER_ID);
     const page = drawing({
-      strokes: [stroke(), stroke("top"), stroke(BASE_LAYER_ID)],
+      strokes: [legacy, above, filed],
       layers: [base, { ...top, hidden: true }],
     });
-    expect([...countByLayer(page)]).toEqual([
-      [BASE_LAYER_ID, 2],
-      ["top", 1],
+    expect([...groupByLayer(page)]).toEqual([
+      [BASE_LAYER_ID, [legacy, filed]],
+      ["top", [above]],
     ]);
   });
 
-  it("counts every layer, empty ones included", () => {
-    expect([...countByLayer(drawing({ layers: [base, top] }))]).toEqual([
-      [BASE_LAYER_ID, 0],
-      ["top", 0],
+  it("gives every layer a group, empty ones included", () => {
+    expect([...groupByLayer(drawing({ layers: [base, top] }))]).toEqual([
+      [BASE_LAYER_ID, []],
+      ["top", []],
     ]);
+  });
+
+  it("keeps each layer's marks in the order they were drawn", () => {
+    const first = stroke("top");
+    const other = stroke(BASE_LAYER_ID);
+    const second = stroke("top");
+    const page = drawing({
+      strokes: [first, other, second],
+      layers: [base, top],
+    });
+    expect(groupByLayer(page).get("top")).toEqual([first, second]);
   });
 });
 

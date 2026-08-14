@@ -12,7 +12,8 @@ import {
 
 import { EyeIcon, EyeOffIcon } from "./icons.tsx";
 import { useT } from "./i18n/index.ts";
-import { countByLayer, drawingLayers, nextLayerName } from "./layers.ts";
+import { drawingLayers, groupByLayer, nextLayerName } from "./layers.ts";
+import { LayerThumbnail } from "./LayerThumbnail.tsx";
 import type { Drawing } from "./types.ts";
 import type { PaintStore } from "./usePaintStore.ts";
 
@@ -33,12 +34,23 @@ import type { PaintStore } from "./usePaintStore.ts";
 // row of a 224-pixel panel is a row you can't read and can't hit. Picking a
 // layer is one tap; what you can then do to it is right under your thumb.
 //
+// Each row carries a **preview of its marks** (`LayerThumbnail`) rather than a
+// count of them. The count answered the wrong question — you open this panel to
+// find which layer holds the labels, not how many strokes are in it — so the
+// number survives only where it is genuinely the point: the prompt that warns
+// you how much a delete is about to take. It is still read out to a screen
+// reader, which the picture is no use to.
+//
 // Everything here is a pure function of the drawing plus the store's actions —
 // no layer state of its own beyond the delete confirmation.
 
 type Props = {
   store: PaintStore;
   drawing: Drawing;
+  /** The page's colours, as the canvas resolved them — the previews paint on
+   *  the same sheet the drawing does. */
+  pageColor: string;
+  defaultInk: string;
   onClose: () => void;
 };
 
@@ -75,7 +87,13 @@ function PanelButton({
   );
 }
 
-export function LayersPanel({ store, drawing, onClose }: Props) {
+export function LayersPanel({
+  store,
+  drawing,
+  pageColor,
+  defaultInk,
+  onClose,
+}: Props) {
   const t = useT();
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
 
@@ -89,7 +107,7 @@ export function LayersPanel({ store, drawing, onClose }: Props) {
   }, [onClose]);
 
   const layers = drawingLayers(drawing);
-  const counts = countByLayer(drawing);
+  const marks = groupByLayer(drawing);
   const selected = layers.find((l) => l.id === drawing.activeLayerId);
   const activeId = (selected ?? layers[layers.length - 1]!).id;
   const only = layers.length === 1;
@@ -132,7 +150,7 @@ export function LayersPanel({ store, drawing, onClose }: Props) {
         {[...layers].reverse().map((layer, fromTop) => {
           const at = layers.length - 1 - fromTop;
           const active = layer.id === activeId;
-          const count = counts.get(layer.id) ?? 0;
+          const strokes = marks.get(layer.id) ?? [];
           const name = nameOf(layer.name);
           return (
             <li
@@ -164,22 +182,29 @@ export function LayersPanel({ store, drawing, onClose }: Props) {
                   onClick={() => store.selectLayer(layer.id)}
                   aria-current={active ? "true" : undefined}
                   title={t("layers.select", { name })}
-                  className={`flex min-w-0 flex-1 cursor-pointer flex-col items-start py-1.5 pr-1 text-left ${
-                    layer.hidden ? "opacity-50" : ""
+                  className={`flex min-w-0 flex-1 cursor-pointer items-center gap-2 py-1.5 pr-1 text-left ${
+                    layer.hidden ? "opacity-40" : ""
                   }`}
                 >
+                  <LayerThumbnail
+                    drawing={drawing}
+                    strokes={strokes}
+                    pageColor={pageColor}
+                    defaultInk={defaultInk}
+                  />
                   <span
-                    className={`w-full truncate text-sm ${
+                    className={`min-w-0 flex-1 truncate text-sm ${
                       active ? "font-bold text-fg-bright" : "text-fg"
                     }`}
                   >
                     {name}
                   </span>
-                  <span className="text-[11px] text-muted tabular-nums">
-                    {count === 0
+                  {/* The count the preview replaced, kept for the readers a
+                      picture says nothing to. */}
+                  <span className="sr-only">
+                    {strokes.length === 0
                       ? t("layers.empty")
-                      : t("layers.marks", { n: String(count) })}
-                    {layer.hidden ? ` · ${t("layers.hidden")}` : ""}
+                      : t("layers.marks", { n: String(strokes.length) })}
                   </span>
                 </button>
               </div>
@@ -204,11 +229,12 @@ export function LayersPanel({ store, drawing, onClose }: Props) {
                   <PanelButton
                     label={t("layers.delete", { name })}
                     tone="danger"
-                    // The last layer stays: a drawing always has somewhere to
-                    // draw, and emptying one is what Clear canvas is for.
+                    // The last layer stays: a drawing always has somewhere
+                    // to draw, and emptying one is what the eraser's clean
+                    // sweep is for.
                     disabled={only}
                     onClick={() => {
-                      if (count === 0) store.deleteLayer(layer.id);
+                      if (strokes.length === 0) store.deleteLayer(layer.id);
                       else setConfirmDelete(layer.id);
                     }}
                   >
@@ -233,7 +259,7 @@ export function LayersPanel({ store, drawing, onClose }: Props) {
         title={t("layers.delete", { name: doomed ? nameOf(doomed.name) : "" })}
         description={t("layers.deleteConfirm", {
           name: doomed ? nameOf(doomed.name) : "",
-          n: String(doomed ? (counts.get(doomed.id) ?? 0) : 0),
+          n: String(doomed ? (marks.get(doomed.id)?.length ?? 0) : 0),
         })}
         confirmLabel={t("common.delete")}
         tone="danger"
