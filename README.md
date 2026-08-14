@@ -12,8 +12,8 @@
 
 Paint is a small installable web app for sketching a concept: boxes, arrows, a
 circled bit, a scribble. It opens on a page, a paint program's toolbox — pencil,
-airbrush, eraser, paint bucket, colour dropper, text, and the three shapes — and
-nothing else in the way. Drawings are vector strokes kept in your browser; nothing leaves the device
+airbrush, eraser, paint bucket, colour dropper, text, the shapes and a selection
+marquee — and nothing else in the way. Drawings are vector strokes kept in your browser; nothing leaves the device
 unless you connect storage yourself.
 
 It is a sibling of the [`notes`](https://github.com/niclaslindstedt/notes) and
@@ -28,11 +28,21 @@ the same [`oss-framework`](https://github.com/niclaslindstedt/oss-framework).
   JPG or a vector SVG, or copy it straight to the clipboard.
 - **Tools are plugins.** Every tool, the pencil included, is registered through
   one interface. It opens on the toolbox you already know — pencil, airbrush,
-  eraser, bucket, dropper, text and the three shapes — and the media it adds to
-  that (a bristle brush, a marker, a crayon, a calligraphy nib, a highlighter)
-  wait in Settings → Tools, so the toolbar stays as simple as you want it and
-  grows when you need it. Each tool remembers its own width, so a fat brush never
-  costs you a fine pencil.
+  eraser, bucket, dropper, text, the shapes and a selection marquee — and the
+  media it adds to that (a bristle brush, a marker, a crayon, a calligraphy nib,
+  a highlighter) wait in Settings → Tools, so the toolbar stays as simple as you
+  want it and grows when you need it. Rearrange the row there too, and it
+  rearranges here. Each tool remembers its own width, so a fat brush never costs
+  you a fine pencil.
+- **Eleven shapes, one button.** Rectangle, ellipse, line, arrow, rounded
+  rectangle, triangle, diamond, pentagon, hexagon, star and double arrow share a
+  single toolbar button and a single switch: press it again for the family, and
+  for the toggle that fills them in.
+- **Pick marks up again.** Drag a box with the selection tool and what it
+  crosses is yours: move it with the hand, copy, cut or delete it from the
+  keyboard, a right-click or a long press. Ctrl/⌘+V pastes back — marks from
+  another tab, a screenshot from anywhere, or words, which open the caption box
+  so you can set the typeface and size before they land.
 - **Brushes that are their medium.** The paintbrush is a head of hair: it lays
   down opaque paint with the hairs' partings scratched through it, frays at the
   sides, and runs dry towards the end of a long drag. Turn it down and you get
@@ -107,11 +117,12 @@ npm run dev          # http://localhost:5173
 ```
 
 Draw on the page. `I` the colour dropper, `P` pencil, `S` airbrush, `E` eraser,
-`F` the paint bucket, `T` text, `R` / `O` / `L` the shapes, `D` the hand (drag
-the page around) — left to right in the order Photoshop's column runs top to
-bottom; `Ctrl/Cmd + Z` undoes a mark. The hamburger top left opens the drawings,
-the panel on the right resizes, flips and mirrors the page, and Settings → Tools
-switches the rest of the media on.
+`F` the paint bucket, `T` text, `R` / `O` / `L` / `A` the rectangle, ellipse,
+line and arrow, `V` the selection marquee, `D` the hand (drag the page around) —
+left to right in the order Photoshop's column runs top to bottom; `Ctrl/Cmd + Z`
+undoes a mark. The hamburger top left opens the drawings, the panel on the right
+resizes, flips and mirrors the page, and Settings → Tools switches the rest of
+the media on and puts the toolbar in another order.
 
 To build and preview the production bundle (service worker and all):
 
@@ -154,10 +165,15 @@ npm run preview
   how far it has splayed and how far the paper bleeds for the paintbrush, flow
   for the airbrush, pressure for the crayon, a feathered edge for the paint
   bucket, opacity for most of the rest. They are kept per tool, so a soft brush
-  stays soft without softening anything else. Each tool has a
-  single-key shortcut; a shape that can be filled opens a hollow / solid picker
-  over the page when you press its button a second time, and the eraser opens
-  the same kind of picker offering itself or a clean sweep of the whole page.
+  stays soft without softening anything else. Most tools have a single-key
+  shortcut; the shapes button opens the other ten — and the hollow / solid
+  toggle — when you press it a second time, and the eraser opens the same kind of
+  picker offering itself or a clean sweep of the whole page.
+- **Selection** — the marquee (`V`) drags a box over marks you have already
+  drawn. Move them by switching to the hand and dragging from inside the
+  outline; copy, cut and delete them with `Ctrl/Cmd + C`, `X` and `Delete`, or
+  from the menu a right-click (or a long press) opens on them. `Ctrl/Cmd + V`
+  pastes marks, a picture or words back into the page.
 - **Layers panel** — swipe in from the right edge of the page (or tap the layers
   button in the header) for the drawing's stack, topmost first, each row showing
   a preview of what is on it: add a layer, pick the one you draw on, show and

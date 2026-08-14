@@ -14,24 +14,56 @@ There are three kinds, and the only difference is how they are switched on:
 | **Optional**   | everything else                  | Off until you switch it on          |
 
 Core is the irreducible three — pencil, eraser, hand. On out of the box:
-paintbrush, paint bucket, colour dropper, text, rectangle, ellipse, line — the
-toolbox anyone who has opened a paint program already knows how to use. Waiting
-in Settings → Tools: the media this app adds to it (airbrush, marker,
-highlighter, crayon, calligraphy pen) and the arrow.
+airbrush, paint bucket, colour dropper, text, the shapes and the selection tool
+— the toolbox anyone who has opened a paint program already knows how to use,
+spray can included. Waiting in Settings → Tools: the rest of the media this app
+adds to it (the bristle paintbrush, marker, highlighter, crayon, calligraphy
+pen).
 
-Registration order is toolbar order, and it is deliberate: it reads down
-Photoshop's tool column, so a hand that already knows one toolbar finds this one
-where it expects to. Sample, then paint, then erase, then fill, then type, then
-the shapes, and the tool that moves the view last of all:
+The toolbar reads down Photoshop's tool column, so a hand that already knows one
+toolbar finds this one where it expects to. Sample, then paint, then erase, then
+fill, then type, then the shapes, then the marquee, and the tool that moves the
+view last of all:
 
 **dropper · pencil · paintbrush · airbrush · marker · highlighter · crayon ·
-calligraphy pen · eraser · paint bucket · text · rectangle · ellipse · line ·
-arrow · hand**
+calligraphy pen · eraser · paint bucket · text · shapes · select · hand**
 
-Photoshop's other blocks — selections, crop, pen paths — are tools this app has
-no business shipping, so the order is that column with the gaps closed up. Switching a tool on in Settings → Tools slots it into its place in that row
-rather than appending it, so the toolbar never reads in the order you happened
-to discover it in.
+Photoshop's other blocks — crop, pen paths — are tools this app has no business
+shipping, so the order is that column with the gaps closed up. Switching a tool
+on in Settings → Tools slots it into its place in that row rather than appending
+it, so the toolbar never reads in the order you happened to discover it in.
+
+That is the _default_ order. Settings → Tools lists the whole toolbar in the
+order the buttons sit in, and the up / down arrow beside each row moves it —
+the toolbar follows immediately. Only the rows you actually move are recorded,
+so a tool added by a later release still lands where its maker put it rather
+than at the end of an arrangement written before it existed.
+
+## Eleven shapes, one button
+
+A **group** is a family of tools that share one toolbar button and one switch.
+The shapes are the case, and they are the reason it exists: eleven of them as
+eleven buttons would be most of a phone's toolbar spent on one idea, and eleven
+switches in Settings → Tools for a question nobody asks eleven times.
+
+So the shapes button wears whichever shape you last held. Press it again and the
+family opens over the canvas — rectangle, ellipse, line, arrow, rounded
+rectangle, triangle, diamond, pentagon, hexagon, star, double arrow — with the
+fill toggle under them, showing the shape you have picked drawn hollow and drawn
+solid. It is the same "press it twice" gesture the eraser's wipe uses, and the
+same folded corner marks it.
+
+Grouping is only about how they are _offered_. Each shape is still its own
+plugin with its own painter, its own remembered width and its own persisted id,
+so every rectangle ever drawn in this app still says `rectangle` and still
+paints. The four that had a keyboard shortcut keep it (**R**, **O**, **L**,
+**A**); the rest are one press apart in the picker.
+
+Every shape is a two-corner drag. The polygons are inscribed in the box you
+drag, stretched to fill it — so a hexagon dragged square is a hexagon and one
+dragged wide is a squashed one — which means no new shape kind in the document
+and no field on the stroke saying which shape it is. The painter answers that,
+and the painter is chosen by the stroke's tool id, exactly as it always was.
 
 ## Brushes are their medium
 
@@ -109,6 +141,13 @@ sheet. The toolbar only asks; the screen owns the confirmation and the edit. A
 button in the header would have been the other option, and this one puts the
 destructive action where the hand reaching for it already is.
 
+`selects` is the flag for the tool that chooses marks rather than making one.
+The **selection** tool drags an ordinary two-corner draft — so it inherits the
+whole gesture pipeline, down to abandoning itself when a second finger lands —
+and the canvas reads the flag to hand the finished box to the screen instead of
+filing it. No stroke ever carries the tool's id. What happens next is
+[selections](selection.md).
+
 `entersText` is the flag for the one mark that can't come from a pointer. The
 **text** tool's press opens a caret on the page instead of beginning a stroke,
 and the words become a mark when you are finished with them — so its behaviour's
@@ -154,7 +193,7 @@ or paper that does not, and no one of those four is any of the others:
 | **Paint bucket**                 | opacity, feather                      |
 | Pencil, marker, highlighter, pen | opacity                               |
 | Shapes, text                     | opacity                               |
-| Eraser, hand, dropper            | nothing — no fold appears             |
+| Eraser, hand, dropper, select    | nothing — no fold appears             |
 
 Each one is wired to something the painter actually does. **Hardness** is how
 charged the head is, and it is the brush's main control: turned up it is a
@@ -204,10 +243,16 @@ the even-odd rule.
 
 ## Switching one on
 
-Settings → Tools is a rack: every tool wears the glyph it has in the toolbar,
-with its name, shortcut, one line of description, and an on/off switch on the
-right. The always-on three carry a switch too — shown on and locked, because a
-row that simply omitted it would read as a rendering fault next to the others.
+Settings → Tools is the toolbar with its lid off: one list, in the order the
+buttons actually sit in. Every tool wears the glyph it has in the toolbar, with
+its name, shortcut, one line of description, the two arrows that move it along
+the row, and an on/off switch on the right. The always-on three carry a switch
+too — shown on and locked, because a row that simply omitted it would read as a
+rendering fault next to the others — and they reorder like everything else,
+because they have a place in the row like everything else.
+
+A family is one row: one glyph, one description, one switch for all eleven
+shapes.
 
 Switching one on adds it to the toolbar straight away — the tab applies live
 rather than waiting for Save, because a tool you just enabled should be there
@@ -233,8 +278,10 @@ Three steps, none of which touch the canvas, the store, or the toolbar:
    doesn't lay down detail smaller than the screen can show.
 2. Register it in `registerBuiltinPlugins()` with an id, an icon, and its two
    catalog keys — plus `core` or `defaultOn` if it should be in the toolbar
-   without being asked for, `defaultSize` for the width it opens at, and `dials`
-   if it has anything of its own to tune.
+   without being asked for, `defaultSize` for the width it opens at, `dials` if
+   it has anything of its own to tune, and `group` if it belongs to a family
+   that already has a button (a twelfth shape is one line in the `SHAPES`
+   table).
 3. Add those two strings to `src/app/i18n/en.ts` (and `sv.ts`).
 
 Externally-loaded plugins are not implemented yet. When they land they register

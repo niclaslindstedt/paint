@@ -4,8 +4,10 @@ import { describe, expect, it } from "vitest";
 import { registerBuiltinPlugins } from "../src/app/plugins/builtin/index.ts";
 import { pluginById } from "../src/app/plugins/registry.ts";
 import {
+  SETTINGS_VERSION,
   SIZES,
   defaultSettings,
+  groupMemberFor,
   parseSettings,
   sizesFor,
   toolSize,
@@ -169,5 +171,102 @@ describe("parseSettings", () => {
         {},
       );
     });
+  });
+
+  describe("toolOrder", () => {
+    it("is empty for a toolbar nobody has rearranged", () => {
+      expect(parseSettings(JSON.stringify({})).toolOrder).toEqual([]);
+    });
+
+    it("keeps an order, ids this build doesn't know included", () => {
+      // `orderEntries` ignores an id it can't place, so keeping one costs
+      // nothing — and dropping it would lose the arrangement on a downgrade.
+      const blob = { toolOrder: ["hand", "ghosttool", "pencil"] };
+      expect(parseSettings(JSON.stringify(blob)).toolOrder).toEqual([
+        "hand",
+        "ghosttool",
+        "pencil",
+      ]);
+    });
+
+    it("throws away an order that isn't a list of ids", () => {
+      expect(parseSettings(JSON.stringify({ toolOrder: 7 })).toolOrder).toEqual(
+        [],
+      );
+      expect(
+        parseSettings(JSON.stringify({ toolOrder: [1, "pencil"] })).toolOrder,
+      ).toEqual(["pencil"]);
+    });
+  });
+
+  describe("groupTools", () => {
+    it("is empty until a family has been picked from", () => {
+      expect(parseSettings(JSON.stringify({})).groupTools).toEqual({});
+    });
+
+    it("keeps the member each group last had in hand", () => {
+      const blob = { groupTools: { shapes: "star", bad: 3 } };
+      expect(parseSettings(JSON.stringify(blob)).groupTools).toEqual({
+        shapes: "star",
+      });
+    });
+  });
+
+  describe("the shapes-behind-one-button upgrade", () => {
+    it("switches the family on for a blob written before it existed", () => {
+      // Version 3 listed the shapes one by one. Those ids no longer name
+      // anything switchable, so an install carrying them would have lost its
+      // shapes altogether without the version bump seeding the group.
+      const blob = {
+        settingsVersion: 3,
+        enabledPlugins: ["rectangle", "ellipse", "line"],
+      };
+      const parsed = parseSettings(JSON.stringify(blob));
+      expect(parsed.enabledPlugins).toContain("shapes");
+      expect(parsed.enabledPlugins).toContain("select");
+      expect(parsed.settingsVersion).toBe(SETTINGS_VERSION);
+      // …and the old ids are kept rather than pruned, the same way every other
+      // unknown id is: downgrading and upgrading again forgets nothing.
+      expect(parsed.enabledPlugins).toContain("rectangle");
+    });
+
+    it("leaves a blob already at this version alone", () => {
+      const blob = {
+        settingsVersion: SETTINGS_VERSION,
+        enabledPlugins: ["pencil"],
+      };
+      expect(parseSettings(JSON.stringify(blob)).enabledPlugins).toEqual([
+        "pencil",
+      ]);
+    });
+  });
+});
+
+describe("groupMemberFor", () => {
+  // Only the ids matter here — `groupMemberFor` is a lookup, not a renderer.
+  const members = [{ id: "rectangle" }, { id: "ellipse" }, { id: "star" }];
+  const entry = { id: "shapes", members } as unknown as Parameters<
+    typeof groupMemberFor
+  >[1];
+
+  it("shows the family member actually in hand", () => {
+    const settings = { ...defaultSettings(), groupTools: { shapes: "star" } };
+    expect(groupMemberFor(settings, entry, "ellipse")?.id).toBe("ellipse");
+  });
+
+  it("falls back to the one you had last", () => {
+    const settings = { ...defaultSettings(), groupTools: { shapes: "star" } };
+    expect(groupMemberFor(settings, entry, "pencil")?.id).toBe("star");
+  });
+
+  it("opens on the first member for a family nobody has picked from", () => {
+    expect(groupMemberFor(defaultSettings(), entry, "pencil")?.id).toBe(
+      "rectangle",
+    );
+  });
+
+  it("ignores a remembered member this build no longer ships", () => {
+    const settings = { ...defaultSettings(), groupTools: { shapes: "blob" } };
+    expect(groupMemberFor(settings, entry, "pencil")?.id).toBe("rectangle");
   });
 });
