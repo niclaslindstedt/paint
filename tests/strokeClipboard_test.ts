@@ -78,6 +78,15 @@ describe("encodeStrokes", () => {
         to: { x: 4, y: 4 },
         src: "data:image/png;base64,x",
       },
+      // How a bitmap is sampled travels with it: a piece of pixel art pasted
+      // somewhere else is still pixel art.
+      {
+        kind: "image",
+        from: { x: 0, y: 0 },
+        to: { x: 4, y: 4 },
+        src: "data:image/png;base64,x",
+        smoothing: "nearest",
+      },
     ];
     for (const shape of shapes) {
       const back = decodeStrokes(encodeStrokes([mark({ shape })]))!;

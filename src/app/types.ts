@@ -70,6 +70,12 @@ export type Shape =
        *  the externaliser, and carried in the document so the next device knows
        *  which file to read back. */
       srcPath?: string;
+      /** How the bitmap is filtered when it is painted bigger than it is.
+       *  Absent — the usual case — means the browser's own smoothing; `nearest`
+       *  keeps the pixels square, which is what a drawing scaled up as pixel art
+       *  asks for (see `transform.ts`). Recorded rather than resampled, so it
+       *  holds at any zoom and costs the document nothing to undo. */
+      smoothing?: "nearest";
     };
 
 /** One committed mark on the canvas: which tool made it, the ink, and the

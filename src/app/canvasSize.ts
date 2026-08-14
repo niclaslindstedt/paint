@@ -127,6 +127,34 @@ export function matchPreset(
   return presets.find((p) => sameCanvasSize(p.size, size));
 }
 
+/** What the custom fields open on — a big square, which is the page nobody
+ *  offers by name and half the reasons for typing one: a canvas that favours
+ *  neither landscape nor portrait, at a size worth exporting. */
+export const CUSTOM_CANVAS: CanvasSize = { width: 2048, height: 2048 };
+
+/** A typed side, or `null` when it isn't a usable one. Out-of-range is `null`
+ *  rather than clamped: silently turning the 20000 someone typed into 8192
+ *  would create a page they didn't ask for, so the field says no instead. */
+export function parseSide(text: string): number | null {
+  const trimmed = text.trim();
+  if (!trimmed) return null;
+  const value = Number(trimmed);
+  if (!Number.isFinite(value)) return null;
+  const side = Math.round(value);
+  if (side < MIN_CANVAS_SIDE || side > MAX_CANVAS_SIDE) return null;
+  return side;
+}
+
+/** A hand-typed page size, or `null` when either side fails. */
+export function parseCanvasSize(
+  width: string,
+  height: string,
+): CanvasSize | null {
+  const w = parseSide(width);
+  const h = parseSide(height);
+  return w !== null && h !== null ? { width: w, height: h } : null;
+}
+
 /** How large each preset should be *drawn*, so a shelf of them can be compared
  *  at a glance: one scale across the whole list, chosen so the widest fits the
  *  box's width and the tallest its height.
@@ -136,10 +164,10 @@ export function matchPreset(
  *  asked. Kept here rather than in the dialog because it is arithmetic over the
  *  sizes, and it is worth a test. */
 export function previewScale(
-  presets: readonly CanvasPreset[],
+  sizes: readonly CanvasSize[],
   box: { width: number; height: number },
 ): number {
-  const widest = Math.max(...presets.map((p) => p.size.width), 1);
-  const tallest = Math.max(...presets.map((p) => p.size.height), 1);
+  const widest = Math.max(...sizes.map((s) => s.width), 1);
+  const tallest = Math.max(...sizes.map((s) => s.height), 1);
   return Math.min(box.width / widest, box.height / tallest);
 }

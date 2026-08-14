@@ -14,10 +14,11 @@ There are three kinds, and the only difference is how they are switched on:
 | **Optional**   | everything else                  | Off until you switch it on          |
 
 Core is the irreducible three — pencil, eraser, hand. On out of the box:
-paintbrush, paint bucket, colour dropper, text, the shapes and the selection
-tool — the toolbox anyone who has opened a paint program already knows how to
-use. Waiting in Settings → Tools: the media this app adds to it (airbrush,
-marker, highlighter, crayon, calligraphy pen).
+airbrush, paint bucket, colour dropper, text, the shapes and the selection tool
+— the toolbox anyone who has opened a paint program already knows how to use,
+spray can included. Waiting in Settings → Tools: the rest of the media this app
+adds to it (the bristle paintbrush, marker, highlighter, crayon, calligraphy
+pen).
 
 The toolbar reads down Photoshop's tool column, so a hand that already knows one
 toolbar finds this one where it expects to. Sample, then paint, then erase, then

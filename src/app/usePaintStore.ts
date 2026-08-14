@@ -17,8 +17,10 @@ import {
   reorderLayers,
   strokesExcept,
 } from "./layers.ts";
+import { turnBitmap } from "./images.ts";
 import { parseDoc, serializeDoc } from "./migrations.ts";
 import { translateStroke } from "./selection.ts";
+import type { BitmapTurn, PageEdit } from "./transform.ts";
 import {
   DEFAULT_CANVAS,
   liveDrawings,
@@ -439,6 +441,25 @@ export function usePaintStore(
     patchActive({ strokes: [] });
   }, [activeDrawing, patchActive]);
 
+  /** Turn the whole page around — mirror it, turn it a quarter, scale it, or
+   *  change the sheet under it (see `transform.ts`).
+   *
+   *  One undo step for the lot, which is the reason it is a single action rather
+   *  than a stroke-by-stroke edit: "mirror the page" is one thing you did, and
+   *  taking it back should be one thing too. The maths is pure and lives in
+   *  `transform.ts`; all the store adds is the history.
+   *
+   *  The bitmaps are redrawn on the way through (`turnBitmap`), because a
+   *  picture's pixels can't be mirrored by moving its frame. */
+  const transformActive = useCallback(
+    (edit: (drawing: Drawing, bitmap: BitmapTurn) => PageEdit) => {
+      const active = activeDrawing;
+      if (!active) return;
+      patchActive(edit(active, turnBitmap));
+    },
+    [activeDrawing, patchActive],
+  );
+
   const renameActive = useCallback(
     (name: string) => patchActive({ name }),
     [patchActive],
@@ -834,6 +855,7 @@ export function usePaintStore(
     deleteStrokes,
     moveStrokes,
     clearActive,
+    transformActive,
     renameActive,
     setBackground,
     setAppearance,

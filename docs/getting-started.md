@@ -3,6 +3,10 @@
 Paint opens on a blank page with a toolbar under it. There is nothing to sign
 into and nothing to configure — start drawing.
 
+The **hamburger** in the top left, beside the drawing's name, shows and hides the
+list of drawings. On a wide screen that list is docked; on a phone it slides
+over the page.
+
 ## The canvas
 
 Press and drag to draw. The page is a fixed size — the one you picked when the
@@ -15,8 +19,8 @@ the reach is the one you already have:
 
 - **Colour dropper** (`I`), at the far left, makes the colour you tap the ink.
 - **Pencil** (`P`) draws freehand.
-- **Paintbrush** (`B`) is a bristle brush: the mark swells and tapers, thins
-  where your hand moved fast, and frays at the edges.
+- **Airbrush** (`S`) lays down a soft cloud of paint that builds up the longer
+  you hold it over one spot.
 - **Eraser** (`E`) paints over marks with the page colour.
 - **Paint bucket** (`F`) fills the empty space you tap, up to the marks around
   it.
@@ -31,11 +35,19 @@ the reach is the one you already have:
 - `Ctrl/Cmd + Z` undoes the last mark, `Ctrl/Cmd + Shift + Z` redoes it. Every
   mark is one step.
 
-Swipe in from the **right edge** of the page for the drawing's layers: add one,
-pick which one you are drawing on, hide it, move it up or down the stack, or
-delete it. The layers button in the header opens the same panel, and a press on
-the page closes it. A drawing starts as a single layer, so this stays out of the
-way until you want it.
+The **right-hand panel** is what you can do to the drawing rather than to a
+mark. On a wide screen it is docked beside the canvas; on a narrower one the
+layers button in the top right opens it over the page (so does a swipe in from
+the right edge), and a press on the page closes it again.
+
+At the top of it, **Image**: **Resize…**, **Flip** left or right — a quarter turn
+each way — and **Mirror** horizontally or vertically. Resize asks whether you
+mean _everything_ (the page and the marks together) or the _canvas only_ (a
+bigger sheet for more room, a smaller one to crop), and draws the before and
+after so you can see which edge is about to go. Under it is the **layer stack**:
+add a layer, pick which one you are drawing on, hide it, move it up or down, or
+delete it. A drawing starts as a single layer, so that half stays out of the way
+until you want it. [More](features/canvas.md).
 
 ## Colour and size
 
@@ -56,15 +68,27 @@ nothing needs setting up before it draws the way it should.
 
 ## More tools
 
-Settings → **Tools** is a rack of every tool the app has, each with its glyph
-and an on/off switch: an airbrush, a marker, a highlighter, a crayon, a
-calligraphy pen, and the arrow. Switch one on and it joins the toolbar
-immediately, in its own place in the row rather than at the end. Switching it
-off later only hides it; marks you already drew stay put.
+Settings → **Tools** is the toolbar with its lid off: every tool the app has, in
+the order the buttons sit in, each with its glyph, an on/off switch, and a pair
+of arrows that move it along the row. Switch one on — a bristle paintbrush, a
+marker, a highlighter, a crayon, a calligraphy pen — and it joins the toolbar
+immediately, in its own place in the row rather than at the end. Move a row and
+the toolbar moves with it. Switching a tool off later only hides it; marks you
+already drew stay put.
 
-The shapes that can be filled — rectangle and ellipse — wear a folded corner:
-press one again while you are already holding it and a small panel opens over
-the page offering the shape hollow or solid.
+The shapes share one button and one switch: press it again while you are already
+holding a shape and a panel opens over the page with the other ten — rounded
+rectangle, triangle, diamond, pentagon, hexagon, star and a double-headed arrow
+among them — and, under those, the toggle that draws them hollow or solid.
+
+## Picking marks up again
+
+The **selection** tool (`V`) drags a box over marks you have already drawn.
+Switch to the hand and drag from inside the outline to move them; copy, cut and
+delete them with `Ctrl/Cmd + C`, `X` and `Delete`, or from the menu a right-click
+— or a long press on touch — opens on them. `Ctrl/Cmd + V` pastes marks, a
+picture or words back into the page.
+[More about selections](features/selection.md).
 [More about the plugin model](features/plugins.md).
 
 ## Light page, dark page
@@ -95,9 +119,10 @@ sync** glyph, which shows the sync state and opens the sync details.
 made of: **New** for an empty page, **Load** for an image from disk (or dropped
 onto the dialog), and **Clipboard** when there is a picture on it — a drawing
 made from a picture is cut to the picture's size. An empty one asks how big it
-is, and the four sizes are drawn rather than listed: this screen, Full HD, 4K
-and A4, all at one shared scale, so you can see how much bigger 4K is before you
-pick it. The page is fixed once the drawing exists.
+is, and the sizes are drawn rather than listed: this screen, Full HD, 4K, A4 and
+one you type, all at one shared scale, so you can see how much bigger 4K is
+before you pick it. The page can still be resized afterwards, from the
+right-hand panel.
 
 Star a drawing with the star in the canvas header and it appears under
 **Favorites** at the top of the sidebar, wherever it happens to be filed.

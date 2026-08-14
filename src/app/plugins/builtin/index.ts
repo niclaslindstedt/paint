@@ -22,11 +22,12 @@
 // then the group carries the switch and the toolbar button for the whole family.
 // The eleven shapes are the case — see the shapes block below.
 //
-// **What a first run finds is the shape of Paint**: a nib, a brush, a rubber, a
-// bucket, a dropper, type, the shapes and the marquee — the toolbox anyone who
-// has opened a paint program has already used. The media (marker, crayon, chalk
-// nib, airbrush, highlighter) are the app's own additions and are one tap away
-// in Settings → Tools; they are not what an empty page should open holding.
+// **What a first run finds is the shape of Paint**: a nib, an airbrush, a
+// rubber, a bucket, a dropper, type, the shapes and the marquee — the toolbox
+// anyone who has opened a paint program has already used, spray can included.
+// The rest of the media (the bristle brush, the marker, the crayon, the chalk
+// nib, the highlighter) are the app's own additions and are one tap away in
+// Settings → Tools; they are not what an empty page should open holding.
 //
 // Adding a tool is: write its behaviour (or reuse a family factory), register
 // it here, and add its two catalog strings. Nothing else in the app changes.
@@ -247,7 +248,6 @@ export function registerBuiltinPlugins(): void {
 
   registerPlugin({
     id: "paintbrush",
-    defaultOn: true,
     nameKey: "tools.paintbrush.name",
     descriptionKey: "tools.paintbrush.description",
     icon: BrushIcon,
@@ -266,6 +266,7 @@ export function registerBuiltinPlugins(): void {
 
   registerPlugin({
     id: "airspray",
+    defaultOn: true,
     nameKey: "tools.airspray.name",
     descriptionKey: "tools.airspray.description",
     icon: SprayIcon,

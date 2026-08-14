@@ -150,9 +150,19 @@ function readShape(raw: unknown): Shape | null {
       if (shape.kind === "image") {
         // Only an inlined bitmap travels: `srcPath` names a file beside a
         // *particular* backend's document (see `imageStore.ts`), and a paste
-        // into another sketchbook would point at nothing.
+        // into another sketchbook would point at nothing. How it is sampled
+        // does travel — a piece of pixel art pasted somewhere else is still
+        // pixel art, and losing that is losing the picture.
         return typeof shape.src === "string"
-          ? { kind: "image", from, to, src: shape.src }
+          ? {
+              kind: "image",
+              from,
+              to,
+              src: shape.src,
+              ...(shape.smoothing === "nearest"
+                ? { smoothing: "nearest" as const }
+                : {}),
+            }
           : null;
       }
       return { kind: shape.kind, from, to };

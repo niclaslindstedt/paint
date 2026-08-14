@@ -1,11 +1,14 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { Suspense, lazy } from "react";
+
 import {
   ConfirmDialog,
   ContextMenu,
   CopyIcon,
   ImageUpIcon,
+  MenuIcon,
   StarIcon,
   TrashIcon,
 } from "@niclaslindstedt/oss-framework/components";
@@ -32,7 +35,7 @@ import { useT } from "./i18n/index.ts";
 import { ImagePlacement } from "./ImagePlacement.tsx";
 import { importImageFile, type ImportedImage } from "./images.ts";
 import { fieldHasKeyboard } from "./keys.ts";
-import { LayersPanel } from "./LayersPanel.tsx";
+import { SidePanel } from "./SidePanel.tsx";
 import { PaintCanvas } from "./PaintCanvas.tsx";
 import { initialPlacement, type Placement } from "./placement.ts";
 import { imageStroke } from "./plugins/builtin/image.ts";
@@ -53,8 +56,20 @@ import { ToolFlash } from "./ToolFlash.tsx";
 import { toolSize, type AppSettings } from "./useAppSettings.ts";
 import type { Point } from "./types.ts";
 import type { PaintStore } from "./usePaintStore.ts";
+import {
+  resizeCanvas,
+  scaleDrawing,
+  type ResizeAnchor,
+  type Sampling,
+} from "./transform.ts";
 import { toDocumentPoint, type CanvasView } from "./viewport.ts";
 import * as output from "../output.ts";
+
+// The resize dialog is a click away, never a first paint away — like every
+// other dialog in the app it loads when it is asked for.
+const ResizeModal = lazy(() =>
+  import("./ResizeModal.tsx").then((m) => ({ default: m.ResizeModal })),
+);
 
 // The main screen: a header naming the open drawing (with the favourite star
 // and the download menu), the page itself, and the toolbar under it.
@@ -123,6 +138,17 @@ type Props = {
   /** The screen edge the sidebar's open-swipe is armed on, if any. Passed
    *  through to the canvas, which must not draw that swipe. */
   menuSwipeEdge?: MenuEdge | null;
+  /** Show or hide the drawings menu — the header's hamburger. It sits here, at
+   *  the head of the drawing, rather than floating over the canvas: the one
+   *  button that says "the list of drawings" belongs beside the name of the one
+   *  you have open. */
+  onToggleMenu: () => void;
+  /** Whether that menu is showing, so the button can read as pressed. */
+  menuOpen: boolean;
+  /** Whether the right-hand panel is docked beside the canvas (a wide screen)
+   *  rather than floating over it. Resolved by `App`, which owns the media
+   *  query, so the screen and the canvas can't disagree about it. */
+  dockPanel: boolean;
 };
 
 export function CanvasScreen({
@@ -133,6 +159,9 @@ export function CanvasScreen({
   tool,
   darkCanvas,
   menuSwipeEdge = null,
+  onToggleMenu,
+  menuOpen,
+  dockPanel,
 }: Props) {
   const t = useT();
   const [confirmClear, setConfirmClear] = useState(false);
@@ -156,8 +185,9 @@ export function CanvasScreen({
   const [typing, setTyping] = useState<{ at: Point; text: string } | null>(
     null,
   );
-  // The layers panel, floating over the right edge of the page. Screen state
-  // too: which panels are open is not part of the drawing.
+  // The right-hand panel, floating over the right edge of the page — on a
+  // screen too narrow to dock it. Screen state too: which panels are open is
+  // not part of the drawing.
   const [layersOpen, setLayersOpen] = useState(false);
   // The marks a marquee has picked out — ids only, so the selection can never
   // hold a stale copy of a mark the document has since changed.
@@ -170,6 +200,11 @@ export function CanvasScreen({
   // work — but a browser may refuse to hand it back, and falling back on what we
   // know we copied beats a paste that does nothing.
   const copied = useRef<DraftStroke[] | null>(null);
+  // The resize dialog, which is the one page action that has a question to ask.
+  const [resizing, setResizing] = useState(false);
+  // Bumped when the page changes shape under the view, so the canvas can fit the
+  // sheet again — see `PaintCanvas`'s `refitToken`.
+  const [refitToken, setRefitToken] = useState(0);
   const surfaceRef = useRef<HTMLDivElement>(null);
   const drawing = store.activeDrawing;
 
@@ -240,6 +275,20 @@ export function CanvasScreen({
       return null;
     });
   }, [store]);
+
+  /** Turn the whole page around, and look at what it became.
+   *
+   *  The store owns the edit and the undo step; the *view* is this screen's, and
+   *  a page that has just been turned or resized is one the window is no longer
+   *  pointed at — so the two travel together, and nowhere else has to remember
+   *  that they do. */
+  const transformPage = useCallback(
+    (edit: Parameters<typeof store.transformActive>[0]) => {
+      store.transformActive(edit);
+      setRefitToken((n) => n + 1);
+    },
+    [store],
+  );
 
   /** Keep the caption being typed: file the words as one mark on the page.
    *
@@ -542,6 +591,18 @@ export function CanvasScreen({
           sit clear of the status bar / Dynamic Island in the installed iOS PWA,
           which paints edge to edge (`viewport-fit=cover`). */}
       <header className="flex shrink-0 items-center gap-2 border-b border-line bg-surface px-3 pb-2 pt-[calc(0.5rem+env(safe-area-inset-top))]">
+        {/* The way to the drawings. It leads the header — left of the name,
+            where every app that has a list behind it puts one — and it replaces
+            the button that used to float over the canvas, which spent a corner
+            of the page on a control the header had room for. */}
+        <HeaderIconButton
+          label={menuOpen ? t("menu.close") : t("menu.open")}
+          pressed={menuOpen}
+          onClick={onToggleMenu}
+        >
+          <MenuIcon className="h-[18px] w-[18px]" />
+        </HeaderIconButton>
+
         {/* The name is edited in place — a drawing is named by typing over its
             title, not through a dialog. It reads as the page's heading until
             it is pressed (see `DrawingTitle`). */}
@@ -560,16 +621,19 @@ export function CanvasScreen({
           >
             <StarIcon className="h-[18px] w-[18px]" filled={drawing.favorite} />
           </HeaderIconButton>
-          {/* The layers panel's other door. The swipe from the right edge is
-              the phone gesture; this button is how it is *found*, and the only
-              way in on a desktop where no thumb is near an edge. */}
-          <HeaderIconButton
-            label={t("layers.open")}
-            pressed={layersOpen}
-            onClick={() => setLayersOpen((open) => !open)}
-          >
-            <LayersIcon className="h-[18px] w-[18px]" />
-          </HeaderIconButton>
+          {/* The right-hand panel's other door. The swipe from the right edge
+              is the phone gesture; this button is how it is *found*. Gone
+              entirely on a screen wide enough to dock the panel — a button that
+              opens something already open is a button that lies. */}
+          {!dockPanel && (
+            <HeaderIconButton
+              label={t("layers.open")}
+              pressed={layersOpen}
+              onClick={() => setLayersOpen((open) => !open)}
+            >
+              <LayersIcon className="h-[18px] w-[18px]" />
+            </HeaderIconButton>
+          )}
           {/* No undo / redo here. They are one tap away in the sidebar's
               button island and on the keyboard, and the header is the one row
               a phone has to fit a drawing's name into — two glyphs it can
@@ -592,160 +656,187 @@ export function CanvasScreen({
         </div>
       </header>
 
-      {/* The window onto the page. The canvas fills it edge to edge — the page
-          inside is larger than the screen, and you pan and pinch around it — so
-          `min-h-0` matters: it lets the flex child actually shrink to the space
-          left over rather than pushing the toolbar off the bottom. */}
-      <div
-        ref={surfaceRef}
-        className="relative min-h-0 flex-1 overflow-hidden bg-page-bg"
-      >
-        <PaintCanvas
-          drawing={drawing}
-          pageColor={pageColor}
-          tool={tool}
-          ink={{
-            color: settings.color,
-            size,
-            dials: inkDials,
-            filled: settings.filled,
-          }}
-          defaultInk={ink}
-          showGrid={settings.showGrid}
-          fitToken={fitToken}
-          onScaleChange={setScale}
-          onViewChange={setView}
-          placing={placement !== null}
-          onPlacingPress={settle}
-          menuSwipeEdge={menuSwipeEdge}
-          // The layers panel's edge — unless the sidebar is already watching
-          // that side, in which case its swipe owns it and the header button is
-          // the way in. Nothing is armed while the panel is open: the scrim
-          // below has the canvas then.
-          panelSwipeEdge={
-            layersOpen || menuSwipeEdge === "right" ? null : "right"
-          }
-          onPanelSwipe={() => setLayersOpen(true)}
-          onCommit={store.addStroke}
-          // The marquee's drag: the marks it covered become the selection, and
-          // nothing reaches the document. A press that never moved sends `null`
-          // and clears it.
-          selection={selection}
-          onSelectBox={(box: Box | null) =>
-            setSelectedIds(
-              box && drawing ? strokesInBox(drawing, box).map((s) => s.id) : [],
-            )
-          }
-          // …and the hand's drag on it: the whole move, as one edit, once the
-          // finger lifts.
-          onMoveSelection={(dx, dy) => store.moveStrokes(selectedIds, dx, dy)}
-          onContextMenu={setMenuAt}
-          // The dropper's press: the colour it sampled becomes the ink, pinned
-          // the same way picking a swatch pins one.
-          onPickColor={(picked) => update("color", picked)}
-          // The text tool's press: a caret opens where it landed. Pressing
-          // again while one is open keeps what is in it first, so a second
-          // caption never eats the first.
-          onEnterText={(at) => {
-            commitText();
-            setTyping({ at, text: "" });
-          }}
-          ariaLabel={drawing.name.trim() || t("menu.untitled")}
-        />
-
-        {/* The dropped image, floating over the page until it is kept. */}
-        {placement && view && (
-          <ImagePlacement
-            view={view}
-            placement={placement}
-            onChange={setPlacement}
-            onSettle={settle}
-            onCancel={() => setPlacement(null)}
+      {/* The window onto the page, and — where the screen is wide enough — the
+          panel docked beside it. `min-h-0` matters on both: it lets the flex
+          children actually shrink to the space left over rather than pushing
+          the toolbar off the bottom. */}
+      <div className="flex min-h-0 flex-1">
+        <div
+          ref={surfaceRef}
+          className="relative min-h-0 flex-1 overflow-hidden bg-page-bg"
+        >
+          <PaintCanvas
+            drawing={drawing}
+            pageColor={pageColor}
+            tool={tool}
+            ink={{
+              color: settings.color,
+              size,
+              dials: inkDials,
+              filled: settings.filled,
+            }}
+            defaultInk={ink}
+            showGrid={settings.showGrid}
+            fitToken={fitToken}
+            refitToken={refitToken}
+            onScaleChange={setScale}
+            onViewChange={setView}
+            placing={placement !== null}
+            onPlacingPress={settle}
+            menuSwipeEdge={menuSwipeEdge}
+            // The layers panel's edge — unless the sidebar is already watching
+            // that side, in which case its swipe owns it and the header button is
+            // the way in. Nothing is armed while the panel is open: the scrim
+            // below has the canvas then.
+            panelSwipeEdge={
+              dockPanel || layersOpen || menuSwipeEdge === "right"
+                ? null
+                : "right"
+            }
+            onPanelSwipe={() => setLayersOpen(true)}
+            onCommit={store.addStroke}
+            // The marquee's drag: the marks it covered become the selection, and
+            // nothing reaches the document. A press that never moved sends
+            // `null` and clears it.
+            selection={selection}
+            onSelectBox={(box: Box | null) =>
+              setSelectedIds(
+                box && drawing
+                  ? strokesInBox(drawing, box).map((s) => s.id)
+                  : [],
+              )
+            }
+            // …and the hand's drag on it: the whole move, as one edit, once the
+            // finger lifts.
+            onMoveSelection={(dx, dy) => store.moveStrokes(selectedIds, dx, dy)}
+            onContextMenu={setMenuAt}
+            // The dropper's press: the colour it sampled becomes the ink, pinned
+            // the same way picking a swatch pins one.
+            onPickColor={(picked) => update("color", picked)}
+            // The text tool's press: a caret opens where it landed. Pressing
+            // again while one is open keeps what is in it first, so a second
+            // caption never eats the first.
+            onEnterText={(at) => {
+              commitText();
+              setTyping({ at, text: "" });
+            }}
+            ariaLabel={drawing.name.trim() || t("menu.untitled")}
           />
-        )}
 
-        {/* The caption being typed, in the face and size it will land in. The
+          {/* The dropped image, floating over the page until it is kept. */}
+          {placement && view && (
+            <ImagePlacement
+              view={view}
+              placement={placement}
+              onChange={setPlacement}
+              onSettle={settle}
+              onCancel={() => setPlacement(null)}
+            />
+          )}
+
+          {/* The caption being typed, in the face and size it will land in. The
             layer under it takes a press anywhere else on the page as "I'm
             done", which is how a caption is normally finished. */}
-        {typing && view && (
-          <TextEntry
-            view={view}
-            at={typing.at}
-            value={typing.text}
-            onChange={(text) =>
-              setTyping((current) => (current ? { ...current, text } : null))
-            }
-            ink={{
-              color: settings.color ?? ink,
-              size: textSize,
-              font: settings.textFont,
-              bold: settings.textBold,
-              italic: settings.textItalic,
-              opacity: textDials.opacity ?? 1,
-            }}
-            onFontChange={(font) => update("textFont", font)}
-            onBoldChange={(bold) => update("textBold", bold)}
-            onItalicChange={(italic) => update("textItalic", italic)}
-            onCommit={commitText}
-            onCancel={() => setTyping(null)}
-          />
-        )}
+          {typing && view && (
+            <TextEntry
+              view={view}
+              at={typing.at}
+              value={typing.text}
+              onChange={(text) =>
+                setTyping((current) => (current ? { ...current, text } : null))
+              }
+              ink={{
+                color: settings.color ?? ink,
+                size: textSize,
+                font: settings.textFont,
+                bold: settings.textBold,
+                italic: settings.textItalic,
+                opacity: textDials.opacity ?? 1,
+              }}
+              onFontChange={(font) => update("textFont", font)}
+              onBoldChange={(bold) => update("textBold", bold)}
+              onItalicChange={(italic) => update("textItalic", italic)}
+              onCommit={commitText}
+              onCancel={() => setTyping(null)}
+            />
+          )}
 
-        {/* The layers panel, and the sheet of nothing that closes it. A press
+          {/* The layers panel, and the sheet of nothing that closes it. A press
             on the page dismisses the panel rather than drawing — the same
             "click outside it" rule a floating menu follows — while the header
             and the toolbar stay live, so picking a colour for the layer you
             just selected doesn't cost you the panel. */}
-        {layersOpen && (
-          <>
-            <div
-              className="absolute inset-0 z-10"
-              onPointerDown={() => setLayersOpen(false)}
-              aria-hidden="true"
-            />
-            <LayersPanel
-              store={store}
-              drawing={drawing}
-              pageColor={pageColor}
-              defaultInk={ink}
-              onClose={() => setLayersOpen(false)}
-            />
-          </>
-        )}
+          {layersOpen && !dockPanel && (
+            <>
+              <div
+                className="absolute inset-0 z-10"
+                onPointerDown={() => setLayersOpen(false)}
+                aria-hidden="true"
+              />
+              <SidePanel
+                store={store}
+                drawing={drawing}
+                pageColor={pageColor}
+                defaultInk={ink}
+                onResize={() => {
+                  setLayersOpen(false);
+                  setResizing(true);
+                }}
+                onTransform={transformPage}
+                onClose={() => setLayersOpen(false)}
+              />
+            </>
+          )}
 
-        {/* The cue while an image is dragged over the canvas: the surface says
+          {/* The cue while an image is dragged over the canvas: the surface says
             it will take it, so the drop isn't a guess. */}
-        {dragging && (
-          <div className="pointer-events-none absolute inset-3 flex items-center justify-center rounded-lg border-2 border-dashed border-accent bg-accent/10">
-            <span className="flex items-center gap-2 rounded-full border border-line bg-surface px-3 py-1.5 text-sm text-fg-bright">
-              <ImageUpIcon className="h-4 w-4 text-accent" />
-              {t("canvas.dropImage")}
-            </span>
-          </div>
-        )}
+          {dragging && (
+            <div className="pointer-events-none absolute inset-3 flex items-center justify-center rounded-lg border-2 border-dashed border-accent bg-accent/10">
+              <span className="flex items-center gap-2 rounded-full border border-line bg-surface px-3 py-1.5 text-sm text-fg-bright">
+                <ImageUpIcon className="h-4 w-4 text-accent" />
+                {t("canvas.dropImage")}
+              </span>
+            </div>
+          )}
 
-        {/* The name of the tool you just picked, over the middle of the page —
+          {/* The name of the tool you just picked, over the middle of the page —
             the toolbar's glyphs have no room for words, and this is where you
             are already looking. Above the layers panel on purpose: switching
             tools with the panel open still says what you switched to. */}
-        <ToolFlash tool={tool} enabled={settings.showToolName} />
+          <ToolFlash tool={tool} enabled={settings.showToolName} />
 
-        {/* The zoom readout, floating over the canvas rather than sitting in
+          {/* The zoom readout, floating over the canvas rather than sitting in
             the header — six icon buttons up there left a phone's title field
             too narrow to read. It doubles as the way back: tap to fit the whole
             page, tap again for 1:1. Hidden from the pointer stream everywhere
             but on itself, so it can never swallow a stroke that runs under it. */}
-        <button
-          type="button"
-          onClick={() => setFitToken((n) => n + 1)}
-          aria-label={t("canvas.fitPage")}
-          title={t("canvas.fitPage")}
-          className="absolute right-3 bottom-3 cursor-pointer rounded-full border border-line bg-surface/90 px-2.5 py-1 text-xs text-muted tabular-nums hover:text-fg-bright"
-        >
-          {t("canvas.zoomPercent", {
-            percent: String(Math.round(scale * 100)),
-          })}
-        </button>
+          <button
+            type="button"
+            onClick={() => setFitToken((n) => n + 1)}
+            aria-label={t("canvas.fitPage")}
+            title={t("canvas.fitPage")}
+            className="absolute right-3 bottom-3 cursor-pointer rounded-full border border-line bg-surface/90 px-2.5 py-1 text-xs text-muted tabular-nums hover:text-fg-bright"
+          >
+            {t("canvas.zoomPercent", {
+              percent: String(Math.round(scale * 100)),
+            })}
+          </button>
+        </div>
+
+        {/* Docked: a column of its own, always there, taking width from the
+            canvas rather than covering it. */}
+        {dockPanel && (
+          <SidePanel
+            store={store}
+            drawing={drawing}
+            pageColor={pageColor}
+            defaultInk={ink}
+            docked
+            onResize={() => setResizing(true)}
+            onTransform={transformPage}
+            onClose={() => undefined}
+          />
+        )}
       </div>
 
       {/* No empty-state hint. A blank sheet with a toolbar under it already
@@ -832,6 +923,25 @@ export function CanvasScreen({
             : []),
         ]}
       />
+
+      {/* Resizing — the one page action with a question to ask. Mounted only
+          while it is open, so each answer starts from the page's own size. */}
+      {resizing && (
+        <Suspense fallback={null}>
+          <ResizeModal
+            drawing={drawing}
+            onCancel={() => setResizing(false)}
+            onScale={(to, sampling: Sampling) => {
+              transformPage((d) => scaleDrawing(d, to, sampling));
+              setResizing(false);
+            }}
+            onCanvas={(to, anchor: ResizeAnchor) => {
+              transformPage((d) => resizeCanvas(d, to, anchor));
+              setResizing(false);
+            }}
+          />
+        </Suspense>
+      )}
 
       <ConfirmDialog
         open={confirmClear}

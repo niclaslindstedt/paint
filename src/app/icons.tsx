@@ -482,6 +482,70 @@ export function LayersIcon({ className }: IconProps) {
   );
 }
 
+// --- The page actions -------------------------------------------------------
+// The four things you can do to a whole drawing rather than to a mark. Each is
+// drawn as *what happens to the page*, not as an abstract symbol: a sheet with
+// an arrow curling over it turns, a sheet split by an axis with one half
+// shaded mirrors across that axis. At 18 pixels the shaded half is what makes a
+// mirror read as a mirror rather than as a divided rectangle.
+
+/** Turn the page a quarter to the left — the sheet, and the arrow going round
+ *  it anticlockwise. */
+export function TurnLeftIcon({ className }: IconProps) {
+  return (
+    <svg {...base} className={className} aria-hidden="true">
+      <path d="M4 12.5a8 8 0 1 1 2.6 5.9" />
+      <path d="M3.4 8.2 4 12.9l4.7-.6" />
+      <rect x="9.5" y="9.5" width="6" height="6" rx="1" />
+    </svg>
+  );
+}
+
+/** …and to the right. */
+export function TurnRightIcon({ className }: IconProps) {
+  return (
+    <svg {...base} className={className} aria-hidden="true">
+      <path d="M20 12.5a8 8 0 1 0-2.6 5.9" />
+      <path d="M20.6 8.2 20 12.9l-4.7-.6" />
+      <rect x="8.5" y="9.5" width="6" height="6" rx="1" />
+    </svg>
+  );
+}
+
+/** Mirror left to right: an upright axis with the page reflected across it, the
+ *  far half shaded so the two read as a reflection rather than as two boxes. */
+export function MirrorHorizontalIcon({ className }: IconProps) {
+  return (
+    <svg {...base} className={className} aria-hidden="true">
+      <path d="M12 3v18" strokeDasharray="2.6 2.4" />
+      <path d="M9.6 6.4 4 12l5.6 5.6Z" />
+      <path d="M14.4 6.4 20 12l-5.6 5.6Z" fill="currentColor" opacity=".55" />
+    </svg>
+  );
+}
+
+/** Mirror top to bottom — the same mark on its side. */
+export function MirrorVerticalIcon({ className }: IconProps) {
+  return (
+    <svg {...base} className={className} aria-hidden="true">
+      <path d="M3 12h18" strokeDasharray="2.6 2.4" />
+      <path d="M6.4 9.6 12 4l5.6 5.6Z" />
+      <path d="M6.4 14.4 12 20l5.6-5.6Z" fill="currentColor" opacity=".55" />
+    </svg>
+  );
+}
+
+/** Resize the page — a sheet with its corner being pulled out. */
+export function ResizeIcon({ className }: IconProps) {
+  return (
+    <svg {...base} className={className} aria-hidden="true">
+      <path d="M4 9.5V4.5h5" />
+      <path d="M4 4.5 9.6 10" />
+      <rect x="9.5" y="9.5" width="10.5" height="10" rx="1" />
+    </svg>
+  );
+}
+
 /** A showing layer — the open eye. */
 export function EyeIcon({ className }: IconProps) {
   return (

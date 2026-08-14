@@ -11,9 +11,9 @@
 ## What
 
 Paint is a small installable web app for sketching a concept: boxes, arrows, a
-circled bit, a scribble. It opens on a page, a handful of tools — pencil,
-paintbrush, airbrush, paint bucket, colour dropper, eraser — and nothing else in
-the way. Drawings are vector strokes kept in your browser; nothing leaves the device
+circled bit, a scribble. It opens on a page, a paint program's toolbox — pencil,
+airbrush, eraser, paint bucket, colour dropper, text, the shapes and a selection
+marquee — and nothing else in the way. Drawings are vector strokes kept in your browser; nothing leaves the device
 unless you connect storage yourself.
 
 It is a sibling of the [`notes`](https://github.com/niclaslindstedt/notes) and
@@ -27,10 +27,10 @@ the same [`oss-framework`](https://github.com/niclaslindstedt/oss-framework).
   Drop a screenshot on the page and annotate it; download the result as a PNG, a
   JPG or a vector SVG, or copy it straight to the clipboard.
 - **Tools are plugins.** Every tool, the pencil included, is registered through
-  one interface. It opens on the toolbox you already know — pencil, brush,
+  one interface. It opens on the toolbox you already know — pencil, airbrush,
   eraser, bucket, dropper, text, the shapes and a selection marquee — and the
-  media it adds to that (a marker, an airbrush, a crayon, a calligraphy nib, a
-  highlighter) wait in Settings → Tools, so the toolbar stays as simple as you
+  media it adds to that (a bristle brush, a marker, a crayon, a calligraphy nib,
+  a highlighter) wait in Settings → Tools, so the toolbar stays as simple as you
   want it and grows when you need it. Rearrange the row there too, and it
   rearranges here. Each tool remembers its own width, so a fat brush never costs
   you a fine pencil.
@@ -112,12 +112,13 @@ make install
 npm run dev          # http://localhost:5173
 ```
 
-Draw on the page. `I` the colour dropper, `P` pencil, `B` paintbrush, `S`
-airbrush, `E` eraser, `F` the paint bucket, `R`/`O`/`L`/`A` the rectangle,
-ellipse, line and arrow, `V` the selection marquee, `D` the hand (drag the page
-around) — left to right in the order Photoshop's column runs top to bottom;
-`Ctrl/Cmd + Z` undoes a mark. Open the sidebar for more drawings, and Settings →
-Tools to switch the rest on and to put the toolbar in another order.
+Draw on the page. `I` the colour dropper, `P` pencil, `S` airbrush, `E` eraser,
+`F` the paint bucket, `T` text, `R` / `O` / `L` / `A` the rectangle, ellipse,
+line and arrow, `V` the selection marquee, `D` the hand (drag the page around) —
+left to right in the order Photoshop's column runs top to bottom; `Ctrl/Cmd + Z`
+undoes a mark. The hamburger top left opens the drawings, the panel on the right
+resizes, flips and mirrors the page, and Settings → Tools switches the rest of
+the media on and puts the toolbar in another order.
 
 To build and preview the production bundle (service worker and all):
 

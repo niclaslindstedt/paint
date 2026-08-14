@@ -31,6 +31,10 @@ export const imageBehaviour: ToolBehaviour = {
     const box = normalizeBox(shape.from, shape.to);
     if (box.width <= 0 || box.height <= 0) return;
     ctx2d.globalAlpha = stroke.opacity ?? 1;
+    // A picture scaled up as pixel art keeps its pixels square. Set at paint
+    // time rather than baked into the bytes, so it holds at every zoom (see
+    // `transform.ts`).
+    if (shape.smoothing === "nearest") ctx2d.imageSmoothingEnabled = false;
     ctx2d.drawImage(img, box.x, box.y, box.width, box.height);
   },
 };
