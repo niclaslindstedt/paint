@@ -26,6 +26,7 @@ import { PaintCanvas } from "./PaintCanvas.tsx";
 import { initialPlacement, type Placement } from "./placement.ts";
 import { imageStroke } from "./plugins/builtin/image.ts";
 import { Toolbar } from "./Toolbar.tsx";
+import { ToolFlash } from "./ToolFlash.tsx";
 import type { AppSettings } from "./useAppSettings.ts";
 import type { PaintStore } from "./usePaintStore.ts";
 import { toDocumentPoint, type CanvasView } from "./viewport.ts";
@@ -317,6 +318,12 @@ export function CanvasScreen({
             </span>
           </div>
         )}
+
+        {/* The name of the tool you just picked, over the middle of the page —
+            the toolbar's glyphs have no room for words, and this is where you
+            are already looking. Above the layers panel on purpose: switching
+            tools with the panel open still says what you switched to. */}
+        <ToolFlash tool={tool} enabled={settings.showToolName} />
 
         {/* The zoom readout, floating over the canvas rather than sitting in
             the header — six icon buttons up there left a phone's title field

@@ -63,8 +63,9 @@ follow the app theme (the default). Marks that never chose a colour follow the
 page, so flipping the theme re-inks the whole sketch instead of hiding it.
 [More](features/canvas-theme.md).
 
-The same tab has the on-screen grid, and can pin a specific page colour to the
-drawing you have open.
+The same tab has the on-screen grid, the **tool-name** label that names each
+tool over the middle of the page as you pick it, and can pin a specific page
+colour to the drawing you have open.
 
 ## Drawings, folders, and sketchbooks
 

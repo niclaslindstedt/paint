@@ -68,6 +68,11 @@ export type AppSettings = {
   filled: boolean;
   /** Paint the canvas over a grid, so a sketch of boxes and arrows lines up. */
   showGrid: boolean;
+  /** Name the tool over the middle of the page for a moment when you pick one.
+   *  The toolbar's glyphs are small and several tools draw a similar mark, so
+   *  the label is what tells a marker from a crayon without a trial stroke —
+   *  switchable off for anyone who finds it in the way. */
+  showToolName: boolean;
   /** The file types the download menu offers, in menu order. Switching one off
    *  hides it from the menu; the menu's "copy to clipboard" is always there, so
    *  even an empty list leaves a way out. */
@@ -139,6 +144,10 @@ const BASE_SETTINGS: Omit<AppSettings, "enabledPlugins"> = {
   hardness: 1,
   filled: false,
   showGrid: false,
+  // On out of the box: the first thing a new user does is try the tools, and a
+  // rack of unlabelled glyphs is exactly where a name earns its keep. It costs
+  // a second of a corner of the page and can be switched off in Canvas.
+  showToolName: true,
   // All three file types out of the box: the download menu is where you
   // *discover* that a sketch can leave as an SVG, and hiding one is the unusual
   // choice.
@@ -183,7 +192,13 @@ function numbers(value: unknown, max: number): number[] {
   );
 }
 
-function parseSettings(raw: string): AppSettings {
+/** Read a persisted settings blob back into a whole `AppSettings`.
+ *
+ *  Exported for the tests: it is the one place an install carries state across
+ *  upgrades, so what it does with a blob written by an older build (or a
+ *  half-written one) is worth pinning down. The app reaches it through
+ *  `useAppSettings`. */
+export function parseSettings(raw: string): AppSettings {
   const base = defaultSettings();
   const parsed = JSON.parse(raw) as unknown;
   if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
@@ -224,6 +239,12 @@ function parseSettings(raw: string): AppSettings {
     merged.hardness = Math.max(0, Math.min(1, merged.hardness));
   }
   if (typeof merged.color !== "string") merged.color = null;
+  // A default-*on* flag can't be coerced with `Boolean()` — a blob written
+  // before it existed holds `undefined`, which would read as "switched off"
+  // and quietly deny an upgrading install the feature it ships on.
+  if (typeof merged.showToolName !== "boolean") {
+    merged.showToolName = base.showToolName;
+  }
   merged.customColors = Array.isArray(merged.customColors)
     ? merged.customColors.filter((c): c is string => typeof c === "string")
     : [];

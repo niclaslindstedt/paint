@@ -307,6 +307,15 @@ export function CanvasTab({
           onChange={(next) => update("showGrid", next)}
         />
       </Section>
+
+      <Section title={t("settings.canvas.toolNameTitle")}>
+        <ToggleRow
+          label={t("settings.canvas.showToolName")}
+          hint={t("settings.canvas.showToolNameHint")}
+          checked={settings.showToolName}
+          onChange={(next) => update("showToolName", next)}
+        />
+      </Section>
     </div>
   );
 }
@@ -602,7 +611,10 @@ export function DeveloperTab({
             n: String(allPlugins().length),
           })}
         </p>
-        <ul className="flex flex-wrap gap-1.5">
+        {/* `selectable`: plugin ids are diagnostics, and the point of showing
+            them is that they end up in a bug report. Same for the build stamp
+            below (the app selects no text by default — see `styles.css`). */}
+        <ul className="selectable flex flex-wrap gap-1.5">
           {allPlugins().map((plugin) => (
             <li
               key={plugin.id}
@@ -618,7 +630,7 @@ export function DeveloperTab({
       </Section>
 
       <Section title={t("settings.developer.buildTitle")}>
-        <dl className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
+        <dl className="selectable grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
           <dt className="text-muted">{t("settings.developer.buildLabel")}</dt>
           <dd className="font-mono text-fg">{__BUILD_LABEL__}</dd>
           <dt className="text-muted">{t("settings.developer.commitLabel")}</dt>
@@ -645,7 +657,11 @@ export function LogsTab() {
     <div>
       <p className="mb-3 text-xs text-muted">{t("settings.logs.intro")}</p>
       <Section title={t("settings.logs.logsTitle")}>
-        <LogViewer store={logStore} />
+        {/* `selectable`: a log line exists to be copied into a bug report, so
+            it opts back into text selection (see `styles.css`). */}
+        <div className="selectable">
+          <LogViewer store={logStore} />
+        </div>
       </Section>
     </div>
   );
