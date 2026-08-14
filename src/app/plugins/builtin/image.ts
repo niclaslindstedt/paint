@@ -23,6 +23,9 @@ export const imageBehaviour: ToolBehaviour = {
   paint: (ctx2d, stroke) => {
     const shape = stroke.shape;
     if (shape.kind !== "image") return;
+    // No bytes yet: a stroke loaded from a backend whose image file couldn't be
+    // read holds only the reference (see `imageStore.ts`). Paint nothing.
+    if (!shape.src) return;
     const img = cachedImage(shape.src);
     if (!img) return;
     const box = normalizeBox(shape.from, shape.to);

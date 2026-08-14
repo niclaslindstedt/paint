@@ -86,7 +86,9 @@ a picture dropped onto the page — carries its bytes inline as a `data:` URL,
 because an imported photo has no vector form and the alternative to inlining it
 is not having it. It is still one stroke: it undoes, syncs and exports like any
 other mark, and imports are downscaled on the way in (`images.ts`) so a document
-that lives in localStorage stays a sane size.
+that lives in localStorage stays a sane size. On the way out to a remote backend
+those bytes are filed off into a real image file beside the document (see
+[Sync](#sync) below), which is what keeps the pushed JSON small.
 
 Rasterising happens through the same renderer everywhere: onto the screen
 canvas, and onto an off-screen canvas for the PNG and JPG downloads. There is no
@@ -259,8 +261,29 @@ The engine's shape is deliberately conservative:
 - **Encryption** wraps the byte boundary (`withEncryption`), so what lands in
   the cloud is an AES-GCM envelope and the passphrase never leaves memory.
 
-Unlike the sibling apps there are no binary side-cars: a paint document is one
-JSON file per namespace, which is the entire sync surface.
+### Bitmaps are filed out, geometry is not
+
+A paint document is one JSON file per namespace — except for the bytes of a
+dropped picture, which would push megabytes of base64 on every debounced save.
+So `withExternalImages` ([`imageStore.ts`](../src/app/imageStore.ts)) wraps the
+adapter for every plaintext remote backend and splits the two apart: on save each
+image stroke's bitmap is written to `images/<drawing-slug>-<tag>-<n>.<ext>` as
+real image bytes and replaced in the pushed JSON by that path; on load the files
+are read back onto their strokes. The working copy on this device always keeps
+the bytes inline, so drawing, undo and export never see the seam.
+
+The byte transports are `imageFileStore.ts` (Dropbox and Google Drive content
+APIs, since the framework's `FileStore` is text-only and would mangle a JPEG)
+and `folderFileStore.ts` (the File System Access API), behind one `ByteFileStore`
+contract so all three backends are driven identically. Both ride `cloudRetry.ts`,
+which keeps a handful of files in flight at a time and honours a provider's
+`Retry-After` — a throttled read must not look like a missing picture.
+
+Two rules make it safe on a bad network: a bitmap is stripped from the outgoing
+document only _after_ its file write succeeds, and an orphaned file is deleted
+only after the document save commits _and_ only when every image in that save was
+accounted for. An encrypted copy skips the layer entirely and keeps its bitmaps
+inside the envelope.
 
 ## The PWA
 

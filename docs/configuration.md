@@ -35,6 +35,23 @@ gave the app goes in `VITE_DROPBOX_APP_FOLDER`.
 your origins listed as authorized JavaScript origins. The app requests the
 narrow `drive.file` scope, so it can only see files it created itself.
 
+### What lands on the backend
+
+Whichever backend is connected, its folder holds the document plus one file per
+dropped picture:
+
+```
+Apps/Paint/            (Dropbox — "Paint" folder in My Drive on Google Drive,
+│                       or the folder you picked for the local-folder backend)
+├── paint-default.json                  the drawings, one file per namespace
+└── images/
+    └── sequence-diagram-4k2a-1.png     one file per dropped picture
+```
+
+The `images/` tree is written only for a **plaintext** copy: with encryption on,
+the pictures stay inside the encrypted document rather than landing on the drive
+in the clear. See [cloud sync](features/cloud-sync.md).
+
 ## The sidebar footer
 
 | Variable          | Effect                                                                                                                      |

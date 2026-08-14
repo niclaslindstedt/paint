@@ -38,6 +38,12 @@ import {
   summarizeDoc,
   type CloudDocSummary,
 } from "./cloudSetup.ts";
+import {
+  dropboxImageStore,
+  folderImageStore,
+  gdriveImageStore,
+  withExternalImages,
+} from "./imageStore.ts";
 import { logStore } from "./log.ts";
 import { serializeDoc } from "./migrations.ts";
 import { docKey, type PaintStore } from "./usePaintStore.ts";
@@ -51,9 +57,11 @@ import { docKey, type PaintStore } from "./usePaintStore.ts";
 // optional at-rest encryption wraps the byte boundary with `withEncryption`, so
 // what lands in the cloud is an AES-GCM envelope.
 //
-// The paint document is a JSON list of vector strokes — no binary side-cars —
-// so unlike the sibling apps there is nothing to externalise: one file per
-// namespace is the whole sync surface.
+// The paint document is a JSON list of vector strokes, so the document itself is
+// small. Dropped bitmaps are the exception: on a plaintext remote backend they
+// are filed out beside the document as real image files by `withExternalImages`
+// (see `imageStore.ts`), which keeps the pushed JSON small and the pictures
+// browsable. An encrypted copy skips that layer and keeps them in the envelope.
 
 const syncLog = logStore.createLogger("sync");
 
@@ -260,6 +268,12 @@ export function useSyncEngine(
   // than a reboot / namespace switch / unlock), so only *that* baseline read
   // raises the setup prompt.
   const justConnected = useRef(false);
+  // Set when a loaded backend copy needs filing out into the deterministic image
+  // layout — it still holds inline bitmaps (a document from before the file
+  // layout, or one pushed by an encrypted device), or it points at paths a
+  // rename / reorder has moved. A one-time save then files them out and persists
+  // the references — see the sweep effect below.
+  const [imageSweep, setImageSweep] = useState(false);
   // The edit counter that has been pushed to the backend. Anything newer is
   // unsaved — that's `dirty`.
   const [savedVersion, setSavedVersion] = useState(store.version);
@@ -301,7 +315,8 @@ export function useSyncEngine(
   }, []);
 
   // The storage adapter for the active backend, wrapped so a cloud copy is
-  // readable offline (`withLocalCache`) and — when the user opted in —
+  // readable offline (`withLocalCache`), dropped bitmaps are filed out beside
+  // the document (`withExternalImages`) and — when the user opted in —
   // encrypted at the byte boundary (`withEncryption`).
   const adapter: StorageAdapter | null = useMemo(() => {
     if (backend === "dropbox" && dropboxTokens) {
@@ -323,11 +338,17 @@ export function useSyncEngine(
         storage: localStorage,
         key: localCacheKey("dropbox", slug),
       });
+      // Encrypted: keep the bitmaps inside the AES-GCM envelope. Plaintext:
+      // file them out to `images/…` in the Dropbox app folder.
       return encrypted
         ? withEncryption(cached, passwordRef, {
             logger: logStore.createLogger("encrypt"),
           })
-        : cached;
+        : withExternalImages(
+            cached,
+            dropboxImageStore(dropboxAuth, DROPBOX_APP_KEY || undefined),
+            () => setImageSweep(true),
+          );
     }
     if (backend === "gdrive" && gdriveToken) {
       const cloud = createGdriveAdapter(gdriveToken, {
@@ -343,7 +364,11 @@ export function useSyncEngine(
         ? withEncryption(cached, passwordRef, {
             logger: logStore.createLogger("encrypt"),
           })
-        : cached;
+        : withExternalImages(
+            cached,
+            gdriveImageStore(gdriveToken, GDRIVE_APP_FOLDER),
+            () => setImageSweep(true),
+          );
     }
     if (backend === "folder" && folderHandle) {
       // Unlike the cloud adapters there's no `withLocalCache` — the folder is
@@ -353,11 +378,17 @@ export function useSyncEngine(
         onPermissionLost: markFolderPermissionLost,
         logger: logStore.createLogger("folder"),
       });
+      // Plaintext: file the bitmaps out as real image files beside the document
+      // — a browsable tree is the whole point of the folder backend.
       return encrypted
         ? withEncryption(folder, passwordRef, {
             logger: logStore.createLogger("encrypt"),
           })
-        : folder;
+        : withExternalImages(
+            folder,
+            folderImageStore(folderHandle, markFolderPermissionLost),
+            () => setImageSweep(true),
+          );
     }
     return null;
   }, [
@@ -601,6 +632,36 @@ export function useSyncEngine(
     pendingSetup,
     baselineReady,
     store.version,
+    doSave,
+  ]);
+
+  // One-time image sweep: when the adopted backend copy needs filing out — it
+  // still holds inline bitmaps, or its references have gone stale under a rename
+  // — settle it on open instead of waiting for the next mark. `doSave` pushes
+  // the current document through the externaliser, which writes the missing
+  // image files, strips the bytes, and persists the paths; the flag clears once
+  // fired so it runs at most once per adopted backend. Stays put while a fault
+  // or lock blocks saving, then fires when clear.
+  useEffect(() => {
+    if (!imageSweep) return;
+    if (!isRemote || !connected || !adapter || blocked || locked) return;
+    // Hold the sweep while the connect-time prompt is open — resolving it
+    // pushes (replace) or adopts (cloud), which settles the images either way.
+    if (pendingSetup) return;
+    if (encrypted && passwordRef.current === null) return;
+    setImageSweep(false);
+    syncLog.info("images: filing out inline / re-filed bitmaps");
+    void doSave();
+  }, [
+    imageSweep,
+    isRemote,
+    connected,
+    adapter,
+    blocked,
+    locked,
+    pendingSetup,
+    encrypted,
+    passwordRef,
     doSave,
   ]);
 

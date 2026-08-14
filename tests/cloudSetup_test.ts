@@ -115,6 +115,51 @@ describe("evaluateCloudSetup", () => {
     expect(evaluateCloudSetup(remoteText, drawn)).toBeNull();
   });
 
+  it("does not count a filed picture's path as a difference", () => {
+    // The same page either side, but the backend copy has been through the
+    // image externaliser and carries where each bitmap is filed.
+    const local: AppData = {
+      ...drawn,
+      drawings: [
+        {
+          ...drawn.drawings[0]!,
+          strokes: [
+            {
+              id: "s2",
+              tool: "image",
+              size: 1,
+              shape: {
+                kind: "image",
+                from: { x: 0, y: 0 },
+                to: { x: 10, y: 10 },
+                src: "data:image/png;base64,SGVsbG8=",
+              },
+            },
+          ],
+        },
+      ],
+    };
+    const filed = JSON.stringify({
+      version: 2,
+      ...local,
+      drawings: [
+        {
+          ...local.drawings[0]!,
+          strokes: [
+            {
+              ...local.drawings[0]!.strokes[0]!,
+              shape: {
+                ...local.drawings[0]!.strokes[0]!.shape,
+                srcPath: "images/sequence-4k2a-1.png",
+              },
+            },
+          ],
+        },
+      ],
+    });
+    expect(evaluateCloudSetup(filed, local)).toBeNull();
+  });
+
   it("says nothing when the backend is empty", () => {
     const empty = JSON.stringify({ version: 1, ...blank });
     expect(evaluateCloudSetup(empty, drawn)).toBeNull();

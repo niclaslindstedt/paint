@@ -43,19 +43,26 @@ export type ExportOptions = InkContext & {
   transparent: boolean;
 };
 
+/** A drawing's name as a filesystem-safe slug, e.g. `sequence-diagram` — the
+ *  stem an export downloads under, and the stem a dropped bitmap is filed under
+ *  when the document syncs (see `imageStore.ts`), so the two agree. */
+export function drawingSlug(name: string, fallback = "drawing"): string {
+  return (
+    name
+      .trim()
+      .toLowerCase()
+      .replace(/[^\p{Letter}\p{Number}]+/gu, "-")
+      .replace(/^-+|-+$/g, "") || fallback
+  );
+}
+
 /** A filesystem-safe file name for a drawing, e.g. `sequence-diagram.png`. */
 export function exportFileName(
   drawing: Drawing,
   extension: string,
   fallback = "drawing",
 ): string {
-  const stem =
-    drawing.name
-      .trim()
-      .toLowerCase()
-      .replace(/[^\p{Letter}\p{Number}]+/gu, "-")
-      .replace(/^-+|-+$/g, "") || fallback;
-  return `${stem}.${extension}`;
+  return `${drawingSlug(drawing.name, fallback)}.${extension}`;
 }
 
 /** The MIME type a format is encoded as. */
