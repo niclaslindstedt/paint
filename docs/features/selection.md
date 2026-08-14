@@ -13,7 +13,10 @@ nothing", and so does Escape. ⌘/Ctrl+A takes the whole page while the marquee 
 in your hand.
 
 Marks on a hidden layer are never caught. You cannot select what you cannot see,
-and deleting something invisible is the worst kind of surprise.
+and deleting something invisible is the worst kind of surprise. Marks on a
+**locked** layer are not caught either — including the Background, which is
+locked out of the box (see [layers](layers.md)). Unlock the layer if you want
+its marks in a selection.
 
 ## Moving
 

@@ -13,14 +13,23 @@ import {
 import {
   EyeIcon,
   EyeOffIcon,
+  LockIcon,
   MirrorHorizontalIcon,
   MirrorVerticalIcon,
   ResizeIcon,
   TurnLeftIcon,
   TurnRightIcon,
+  UnlockIcon,
 } from "./icons.tsx";
 import { useT } from "./i18n/index.ts";
-import { drawingLayers, groupByLayer, nextLayerName } from "./layers.ts";
+import {
+  BACKGROUND_LAYER_ID,
+  canDeleteLayer,
+  drawingLayers,
+  groupByLayer,
+  isLocked,
+  nextLayerName,
+} from "./layers.ts";
 import { LayerThumbnail } from "./LayerThumbnail.tsx";
 import {
   mirrorDrawing,
@@ -50,10 +59,24 @@ import type { PaintStore } from "./usePaintStore.ts";
 // are already drawing. They are three rows of paired buttons rather than a menu:
 // each pair is one decision (which way?), and both halves are one tap.
 //
+// The bin lives up there too, at the far end of the section's own heading.
+// Throwing a drawing away is an action on the *document* — every mark, every
+// layer, and the page colour with them — so it belongs beside resize and flip
+// rather than hung off the eraser, which is where it used to be. It is at the
+// end of the heading rather than in the run of buttons below for the same
+// reason the close button is: a row you can hit by accident on the way to
+// "flip" is not where the irreversible thing goes.
+//
 // Actions hang off the *selected* row rather than every row. A layer stack is a
 // list you pick from far more often than you reorder, and four glyphs on every
 // row of a 224-pixel panel is a row you can't read and can't hit. Picking a
 // layer is one tap; what you can then do to it is right under your thumb.
+//
+// The two exceptions are the eye and the padlock, which sit on every row. Both
+// are switches rather than actions — you read them as much as you press them —
+// and the padlock has to be reachable on a row that *cannot be selected*,
+// which is the whole point of a lock: the sheet at the bottom of a fresh
+// drawing is locked, and the only way back to it is the glyph on its own row.
 //
 // Each row carries a **preview of its marks** (`LayerThumbnail`) rather than a
 // count of them. The count answered the wrong question — you open this panel to
@@ -133,6 +156,7 @@ export function SidePanel({
 }: Props) {
   const t = useT();
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const [confirmReset, setConfirmReset] = useState(false);
 
   // Escape closes the panel, like every other transient surface in the app —
   // but only while it *is* one. A docked panel has nothing to close.
@@ -147,15 +171,31 @@ export function SidePanel({
 
   const layers = drawingLayers(drawing);
   const marks = groupByLayer(drawing);
-  const selected = layers.find((l) => l.id === drawing.activeLayerId);
-  const activeId = (selected ?? layers[layers.length - 1]!).id;
-  const only = layers.length === 1;
+  const selected = layers.find(
+    (l) => l.id === drawing.activeLayerId && !isLocked(l),
+  );
+  const activeId = (
+    selected ??
+    [...layers].reverse().find((l) => !isLocked(l)) ??
+    layers[layers.length - 1]!
+  ).id;
 
-  /** A layer's display name. Only the base can be nameless — it is the layer
-   *  every drawing already had before anyone asked for a second one. */
-  const nameOf = (name: string) => name.trim() || t("layers.base");
+  /** A layer's display name. Two layers can be nameless, and they are the two
+   *  every drawing starts with: the sheet at the bottom, and the layer above it
+   *  that holds the marks of a drawing nobody has added a layer to. */
+  const nameOf = (layer: { id: string; name: string }) =>
+    layer.name.trim() ||
+    (layer.id === BACKGROUND_LAYER_ID
+      ? t("layers.background")
+      : t("layers.base"));
 
   const doomed = layers.find((l) => l.id === confirmDelete);
+  // Nothing to throw away: no marks, no stack of its own, and a page still
+  // following the canvas theme.
+  const untouched =
+    drawing.strokes.length === 0 &&
+    !drawing.layers &&
+    drawing.background === undefined;
 
   return (
     <aside
@@ -174,6 +214,17 @@ export function SidePanel({
           <span className="flex-1 pl-1 text-xs font-bold tracking-wide text-muted uppercase">
             {t("page.title")}
           </span>
+          {/* Start over: every mark, every layer and the page colour, gone in
+              one undoable step. Dim on a drawing that is already blank, so the
+              bin can't offer to throw away nothing. */}
+          <PanelButton
+            label={t("page.reset")}
+            tone="danger"
+            disabled={untouched}
+            onClick={() => setConfirmReset(true)}
+          >
+            <TrashIcon className="h-4 w-4" />
+          </PanelButton>
           {!docked && (
             <PanelButton label={t("layers.close")} onClick={onClose}>
               <CloseIcon className="h-4 w-4" />
@@ -264,8 +315,9 @@ export function SidePanel({
         {[...layers].reverse().map((layer, fromTop) => {
           const at = layers.length - 1 - fromTop;
           const active = layer.id === activeId;
+          const locked = isLocked(layer);
           const strokes = marks.get(layer.id) ?? [];
-          const name = nameOf(layer.name);
+          const name = nameOf(layer);
           return (
             <li
               key={layer.id}
@@ -275,7 +327,7 @@ export function SidePanel({
                   : ""
               }
             >
-              <div className="flex items-center gap-0.5 px-1.5">
+              <div className="flex items-center px-1">
                 <PanelButton
                   label={
                     layer.hidden
@@ -291,14 +343,37 @@ export function SidePanel({
                     <EyeIcon className="h-4 w-4 text-fg" />
                   )}
                 </PanelButton>
+                {/* The padlock. On every row, and on a locked row it is the
+                    only live control there is — the row itself refuses the
+                    press that would select it. */}
+                <PanelButton
+                  label={
+                    locked
+                      ? t("layers.unlock", { name })
+                      : t("layers.lock", { name })
+                  }
+                  pressed={locked}
+                  onClick={() => store.setLayerLocked(layer.id, !locked)}
+                >
+                  {locked ? (
+                    <LockIcon className="h-4 w-4 text-fg" />
+                  ) : (
+                    <UnlockIcon className="h-4 w-4" />
+                  )}
+                </PanelButton>
                 <button
                   type="button"
                   onClick={() => store.selectLayer(layer.id)}
+                  disabled={locked}
                   aria-current={active ? "true" : undefined}
-                  title={t("layers.select", { name })}
-                  className={`flex min-w-0 flex-1 cursor-pointer items-center gap-2 py-1.5 pr-1 text-left ${
-                    layer.hidden ? "opacity-40" : ""
-                  }`}
+                  title={
+                    locked
+                      ? t("layers.lockedHint", { name })
+                      : t("layers.select", { name })
+                  }
+                  className={`flex min-w-0 flex-1 items-center gap-2 py-1.5 pr-1 text-left ${
+                    locked ? "cursor-default" : "cursor-pointer"
+                  } ${layer.hidden ? "opacity-40" : ""}`}
                 >
                   <LayerThumbnail
                     drawing={drawing}
@@ -343,10 +418,10 @@ export function SidePanel({
                   <PanelButton
                     label={t("layers.delete", { name })}
                     tone="danger"
-                    // The last layer stays: a drawing always has somewhere
-                    // to draw, and emptying one is what the eraser's clean
-                    // sweep is for.
-                    disabled={only}
+                    // What may not be deleted is `layers.ts`'s to say — the
+                    // last layer, a locked one, or the last one still taking
+                    // marks. Emptying a drawing outright is Start over's job.
+                    disabled={!canDeleteLayer(drawing, layer.id)}
                     onClick={() => {
                       if (strokes.length === 0) store.deleteLayer(layer.id);
                       else setConfirmDelete(layer.id);
@@ -375,9 +450,9 @@ export function SidePanel({
           "and the 40 marks on it" is the part worth reading. */}
       <ConfirmDialog
         open={doomed !== undefined}
-        title={t("layers.delete", { name: doomed ? nameOf(doomed.name) : "" })}
+        title={t("layers.delete", { name: doomed ? nameOf(doomed) : "" })}
         description={t("layers.deleteConfirm", {
-          name: doomed ? nameOf(doomed.name) : "",
+          name: doomed ? nameOf(doomed) : "",
           n: String(doomed ? (marks.get(doomed.id)?.length ?? 0) : 0),
         })}
         confirmLabel={t("common.delete")}
@@ -387,6 +462,21 @@ export function SidePanel({
           setConfirmDelete(null);
         }}
         onCancel={() => setConfirmDelete(null)}
+      />
+
+      {/* Starting over takes more than a delete does — every layer as well as
+          every mark — so the prompt says so rather than asking "are you sure?". */}
+      <ConfirmDialog
+        open={confirmReset}
+        title={t("page.reset")}
+        description={t("page.resetConfirm")}
+        confirmLabel={t("page.resetConfirmLabel")}
+        tone="danger"
+        onConfirm={() => {
+          store.resetActive();
+          setConfirmReset(false);
+        }}
+        onCancel={() => setConfirmReset(false)}
       />
     </aside>
   );

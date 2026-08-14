@@ -142,6 +142,14 @@ export type Layer = {
   /** Hidden layers are skipped by every painter — the screen, the exports, and
    *  the page the bucket and the dropper read. Absent means showing. */
   hidden?: boolean;
+  /** Locked layers take no marks: they cannot be drawn on, moved in the stack,
+   *  or deleted, and the panel won't select one. Absent means unlocked.
+   *
+   *  It is a *guard*, not a mode — the marks already on a locked layer paint
+   *  exactly as they did, and unlocking is one press. The background sheet
+   *  carries it out of the box, which is what stops a stray pencil line landing
+   *  under everything you have drawn. */
+  locked?: boolean;
 };
 
 /** A group of drawings in the side menu. Flat by design — a sketchbook is a

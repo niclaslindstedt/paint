@@ -42,13 +42,19 @@ connect a storage backend yourself.
   at a glance.
 - Resize, flip (a quarter turn either way) and mirror a whole drawing from the
   right-hand panel; resizing can scale the drawing or change only the sheet,
-  which is how a page is cropped or given more room.
+  which is how a page is cropped or given more room. The resize dialog draws the
+  new page over the old one and lets it be pulled by its corners, crop-tool
+  style, with a latch that keeps the proportions. The same panel's bin starts
+  the drawing over — every mark, every layer and the page colour.
 - Draw on a page bigger than the window: the canvas is a window onto it, with
   pinch-to-zoom, two-finger panning, and one-finger panning under the hand.
 - Stack a drawing into layers: swipe in from the right edge of the canvas (or
-  use the header button) for a panel that adds, selects, shows, hides, reorders
-  and deletes them, each row previewing the marks on that layer. New marks land
-  on the selected layer; a hidden layer leaves the screen and every export.
+  use the header button) for a panel that adds, selects, shows, hides, locks,
+  reorders and deletes them, each row previewing the marks on that layer. Every
+  drawing starts with a locked Background layer — which carries the page colour
+  — and one layer above it. New marks land on the selected layer; a hidden layer
+  leaves the screen and every export, and a transparent export leaves the
+  Background out entirely.
 - Keep several drawings, group them into folders, star the ones you return to,
   and archive the rest instead of deleting them.
 - Tidy the sidebar with the gesture at hand: on touch, swipe a row right to

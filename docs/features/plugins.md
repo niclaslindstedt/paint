@@ -133,14 +133,6 @@ two glyphs, its own icon drawn hollow and drawn solid, and no words. That second
 glyph is the descriptor's own `icon` asked for `filled`, so a new fillable tool
 gets the picker by drawing itself solid, with nothing to add to the toolbar.
 
-`clearsPage` puts something that is _not_ a tool on that same gesture. Wiping
-the page begins no stroke and leaves no mark — it is one undoable edit on the
-document — but it is what erasing looks like at its largest scale, so the eraser
-carries the flag and its second press offers both: rub out by hand, or clear the
-sheet. The toolbar only asks; the screen owns the confirmation and the edit. A
-button in the header would have been the other option, and this one puts the
-destructive action where the hand reaching for it already is.
-
 `selects` is the flag for the tool that chooses marks rather than making one.
 The **selection** tool drags an ordinary two-corner draft — so it inherits the
 whole gesture pipeline, down to abandoning itself when a second finger lands —

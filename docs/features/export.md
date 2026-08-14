@@ -33,7 +33,8 @@ it. _Just the marks_ crops to what you have actually drawn, with a small margin,
 which is what you want on a big page with one small diagram on it. A page with
 nothing on it falls back to the whole sheet.
 
-**Background.** Transparent leaves the page unpainted, so the marks land on
+**Background.** Transparent leaves the whole **Background layer** out — the page
+colour and anything you drew on the sheet itself — so the marks land on
 transparency and the drawing takes on whatever it is pasted over. Two caveats,
 both physics rather than policy: JPG has no transparency and always keeps the
 page colour, and the eraser _paints_ with the page colour, so anywhere you

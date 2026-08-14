@@ -15,7 +15,6 @@ import {
   sizesFor,
   type AppSettings,
 } from "./useAppSettings.ts";
-import { ClearPicker } from "./toolbar/ClearPicker.tsx";
 import { ColorPicker } from "./toolbar/ColorPicker.tsx";
 import { FillPicker } from "./toolbar/FillPicker.tsx";
 import { GroupPicker } from "./toolbar/GroupPicker.tsx";
@@ -53,12 +52,10 @@ import { SizeDot, SizePicker } from "./toolbar/SizePicker.tsx";
 // tools offer it is the descriptor's `supportsFill`, so nothing here knows what
 // a rectangle is.
 //
-// Clearing the page rides on that same gesture. The tool that erases carries
-// `clearsPage`, and pressing its button a second time offers the two scales of
-// rubbing out: by hand, or all of it. That is why there is no bin in the
-// header — the header spends its width on the drawing's name instead, and the
-// wipe sits under the hand already reaching for the eraser. Which tool offers
-// it is the descriptor's flag; nothing here knows what an eraser is either.
+// Wiping the page used to ride on that same gesture, hung off the eraser. It
+// doesn't any more: throwing a drawing away is not erasing at a larger scale,
+// it is an action on the *document*, so it lives with the other document
+// actions in the right-hand panel (see `SidePanel.tsx`). The toolbar is tools.
 
 type Props = {
   tool: string;
@@ -92,21 +89,15 @@ type Props = {
   dialsTuned: boolean;
   filled: boolean;
   onFilledChange: (filled: boolean) => void;
-  /** Wipe every mark off the page — the action offered by the tool that
-   *  advertises `clearsPage`. The screen owns the confirmation and the edit;
-   *  the toolbar only asks. */
-  onClearPage: () => void;
-  /** Whether the page has anything to clear. */
-  pageHasMarks: boolean;
 };
 
 /** Whether an entry's button does a second job once it is the one in your hand.
  *  Read off descriptor flags — a group always has one (the family behind it),
- *  and a lone tool joins the gesture by declaring `supportsFill` or
- *  `clearsPage` rather than by being named here. */
+ *  and a lone tool joins the gesture by declaring `supportsFill` rather than by
+ *  being named here. */
 function opensPanel(entry: ToolbarEntry, plugin: PaintPlugin | undefined) {
   if (entry.kind === "group") return true;
-  return Boolean(plugin?.supportsFill || plugin?.clearsPage);
+  return Boolean(plugin?.supportsFill);
 }
 
 export function Toolbar({
@@ -130,8 +121,6 @@ export function Toolbar({
   dialsTuned,
   filled,
   onFilledChange,
-  onClearPage,
-  pageHasMarks,
 }: Props) {
   const t = useT();
   const entries = toolbarEntries(settings.enabledPlugins, settings.toolOrder);
@@ -220,8 +209,8 @@ export function Toolbar({
             entry.kind === "group" ? t(entry.group.nameKey) : t(shown.nameKey);
           // Some buttons do two jobs: pick the tool, and — once it is the one
           // you are holding — open that button's own panel (the family behind
-          // it, the eraser's clear action). That is the "press it twice"
-          // gesture, and it costs the toolbar nothing.
+          // it). That is the "press it twice" gesture, and it costs the toolbar
+          // nothing.
           const second = opensPanel(entry, shown);
           const opensOwn = second && isActive;
           return (
@@ -337,9 +326,9 @@ export function Toolbar({
         </button>
       </div>
 
-      {/* The panels themselves. All three open upward: the toolbar is the last
-          row on the screen, so each measures the room below it, finds none, and
-          flips over the canvas. */}
+      {/* The panels themselves. All of them open upward: the toolbar is the
+          last row on the screen, so each measures the room below it, finds
+          none, and flips over the canvas. */}
       {/* A family's panel: the rest of the shapes, and how they are drawn. It
           stays open as you try them — picking a shape is what the panel is for,
           and closing on the first one would mean re-opening it to compare two. */}
@@ -370,23 +359,6 @@ export function Toolbar({
           onPick={(next) => {
             onFilledChange(next);
             setPanel(null);
-          }}
-        />
-      )}
-
-      {activeEntry?.kind === "tool" && active?.clearsPage && (
-        <ClearPicker
-          open={panel?.kind === "tool" && panel.entry === activeEntry.id}
-          onClose={() => setPanel(null)}
-          anchor={toolAnchor}
-          plugin={active}
-          hasMarks={pageHasMarks}
-          onClear={() => {
-            // The panel closes on the way to the dialog: the confirmation is
-            // the question now, and leaving a panel hanging behind it would
-            // ask the same thing twice.
-            setPanel(null);
-            onClearPage();
           }}
         />
       )}

@@ -188,8 +188,13 @@ describe("parseDoc", () => {
       }),
     );
     const page = doc.drawings[0]!;
+    // Nothing is rewritten on the way in: the drawing carries no stack, and
+    // reads as the sheet plus the one layer its marks are already on.
     expect(page.layers).toBeUndefined();
-    expect(drawingLayers(page)).toHaveLength(1);
+    expect(drawingLayers(page).map((l) => l.id)).toEqual([
+      "background",
+      "base",
+    ]);
     expect(visibleStrokes(page)).toEqual(page.strokes);
     expect(parseDoc(serializeDoc(doc))).toEqual(doc);
   });

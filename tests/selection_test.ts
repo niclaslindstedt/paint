@@ -85,6 +85,36 @@ describe("strokesInBox", () => {
       ),
     ).toEqual(["shown"]);
   });
+
+  it("never catches a mark on a locked layer", () => {
+    // A lock that stopped the pencil but let a marquee drag the sheet off the
+    // page would not be a lock.
+    const drawing = page(
+      [line("free", 0, 0), line("held", 0, 0, "background")],
+      {
+        layers: [
+          { id: "background", name: "", locked: true },
+          { id: "base", name: "" },
+        ],
+      },
+    );
+    expect(
+      strokesInBox(drawing, { x: 0, y: 0, width: 100, height: 100 }).map(
+        (s) => s.id,
+      ),
+    ).toEqual(["free"]);
+  });
+
+  it("catches everything on a drawing with nothing locked", () => {
+    // The default stack locks the sheet, but nothing is *on* the sheet — the
+    // marks a fresh drawing holds are all still selectable.
+    const drawing = page([line("a", 0, 0), line("b", 4, 4)]);
+    expect(
+      strokesInBox(drawing, { x: 0, y: 0, width: 100, height: 100 }).map(
+        (s) => s.id,
+      ),
+    ).toEqual(["a", "b"]);
+  });
 });
 
 describe("selectionBox", () => {

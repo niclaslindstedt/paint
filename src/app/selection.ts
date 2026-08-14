@@ -18,7 +18,7 @@
 // adds.
 
 import { strokeBounds, unionBox, type Box, type Measurable } from "./bounds.ts";
-import { visibleStrokes } from "./layers.ts";
+import { lockedMarks, visibleStrokes } from "./layers.ts";
 import type { Drawing, Point, Stroke } from "./types.ts";
 
 /** Whether two boxes overlap at all. */
@@ -42,16 +42,23 @@ export function inBox(box: Box, p: Point): boolean {
   );
 }
 
-/** The marks a marquee dragged over `box` catches: every **visible** stroke
- *  whose own box it touches, in paint order.
+/** The marks a marquee dragged over `box` catches: every **visible, unlocked**
+ *  stroke whose own box it touches, in paint order.
  *
  *  Touching rather than containing, deliberately. A marquee you have to draw
  *  right around a long diagonal line is a marquee you draw twice; catching what
  *  the box crosses is what every drawing program does and what a hand expects.
- *  Marks on a hidden layer are not caught at all — you cannot select what you
- *  cannot see, and deleting something invisible is the worst kind of surprise. */
+ *
+ *  Two kinds of mark are not caught at all. Marks on a **hidden** layer, because
+ *  you cannot select what you cannot see and deleting something invisible is the
+ *  worst kind of surprise; and marks on a **locked** one, because a lock that
+ *  stopped the pencil but let a marquee drag the sheet off the page would not be
+ *  a lock. This is the one gate both rules live behind — everything a selection
+ *  can then do (move, cut, delete) takes its ids from here. */
 export function strokesInBox(drawing: Drawing, box: Box): Stroke[] {
+  const locked = lockedMarks(drawing);
   return visibleStrokes(drawing).filter((stroke) => {
+    if (locked(stroke)) return false;
     const bounds = strokeBounds(stroke);
     return bounds ? overlaps(bounds, box) : false;
   });

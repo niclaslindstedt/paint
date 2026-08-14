@@ -8,12 +8,19 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  BACKGROUND_LAYER_ID,
   BASE_LAYER_ID,
   activeLayer,
   activeLayerId,
+  backgroundHidden,
+  canDeleteLayer,
+  drawableLayer,
   groupByLayer,
+  defaultLayers,
   drawingLayers,
   hasLayers,
+  isLocked,
+  lockedMarks,
   nextLayerName,
   reorderLayers,
   strokeLayer,
@@ -47,16 +54,24 @@ function drawing(over: Partial<Drawing> = {}): Drawing {
 }
 
 const base: Layer = { id: BASE_LAYER_ID, name: "" };
+const sheet: Layer = { id: BACKGROUND_LAYER_ID, name: "", locked: true };
 const top: Layer = { id: "top", name: "Layer 2" };
 
 describe("the implicit stack", () => {
-  it("reads a drawing with no layers as one unnamed layer", () => {
+  it("reads a drawing with no layers as the locked sheet plus one layer", () => {
     const page = drawing({ strokes: [stroke(), stroke()] });
     expect(hasLayers(page)).toBe(false);
-    expect(drawingLayers(page)).toEqual([{ id: BASE_LAYER_ID, name: "" }]);
-    // …and stamps nothing on the marks it draws, so a one-layer document is
-    // byte-for-byte what this app has always written.
+    expect(drawingLayers(page)).toEqual(defaultLayers());
+    expect(drawingLayers(page)).toEqual([
+      { id: BACKGROUND_LAYER_ID, name: "", locked: true },
+      { id: BASE_LAYER_ID, name: "" },
+    ]);
+    // …and stamps nothing on the marks it draws, so a document nobody has
+    // added a layer to is byte-for-byte what this app has always written.
     expect(activeLayerId(page)).toBeUndefined();
+    // The marks land above the sheet, not on it: the sheet is locked, so the
+    // first pencil line finds the layer over it without anyone choosing one.
+    expect(drawableLayer(page)?.id).toBe(BASE_LAYER_ID);
   });
 
   it("hands back the document's own stroke array, uncopied", () => {
@@ -65,6 +80,75 @@ describe("the implicit stack", () => {
     const strokes = [stroke(), stroke()];
     expect(visibleStrokes(drawing({ strokes }))).toBe(strokes);
     expect(visibleStrokes(drawing({ strokes, layers: [base] }))).toBe(strokes);
+    // …including when a transparent export asks for the sheet to be left out
+    // and there is nothing on it to leave out.
+    expect(
+      visibleStrokes(drawing({ strokes }), { withoutBackground: true }),
+    ).toBe(strokes);
+  });
+});
+
+describe("the sheet", () => {
+  it("is locked out of the box, and the lock is what keeps marks off it", () => {
+    expect(isLocked(sheet)).toBe(true);
+    expect(isLocked(base)).toBe(false);
+    const page = drawing({ layers: [sheet, base] });
+    // Selecting it is not enough to draw on it — the lock outranks the
+    // selection, so a stale pointer at a layer since locked can't swallow a
+    // stroke.
+    expect(
+      activeLayer({ ...page, activeLayerId: BACKGROUND_LAYER_ID }).id,
+    ).toBe(BASE_LAYER_ID);
+  });
+
+  it("reports there is nowhere to draw when every layer is locked", () => {
+    const page = drawing({ layers: [sheet, { ...base, locked: true }] });
+    expect(drawableLayer(page)).toBeNull();
+  });
+
+  it("takes the page colour with it when it is hidden", () => {
+    expect(backgroundHidden(drawing())).toBe(false);
+    expect(backgroundHidden(drawing({ layers: [sheet, base] }))).toBe(false);
+    expect(
+      backgroundHidden(drawing({ layers: [{ ...sheet, hidden: true }, base] })),
+    ).toBe(true);
+  });
+
+  it("is left out of a transparent export, marks and all", () => {
+    const onSheet = stroke(BACKGROUND_LAYER_ID);
+    const above = stroke(BASE_LAYER_ID);
+    const page = drawing({ strokes: [onSheet, above], layers: [sheet, base] });
+    expect(visibleStrokes(page).map((s) => s.id)).toEqual([
+      onSheet.id,
+      above.id,
+    ]);
+    expect(
+      visibleStrokes(page, { withoutBackground: true }).map((s) => s.id),
+    ).toEqual([above.id]);
+  });
+});
+
+describe("marks on a locked layer", () => {
+  it("are recognised through the same rules paint order uses", () => {
+    const legacy = stroke();
+    const onSheet = stroke(BACKGROUND_LAYER_ID);
+    const above = stroke("top");
+    const page = drawing({
+      strokes: [legacy, onSheet, above],
+      layers: [sheet, base, top],
+    });
+    const locked = lockedMarks(page);
+    expect(locked(onSheet)).toBe(true);
+    // A mark naming no layer belongs to the base, which is not locked…
+    expect(locked(legacy)).toBe(false);
+    expect(locked(above)).toBe(false);
+    // …and so does a mark naming a layer that isn't there.
+    expect(locked(stroke("deleted-elsewhere"))).toBe(false);
+  });
+
+  it("answers no without looking when nothing is locked", () => {
+    const page = drawing({ layers: [base, top] });
+    expect(lockedMarks(page)(stroke(BACKGROUND_LAYER_ID))).toBe(false);
   });
 });
 
@@ -161,6 +245,35 @@ describe("what the panel previews", () => {
   });
 });
 
+describe("what may be deleted", () => {
+  it("keeps the last layer, the locked ones, and the last one taking marks", () => {
+    const stack = drawing({ layers: [sheet, base, top] });
+    expect(canDeleteLayer(stack, "top")).toBe(true);
+    expect(canDeleteLayer(stack, BASE_LAYER_ID)).toBe(true);
+    // The sheet is locked, so the bin never applies to it.
+    expect(canDeleteLayer(stack, BACKGROUND_LAYER_ID)).toBe(false);
+    // …and a layer that isn't there is not deletable either.
+    expect(canDeleteLayer(stack, "gone")).toBe(false);
+  });
+
+  it("refuses the delete that would leave a page you can't draw on", () => {
+    // [locked sheet, Layer 1]: losing Layer 1 leaves a stack that takes no
+    // marks at all, which is a dead end one press away.
+    const fresh = drawing({ layers: defaultLayers() });
+    expect(canDeleteLayer(fresh, BASE_LAYER_ID)).toBe(false);
+    // With something else still open it goes through.
+    expect(
+      canDeleteLayer(drawing({ layers: [sheet, base, top] }), BASE_LAYER_ID),
+    ).toBe(true);
+  });
+
+  it("keeps the only layer there is", () => {
+    expect(canDeleteLayer(drawing({ layers: [base] }), BASE_LAYER_ID)).toBe(
+      false,
+    );
+  });
+});
+
 describe("deleting a layer", () => {
   it("takes the marks on it, and the homeless ones with the base", () => {
     const legacy = stroke();
@@ -223,6 +336,13 @@ describe("naming a new layer", () => {
   it("numbers past the end of the stack", () => {
     expect(nextLayerName([base], name)).toBe("Layer 2");
     expect(nextLayerName([base, top], name)).toBe("Layer 3");
+  });
+
+  it("doesn't count the sheet — it is not Layer n", () => {
+    // A fresh drawing is [sheet, Layer 1]; the layer offered next is Layer 2,
+    // not Layer 3.
+    expect(nextLayerName(defaultLayers(), name)).toBe("Layer 2");
+    expect(nextLayerName([sheet, base, top], name)).toBe("Layer 3");
   });
 
   it("skips a number still in use after a delete", () => {

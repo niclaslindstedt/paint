@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Suspense, lazy } from "react";
 
 import {
-  ConfirmDialog,
   ContextMenu,
   CopyIcon,
   ImageUpIcon,
@@ -73,10 +72,6 @@ const ResizeModal = lazy(() =>
 
 // The main screen: a header naming the open drawing (with the favourite star
 // and the download menu), the page itself, and the toolbar under it.
-//
-// Clearing the page is the screen's too, but it has no button up here: the
-// toolbar offers it from the erasing tool (see `Toolbar.tsx`) and calls back,
-// and the screen asks for confirmation and files the edit.
 //
 // The sync glyph is deliberately *not* here: there is one cloud affordance for
 // the whole app and it lives in the side menu's button island, so the header
@@ -164,7 +159,6 @@ export function CanvasScreen({
   dockPanel,
 }: Props) {
   const t = useT();
-  const [confirmClear, setConfirmClear] = useState(false);
   // Bumped to ask the canvas to re-fit its view; the live zoom comes back the
   // other way so the header's button can read out the current scale. The view
   // itself stays inside `PaintCanvas` — it is screen state, not document state,
@@ -648,11 +642,11 @@ export function CanvasScreen({
               transparent: settings.downloadTransparent,
             }}
           />
-          {/* No bin either. Wiping the page is erasing at its largest scale, so
-              it lives where erasing does — press the eraser a second time and
-              the toolbar offers both (see `Toolbar.tsx`). The header keeps the
-              width for the title, and the destructive action moves out of
-              thumb's reach of the star and the download menu. */}
+          {/* No bin either. Throwing a drawing away is an action on the
+              document, so it sits at the head of the right-hand panel's Image
+              section with resize and flip (see `SidePanel.tsx`). The header
+              keeps the width for the title, and the destructive action stays
+              out of thumb's reach of the star and the download menu. */}
         </div>
       </header>
 
@@ -871,11 +865,6 @@ export function CanvasScreen({
         dialsTuned={Object.keys(inkDials).length > 0}
         filled={settings.filled}
         onFilledChange={(filled) => update("filled", filled)}
-        // Clearing is an edit on the document, not a tool: the toolbar offers
-        // it from the erasing tool's button, and the screen keeps the question
-        // and the edit.
-        onClearPage={() => setConfirmClear(true)}
-        pageHasMarks={drawing.strokes.length > 0}
       />
 
       {/* The selection's menu — what a right-click opens on a desktop and a long
@@ -942,19 +931,6 @@ export function CanvasScreen({
           />
         </Suspense>
       )}
-
-      <ConfirmDialog
-        open={confirmClear}
-        title={t("canvas.clear")}
-        description={t("canvas.clearConfirm")}
-        confirmLabel={t("common.clear")}
-        tone="danger"
-        onConfirm={() => {
-          store.clearActive();
-          setConfirmClear(false);
-        }}
-        onCancel={() => setConfirmClear(false)}
-      />
     </div>
   );
 }

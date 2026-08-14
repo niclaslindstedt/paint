@@ -25,7 +25,7 @@
 // and the store is left as the one place that knows about undo.
 
 import { textBox } from "./plugins/builtin/text.ts";
-import type { CanvasSize } from "./canvasSize.ts";
+import { clampCanvasSize, type CanvasSize } from "./canvasSize.ts";
 import type { Drawing, Point, Shape, Stroke } from "./types.ts";
 
 /** Which way a mirror faces. `horizontal` swaps left and right (a mirror stood
@@ -309,4 +309,67 @@ export function keepProportions(
   return side === "width"
     ? { width: value, height: Math.round((value * from.height) / from.width) }
     : { width: Math.round((value * from.width) / from.height), height: value };
+}
+
+// --- Pulling a corner --------------------------------------------------------
+//
+// The resize dialog draws the new page over the old one, and the new page can
+// be *dragged* by its corners — the gesture every crop tool has, rather than
+// two numbers you have to picture. The arithmetic is here, with the rest of the
+// page maths, because it is exactly that: arithmetic over two sizes, and it is
+// the part worth a test. The dialog owns the pointer.
+
+/** The four corners the new page can be pulled by. */
+export type ResizeCorner =
+  "top-left" | "top-right" | "bottom-left" | "bottom-right";
+
+export const RESIZE_CORNERS: readonly ResizeCorner[] = [
+  "top-left",
+  "top-right",
+  "bottom-left",
+  "bottom-right",
+];
+
+/** The corner a drag holds still: the one opposite the one in your hand.
+ *
+ *  That is what makes it feel like a crop rather than a stretch — pull the
+ *  bottom-right and the top-left of the drawing stays where it is. In canvas
+ *  mode the dialog writes this straight into the anchor, so the picture and the
+ *  edit agree without anyone having to set both. */
+export function cornerAnchor(corner: ResizeCorner): ResizeAnchor {
+  const top = corner.startsWith("top");
+  const left = corner.endsWith("left");
+  return `${top ? "bottom" : "top"}-${left ? "right" : "left"}` as ResizeAnchor;
+}
+
+/** The size a corner drag lands on: `start` with the pulled corner moved by
+ *  `delta` document pixels, the opposite corner staying put.
+ *
+ *  With `keepRatio` the page holds the proportions it had when the drag began,
+ *  and the axis that moved *further, in proportion* is the one that leads — so
+ *  a mostly-sideways pull reads as a sideways pull rather than fighting the
+ *  vertical wobble in it.
+ *
+ *  Sides are rounded and clamped to the supported range, so a drag can be as
+ *  wild as it likes and still hand back a page. */
+export function dragCorner(
+  start: CanvasSize,
+  corner: ResizeCorner,
+  delta: Point,
+  options: { keepRatio?: boolean } = {},
+): CanvasSize {
+  const dx = corner.endsWith("left") ? -delta.x : delta.x;
+  const dy = corner.startsWith("top") ? -delta.y : delta.y;
+  let width = start.width + dx;
+  let height = start.height + dy;
+
+  if (options.keepRatio && start.width > 0 && start.height > 0) {
+    const sw = width / start.width;
+    const sh = height / start.height;
+    const scale = Math.abs(sw - 1) >= Math.abs(sh - 1) ? sw : sh;
+    width = start.width * scale;
+    height = start.height * scale;
+  }
+
+  return clampCanvasSize({ width, height });
 }

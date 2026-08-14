@@ -13,7 +13,10 @@ import {
 import {
   activeLayer,
   activeLayerId,
+  canDeleteLayer,
+  drawableLayer,
   drawingLayers,
+  isLocked,
   reorderLayers,
   strokesExcept,
 } from "./layers.ts";
@@ -331,6 +334,10 @@ export function usePaintStore(
     (draft: DraftStroke, options: { fitPage?: boolean } = {}) => {
       const active = activeDrawing;
       if (!active) return;
+      // Nowhere to put it: every layer in the stack is locked. The gesture is
+      // dropped rather than landed somewhere it was not aimed — a lock that
+      // silently redirects a mark is worse than one that refuses it.
+      if (!drawableLayer(active)) return;
       // The layer the mark lands on, stamped here and nowhere else. A drawing
       // that has never been given a stack answers `undefined` and the stroke
       // records no layer at all — a one-layer document stays byte-identical to
@@ -365,6 +372,9 @@ export function usePaintStore(
     (drafts: readonly DraftStroke[], options: { fitPage?: boolean } = {}) => {
       const active = activeDrawing;
       if (!active || drafts.length === 0) return [];
+      // Nowhere to put them, for the same reason a single mark has nowhere to
+      // go: every layer in the stack is locked (see `addStroke`).
+      if (!drawableLayer(active)) return [];
       const layer = activeLayerId(active);
       const strokes: Stroke[] = drafts.map((draft) => ({
         ...draft,
@@ -434,11 +444,21 @@ export function usePaintStore(
     [activeDrawing, patchActive],
   );
 
-  /** Wipe the active page's marks, keeping the page itself (and its size and
-   *  background). Undoable like any edit. */
-  const clearActive = useCallback(() => {
-    if (!activeDrawing || activeDrawing.strokes.length === 0) return;
-    patchActive({ strokes: [] });
+  /** Start the page over: every mark gone, the stack back to the sheet and one
+   *  layer, and the page colour handed back to the canvas theme. The sheet's
+   *  *size* is left alone — "start over" is about what is on the page, and
+   *  resizing it is the action next to this one.
+   *
+   *  One undo step for the lot, like every other page edit, so a mis-aimed
+   *  press costs one press to take back. */
+  const resetActive = useCallback(() => {
+    if (!activeDrawing) return;
+    patchActive({
+      strokes: [],
+      layers: undefined,
+      activeLayerId: undefined,
+      background: undefined,
+    });
   }, [activeDrawing, patchActive]);
 
   /** Turn the whole page around — mirror it, turn it a quarter, scale it, or
@@ -504,11 +524,17 @@ export function usePaintStore(
 
   /** Draw on a different layer. Not an edit: it makes no undo step and doesn't
    *  restamp `updatedAt`, so picking a layer never reshuffles the menu's
-   *  most-recently-edited order. */
+   *  most-recently-edited order.
+   *
+   *  A locked layer is not selectable — selecting one would leave the toolbar
+   *  pointed at a layer that then swallowed every stroke. Unlock it first; the
+   *  padlock is on the row. */
   const selectLayer = useCallback(
     (id: string) => {
       const active = activeDrawing;
       if (!active || active.activeLayerId === id) return;
+      const target = drawingLayers(active).find((layer) => layer.id === id);
+      if (!target || isLocked(target)) return;
       markPersist();
       setState((prev) => ({
         ...prev,
@@ -538,8 +564,28 @@ export function usePaintStore(
     [activeDrawing, patchActive],
   );
 
+  /** Lock a layer against marks, or let it take them again (see
+   *  `Layer.locked`). An edit like hiding one: it travels with the drawing and
+   *  it undoes. */
+  const setLayerLocked = useCallback(
+    (id: string, locked: boolean) => {
+      const active = activeDrawing;
+      if (!active) return;
+      const layers = drawingLayers(active).map((layer) =>
+        layer.id === id ? { ...layer, locked } : layer,
+      );
+      // Locking the layer you were drawing on hands the selection to whatever
+      // is left open, so the next mark has somewhere to go without anyone
+      // having to notice.
+      const next = { ...active, layers };
+      patchActive({ layers, activeLayerId: activeLayer(next).id });
+    },
+    [activeDrawing, patchActive],
+  );
+
   /** Move a layer to `to` in the stack, counting from the bottom — what raises
-   *  everything drawn on it over the layers it passes. */
+   *  everything drawn on it over the layers it passes. A locked layer stays
+   *  where it is: the lock holds its place in the stack as well as its marks. */
   const moveLayer = useCallback(
     (id: string, to: number) => {
       const active = activeDrawing;
@@ -547,26 +593,34 @@ export function usePaintStore(
       const layers = drawingLayers(active);
       const from = layers.findIndex((layer) => layer.id === id);
       if (from < 0 || to < 0 || to >= layers.length || from === to) return;
+      if (isLocked(layers[from]!)) return;
       patchActive({ layers: reorderLayers(layers, from, to) });
     },
     [activeDrawing, patchActive],
   );
 
   /** Delete a layer **and the marks on it** — one undo step brings both back.
-   *  The last layer is never deleted: a drawing always has somewhere to draw,
-   *  and "delete the only layer" is what the eraser's clean sweep is for. */
+   *  What may not be deleted is `canDeleteLayer`'s to say; "delete every layer"
+   *  is what starting the page over is for. */
   const deleteLayer = useCallback(
     (id: string) => {
       const active = activeDrawing;
-      if (!active) return;
+      if (!active || !canDeleteLayer(active, id)) return;
       const layers = drawingLayers(active);
-      if (layers.length < 2) return;
       const at = layers.findIndex((layer) => layer.id === id);
-      if (at < 0) return;
       const remaining = layers.filter((layer) => layer.id !== id);
-      // Land the selection on the layer that took its place in the stack —
-      // the one above it, or the new top when it was the top.
-      const landing = remaining[Math.min(at, remaining.length - 1)]!;
+      // Land the selection on the layer that took its place in the stack — the
+      // one above it, or the new top when it was the top. A locked one there
+      // (the sheet, under a stack of one) is no landing at all, so the fallback
+      // walks to whatever is still open.
+      const landed = remaining[Math.min(at, remaining.length - 1)]!;
+      const landing = isLocked(landed)
+        ? activeLayer({
+            ...active,
+            layers: remaining,
+            activeLayerId: undefined,
+          })
+        : landed;
       patchActive({
         layers: remaining,
         strokes: strokesExcept(active, id),
@@ -854,7 +908,7 @@ export function usePaintStore(
     addStrokes,
     deleteStrokes,
     moveStrokes,
-    clearActive,
+    resetActive,
     transformActive,
     renameActive,
     setBackground,
@@ -862,6 +916,7 @@ export function usePaintStore(
     addLayer,
     selectLayer,
     setLayerHidden,
+    setLayerLocked,
     moveLayer,
     deleteLayer,
     addDrawing,
