@@ -118,10 +118,11 @@ npm run preview
   free colour mixer; the nib button shows the width as a dot and opens the
   widths, a slider for new ones, and the hardness dial. Each tool has a
   single-key shortcut; a shape that can be filled opens a hollow / solid picker
-  over the page when you press its button a second time.
-- **Header** — the drawing's name (edit in place), the favourite star, the
-  download menu (PNG, JPG, SVG, or copy to the clipboard), and clear. Undo and
-  redo are in the sidebar's button island.
+  over the page when you press its button a second time, and the eraser opens
+  the same kind of picker offering itself or a clean sweep of the whole page.
+- **Header** — the drawing's name (edit in place), the favourite star, and the
+  download menu (PNG, JPG, SVG, or copy to the clipboard). Undo and redo are in
+  the sidebar's button island.
 
 ## Configuration
 

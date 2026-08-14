@@ -69,6 +69,11 @@ a readable JSON file rather than a blob of pixels.
 - The eraser paints with the page colour. In a vector document there are no
   pixels to clear, and painting over means an eraser stroke is undoable like any
   other mark.
+- **Clearing the page** is the eraser's other half, and it wears the same folded
+  corner. Press the eraser again once it is the tool you are holding and the
+  panel offers the two scales of rubbing out: the eraser itself, and a swept
+  page that wipes every mark. The wipe asks first, and undo brings the drawing
+  back either way. It is dimmed on a page with nothing on it.
 - The **paint bucket** fills the empty space you tap, up to the marks around it
   — and files that area as a vector shape, so it stays crisp however far you
   zoom in. Marks stranded inside the area stay unpainted. Tap a gap in your
@@ -99,7 +104,12 @@ them.
 - The drawing's name is edited in place — type over the title.
 - The star adds the drawing to Favorites (see [drawings](drawings.md)).
 - The download button opens a menu — PNG, JPG, SVG, or copy to the clipboard
-  (see [export](export.md)) — and the bin clears the page.
+  (see [export](export.md)).
+
+There is no bin up here any more. Wiping the page is erasing at its largest
+scale, so it moved to where erasing lives — the eraser's own button, one press
+away from the hand already reaching for it — and the width it took now goes to
+the drawing's name.
 
 Undo and redo are not here either. They live in the sidebar's button island and
 on the keyboard, and the header is the one row a phone has to fit a drawing's

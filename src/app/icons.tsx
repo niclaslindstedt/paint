@@ -32,6 +32,20 @@ export function EraserIcon({ className }: IconProps) {
   );
 }
 
+/** Clearing the page — the sheet itself, wiped back to blank.
+ *  Deliberately not a second eraser: it sits beside `EraserIcon` in the eraser's
+ *  panel, and two rubber blocks a few pixels apart would say nothing. The frame
+ *  is what makes it "all of it" rather than "some of it", and what is left
+ *  inside it is a clean sheet rather than a mark. */
+export function ClearPageIcon({ className }: IconProps) {
+  return (
+    <svg {...base} className={className} aria-hidden="true">
+      <rect x="3.5" y="4" width="17" height="16" rx="2" />
+      <path d="M12 8.2l1.3 2.5 2.5 1.3-2.5 1.3-1.3 2.5-1.3-2.5-2.5-1.3 2.5-1.3z" />
+    </svg>
+  );
+}
+
 /** A straight line. */
 export function LineIcon({ className }: IconProps) {
   return (

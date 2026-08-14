@@ -6,7 +6,6 @@ import {
   ImageUpIcon,
   InlineEditField,
   StarIcon,
-  TrashIcon,
 } from "@niclaslindstedt/oss-framework/components";
 import {
   dragHasFilesOfType,
@@ -31,7 +30,11 @@ import { toDocumentPoint, type CanvasView } from "./viewport.ts";
 import * as output from "../output.ts";
 
 // The main screen: a header naming the open drawing (with the favourite star
-// and the download/clear actions), the page itself, and the toolbar under it.
+// and the download menu), the page itself, and the toolbar under it.
+//
+// Clearing the page is the screen's too, but it has no button up here: the
+// toolbar offers it from the erasing tool (see `Toolbar.tsx`) and calls back,
+// and the screen asks for confirmation and files the edit.
 //
 // The sync glyph is deliberately *not* here: there is one cloud affordance for
 // the whole app and it lives in the side menu's button island, so the header
@@ -203,13 +206,11 @@ export function CanvasScreen({
               transparent: settings.downloadTransparent,
             }}
           />
-          <HeaderIconButton
-            label={t("canvas.clear")}
-            disabled={drawing.strokes.length === 0}
-            onClick={() => setConfirmClear(true)}
-          >
-            <TrashIcon className="h-[18px] w-[18px]" />
-          </HeaderIconButton>
+          {/* No bin either. Wiping the page is erasing at its largest scale, so
+              it lives where erasing does — press the eraser a second time and
+              the toolbar offers both (see `Toolbar.tsx`). The header keeps the
+              width for the title, and the destructive action moves out of
+              thumb's reach of the star and the download menu. */}
         </div>
       </header>
 
@@ -316,6 +317,11 @@ export function CanvasScreen({
         onHardnessChange={(hardness) => update("hardness", hardness)}
         filled={settings.filled}
         onFilledChange={(filled) => update("filled", filled)}
+        // Clearing is an edit on the document, not a tool: the toolbar offers
+        // it from the erasing tool's button, and the screen keeps the question
+        // and the edit.
+        onClearPage={() => setConfirmClear(true)}
+        pageHasMarks={drawing.strokes.length > 0}
       />
 
       <ConfirmDialog
