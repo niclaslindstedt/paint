@@ -19,7 +19,7 @@ list above it grows:
 
 | Button          | What it does                                                    |
 | --------------- | --------------------------------------------------------------- |
-| **New drawing** | A blank page, opened straight away.                             |
+| **New drawing** | Asks how big the page is, then opens the blank sheet.           |
 | **New folder**  | Drops an inline name field into the list; naming it commits it. |
 | **Archive**     | Opens the archive. The corner badge counts what's shelved.      |
 | **Undo / Redo** | Steps the current sketchbook's history, drawer still open.      |

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-import { useRef, useState } from "react";
+import { Suspense, lazy, useRef, useState } from "react";
 import type { ReactNode } from "react";
 
 import {
@@ -41,6 +41,7 @@ import type {
   NamespaceAppearance,
 } from "@niclaslindstedt/oss-framework/namespaces";
 
+import type { CanvasSize } from "./canvasSize.ts";
 import { useT } from "./i18n/index.ts";
 import { imageFileStem, importImageFile } from "./images.ts";
 import { imageStroke } from "./plugins/builtin/image.ts";
@@ -72,6 +73,12 @@ import * as output from "../output.ts";
 // row action menus, the floating panel behind "About", and the update row; this
 // component owns what a drawing row looks like and which app action each button
 // runs. The presentational leaves live in `SideMenuRows.tsx`.
+
+// The page-size dialog is a click away, never a first paint away — like every
+// other dialog in the app it loads when it is asked for (see `App.tsx`).
+const NewDrawingModal = lazy(() =>
+  import("./NewDrawingModal.tsx").then((m) => ({ default: m.NewDrawingModal })),
+);
 
 // The About dropdown opens up-and-to-the-left of its footer trigger — there is
 // no room below it at the foot of the drawer, and the framework's
@@ -137,6 +144,13 @@ export function SideMenuContent({
   const t = useT();
   const [pendingDelete, setPendingDelete] = useState<string | null>(null);
   const doomed = store.data.drawings.find((d) => d.id === pendingDelete);
+
+  // A new drawing in the making: which folder it is destined for, held while
+  // the page-size dialog is up. `null` means no dialog; a pending drawing filed
+  // at the top level carries `{ folderId: null }`.
+  const [pendingDrawing, setPendingDrawing] = useState<{
+    folderId: string | null;
+  } | null>(null);
 
   // Which folders are folded shut, and the inline name editors. All view-local
   // — the persisted folder registry lives in the store.
@@ -225,9 +239,17 @@ export function SideMenuContent({
     onNavigate();
   }
 
+  /** Start a new drawing: ask how big the page is, then make it. The size is
+   *  asked once, here, because a page never reflows — see `NewDrawingModal`. */
   function createDrawing(folderId: string | null) {
+    setPendingDrawing({ folderId });
+  }
+
+  function commitDrawing(size: CanvasSize) {
+    const folderId = pendingDrawing?.folderId ?? null;
+    setPendingDrawing(null);
     if (folderId !== null) ensureExpanded(folderId);
-    store.addDrawing("", folderId);
+    store.addDrawing("", folderId, size);
     onShowCanvas();
     onNavigate();
   }
@@ -592,6 +614,20 @@ export function SideMenuContent({
             {t("menu.dropImage")}
           </span>
         </div>
+      )}
+
+      {/* The page-size question. Mounted only while a drawing is pending, so
+          each one is asked fresh rather than reopening on the last answer. */}
+      {pendingDrawing && (
+        <Suspense fallback={null}>
+          <NewDrawingModal
+            folderName={
+              folders.find((f) => f.id === pendingDrawing.folderId)?.name
+            }
+            onCancel={() => setPendingDrawing(null)}
+            onCreate={commitDrawing}
+          />
+        </Suspense>
       )}
 
       <ConfirmDialog

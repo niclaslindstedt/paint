@@ -139,8 +139,15 @@ drag has moved a window's width.
 
 ## The canvas is a window
 
-The page is larger than any screen, so the `<canvas>` element is a **window**
-onto it rather than the page itself. `viewport.ts` owns that window as a pure
+A page is whatever size it was created at — the new-drawing dialog asks, and
+defaults to the screen's own resolution. The rules behind that question (the
+presets, what "this screen" resolves to, what a typed size has to pass) live in
+`canvasSize.ts`, pure and node-testable; `NewDrawingModal.tsx` is only the
+dialog around them, and the size reaches the document as the `init` patch
+`addDrawing` already took.
+
+A page can therefore be larger than the window it is shown in, so the `<canvas>`
+element is a **window** onto it rather than the page itself. `viewport.ts` owns that window as a pure
 affine transform (uniform scale + translation) and all the arithmetic over it —
 zoom-about-an-anchor, clamped panning, and a whole pinch computed from where the
 gesture began rather than accumulated frame by frame, which is what makes it

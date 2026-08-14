@@ -50,6 +50,6 @@ A stroke omits what it doesn't need: no `color` means "follow the page", no
 no `folderId` means top level, no `favorite` means unstarred, no `archived`
 means live. See [`src/app/types.ts`](../src/app/types.ts) for the full model.
 
-The pages here are 1600 × 1000, smaller than the 3200 × 2000 a **new** page gets
-— the size is per drawing, not a constant, and an older document keeps whatever
-it was made at.
+The pages here are 1600 × 1000 — the size is per drawing, not a constant: a
+**new** page is whatever size you pick for it (this screen's resolution by
+default), and an older document keeps whatever it was made at.
