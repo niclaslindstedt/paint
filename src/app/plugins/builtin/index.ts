@@ -61,7 +61,16 @@ import {
   TextIcon,
 } from "../../icons.tsx";
 import { registerPlugin } from "../registry.ts";
-import { FEATHER, FLOW, HAIR, HARDNESS, OPACITY, PRESSURE } from "./dials.ts";
+import {
+  BLEED,
+  FEATHER,
+  FLOW,
+  HAIR,
+  HARDNESS,
+  OPACITY,
+  PRESSURE,
+  SPLAY,
+} from "./dials.ts";
 import { dropperBehaviour } from "./dropper.ts";
 import { fillBehaviour } from "./fill.ts";
 import { freehandBehaviour } from "./freehand.ts";
@@ -130,8 +139,11 @@ export function registerBuiltinPlugins(): void {
     // 6 × 2.5 — a loaded round brush about fifteen pixels across, which is the
     // width a bristle head's streaks actually read at.
     defaultSize: 6,
-    // A head of hair: how wet and gathered it is, and what gauge the hair is.
-    dials: [HARDNESS, HAIR],
+    // A head of hair, and the four things about one that change the mark: how
+    // wet and gathered it is, what gauge the hair is, how far the bundle has
+    // worn open, and whether the paper under it wicks. Plus the opacity every
+    // marking tool offers.
+    dials: [OPACITY, HARDNESS, HAIR, SPLAY, BLEED],
     behaviour: freehandBehaviour({
       sizeScale: 2.5,
       style: "brush",

@@ -7,10 +7,13 @@
 //   - **A dial is a fraction of the tool's own normal.** 1 is always "the way
 //     this tool draws", so every one of them reads out as a percentage and an
 //     untouched dial is simply absent from the mark (see `plugins/dials.ts`).
-//   - **A tool gets two at most.** The size panel is opened mid-drawing, with
-//     one thumb, over the page you are working on. Everything a tool *could*
-//     expose is not what belongs there — these are the two knobs that change
-//     what the mark is, and the rest of the medium stays the medium.
+//   - **A tool gets as many as its mark has axes, and no more.** The size panel
+//     is opened mid-drawing, with one thumb, over the page you are working on,
+//     so the bar is high: a dial has to change what the mark *is*, not restyle
+//     what another dial already did. For most tools that is one or two. The
+//     paintbrush is the exception and earns it — a head of hair is loaded or
+//     dry, milled fine or coarse, new or worn open, on paper that wicks or
+//     paper that does not, and no one of those four is any of the others.
 //
 // Each one is wired to something a painter actually does. A slider that scales
 // a number nobody can see is worse than no slider.
@@ -55,6 +58,39 @@ export const HAIR: ToolDial = {
   min: 0.5,
   max: 2,
   step: 0.05,
+};
+
+/** How far the paintbrush's head has come apart with use — the *state* of the
+ *  bundle, where `HAIR` is what it was milled from.
+ *
+ *  A brush out of its wrapper cuts a side you could rule against; one that has
+ *  been washed a hundred times has a fringe on it, strays out of its lanes, and
+ *  lays down a mark whose outer third is loose hair. Turned down it is the
+ *  crisp flat, turned up it is the old favourite. */
+export const SPLAY: ToolDial = {
+  id: "splay",
+  nameKey: "dials.splay.name",
+  hintKey: "dials.splay.hint",
+  min: 0,
+  max: 2,
+  step: 0.05,
+};
+
+/** How far a wet edge wicks into the sheet before it dries.
+ *
+ *  The one softness the brush has, and the one dial here that belongs to the
+ *  *paper* rather than to the tool: bristle lays a hard edge on cartridge stock
+ *  and a feathered one on blotting paper, and nothing about the head changes
+ *  between them. It rests at nothing — a mark that always bled would look damp,
+ *  and every drawing already made was made on paper that did not. */
+export const BLEED: ToolDial = {
+  id: "bleed",
+  nameKey: "dials.bleed.name",
+  hintKey: "dials.bleed.hint",
+  min: 0,
+  max: 2,
+  step: 0.05,
+  default: 0,
 };
 
 /** How much paint the airbrush lets through per pass. Coverage there is built

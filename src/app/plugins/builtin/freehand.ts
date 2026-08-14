@@ -107,6 +107,11 @@ export function freehandBehaviour(ink: FreehandInk = {}): ToolBehaviour {
             hardness,
             scale,
             strokeDial(stroke, "hair"),
+            strokeDial(stroke, "splay"),
+            // The one dial whose rest is nothing rather than one: paper that
+            // does not wick is the ordinary case, so it has to be what a mark
+            // carrying no `bleed` at all paints as.
+            strokeDial(stroke, "bleed", 0),
           );
           return;
         case "spray":
