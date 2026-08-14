@@ -285,6 +285,10 @@ export const en = {
       showGrid: "Show a grid",
       showGridHint:
         "A light grid behind the page, to line boxes and arrows up. It is a guide only — it never exports.",
+      toolNameTitle: "Tool name",
+      showToolName: "Name the tool you pick",
+      showToolNameHint:
+        "The name of the tool fades in over the middle of the page for a moment when you switch to it, then gets out of the way.",
     },
     download: {
       intro:
