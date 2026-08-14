@@ -176,11 +176,23 @@ describe("the shipped set", () => {
     registerBuiltinPlugins();
   });
 
-  it("gives no tool more than two dials", () => {
+  it("gives no tool more than two dials, bar the one medium that has more", () => {
     // The size panel is opened mid-drawing, with one thumb. A third slider is
-    // a settings screen.
+    // a settings screen — so the bar for one is that it changes what the mark
+    // *is* rather than restyling what another dial already did.
+    //
+    // The paintbrush is the exception and is named here rather than waved
+    // through by a raised limit: a head of hair is loaded or dry, milled fine
+    // or coarse, new or worn open, and on paper that wicks or paper that does
+    // not, and no one of those four is any of the others. Nothing else in the
+    // set has four independent axes, and a second tool turning up on this list
+    // is a tool that has grown a settings screen.
     const over = allPlugins().filter((p) => (p.dials?.length ?? 0) > 2);
-    expect(over.map((p) => p.id)).toEqual([]);
+    expect(over.map((p) => p.id)).toEqual(["paintbrush"]);
+  });
+
+  it("keeps even that one inside a panel you can still use with a thumb", () => {
+    expect(pluginById("paintbrush")!.dials!.length).toBeLessThanOrEqual(5);
   });
 
   it("offers dials only on tools that leave a mark", () => {

@@ -213,6 +213,14 @@ export const en = {
       name: "Hair: {value}%",
       hint: "Fine hair leaves many thin streaks, coarse hair a few broad ones.",
     },
+    splay: {
+      name: "Splay: {value}%",
+      hint: "A new brush cuts a crisp side; a worn one frays.",
+    },
+    bleed: {
+      name: "Bleed: {value}%",
+      hint: "How far a wet edge wicks into the paper.",
+    },
     flow: {
       name: "Flow: {value}%",
       hint: "How much paint each pass lays down. Low builds up slowly.",

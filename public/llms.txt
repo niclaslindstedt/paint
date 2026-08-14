@@ -31,8 +31,9 @@ connect a storage backend yourself.
 - Pick colour and stroke width from two buttons: a palette with a free colour
   mixer that remembers what you mix, and a nib picker with your own widths. The
   width is remembered per tool, and each tool opens at a width of its own.
-- Tune the tool in your hand under the nib picker's Advanced fold — hair gauge
-  for the paintbrush, flow for the airbrush, pressure for the crayon, a
+- Tune the tool in your hand under the nib picker's Advanced fold — how charged
+  the head is, its hair gauge, how far it has splayed and how far the paper
+  bleeds for the paintbrush, flow for the airbrush, pressure for the crayon, a
   feathered edge for the paint bucket, opacity for most of the rest. Each tool
   keeps its own settings, and a mark remembers what it was drawn with.
 - Start a drawing from an empty page, an image file, or an image on the
