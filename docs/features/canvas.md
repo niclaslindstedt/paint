@@ -167,3 +167,25 @@ than the sheet, and Discard (or Escape) throws it away. [More](images.md).
 Settings → Canvas can put a light grid behind the page to line boxes and arrows
 up. It is a drawing aid only: it is painted by the page element, never by the
 document, so it can never reach a downloaded file.
+
+## The tool you picked, named
+
+Switch tools — from the toolbar or with the tool's shortcut key — and its name
+fades in over the middle of the page for a moment, then goes. The toolbar's
+glyphs are small and several tools draw a similar mark (a marker and a crayon
+are one nib apart until you have used both), and on a phone the button you just
+tapped is under your thumb, so the highlight that says what you are holding is
+the one pixel you cannot see.
+
+It is a label and nothing else: it never takes a press, so a stroke that starts
+under it draws straight through. Settings → **Canvas** switches it off if you
+would rather have the page to yourself.
+
+## Text selection
+
+The app selects no text. Every long drag in it means something — a stroke on the
+page, a row picked up in the sidebar — and the browser's default answer to a
+drag is to smear a blue highlight across whatever it crossed, or to pop the
+copy/lookup callout on a phone. The places where text is worth copying keep it:
+anything you type into, the privacy page, and the log and build panels in
+Settings.

@@ -281,6 +281,10 @@ export const sv: Catalog = {
       showGrid: "Visa rutnät",
       showGridHint:
         "Ett ljust rutnät bakom sidan, för att rada upp rutor och pilar. Det är bara en hjälplinje — det exporteras aldrig.",
+      toolNameTitle: "Verktygsnamn",
+      showToolName: "Visa namnet på verktyget du väljer",
+      showToolNameHint:
+        "Verktygets namn tonas in mitt på sidan ett ögonblick när du byter till det, och försvinner sedan ur vägen.",
     },
     download: {
       intro:

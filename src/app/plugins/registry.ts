@@ -74,10 +74,10 @@ export function enabledPlugins(enabledIds: readonly string[]): PaintPlugin[] {
  *  canvas holding a tool the toolbar no longer shows.
  *
  *  The fallback is the first offered tool that actually *marks the page* — not
- *  simply the first one. The toolbar's leftmost button is the hand, and landing
- *  a stale settings blob on a tool that draws nothing looks exactly like a
- *  broken canvas. `navigates` and `picksColor` are the descriptor flags that
- *  say "leaves no mark", so nothing here knows what a hand is. */
+ *  simply the first one. The toolbar's leftmost button is the dropper, and
+ *  landing a stale settings blob on a tool that draws nothing looks exactly
+ *  like a broken canvas. `navigates` and `picksColor` are the descriptor flags
+ *  that say "leaves no mark", so nothing here knows what a dropper is. */
 export function resolveActiveTool(
   wanted: string,
   enabledIds: readonly string[],

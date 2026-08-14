@@ -25,10 +25,10 @@
 //
 // Everything is hashed off the position rather than drawn at random, so the
 // same stroke grains identically on every repaint and in the exported PNG (the
-// rule the rest of `brushes.ts` follows, for the same reason). And because two
-// strokes that cross look up the *same* lattice, they agree about where the
-// paper is low — the sheet reads as one sheet rather than as a pile of
-// separately-textured decals.
+// rule every painter follows — see `grain.ts`, which this shares its hashes and
+// its path walk with). And because two strokes that cross look up the *same*
+// lattice, they agree about where the paper is low — the sheet reads as one
+// sheet rather than as a pile of separately-textured decals.
 
 import type { Point } from "../types.ts";
 import {
@@ -39,7 +39,7 @@ import {
   normalAt,
   trace,
   type Trace,
-} from "./brushes.ts";
+} from "./grain.ts";
 import { paintPath } from "./ink.ts";
 
 /** The pitch of the paper's grain, in document pixels.

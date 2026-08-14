@@ -7,8 +7,8 @@
 // the eraser are all one call to this with different arguments.
 
 import type { Point } from "../../types.ts";
+import { paintBrush } from "../bristle.ts";
 import {
-  paintBrush,
   paintCalligraphy,
   paintGlow,
   paintSoftPath,

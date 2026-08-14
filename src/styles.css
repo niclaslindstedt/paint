@@ -155,12 +155,86 @@ body {
   text-rendering: optimizeLegibility;
 }
 
-/* The drawing surface never shows a text caret or a selection highlight — a
-   drag on it is a stroke, and letting the browser start a text selection mid
-   stroke leaves a blue smear over the page on desktop. */
-canvas {
+/* ── No stray text selections ────────────────────────────────────────────────
+   Nothing in this app is a document you read — it is a drawing surface with
+   chrome around it, and every long drag on it means something. A drag on the
+   canvas is a stroke, a drag on a sidebar row picks the row up, a drag on the
+   toolbar is a slip of the thumb; in all three the browser's default answer is
+   to start selecting text, which leaves a blue smear across the labels on
+   desktop and pops the callout / selection handles on a phone. So the shell
+   selects nothing by default, and the few places where text is worth copying
+   opt back in below. */
+body {
   -webkit-user-select: none;
   user-select: none;
+  /* iOS: no "copy / look up" callout on a long press either — the long press is
+     the sidebar's drag gesture. */
+  -webkit-touch-callout: none;
+}
+
+/* The exceptions: anything you type into (so the caret, double-click-to-word
+   and drag-to-select all still work), and anything tagged `.selectable` — the
+   prose and diagnostics a user has a real reason to copy out (the privacy page,
+   the log viewer, the build info). Marking the container is enough; the rule
+   carries to its descendants. */
+input,
+textarea,
+select,
+[contenteditable="true"],
+.selectable,
+.selectable * {
+  -webkit-user-select: text;
+  user-select: text;
+  -webkit-touch-callout: default;
+}
+
+/* ── The tool-name flash ─────────────────────────────────────────────────────
+   The label that fades in over the middle of the page when you switch tools
+   (see `ToolFlash.tsx`): up quickly, held long enough to read, then gone. It
+   never waits for a click, so it animates itself out and the component drops it
+   on `animationend`. With reduced motion the movement goes but the fade stays —
+   something appearing and vanishing with no transition at all reads as a
+   glitch. */
+@keyframes tool-flash {
+  0% {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  12% {
+    opacity: 1;
+    transform: none;
+  }
+  70% {
+    opacity: 1;
+    transform: none;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+@keyframes tool-flash-still {
+  0% {
+    opacity: 0;
+  }
+  12%,
+  70% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.tool-flash {
+  animation: tool-flash 1.4s ease-out forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tool-flash {
+    animation-name: tool-flash-still;
+  }
 }
 
 /* Installed iOS PWA edge-to-edge under the home indicator. iOS only extends the

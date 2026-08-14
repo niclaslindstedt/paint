@@ -10,17 +10,20 @@ drawing was made, this screen's own resolution unless you chose otherwise — so
 sketch looks the same on a laptop and a phone. On a page bigger than the window
 you just see less of it at once. [More](features/canvas.md).
 
-- **Hand** (`D`), at the far left, drags the page around instead of drawing on
-  it — and double-tapping with it fits the whole page, again for 1:1.
+The toolbar runs left to right in the order Photoshop's runs top to bottom, so
+the reach is the one you already have:
+
+- **Colour dropper** (`I`), at the far left, makes the colour you tap the ink.
 - **Pencil** (`P`) draws freehand.
 - **Paintbrush** (`B`) is a bristle brush: the mark swells and tapers, thins
   where your hand moved fast, and frays at the edges.
 - **Airbrush** (`S`) lays down a soft cloud that builds up the longer you hold
   it over one spot.
+- **Eraser** (`E`) paints over marks with the page colour.
 - **Paint bucket** (`F`) fills the empty space you tap, up to the marks around
   it.
-- **Colour dropper** (`I`) makes the colour you tap the ink.
-- **Eraser** (`E`), at the far right, paints over marks with the page colour.
+- **Hand** (`D`), at the far right, drags the page around instead of drawing on
+  it — and double-tapping with it fits the whole page, again for 1:1.
 - `Ctrl/Cmd + Z` undoes the last mark, `Ctrl/Cmd + Shift + Z` redoes it. Every
   mark is one step.
 
@@ -46,9 +49,10 @@ brush's edge fades.
 ## More tools
 
 Settings → **Tools** is a rack of every tool the app has, each with its glyph
-and an on/off switch: the shapes (line, arrow, rectangle, ellipse), a marker, a
-highlighter, a crayon, a calligraphy pen, a neon pen. Switch one on and it joins
-the toolbar immediately. Switching it off later only hides it; marks you already
+and an on/off switch: a marker, a highlighter, a crayon, a calligraphy pen, a
+neon pen, and the shapes (rectangle, ellipse, line, arrow). Switch one on and it
+joins the toolbar immediately, in its own place in the row rather than at the
+end. Switching it off later only hides it; marks you already
 drew stay put.
 
 The shapes that can be filled — rectangle and ellipse — wear a folded corner:
@@ -63,8 +67,9 @@ follow the app theme (the default). Marks that never chose a colour follow the
 page, so flipping the theme re-inks the whole sketch instead of hiding it.
 [More](features/canvas-theme.md).
 
-The same tab has the on-screen grid, and can pin a specific page colour to the
-drawing you have open.
+The same tab has the on-screen grid, the **tool-name** label that names each
+tool over the middle of the page as you pick it, and can pin a specific page
+colour to the drawing you have open.
 
 ## Drawings, folders, and sketchbooks
 
