@@ -4,10 +4,17 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DEFAULT_NAMESPACE_SLUG } from "@niclaslindstedt/oss-framework/namespaces";
 
 import { pageFitting, strokeBounds } from "./bounds.ts";
+import {
+  handOffDrawing,
+  handOffFolder,
+  type Handoff,
+  type Mint,
+} from "./handoff.ts";
 import { parseDoc, serializeDoc } from "./migrations.ts";
 import {
   DEFAULT_CANVAS,
   liveDrawings,
+  nextActiveId,
   type AppData,
   type Drawing,
   type Folder,
@@ -128,15 +135,9 @@ export const localDocBackend: DocBackend = {
   },
 };
 
-/** Pick the active drawing after a delete or an archive: keep the current one
- *  if it is still there and still live, otherwise fall to the first live page —
- *  so removing (or filing away) the open drawing never leaves the canvas
- *  pointed at a gone one. */
-function nextActiveId(drawings: Drawing[], current: string): string {
-  const live = drawings.filter((d) => !d.archived);
-  if (live.some((d) => d.id === current)) return current;
-  return live[0]?.id ?? drawings[0]?.id ?? "";
-}
+/** The constructors the hand-off module needs to mint arriving copies and to
+ *  leave a page behind when the last live one is given away. */
+const MINT: Mint = { id: freshId, blankPage: () => blankDrawing("") };
 
 /** Apply `patch` to the drawings named by `ids`, stamping `updatedAt` on each.
  *  The one funnel the archive / restore / file-into-folder actions share, so a
@@ -457,6 +458,79 @@ export function usePaintStore(
     [commit, data],
   );
 
+  /** Deliver one side of a hand-off to another namespace's storage, then check
+   *  it actually landed there before this namespace lets go of it.
+   *
+   *  Two documents change and only one of them is in React state: the
+   *  destination isn't loaded, so it is written straight through the backend.
+   *  That write is a best-effort sink — it reports a failure rather than
+   *  throwing (see `DocBackend`) — so "it didn't throw" is not evidence the
+   *  bytes are there. Reading the destination back and looking for the ids the
+   *  hand-off minted is; only then is this side committed without the item.
+   *  Returns whether the move went through. */
+  const deliver = useCallback(
+    (targetSlug: string, moved: Handoff | null): boolean => {
+      if (!moved) return false;
+      let landed = false;
+      try {
+        state.backend.save(targetSlug, moved.target);
+        const written = state.backend.load(targetSlug);
+        const drawings = new Set(written.drawings.map((d) => d.id));
+        const folders = new Set(written.folders.map((f) => f.id));
+        landed =
+          moved.arrived.drawings.every((id) => drawings.has(id)) &&
+          (moved.arrived.folder === undefined ||
+            folders.has(moved.arrived.folder));
+      } catch {
+        landed = false;
+      }
+      if (!landed) {
+        output.error(
+          "Couldn't move that into the other sketchbook — its copy on this device wouldn't take the change (its storage may be full). Nothing was moved.",
+        );
+        return false;
+      }
+      commit(moved.source);
+      return true;
+    },
+    [commit, state.backend],
+  );
+
+  /** Hand a drawing to another sketchbook — the menu's "drop it onto a
+   *  namespace row" gesture. It lands at that sketchbook's top level: the
+   *  folder it was filed in is this one's, and doesn't exist over there. */
+  const moveDrawingToNamespace = useCallback(
+    (id: string, targetSlug: string) => {
+      if (targetSlug === state.slug) return;
+      let moved: Handoff | null;
+      try {
+        moved = handOffDrawing(data, state.backend.load(targetSlug), id, MINT);
+      } catch {
+        return; // The destination's storage wouldn't even read — leave it be.
+      }
+      deliver(targetSlug, moved);
+    },
+    [data, deliver, state.slug, state.backend],
+  );
+
+  /** Hand a folder — and the drawings filed in it — to another sketchbook. The
+   *  group travels together: the folder is re-created over there and its
+   *  drawings are re-filed inside it, so it arrives as a group rather than as
+   *  loose pages. */
+  const moveFolderToNamespace = useCallback(
+    (id: string, targetSlug: string) => {
+      if (targetSlug === state.slug) return;
+      let moved: Handoff | null;
+      try {
+        moved = handOffFolder(data, state.backend.load(targetSlug), id, MINT);
+      } catch {
+        return;
+      }
+      deliver(targetSlug, moved);
+    },
+    [data, deliver, state.slug, state.backend],
+  );
+
   /** Hold a drawing in the archive, or bring it back out. Archiving the open
    *  page moves the canvas to the next live one rather than leaving it on a
    *  filed-away drawing. */
@@ -564,6 +638,8 @@ export function usePaintStore(
     deleteDrawing,
     toggleFavorite,
     moveDrawingToFolder,
+    moveDrawingToNamespace,
+    moveFolderToNamespace,
     setDrawingArchived,
     addFolder,
     renameFolder,

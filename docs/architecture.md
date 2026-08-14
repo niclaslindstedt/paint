@@ -23,6 +23,7 @@ index.html → src/main.tsx ─┬─ src/App.tsx
 
 stores:   usePaintStore · useAppSettings · useNamespaces · useSyncEngine
 domain:   types · render · plugins/* · migrations · canvas · export
+          handoff (between namespaces) · sidebarDnd (which drops are legal)
 platform: @niclaslindstedt/oss-framework (UI kit, storage, theme, i18n, PWA)
 ```
 
@@ -44,15 +45,76 @@ the stateful file about behaviour rather than pixels, and both well under the
 §20.5 size cap.
 
 Everything generic underneath is the framework's: the drawer shell (`Sidebar`),
-the namespace switcher, the row action menus, the "About" dropdown's
-`FloatingPanel`, the inline edit rows, and the check-for-updates row. The menu
-rides the framework's own `px-5` row gutter so the app-owned rows and the
-framework-owned ones read as one continuous list.
+the namespace switcher, the row action menus, the swipe strips (`SwipeableRow`),
+the drag gesture (`useDragDrop`), the "About" dropdown's `FloatingPanel`, the
+inline edit rows, and the check-for-updates row. The menu rides the framework's
+own `px-5` row gutter so the app-owned rows and the framework-owned ones read as
+one continuous list.
 
 The **cloud glyph is a menu cell, not screen chrome.** `App` renders the
 framework's `SyncStatus` once and passes it down as the island's last cell, so
 there is a single sync affordance for the whole app rather than one per screen
 header.
+
+### One set of actions, three gestures
+
+A row's moves — file it, shelve it, bin it — are reachable through whichever
+gesture the pointer in your hand actually has, and each gesture means exactly
+one thing:
+
+| Gesture                   | On touch                  | On a mouse / pen              |
+| ------------------------- | ------------------------- | ----------------------------- |
+| Swipe right / left        | Archive / bare **Delete** | off (`SwipeableRow` gates it) |
+| Press and hold, then drag | pick the row up           | press-drag does the same      |
+| Right-click               | —                         | the full action menu          |
+
+That is why `RowActionMenu` is passed `touchLongPress={false}`: a hold is how a
+finger _lifts_ a row, so it can't also be how it opens a menu. The framework
+gates swipe off for a desktop pointer on its own, which leaves right-click as
+the pointer's way in and the swipe strip as the finger's — the pairing the
+sibling `contacts` app settled on.
+
+Neither half is a shortcut to a lesser set: both reach the same store actions,
+and the destructive ones are asymmetric on purpose. A swipe right archives on
+the flick (reversible); a swipe left only _latches_ a red Delete, which then
+raises the same confirmation the menu's Delete does.
+
+### Drag targets are the app's, the gesture is not
+
+`useDragDrop` is generic over both ends of a drag — it recognises the gesture,
+follows the pointer, and hit-tests the registered zones, and knows nothing about
+drawings or folders. The app supplies the two domain answers:
+
+- **`sidebarDnd.ts`** — what a drag carries (`DragItem`), where it can land
+  (`DropTarget`), and which of those pairings are legal (`canDrop`). Pure, so
+  the rules are testable without a pointer. `canDrop` also decides which zones
+  _light up_, which is why it refuses the no-ops: a folder row offering itself
+  to a drawing already filed in it is a lie, however harmless the drop.
+- **`SideMenuContent`'s `onDrop`** — what each landing means, in store calls.
+
+Four kinds of target, each drawing its own cue: a folder row (an accent ring),
+the scrolling list (a dashed frame — "lift it out of the folder"), a namespace
+row in the switcher (the framework draws that one), and the island's Archive
+cell. Overlapping zones resolve smallest-first, so a folder row inside the list
+claims a drop the list would otherwise take.
+
+### Moving between sketchbooks touches two documents
+
+Dropping a row onto another namespace's switcher row is the one edit that isn't
+an edit to _a_ document: the destination lives under a different storage key and
+is not in React state. [`handoff.ts`](../src/app/handoff.ts) is that pairing,
+pure — take both documents, return both documents — with three rules the store
+would otherwise have to remember at each call site: arriving copies are minted
+fresh ids (so an undo on this side can't leave two sketchbooks claiming one
+drawing), a source handed its last live page keeps a blank one, and the canvas
+follows off a page that has left. A folder travels with the drawings filed in
+it, re-filed under the folder's new id, so a group arrives as a group.
+
+The store writes the destination first and then **reads it back** looking for
+the ids the hand-off minted. `DocBackend.save` is a best-effort sink that
+reports a failure rather than throwing, so "it didn't throw" is not evidence the
+bytes landed — and without the read-back a full disk would swallow the drawing
+on the way over _and_ remove it here.
 
 ## Safe areas
 

@@ -4,12 +4,50 @@
 
 The sidebar lists every drawing in the current sketchbook, **most recently
 edited first** — a sketchpad is a working surface, so what you touched last is
-what you are most likely to want next. Tap a row to open it; right-click (or
-long-press) one for its actions: star it, file it into a folder, duplicate it,
-archive it, or delete it.
+what you are most likely to want next. Tap a row to open it.
 
 Deleting the last drawing doesn't leave you with nothing — it is replaced by a
 fresh blank page, so there is always something to draw on.
+
+## Getting at a row's actions
+
+Every row in the sidebar — a drawing or a folder header — offers the same moves,
+through whichever gesture suits the thing you are holding.
+
+### On a phone or tablet: swipe, or pick it up
+
+Swipe a row **right** to archive it. Swipe it **left** to bare a red **Delete**
+button; deleting a drawing then asks first, so a stray sideways brush of the
+thumb can't cost you a sketch. (Archiving needs no confirmation — the archive
+screen hands it straight back.)
+
+Press and **hold** a row to pick it up, then drag it somewhere. Every place it
+can go outlines itself the moment the row lifts, so you can see the landing
+spots before you go looking for them:
+
+| Drop it on…               | …and it                                        |
+| ------------------------- | ---------------------------------------------- |
+| a **folder** row          | files into that folder                         |
+| anywhere else in the list | lifts back out to the top level                |
+| a **sketchbook** row      | moves to that sketchbook (unfold the switcher) |
+| the **Archive** button    | is shelved                                     |
+
+A folder can be dragged too — onto another sketchbook or onto Archive — and it
+takes the drawings filed in it along with it.
+
+There is no long-press menu: a hold is how you lift a row, and a gesture should
+only ever mean one thing.
+
+### On a desktop: right-click, or drag
+
+**Right-click** a row for the full menu — star it, **Move to folder…** (which
+opens the folder picker where you clicked), duplicate it, archive it, or delete
+it. A folder header's menu offers a new drawing inside it, rename, archive, and
+delete.
+
+Press and drag a row with the mouse and it goes to exactly the same places a
+finger drags it to, drop cues and all. Swipe is deliberately off for a mouse —
+a drag latching a row open is nobody's intention.
 
 ## The button island
 
@@ -41,8 +79,8 @@ section only appears once something is starred.
 Folders group drawings one level deep. **New folder** drops a name field into
 the list; a folder header folds its contents away, carries a count, and has a
 `+` that creates a drawing straight inside it. File an existing drawing into a
-folder from its right-click menu, or lift it back out with **Move out of the
-folder**.
+folder by dragging it onto the folder header, or from the right-click menu's
+**Move to folder…**; drop it anywhere else in the list to lift it back out.
 
 Deleting a folder keeps its drawings — they lift back to the top level. Deleting
 the box is not deleting what was in it.
@@ -65,6 +103,10 @@ where namespaces are created, renamed, given a glyph and a colour, or deleted.
 Each namespace keeps its own document, its own undo history, and its own synced
 file — switching one swaps all three. The active namespace's glyph also badges
 the browser tab, so a glance at the tab strip tells you which one you're in.
+
+To move work between them, unfold the switcher and **drag a drawing (or a whole
+folder) onto another sketchbook's row**. It arrives at that sketchbook's top
+level; a folder arrives as a folder, its drawings still filed inside it.
 
 ## The footer
 

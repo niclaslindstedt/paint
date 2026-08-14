@@ -63,8 +63,11 @@ drawing you have open.
 ## Drawings, folders, and sketchbooks
 
 The sidebar lists the drawings in the current sketchbook, most recently edited
-first. Right-click (or long-press) a row for its actions: star it, file it into
-a folder, duplicate it, archive it, or delete it.
+first. On a phone, swipe a row **right** to archive it or **left** to bare a
+Delete button, and press-and-hold to pick it up and drag it onto a folder, out
+to the top level, onto another sketchbook, or onto Archive. On a desktop,
+right-click a row for the same actions — star it, move it to a folder, duplicate
+it, archive it, delete it — or drag it with the mouse.
 
 The block of buttons at the foot of the sidebar is where the rest lives — **new
 drawing**, **new folder**, the **archive**, **undo**, **redo**, and the **cloud
