@@ -18,6 +18,13 @@
 //
 // Adding a tool is: write its behaviour (or reuse a family factory), register
 // it here, and add its two catalog strings. Nothing else in the app changes.
+//
+// A tool's `dials` are the same story one level down. The size button opens the
+// width — the one control every tool shares — and, behind **Advanced**, the two
+// knobs *this* tool has: the paintbrush's hair gauge, the airbrush's flow, the
+// crayon's pressure. They are declared here and rendered by a picker that knows
+// none of their names; see `./dials.ts` for the set and `../dials.ts` for what
+// happens to the numbers.
 
 import {
   ImageUpIcon,
@@ -42,6 +49,15 @@ import {
   SquareIcon,
 } from "../../icons.tsx";
 import { registerPlugin } from "../registry.ts";
+import {
+  FEATHER,
+  FLOW,
+  HAIR,
+  HALO,
+  HARDNESS,
+  OPACITY,
+  PRESSURE,
+} from "./dials.ts";
 import { dropperBehaviour } from "./dropper.ts";
 import { fillBehaviour } from "./fill.ts";
 import { freehandBehaviour } from "./freehand.ts";
@@ -87,6 +103,7 @@ export function registerBuiltinPlugins(): void {
     descriptionKey: "tools.pencil.description",
     icon: PencilIcon,
     shortcut: "p",
+    dials: [OPACITY],
     behaviour: freehandBehaviour(),
   });
 
@@ -97,7 +114,8 @@ export function registerBuiltinPlugins(): void {
     descriptionKey: "tools.paintbrush.description",
     icon: BrushIcon,
     shortcut: "b",
-    supportsHardness: true,
+    // A head of hair: how wet and gathered it is, and what gauge the hair is.
+    dials: [HARDNESS, HAIR],
     behaviour: freehandBehaviour({
       sizeScale: 2.5,
       style: "brush",
@@ -112,7 +130,9 @@ export function registerBuiltinPlugins(): void {
     descriptionKey: "tools.airspray.description",
     icon: SprayIcon,
     shortcut: "s",
-    supportsHardness: true,
+    // A spray cone: how tight its core is, and how much paint the trigger lets
+    // through per pass.
+    dials: [HARDNESS, FLOW],
     behaviour: freehandBehaviour({
       sizeScale: 3,
       style: "spray",
@@ -126,6 +146,7 @@ export function registerBuiltinPlugins(): void {
     descriptionKey: "tools.marker.description",
     icon: MarkerIcon,
     shortcut: "m",
+    dials: [OPACITY],
     behaviour: freehandBehaviour({ sizeScale: 3 }),
   });
 
@@ -135,6 +156,7 @@ export function registerBuiltinPlugins(): void {
     descriptionKey: "tools.highlighter.description",
     icon: HighlighterIcon,
     shortcut: "h",
+    dials: [OPACITY],
     behaviour: freehandBehaviour({ sizeScale: 6, opacity: 0.35 }),
   });
 
@@ -144,6 +166,7 @@ export function registerBuiltinPlugins(): void {
     descriptionKey: "tools.crayon.description",
     icon: CrayonIcon,
     shortcut: "c",
+    dials: [OPACITY, PRESSURE],
     behaviour: freehandBehaviour({ sizeScale: 2, style: "crayon" }),
   });
 
@@ -153,6 +176,7 @@ export function registerBuiltinPlugins(): void {
     descriptionKey: "tools.calligraphy.description",
     icon: NibIcon,
     shortcut: "k",
+    dials: [OPACITY],
     behaviour: freehandBehaviour({ sizeScale: 1.5, style: "calligraphy" }),
   });
 
@@ -162,6 +186,7 @@ export function registerBuiltinPlugins(): void {
     descriptionKey: "tools.glow.description",
     icon: GlowIcon,
     shortcut: "n",
+    dials: [OPACITY, HALO],
     behaviour: freehandBehaviour({ sizeScale: 1.5, style: "glow" }),
   });
 
@@ -198,6 +223,9 @@ export function registerBuiltinPlugins(): void {
     descriptionKey: "tools.filler.description",
     icon: BucketIcon,
     shortcut: "f",
+    // A wash you can see through, and an edge that fades out rather than
+    // stopping — the two things that separate a bucket from a paint pot.
+    dials: [OPACITY, FEATHER],
     behaviour: fillBehaviour,
   });
 
@@ -216,6 +244,7 @@ export function registerBuiltinPlugins(): void {
     descriptionKey: "tools.rectangle.description",
     icon: SquareIcon,
     shortcut: "r",
+    dials: [OPACITY],
     supportsFill: true,
     behaviour: rectangleBehaviour,
   });
@@ -226,6 +255,7 @@ export function registerBuiltinPlugins(): void {
     descriptionKey: "tools.ellipse.description",
     icon: CircleIcon,
     shortcut: "o",
+    dials: [OPACITY],
     supportsFill: true,
     behaviour: ellipseBehaviour,
   });
@@ -236,6 +266,7 @@ export function registerBuiltinPlugins(): void {
     descriptionKey: "tools.line.description",
     icon: LineIcon,
     shortcut: "l",
+    dials: [OPACITY],
     behaviour: lineBehaviour,
   });
 
@@ -245,6 +276,7 @@ export function registerBuiltinPlugins(): void {
     descriptionKey: "tools.arrow.description",
     icon: ArrowIcon,
     shortcut: "a",
+    dials: [OPACITY],
     behaviour: arrowBehaviour,
   });
 

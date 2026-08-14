@@ -177,7 +177,13 @@ const MAX_HAIRS = 56;
  *  fine as a narrow one's — and the count is the head divided by it, less
  *  whatever the screen cannot resolve.
  *
- *  `merged` is the bookkeeping for that last part: when the screen can only tell
+ *  `gauge` is which rack the brush came off: the filament this head is milled
+ *  from, as a fraction of the ordinary. It multiplies the pitch *after* the
+ *  clamps, because those bound what a brush of a given width is made of and
+ *  this is the user saying they wanted a different brush — a fine sable at 0.5,
+ *  a coarse hog at 2. It changes the streaks, never the width.
+ *
+ *  `merged` is the bookkeeping for the screen: when the screen can only tell
  *  twenty strands apart on a head the medium splays into forty, each drawn
  *  strand stands for two and is widened to match. Without it a stroke would
  *  visibly thin out as you zoomed away from it — the same trap the airbrush's
@@ -185,14 +191,16 @@ const MAX_HAIRS = 56;
 export function hairLayout(
   size: number,
   scale = 1,
+  gauge = 1,
 ): { pitch: number; count: number; merged: number } {
-  const pitch = Math.max(
-    HAIR_PITCH_MIN,
-    Math.min(
-      HAIR_PITCH_MAX,
-      HAIR_PITCH * (size / HAIR_HEAD) ** HAIR_COARSENING,
-    ),
-  );
+  const pitch =
+    Math.max(
+      HAIR_PITCH_MIN,
+      Math.min(
+        HAIR_PITCH_MAX,
+        HAIR_PITCH * (size / HAIR_HEAD) ** HAIR_COARSENING,
+      ),
+    ) * Math.max(0.1, gauge);
   const wanted = Math.max(3, Math.min(MAX_HAIRS, Math.round(size / pitch)));
   // Two hairs inside one device pixel are one hair drawn twice. A little over a
   // pixel apart, because a strand needs a gap beside it to read as a strand.
@@ -230,13 +238,15 @@ export function hairLayout(
  *
  *  Hardness is how wet and how gathered the head is: a hard setting is a loaded,
  *  tight head that covers solidly, a soft one is a splayed dry one that leaves
- *  most of its length in streaks. */
+ *  most of its length in streaks. `gauge` is the hair itself — which brush off
+ *  the rack this is (see `hairLayout`). */
 export function paintBrush(
   ctx: CanvasRenderingContext2D,
   points: readonly Point[],
   size: number,
   hardness: number,
   scale = 1,
+  gauge = 1,
 ): void {
   const alpha = ctx.globalAlpha;
   const hard = Math.max(0, Math.min(1, hardness));
@@ -305,7 +315,7 @@ export function paintBrush(
   }
   // The hairs, at the medium's own pitch (see `hairLayout`) — many and fine on
   // a wide head, few and fine on a narrow one.
-  const { count: bristles, merged } = hairLayout(size, scale);
+  const { count: bristles, merged } = hairLayout(size, scale, gauge);
   // How far along the drag the head has emptied. A brush leaves the start of a
   // stroke wet and the end of it dry, and a bigger head holds more paint — so
   // this is measured against the load a head that size carries, not a constant.

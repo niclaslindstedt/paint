@@ -18,8 +18,11 @@ connect a storage backend yourself.
   marker, highlighter, crayon, calligraphy pen, neon pen). Every tool is a
   plugin behind one interface, so the list grows without the app changing shape.
 - Pick colour and stroke width from two buttons: a palette with a free colour
-  mixer that remembers what you mix, and a nib picker with your own widths and a
-  hardness dial for the soft brushes.
+  mixer that remembers what you mix, and a nib picker with your own widths.
+- Tune the tool in your hand under the nib picker's Advanced fold — hair gauge
+  for the paintbrush, flow for the airbrush, pressure for the crayon, a
+  feathered edge for the paint bucket, opacity for most of the rest. Each tool
+  keeps its own settings, and a mark remembers what it was drawn with.
 - Choose a new drawing's canvas size when you create it: this screen's own
   resolution by default, presets (Full HD, 4K, a large 3200 × 2000 sheet,
   square, A4 at 300 dpi), or a size you type.

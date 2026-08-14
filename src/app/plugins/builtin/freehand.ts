@@ -16,6 +16,7 @@ import {
   strokeHardness,
 } from "../brushes.ts";
 import { paintCrayon } from "../crayon.ts";
+import { extraDials, strokeDial } from "../dials.ts";
 import { applyInk, distance, paintPath, strokeColor } from "../ink.ts";
 import {
   FULL_DETAIL,
@@ -51,21 +52,34 @@ type FreehandInk = {
 
 /** Build a freehand tool behaviour with the given ink. */
 export function freehandBehaviour(ink: FreehandInk = {}): ToolBehaviour {
-  const strokeFor = (p: Point, ctx: ToolContext): DraftStroke => ({
-    tool: "",
-    // A background-painting tool (the eraser) records no colour at all, so it
-    // follows the page for good: flipping the canvas theme must not leave old
-    // eraser strokes painted in the previous page's colour. Ink tools record
-    // one only when the user picked it.
-    ...(ink.useBackground || !ctx.color ? {} : { color: ctx.color }),
-    size: ctx.size * (ink.sizeScale ?? 1),
-    ...(ink.opacity !== undefined ? { opacity: ink.opacity } : {}),
-    // Hardness is recorded, not resolved at paint time: a soft stroke is soft
-    // for good, the way its colour and width are, so re-reading the dial later
-    // can't re-edge marks you already made.
-    ...(ink.useHardness ? { hardness: ctx.hardness } : {}),
-    shape: { kind: "path", points: [p] },
-  });
+  const strokeFor = (p: Point, ctx: ToolContext): DraftStroke => {
+    // The tool's own ink, turned down by however far the opacity dial is —
+    // a highlighter at half stays a *highlighter*, at half.
+    const opacity = (ink.opacity ?? 1) * (ctx.dials.opacity ?? 1);
+    // Every other dial the toolbar handed over rides along on the mark. Only
+    // the ones actually moved are there (see `plugins/dials.ts`), so an untuned
+    // stroke carries no field at all.
+    const extra = extraDials(ctx.dials);
+    return {
+      tool: "",
+      // A background-painting tool (the eraser) records no colour at all, so it
+      // follows the page for good: flipping the canvas theme must not leave old
+      // eraser strokes painted in the previous page's colour. Ink tools record
+      // one only when the user picked it.
+      ...(ink.useBackground || !ctx.color ? {} : { color: ctx.color }),
+      size: ctx.size * (ink.sizeScale ?? 1),
+      ...(opacity < 1 ? { opacity } : {}),
+      // Hardness is recorded, not resolved at paint time: a soft stroke is soft
+      // for good, the way its colour and width are, so re-reading the dial later
+      // can't re-edge marks you already made. The same goes for the rest of
+      // them — that is the whole reason they are on the stroke.
+      ...(ink.useHardness && ctx.dials.hardness !== undefined
+        ? { hardness: ctx.dials.hardness }
+        : {}),
+      ...(extra ? { dials: extra } : {}),
+      shape: { kind: "path", points: [p] },
+    };
+  };
 
   return {
     start: (p, ctx) => strokeFor(p, ctx),
@@ -87,7 +101,14 @@ export function freehandBehaviour(ink: FreehandInk = {}): ToolBehaviour {
       const scale = detail.scale;
       switch (ink.style) {
         case "brush":
-          paintBrush(ctx2d, points, stroke.size, hardness, scale);
+          paintBrush(
+            ctx2d,
+            points,
+            stroke.size,
+            hardness,
+            scale,
+            strokeDial(stroke, "hair"),
+          );
           return;
         case "spray":
           // The spray builds its cone as a gradient, which needs the colour as
@@ -99,16 +120,29 @@ export function freehandBehaviour(ink: FreehandInk = {}): ToolBehaviour {
             hardness,
             strokeColor(stroke),
             scale,
+            strokeDial(stroke, "flow"),
           );
           return;
         case "crayon":
-          paintCrayon(ctx2d, points, stroke.size, scale);
+          paintCrayon(
+            ctx2d,
+            points,
+            stroke.size,
+            scale,
+            strokeDial(stroke, "pressure"),
+          );
           return;
         case "calligraphy":
           paintCalligraphy(ctx2d, points, stroke.size, scale);
           return;
         case "glow":
-          paintGlow(ctx2d, points, stroke.size, scale);
+          paintGlow(
+            ctx2d,
+            points,
+            stroke.size,
+            scale,
+            strokeDial(stroke, "halo"),
+          );
           return;
         default:
           if (ink.useHardness) {

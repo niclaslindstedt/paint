@@ -123,15 +123,47 @@ export const en = {
     keepSize: "Keep",
     sizeKept: "Kept",
     removeSize: "Forget",
-    hardness: "Hardness: {percent}%",
-    hardnessHint: "Soft feathers the edge; hard keeps it crisp.",
-    hardnessNotUsed: "The tool in your hand draws a hard edge either way.",
     tool: "Tool",
     toolbar: "Tools",
     fitPage: "Fit the page, or show it at 1:1",
     zoomPercent: "{percent}%",
     undo: "Undo",
     redo: "Redo",
+  },
+  // The tool dials — the sliders behind Advanced in the size panel. One entry
+  // per dial the shipped tools declare (see `plugins/builtin/dials.ts`); the
+  // unit lives in the label because it is part of the sentence.
+  dials: {
+    advanced: "Advanced",
+    reset: "Reset",
+    opacity: {
+      name: "Opacity: {value}%",
+      hint: "How much of the page shows through the mark.",
+    },
+    hardness: {
+      name: "Hardness: {value}%",
+      hint: "Soft feathers the edge; hard keeps it crisp.",
+    },
+    hair: {
+      name: "Hair: {value}%",
+      hint: "Fine hair leaves many thin streaks, coarse hair a few broad ones.",
+    },
+    flow: {
+      name: "Flow: {value}%",
+      hint: "How much paint each pass lays down. Low builds up slowly.",
+    },
+    pressure: {
+      name: "Pressure: {value}%",
+      hint: "Bear down to fill the paper's grain in; ease off to let it show.",
+    },
+    halo: {
+      name: "Halo: {value}%",
+      hint: "How far the glow reaches past the line.",
+    },
+    feather: {
+      name: "Feather: {value} px",
+      hint: "Fades the fill's edge out instead of stopping it.",
+    },
   },
   layers: {
     title: "Layers",

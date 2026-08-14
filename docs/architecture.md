@@ -291,7 +291,11 @@ lives by: **nothing outside it may branch on a tool id.**
 
 - `types.ts` — the `PaintPlugin` descriptor and the `ToolBehaviour` contract
   (`start` / `move` / `end` / `paint`), plus the `PaintDetail` a painter is
-  handed to tell it how finely it is being rasterised.
+  handed to tell it how finely it is being rasterised, and the `ToolDial` a tool
+  declares to put a slider of its own in the size panel.
+- `dials.ts` — what happens to those sliders' numbers: resolved for the panel,
+  and pared back to just the ones moved off their default for the canvas and the
+  stroke.
 - `registry.ts` — registration order (which is toolbar order), the
   core / default-on / optional split, and resolution.
 - `builtin/` — the shipped tools, built from two family factories (freehand and
@@ -318,8 +322,18 @@ identically.
 
 A tool that needs the app to treat it differently says so on its descriptor —
 `usesBackground` for the eraser, `navigates` for the hand, `picksColor` for the
-dropper, `supportsHardness` for the soft brushes — so the canvas and the toolbar
-read a property instead of learning a name.
+dropper — so the canvas and the toolbar read a property instead of learning a
+name.
+
+`dials` is that pattern carrying a whole surface. Width is the one control every
+tool shares; past it they stop agreeing, so a tool lists what _it_ has to tune
+(the paintbrush's hair gauge, the airbrush's flow, the bucket's feather) and the
+size panel renders the list under **Advanced** without learning a single dial's
+name. The numbers are fractions of the tool's own normal, kept per tool in the
+settings blob, and **only the ones moved off their default** are handed to a
+behaviour or written onto a mark — so a painter can keep its rest value as an
+ordinary default argument, and a page drawn without opening Advanced serialises
+byte-for-byte the way it did before dials existed.
 
 `hidden` is the same idea taken to its end: the dropped image's painter is a
 plugin with no button anywhere and no gesture at all. An image arrives as a file,

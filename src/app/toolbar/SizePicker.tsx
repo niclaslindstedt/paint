@@ -4,9 +4,12 @@ import { useEffect, useState } from "react";
 import { FloatingPanel } from "@niclaslindstedt/oss-framework/components";
 
 import { useT } from "../i18n/index.ts";
+import { dialReadout } from "../plugins/dials.ts";
+import type { ToolDial } from "../plugins/types.ts";
 import { MAX_SIZE, SIZES } from "../useAppSettings.ts";
 
-// The nib picker: the widths, behind one button.
+// The nib picker: the widths, behind one button — and, behind one more press,
+// whatever else the tool in your hand has to tune.
 //
 // Same trade as the colour picker. Four permanent size buttons were a fifth of
 // a phone toolbar spent on a choice a session makes twice; the button now shows
@@ -18,11 +21,14 @@ import { MAX_SIZE, SIZES } from "../useAppSettings.ts";
 // keeps whatever the slider is on, and kept widths sit in the row from then on,
 // sorted fine-to-broad rather than in the order they were discovered.
 //
-// Hardness lives here too rather than in Settings, because it belongs to the
-// same decision as the width — how the mark meets the page — and because it is
-// worth trying twice before it is worth keeping. It is dimmed rather than
-// hidden for a tool that ignores it: the dial not applying is a fact about the
-// tool in your hand, and hiding it would make the panel jump.
+// **The panel is per tool below that line.** Width is the one control every tool
+// shares; past it they stop agreeing, and a hardness slider shown to a
+// highlighter was a control that did nothing sitting where a control that did
+// something should be. So the tool declares its own dials (`PaintPlugin.dials`)
+// and this renders them under a disclosure: the basic panel stays the one
+// slider a hand reaches for mid-stroke, and the two knobs that change what the
+// mark is made of are one press further in. Nothing here knows what any of them
+// are — a paintbrush's hair gauge and a bucket's feather are the same loop.
 
 type Props = {
   open: boolean;
@@ -33,11 +39,21 @@ type Props = {
   customSizes: readonly number[];
   onAddSize: (size: number) => void;
   onRemoveSize: (size: number) => void;
-  hardness: number;
-  onHardnessChange: (hardness: number) => void;
-  /** Whether the tool in hand honours hardness (its `supportsHardness` flag).
-   *  Nothing here knows *which* tool that is. */
-  hardnessApplies: boolean;
+  /** What the tool in hand offers past its width, in the order it declared
+   *  them. Empty for a tool with nothing to tune (the eraser, the hand), and
+   *  then there is no Advanced section at all. */
+  dials: readonly ToolDial[];
+  /** Where those dials currently sit — every one of them, resolved, so the
+   *  sliders have a value whether or not the user has touched one. */
+  values: Readonly<Record<string, number>>;
+  /** Move a dial — or forget it with `null`, which is what a slider dragged
+   *  back to where it started sends, so nothing is kept that isn't doing
+   *  anything. */
+  onDialChange: (id: string, value: number | null) => void;
+  /** Put this tool back the way it came. Offered only once something is
+   *  actually off its default. */
+  onResetDials: () => void;
+  tuned: boolean;
 };
 
 export function SizePicker({
@@ -49,12 +65,18 @@ export function SizePicker({
   customSizes,
   onAddSize,
   onRemoveSize,
-  hardness,
-  onHardnessChange,
-  hardnessApplies,
+  dials,
+  values,
+  onDialChange,
+  onResetDials,
+  tuned,
 }: Props) {
   const t = useT();
   const [draft, setDraft] = useState(size);
+  // Whether the dials are showing. Panel state, not a setting: it is a fold in
+  // a menu, and it stays folded out for as long as the session wants it — but
+  // it is not a choice worth carrying across reloads.
+  const [advanced, setAdvanced] = useState(false);
   const sizes = [...new Set([...SIZES, ...customSizes])].sort((a, b) => a - b);
   const known = sizes.includes(Math.round(draft));
 
@@ -152,36 +174,84 @@ export function SizePicker({
           </div>
         </label>
 
-        <label
-          className={`flex flex-col gap-1 ${
-            hardnessApplies ? "" : "pointer-events-none opacity-40"
-          }`}
-        >
-          <span className="text-xs text-muted">
-            {t("canvas.hardness", {
-              percent: String(Math.round(hardness * 100)),
-            })}
-          </span>
-          <input
-            type="range"
-            min={0}
-            max={100}
-            step={5}
-            value={Math.round(hardness * 100)}
-            disabled={!hardnessApplies}
-            onChange={(e) =>
-              onHardnessChange(
-                Number((e.target as HTMLInputElement).value) / 100,
-              )
-            }
-            className="w-full cursor-pointer"
-          />
-          <span className="text-[11px] text-muted">
-            {hardnessApplies
-              ? t("canvas.hardnessHint")
-              : t("canvas.hardnessNotUsed")}
-          </span>
-        </label>
+        {/* The tool's own knobs. Absent entirely for a tool that has none,
+            rather than shown empty: a disclosure that opens onto nothing is a
+            worse answer than no disclosure. */}
+        {dials.length > 0 && (
+          <div className="flex flex-col gap-2 border-t border-line pt-2">
+            <div className="flex items-center justify-between gap-2">
+              <button
+                type="button"
+                onClick={() => setAdvanced((shown) => !shown)}
+                aria-expanded={advanced}
+                className="flex cursor-pointer items-center gap-1 text-xs text-muted hover:text-fg-bright"
+              >
+                <span
+                  aria-hidden="true"
+                  className={`inline-block transition-transform ${
+                    advanced ? "rotate-90" : ""
+                  }`}
+                >
+                  ›
+                </span>
+                {t("dials.advanced")}
+                {/* A dot beside the fold when something under it is off its
+                    default — otherwise a tool you tuned last week looks exactly
+                    like one you never touched. */}
+                {tuned && !advanced && (
+                  <span
+                    aria-hidden="true"
+                    className="h-1.5 w-1.5 rounded-full bg-accent"
+                  />
+                )}
+              </button>
+              {advanced && tuned && (
+                <button
+                  type="button"
+                  onClick={onResetDials}
+                  className="cursor-pointer text-xs text-muted hover:text-fg-bright"
+                >
+                  {t("dials.reset")}
+                </button>
+              )}
+            </div>
+
+            {advanced &&
+              dials.map((dial) => {
+                const rest = dial.default ?? 1;
+                const value = values[dial.id] ?? rest;
+                return (
+                  <label key={dial.id} className="flex flex-col gap-1">
+                    <span className="text-xs text-muted">
+                      {t(dial.nameKey, {
+                        value: String(dialReadout(dial, value)),
+                      })}
+                    </span>
+                    <input
+                      type="range"
+                      min={dial.min}
+                      max={dial.max}
+                      step={dial.step}
+                      value={value}
+                      onChange={(e) => {
+                        const next = Number(
+                          (e.target as HTMLInputElement).value,
+                        );
+                        // Back where it started is not a setting: forget it,
+                        // so the blob only ever holds what differs from the
+                        // tool as it ships.
+                        onDialChange(dial.id, next === rest ? null : next);
+                      }}
+                      className="w-full cursor-pointer"
+                    />
+                    <span className="text-[11px] text-muted">
+                      {t(dial.hintKey)}
+                    </span>
+                  </label>
+                );
+              })}
+          </div>
+        )}
       </div>
     </FloatingPanel>
   );

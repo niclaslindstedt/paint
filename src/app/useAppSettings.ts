@@ -15,7 +15,7 @@ import {
   type DownloadFormat,
   type ExportScope,
 } from "./export.ts";
-import { defaultEnabledPlugins } from "./plugins/registry.ts";
+import { allPlugins, defaultEnabledPlugins } from "./plugins/registry.ts";
 
 // The app's own (non-theme) settings — how the side menu opens, which optional
 // tool plugins are switched on, the last-used ink, developer mode, and log
@@ -61,9 +61,16 @@ export type AppSettings = {
   /** Nib widths the user added to the three the picker ships with, in document
    *  pixels. Kept sorted, capped at `MAX_CUSTOM_SIZES`. */
   customSizes: number[];
-  /** How crisp the soft-edged brushes are, 0 (an airbrushed fade) to 1 (a hard
-   *  edge). Only the tools that advertise `supportsHardness` read it. */
-  hardness: number;
+  /** How each tool is tuned, by tool id and then by dial id — the sliders
+   *  behind **Advanced** in the size panel (see `plugins/dials.ts`).
+   *
+   *  Sparse twice over: a tool nobody has tuned has no entry, and a dial left
+   *  where it rests is not written. So this is `{}` for most installs, and the
+   *  ones it does hold read as "the ways this person's kit differs from the
+   *  box". Kept per tool because that is what a dial *is* — a paintbrush's
+   *  hardness and an airbrush's are the same word for two different things, and
+   *  one shared number made tuning either of them retune the other. */
+  toolDials: Record<string, Record<string, number>>;
   /** Whether shape tools fill rather than outline. */
   filled: boolean;
   /** Paint the canvas over a grid, so a sketch of boxes and arrows lines up. */
@@ -139,9 +146,9 @@ const BASE_SETTINGS: Omit<AppSettings, "enabledPlugins"> = {
   customColors: [],
   size: SIZES[1],
   customSizes: [],
-  // A hard edge out of the box: a brush that feathers is a choice, and it
-  // should be one you made.
-  hardness: 1,
+  // Every tool as its maker intended out of the box — a brush that feathers,
+  // a crayon pressed light, are choices, and they should be ones you made.
+  toolDials: {},
   filled: false,
   showGrid: false,
   // On out of the box: the first thing a new user does is try the tools, and a
@@ -192,6 +199,45 @@ function numbers(value: unknown, max: number): number[] {
   );
 }
 
+/** Clean a persisted map of tool tunings, and fold in the one setting this
+ *  replaced.
+ *
+ *  Only the shape is checked here, not the ranges: a dial's bounds belong to
+ *  the plugin that declares it, and `resolveDials` clamps against them at every
+ *  read — so a value for a tool this build no longer ships, or a dial it has
+ *  since dropped, is *kept* rather than pruned. Downgrading and upgrading again
+ *  shouldn't silently forget how you had your brush set.
+ *
+ *  `legacy` is the old global hardness slider, which every soft-edged tool used
+ *  to share. A blob written before dials existed carries one number for all of
+ *  them, so it is handed to each tool that offers a hardness dial today — once,
+ *  and only when that tool has no tuning of its own to overwrite. */
+function toolDials(
+  value: unknown,
+  legacy: unknown,
+): Record<string, Record<string, number>> {
+  const out: Record<string, Record<string, number>> = {};
+  if (typeof value === "object" && value !== null && !Array.isArray(value)) {
+    for (const [tool, dials] of Object.entries(value)) {
+      if (typeof dials !== "object" || dials === null) continue;
+      const kept: Record<string, number> = {};
+      for (const [dial, at] of Object.entries(dials as object)) {
+        if (typeof at === "number" && Number.isFinite(at)) kept[dial] = at;
+      }
+      if (Object.keys(kept).length > 0) out[tool] = kept;
+    }
+  }
+  if (typeof legacy === "number" && Number.isFinite(legacy) && legacy !== 1) {
+    const hardness = Math.max(0, Math.min(1, legacy));
+    for (const plugin of allPlugins()) {
+      if (!plugin.dials?.some((d) => d.id === "hardness")) continue;
+      if (out[plugin.id]?.hardness !== undefined) continue;
+      out[plugin.id] = { ...out[plugin.id], hardness };
+    }
+  }
+  return out;
+}
+
 /** Read a persisted settings blob back into a whole `AppSettings`.
  *
  *  Exported for the tests: it is the one place an install carries state across
@@ -233,11 +279,11 @@ export function parseSettings(raw: string): AppSettings {
   if (typeof merged.size !== "number" || merged.size <= 0) {
     merged.size = base.size;
   }
-  if (typeof merged.hardness !== "number" || Number.isNaN(merged.hardness)) {
-    merged.hardness = base.hardness;
-  } else {
-    merged.hardness = Math.max(0, Math.min(1, merged.hardness));
-  }
+  merged.toolDials = toolDials(stored.toolDials, stored.hardness);
+  // …and drop the field it was folded in from, so the next write is the last
+  // time this install carries it. Left in place it would be re-seeded on every
+  // load, which would quietly undo resetting a hardness dial back to default.
+  delete (merged as { hardness?: number }).hardness;
   if (typeof merged.color !== "string") merged.color = null;
   // A default-*on* flag can't be coerced with `Boolean()` — a blob written
   // before it existed holds `undefined`, which would read as "switched off"
@@ -339,6 +385,42 @@ export function useAppSettings() {
     [setSettings],
   );
 
+  /** Set one of a tool's dials — the sliders behind **Advanced** in the size
+   *  panel. `null` forgets it instead, which is how the panel's reset puts a
+   *  tool back to the way it came: the blob only ever holds the dials that are
+   *  actually doing something (see `plugins/dials.ts`).
+   *
+   *  The dial is addressed by tool *and* by dial, because that is what it is:
+   *  the paintbrush's hardness and the airbrush's are two different settings
+   *  that happen to share a name. */
+  const setToolDial = useCallback(
+    (tool: string, dial: string, value: number | null) =>
+      setSettings((prev) => {
+        const kept = { ...prev.toolDials[tool] };
+        if (value === null) delete kept[dial];
+        else kept[dial] = value;
+        const next = { ...prev.toolDials };
+        // A tool with nothing left off-default leaves no trace at all, so a
+        // reset really does return the blob to what a fresh install writes.
+        if (Object.keys(kept).length === 0) delete next[tool];
+        else next[tool] = kept;
+        return { ...prev, toolDials: next };
+      }),
+    [setSettings],
+  );
+
+  /** Put every dial on one tool back where it started. */
+  const resetToolDials = useCallback(
+    (tool: string) =>
+      setSettings((prev) => {
+        if (!prev.toolDials[tool]) return prev;
+        const next = { ...prev.toolDials };
+        delete next[tool];
+        return { ...prev, toolDials: next };
+      }),
+    [setSettings],
+  );
+
   /** Switch one optional tool plugin on or off. */
   const setPluginEnabled = useCallback(
     (id: string, enabled: boolean) =>
@@ -363,6 +445,8 @@ export function useAppSettings() {
     removeCustomColor,
     addCustomSize,
     removeCustomSize,
+    setToolDial,
+    resetToolDials,
   };
 }
 

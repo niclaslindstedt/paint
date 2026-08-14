@@ -33,7 +33,9 @@ import type { Point } from "../src/app/types.ts";
 const ctx: ToolContext = {
   color: "#ef4444",
   size: 4,
-  hardness: 1,
+  // Nothing tuned: the dials a tool was left alone on are simply absent (see
+  // `plugins/dials.ts`), so this is what every stroke in this file draws with.
+  dials: {},
   filled: false,
   background: "#ffffff",
 };
@@ -288,7 +290,7 @@ describe("hardness", () => {
   it("is recorded only by the tools that advertise it", () => {
     resetPlugins();
     registerBuiltinPlugins();
-    const soft = { ...ctx, hardness: 0.25 };
+    const soft = { ...ctx, dials: { hardness: 0.25 } };
     // The brush asks for it…
     expect(
       freehandBehaviour({ style: "brush", useHardness: true }).start(
@@ -302,10 +304,23 @@ describe("hardness", () => {
     );
   });
 
-  it("is advertised by exactly the tools whose painter reads it", () => {
+  it("goes unrecorded at its default, so an untuned mark carries nothing", () => {
+    // The dial rests at 1 and so does `strokeHardness`, which is what keeps a
+    // page of ordinary brushwork the same document it was before dials.
+    expect(
+      freehandBehaviour({ style: "brush", useHardness: true }).start(
+        { x: 0, y: 0 },
+        ctx,
+      )!.hardness,
+    ).toBe(undefined);
+  });
+
+  it("is offered by exactly the tools whose painter reads it", () => {
+    resetPlugins();
+    registerBuiltinPlugins();
     expect(
       allPlugins()
-        .filter((p) => p.supportsHardness)
+        .filter((p) => p.dials?.some((d) => d.id === "hardness"))
         .map((p) => p.id),
     ).toEqual(["paintbrush", "airspray"]);
   });
