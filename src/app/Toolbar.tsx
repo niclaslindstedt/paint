@@ -166,11 +166,17 @@ export function Toolbar({
     // safe-area inset plus 10px — enough that the buttons stay a comfortable
     // thumb reach above the indicator instead of sitting on it.
     <div
-      className="flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-line bg-surface px-3 pt-2 [padding-bottom:calc(env(safe-area-inset-bottom)+10px)]"
+      className="flex flex-wrap items-center gap-1 border-t border-line bg-surface px-3 pt-2 [padding-bottom:calc(env(safe-area-inset-bottom)+10px)]"
       role="toolbar"
       aria-label={t("canvas.toolbar")}
     >
-      <div className="flex flex-wrap items-center gap-1" role="group">
+      {/* The tools are their own group for a screen reader, but not their own
+          box for the layout: `contents` drops the wrapper's box so each button
+          wraps in the toolbar's own flow. Nested, the group filled a line of
+          its own and pushed the ink buttons onto a third row of their own —
+          two rows of dead width on a phone. Flat, the ink follows the last
+          tool onto the row it was already sharing. */}
+      <div className="contents" role="group">
         {tools.map((plugin) => {
           const Icon = plugin.icon;
           const isActive = plugin.id === tool;
@@ -227,7 +233,10 @@ export function Toolbar({
         })}
       </div>
 
-      <div className="flex items-center gap-1">
+      {/* The ink pair stays one box: it wraps as a unit rather than splitting
+          the colour from the nib, and the extra left margin is the seam between
+          the tools and the ink the flattened gap no longer draws. */}
+      <div className="ml-2 flex items-center gap-1">
         {/* The ink button. Split corner to corner: the ink you are drawing
             with above the diagonal, the colour that rubs it out below — the
             two colours a drawing hand actually holds. */}

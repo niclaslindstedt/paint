@@ -429,15 +429,21 @@ export function SideMenuContent({
   }
 
   return (
-    // The framework panel reserves a bottom safe-area inset as padding so its
-    // last child clears the home indicator — but this PWA paints edge to edge
-    // (see `styles.css`), so that inset is dead space below whatever sits last
-    // (the rail when the footer is folded, the footer when it isn't). Grow past
-    // the panel's content box to reclaim it for the scrolling list; the footer
-    // and the rail then carry their own bottom breathing room.
+    // The framework panel reserves bottom padding so its last child clears the
+    // home indicator — but this PWA paints edge to edge (see `styles.css`), so
+    // that reserve is dead space below whatever sits last (the rail when the
+    // footer is folded, the footer when it isn't). Grow past the panel's
+    // content box to reclaim it for the scrolling list; the footer and the rail
+    // then carry their own bottom breathing room. The reserve is a `max()` of
+    // the inset and a density-scaled floor, so reclaiming it takes the same
+    // expression — subtracting only the inset left the floor behind on every
+    // viewport (the sibling `contacts` app grows by the same amount). `shrink-0`
+    // is what makes the growth stick: the panel is a column flex container, so
+    // a child taller than its content box is otherwise shrunk straight back to
+    // it and the reserve stays dead.
     <div
       ref={panelRef}
-      className="relative flex h-[calc(100%+env(safe-area-inset-bottom))] min-h-0 flex-col"
+      className="relative flex min-h-0 shrink-0 flex-col [height:calc(100%+max(env(safe-area-inset-bottom),calc(1.25rem-var(--density-row-py))))]"
       // Record where a right-click landed — in the capture phase, before the
       // row's action menu opens — so the "Move to folder" submenu it spawns can
       // spring from the same spot. On the whole panel rather than the list, so
@@ -691,11 +697,11 @@ export function SideMenuContent({
 
       {/* The footer: Donate, an About dropdown that folds away the project
           links, the framework's "check for updates" row, and Settings pinned
-          last under the thumb. The app paints under the home indicator, so the
-          bottom breathing room carries the safe-area inset plus 10px to keep
-          that last row a comfortable reach rather than sitting on the edge. */}
+          last under the thumb. The panel's own bottom reserve is reclaimed
+          above, so this is the whole gap under Settings: 10px, enough to keep
+          the row off the screen's edge without stranding it above it. */}
       {!footerCollapsed && (
-        <div className="flex shrink-0 flex-col border-t border-line pt-1 [padding-bottom:calc(env(safe-area-inset-bottom)+10px)]">
+        <div className="flex shrink-0 flex-col border-t border-line pt-1 pb-[10px]">
           <FooterLink
             icon={<HeartIcon className="h-5 w-5 text-danger" />}
             href={DONATE_URL}
