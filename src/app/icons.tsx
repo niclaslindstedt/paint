@@ -15,10 +15,10 @@
 // **A tool is drawn as the implement, not as the mark it leaves.** Every pen in
 // the box is therefore the same stick held at the same 45°, and what tells them
 // apart is the business end and the one detail each has earned: the crayon its
-// wrapper bands, the nib its slit, the highlighter its chisel wedge, the marker
-// the opaque bar it lays down. The pencil and the eraser are the two the whole
-// set is measured against, and both run corner to corner — a glyph that keeps
-// to the middle of the square looks shrunken next to them.
+// wrapper bands, the nib its slit, the highlighter the fold in its wedge, the
+// marker its squared-off barrel. The pencil and the eraser are the two the
+// whole set is measured against, and both run corner to corner — a glyph that
+// keeps to the middle of the square looks shrunken next to them.
 //
 // The shape marks are the exception and the reason for the `filled` prop: they
 // are not implements, they *are* the mark, so they are drawn as the outline the
@@ -306,17 +306,19 @@ export function PasteIcon({ className }: IconProps) {
   );
 }
 
-/** A marker pen — a fat barrel on a chisel nib, over the opaque bar it lays
- *  down. The bar is the whole point: barrel and nib alone are a pen, and the
- *  toolbar already has one. */
+/** A felt tip marker — a straight fat barrel and the chisel cut at the end of
+ *  it, leaning with the rest of the pens. It used to carry the opaque bar it
+ *  lays down, on the reading that a barrel and a nib are just "a pen"; the
+ *  silhouette does that work instead now. Against the highlighter next to it
+ *  the marker is the squared-off one — plain barrel, square shoulders, a nib
+ *  the width of the body — where the highlighter folds back on itself. */
 export function MarkerIcon({ className }: IconProps) {
   return (
     <svg {...base} className={className} aria-hidden="true">
       <g transform="rotate(45 12 12)">
-        <path d="M9.2 2.2h5.6v9.2H9.2z" />
-        <path d="M9.2 11.4h5.6l-1.5 4.6h-2.6z" />
+        <path d="M8.4 2.8h7.2v10.2H8.4z" />
+        <path d="M9.6 13h4.8l-1.2 5.4-3.6 1.4z" />
       </g>
-      <path d="M4.6 20.4h10.6" strokeWidth="2.6" />
     </svg>
   );
 }
