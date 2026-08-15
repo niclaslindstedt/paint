@@ -84,3 +84,5 @@ For each scheduled skill, in order:
 ## Skill self-improvement
 
 If a sweep finds an artifact drifting that no registered skill owns, the fix is a new `update-*` skill plus a row here — not an ad-hoc edit. If a skill fired on a path that turned out to be irrelevant, tighten its row in the mapping table above so the next sweep is quieter.
+
+The registry, run order, and mapping table are operating data — edit them in place as above. Narrative gotchas that are not registry rows go to lesson fragments instead: load the **`skill-reflection`** skill, which owns recording, scoping, pruning, merging and promoting them (`node scripts/skill-lessons.mjs maintenance --list`).
