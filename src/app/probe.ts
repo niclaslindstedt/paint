@@ -56,10 +56,12 @@ function snapshot(drawing: Drawing, ink: InkContext): Snapshot | null {
   const ctx = canvas.getContext("2d", { willReadFrequently: true });
   if (!ctx) return null;
   ctx.setTransform(scale, 0, 0, scale, 0, 0);
-  // The page is painted opaque (no `transparentPage`) and the grid is left off:
-  // the tools must read the drawing, not the drawing aid — a bucket that
-  // stopped at a grid line would be unusable.
-  renderDrawing(ctx, drawing, null, ink);
+  // The page is painted opaque (no `transparentPage`), the grid is left off,
+  // and the layers' filters are skipped: the tools must read the drawing, not
+  // the drawing aid and not the way it is being looked at. A bucket that
+  // stopped at a grid line would be unusable, and one flooding across a blurred
+  // layer has no edge to stop at at all.
+  renderDrawing(ctx, drawing, null, { ...ink, unfiltered: true });
   try {
     const data = ctx.getImageData(0, 0, width, height).data;
     return { pixels: data, width, height, scale };

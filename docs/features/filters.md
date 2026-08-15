@@ -98,7 +98,8 @@ alone rather than on a rectangle of dust around them.
   you set it at. Hiding a layer removes it from what a page filter sees, like
   everything else.
 - **Picking colours.** The paint bucket and the dropper read the drawing, not
-  the filtered view of it, so a blurred page still fills and samples the colours
-  you actually painted.
+  the filtered view of it, so a blurred page — or a blurred layer — still fills
+  and samples the colours you actually painted rather than the softened ones on
+  screen.
 - **The selection outline.** Marching ants are drawn over the top of everything,
   filters included — what you have picked out has to stay legible.

@@ -175,6 +175,20 @@ export type RenderOptions = InkContext & {
    *  isn't given, which is right for every caller in the app — pass it only to
    *  paint at a scale the transform doesn't reflect. */
   scale?: number;
+  /** Paint the marks as they were *made*, not as the page is looked at: the
+   *  layers' own filters are skipped and the stack is folded flat.
+   *
+   *  One caller, and it is not a view — it is the page snapshot the paint bucket
+   *  and the colour dropper read (`probe.ts`). Those two tools answer questions
+   *  about the drawing, and a filter is not part of the drawing (see
+   *  `Layer.filters`): a dropper that sampled a blurred layer would hand back a
+   *  colour that is nowhere in the document, and a bucket flooding across a
+   *  softened edge has no edge to stop at and would spill over the page.
+   *
+   *  The page's own filters never reach the snapshot anyway — they are
+   *  composited outside the renderer — so this is what keeps a layer's filters
+   *  behaving like them rather than like ink. */
+  unfiltered?: boolean;
   /** Marks to leave off this repaint, by stroke id.
    *
    *  One caller: the canvas, while a selection is being dragged. The marks in
@@ -261,8 +275,11 @@ export function renderDrawing(
   // Hiding the sheet takes the colour but keeps what was drawn on it; a
   // transparent export takes both, which is what makes it transparent.
   const scope = { withoutBackground: options.transparentPage };
-  if (anyLayerFiltered(drawing)) paintStack(ctx, drawing, scope, options);
-  else paintStrokes(ctx, visibleStrokes(drawing, scope), options);
+  if (anyLayerFiltered(drawing) && !options.unfiltered) {
+    paintStack(ctx, drawing, scope, options);
+  } else {
+    paintStrokes(ctx, visibleStrokes(drawing, scope), options);
+  }
   if (draft) paintStroke(ctx, draft, options, detailFor(ctx, options));
 
   underlay(ctx, drawing, options);
@@ -398,7 +415,11 @@ export function paintDetached(
   options: RenderOptions,
   landsOn?: string,
 ): void {
-  if (!anyLayerFiltered(drawing) || strokes.length === 0) {
+  if (
+    !anyLayerFiltered(drawing) ||
+    options.unfiltered ||
+    strokes.length === 0
+  ) {
     paintStrokes(ctx, strokes, options);
     return;
   }
