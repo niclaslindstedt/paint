@@ -226,6 +226,40 @@ it exactly as it paints into a canvas, so a new tool gets vector output for free
 and there is still one painter per stroke. What an export covers — the sheet, or
 a crop around the marks — is `bounds.ts`, geometry keyed off the shape kind.
 
+### Filters are a view, not an edit
+
+A page can carry **filters** — a blur, a scattering of grain — and they are the
+one thing painted that is not a mark. A filter is held on the drawing as a kind
+and a couple of numbers (`Filter` in `types.ts`), and it is composited over the
+finished picture rather than applied to anything in it. The tempting
+implementation was the opposite one: rasterise the page, filter the pixels, put
+an image stroke back in place of the marks. That would have traded away every
+property the rest of the app is built on — exact undo, a document small enough
+for localStorage, a synced copy that is readable JSON — for a shorter diff.
+
+The split follows the usual line. `filters.ts` is pure: what the filters are,
+what each offers to set, and how a drawing's list of them is kept (one of each
+kind, always in the declared order, so a page looks the same however it got
+there). `filterPaint.ts` is the pixels, and it runs as the last coat of a frame
+(`frame.ts`) and of a raster export (`export.ts`) — never inside `renderDrawing`,
+because a filter is a composite over _everything_ the render produced, the sheet
+and the gesture in flight included.
+
+Keeping it out of the renderer is also what keeps the mark cache honest: the
+cache holds the **unfiltered** picture, so moving a slider costs one composite
+rather than a repaint of the document, and a committed stroke is still absorbed
+by the same append it always was. Neither effect touches pixels one at a time —
+the blur is one filtered `drawImage` and the grain is a deterministic tile of
+specks laid as a repeating pattern anchored to the page — which is what makes
+them affordable on every frame of a stroke.
+
+The SVG export is the one place the picture is generated twice, because a vector
+file has no pixels to composite: `svgFilter` emits the same two effects as SVG
+filter primitives and the recorder wraps the drawing in them. The blur is
+exactly the same Gaussian; the grain is `feTurbulence`, which is the nearest
+thing a reader can generate for itself, and it is noted as an approximation
+where it is written.
+
 ### A repaint is a fold; a frame is not
 
 `renderDrawing` remains a fold over the whole document, and that is what keeps

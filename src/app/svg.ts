@@ -101,9 +101,9 @@ class SvgGradient {
  * compositing operator and both have an exact structural equivalent:
  *
  *   - **`destination-over`** — what the sheet and the grid are laid down with —
- *     is *painted first*. So a call made in this mode is written to the front of
- *     the element list rather than the back, and the file comes out in the order
- *     a reader paints it in.
+ *     is *painted first*. So a call made in this mode is collected in a list of
+ *     its own that the file opens with, rather than appended to the drawing, and
+ *     the file comes out in the order a reader paints it in.
  *   - **`destination-out`** — what an erasing tool's mark is painted with — is a
  *     `<mask>`. The shapes recorded while it is set are collected as black (mask
  *     black is transparent), everything recorded *before* them is wrapped in a
@@ -113,6 +113,12 @@ class SvgGradient {
  */
 export class SvgCanvas {
   private elements: string[] = [];
+  /** What was painted `destination-over` — the sheet, and the screen's grid if
+   *  one ever reached a file. Kept apart from the elements rather than
+   *  unshifted in among them so that "everything under the drawing" stays
+   *  something the file can name: the erasing masks below wrap the drawing and
+   *  not the sheet, and a page filter wraps the same group. */
+  private under: string[] = [];
   private defs: string[] = [];
   private gradients = new Map<SvgGradient, string>();
   private stack: PaintedState[] = [];
@@ -262,19 +268,19 @@ export class SvgCanvas {
     }
     this.closeMask();
     if (this.globalCompositeOperation === "destination-over") {
-      this.elements.unshift(element);
+      this.under.unshift(element);
     } else {
       this.elements.push(element);
     }
   }
 
-  /** End a run of erasing: everything recorded so far becomes one group wearing
+  /** End a run of erasing: every mark recorded so far becomes one group wearing
    *  a mask with the lifted shapes punched out of it. A no-op when nothing has
    *  been rubbed out, which is every drawing that never reached for the eraser.
    *
-   *  Wrapping *everything* rather than the marks alone is what makes the sheet
-   *  survive: it is laid down last (`destination-over`), so it is unshifted in
-   *  front of the finished group and no mask ever reaches it. */
+   *  The sheet survives it because the sheet is not in this list: it is laid
+   *  down `destination-over` and kept in `under`, in front of the finished
+   *  group, so no mask ever reaches it. */
   private closeMask(): void {
     const shapes = this.lifted;
     this.lifted = null;
@@ -429,6 +435,15 @@ export class SvgCanvas {
       .join("");
   }
 
+  /** Put the page's filters on the file: the def to declare, and the id the
+   *  drawing is wrapped in (see `filters.ts`). `null` — the usual case — leaves
+   *  the file exactly as it was. */
+  setPageFilter(filter: { id: string; markup: string } | null): void {
+    this.pageFilter = filter;
+  }
+
+  private pageFilter: { id: string; markup: string } | null = null;
+
   /** The recorded elements, wrapped in an `<svg>` framing `region`. */
   toSvg(region: {
     x: number;
@@ -438,13 +453,28 @@ export class SvgCanvas {
   }): string {
     // A drawing whose last mark was a rubbing out leaves a run still open.
     this.closeMask();
-    const defs = [...this.defs, this.maskDefs(region)].join("");
+    const filter = this.pageFilter;
+    const defs = [
+      ...this.defs,
+      this.maskDefs(region),
+      filter ? filter.markup : "",
+    ].join("");
+    const under = this.under.join("");
+    // A filtered page is the sheet, then the whole picture — sheet included —
+    // seen through the filter. The sheet is laid down *twice* on purpose: a
+    // blur fades out at the edge of what it can see, and the copy underneath is
+    // the same colour it fades into, so the file has no border the screen
+    // didn't. A transparent export has no sheet, and fades into nothing exactly
+    // as the raster exports do.
+    const body = filter
+      ? `${under}<g filter="url(#${filter.id})">${under}${this.elements.join("")}</g>`
+      : under + this.elements.join("");
     return (
       `<svg xmlns="http://www.w3.org/2000/svg" ` +
       `width="${n(region.width)}" height="${n(region.height)}" ` +
       `viewBox="${n(region.x)} ${n(region.y)} ${n(region.width)} ${n(region.height)}">` +
       (defs ? `<defs>${defs}</defs>` : "") +
-      this.elements.join("") +
+      body +
       `</svg>`
     );
   }

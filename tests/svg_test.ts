@@ -2,6 +2,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { exportRegion } from "../src/app/export.ts";
+import { svgFilter } from "../src/app/filters.ts";
 import { primeImageCache, resetImageCache } from "../src/app/images.ts";
 import { registerBuiltinPlugins } from "../src/app/plugins/builtin/index.ts";
 import { TEXT_LINE_HEIGHT } from "../src/app/plugins/builtin/text.ts";
@@ -302,6 +303,35 @@ describe("the SVG export", () => {
     const group = svg.indexOf("<g mask=");
     expect(page).toBeGreaterThan(-1);
     expect(page).toBeLessThan(group);
+  });
+
+  it("wraps a filtered page in the filter, over a sheet of its own", () => {
+    const doc = drawing([
+      {
+        id: "s1",
+        tool: "pencil",
+        size: 4,
+        shape: {
+          kind: "path",
+          points: [
+            { x: 0, y: 0 },
+            { x: 50, y: 0 },
+          ],
+        },
+      },
+    ]);
+    const recorder = new SvgCanvas();
+    renderDrawing(asContext2D(recorder), doc, null, ink);
+    recorder.setPageFilter(svgFilter([{ kind: "blur", radius: 5 }]));
+    const svg = recorder.toSvg(exportRegion(doc, "page"));
+    expect(svg).toContain("<feGaussianBlur");
+    expect(svg).toContain('<g filter="url(#page-filter)">');
+    // The sheet is laid down twice: once unfiltered behind everything, so the
+    // blur's edge fades into the same colour rather than into transparency, and
+    // once inside the group, because the page is part of the picture the filter
+    // is applied to.
+    const sheet = /fill="#ffffff"/g;
+    expect(svg.match(sheet)).toHaveLength(2);
   });
 
   it("keeps a translucent mark translucent", () => {

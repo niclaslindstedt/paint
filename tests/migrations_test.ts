@@ -237,6 +237,38 @@ describe("parseDoc", () => {
     expect(parseDoc(serializeDoc(doc))).toEqual(doc);
   });
 
+  // The page filters were purely additive — an optional field on a drawing, no
+  // step, no version bump (see the note in `migrations.ts`). What has to hold is
+  // that they survive the round trip, and that a page without them still writes
+  // exactly the bytes it always did.
+  it("round-trips a page's filters, and adds nothing to a page without any", () => {
+    const doc = parseDoc(
+      JSON.stringify({
+        version: LATEST_VERSION,
+        folders: [],
+        drawings: [
+          {
+            id: "d1",
+            name: "sketch",
+            width: 400,
+            height: 300,
+            strokes: [],
+            filters: [
+              { kind: "blur", radius: 6 },
+              { kind: "noise", amount: 0.35, grain: 2, color: true },
+            ],
+          },
+          { id: "d2", name: "plain", width: 400, height: 300, strokes: [] },
+        ],
+        activeDrawingId: "d1",
+      }),
+    );
+    expect(doc.drawings[0]!.filters).toHaveLength(2);
+    expect(doc.drawings[1]!.filters).toBeUndefined();
+    expect(serializeDoc(doc)).not.toContain('"filters":[]');
+    expect(parseDoc(serializeDoc(doc))).toEqual(doc);
+  });
+
   it("refuses a document from a newer build rather than mangling it", () => {
     expect(() =>
       parseDoc(JSON.stringify({ version: LATEST_VERSION + 5, drawings: [] })),

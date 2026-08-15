@@ -54,6 +54,13 @@ connect a storage backend yourself.
   new page over the old one and lets it be pulled by its corners, crop-tool
   style, with a latch that keeps the proportions. The same panel's bin starts
   the drawing over — every mark, every layer and the page colour.
+- Blur the whole page or scatter grain over it from the right-hand panel's
+  Filters section, with the amount, the speck size and coloured-or-grey grain set
+  in the filter's own dialog. A filter is held on the drawing as a couple of
+  numbers and composited when the page is painted — no mark is rasterised, so it
+  is one undo step, it travels with the document, and switching it off gives the
+  drawing back untouched. Downloads carry it: the raster formats through the same
+  painting the screen does, an SVG as filter primitives.
 - Draw on a page bigger than the window: the canvas is a window onto it, with
   pinch-to-zoom, two-finger panning, and one-finger panning under the hand.
 - Stack a drawing into layers: swipe in from the right edge of the canvas (or

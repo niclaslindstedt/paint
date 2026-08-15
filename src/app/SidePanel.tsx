@@ -4,7 +4,6 @@ import { useEffect, useState, type ReactNode } from "react";
 import {
   ChevronDownIcon,
   ChevronUpIcon,
-  CloseIcon,
   ConfirmDialog,
   PlusIcon,
   TrashIcon,
@@ -21,6 +20,12 @@ import {
   TurnRightIcon,
   UnlockIcon,
 } from "./icons.tsx";
+import {
+  FILTERS,
+  filterOf,
+  filterReadout,
+  type FilterKind,
+} from "./filters.ts";
 import { useT } from "./i18n/index.ts";
 import {
   BACKGROUND_LAYER_ID,
@@ -42,9 +47,10 @@ import type { Drawing } from "./types.ts";
 import type { PaintStore } from "./usePaintStore.ts";
 
 // The right-hand panel: what you can do to the *drawing* rather than to a mark.
-// Two sections, in the order you reach for them — the page actions (resize,
-// flip, mirror) at the top, and the layer stack under them, topmost first, the
-// way every drawing app has shown a stack since the idea existed.
+// Three sections, in the order you reach for them — the page actions (resize,
+// flip, mirror) at the top, the page's filters under them, and the layer stack
+// under those, topmost first, the way every drawing app has shown a stack since
+// the idea existed.
 //
 // **It docks where there is room and floats where there isn't.** On a wide
 // screen it is a column of its own beside the canvas, always there, because a
@@ -52,8 +58,15 @@ import type { PaintStore } from "./usePaintStore.ts";
 // a swipe from the right edge (or the header button), floats over the page, and
 // a press anywhere on the canvas closes it again — the scrim that does that
 // lives in `CanvasScreen`, which owns the space the panel floats in. The two
-// modes differ by one prop and a close button: there is no second component and
-// no second set of behaviour to keep in step.
+// modes differ by one prop: there is no second component and no second set of
+// behaviour to keep in step.
+//
+// **There is no close button.** The panel has exactly one switch — the header's
+// side-panel button — and it is the same button whether the panel is showing or
+// not, so it is where the hand goes back to. A cross of its own was a second
+// answer to a question that already had one, and it spent a corner of a
+// 224-pixel panel saying what the button beside it says. Escape and a press on
+// the page still dismiss it, as they do for every floating surface here.
 //
 // The page actions are at the top because they are the ones with a *destination*
 // — you open the panel to resize, where you open it to pick a layer while you
@@ -65,8 +78,8 @@ import type { PaintStore } from "./usePaintStore.ts";
 // layer, and the page colour with them — so it belongs beside resize and flip
 // rather than hung off the eraser, which is where it used to be. It is at the
 // end of the heading rather than in the run of buttons below for the same
-// reason the close button is: a row you can hit by accident on the way to
-// "flip" is not where the irreversible thing goes.
+// reason it is a small glyph rather than a row: something you can hit by
+// accident on the way to "flip" is not where the irreversible thing goes.
 //
 // Actions hang off the *selected* row rather than every row. A layer stack is a
 // list you pick from far more often than you reorder, and four glyphs on every
@@ -102,6 +115,9 @@ type Props = {
   docked?: boolean;
   /** Open the resize dialog. Owned by the screen, like every other dialog. */
   onResize: () => void;
+  /** Open one filter's options. The dialog is the screen's, like the resize
+   *  one — this panel says which filter, and nothing else about it. */
+  onFilter: (kind: FilterKind) => void;
   /** Turn the page around (see `transform.ts`). Routed through the screen
    *  rather than straight to the store because a transform that changes the
    *  page's shape also changes what the *view* should be looking at, and the
@@ -152,6 +168,7 @@ export function SidePanel({
   defaultInk,
   docked = false,
   onResize,
+  onFilter,
   onTransform,
   onClose,
 }: Props) {
@@ -226,11 +243,6 @@ export function SidePanel({
           >
             <TrashIcon className="h-4 w-4" />
           </PanelButton>
-          {!docked && (
-            <PanelButton label={t("layers.close")} onClick={onClose}>
-              <CloseIcon className="h-4 w-4" />
-            </PanelButton>
-          )}
         </div>
         <div className="flex flex-col gap-1 px-2 pb-2">
           <button
@@ -290,6 +302,56 @@ export function SidePanel({
               <MirrorVerticalIcon className="h-4 w-4" />
             </ActionButton>
           </ActionPair>
+        </div>
+      </div>
+
+      {/* What the page is *seen through*. A section of its own, between the
+          actions that change the drawing and the stack that holds it, because
+          that is what a filter sits between: it is not an edit to any mark, and
+          it is not one of the layers — it is the whole page, looked at
+          differently.
+
+          Each row is a filter, and the number on the right is how much of it
+          there is (or **Off**). No glyphs: a blur and a grain are hard to tell
+          apart at 16 pixels, and the value already says which rows are doing
+          something. Pressing one opens its options — every filter has some, and
+          a filter switched on at a strength nobody chose is a filter that will
+          be switched straight off again. */}
+      <div className="shrink-0 border-b border-line px-2 py-1.5">
+        <span className="block pb-1.5 pl-1 text-xs font-bold tracking-wide text-muted uppercase">
+          {t("filters.title")}
+        </span>
+        <div className="flex flex-col gap-1">
+          {FILTERS.map((descriptor) => {
+            const filter = filterOf(drawing, descriptor.kind);
+            return (
+              <button
+                key={descriptor.kind}
+                type="button"
+                onClick={() => onFilter(descriptor.kind)}
+                title={t(descriptor.hintKey)}
+                aria-label={t("filters.open", {
+                  name: t(descriptor.nameKey),
+                })}
+                className={`flex cursor-pointer items-center gap-2 rounded border px-2 py-1.5 text-sm hover:bg-surface-2 hover:text-fg-bright ${
+                  filter
+                    ? "border-accent bg-accent/10 text-fg-bright"
+                    : "border-line text-fg"
+                }`}
+              >
+                <span className="min-w-0 flex-1 truncate text-left">
+                  {t(descriptor.nameKey)}
+                </span>
+                <span
+                  className={`shrink-0 text-[11px] tabular-nums ${
+                    filter ? "text-accent" : "text-muted"
+                  }`}
+                >
+                  {filter ? filterReadout(filter) : t("filters.off")}
+                </span>
+              </button>
+            );
+          })}
         </div>
       </div>
 

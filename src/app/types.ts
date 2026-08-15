@@ -152,6 +152,40 @@ export type Layer = {
   locked?: boolean;
 };
 
+/** One page-wide filter: something the finished picture is seen *through*,
+ *  rather than a mark on it.
+ *
+ *  A filter is held on the drawing and applied when the page is painted (see
+ *  `filters.ts` / `filterPaint.ts`), which is what keeps the document vector: a
+ *  blurred drawing is still the same strokes, at the same coordinates, with a
+ *  number saying how it is being looked at. Turning a filter off costs nothing
+ *  and loses nothing, and the whole thing is two numbers on the wire.
+ *
+ *  At most one filter of each kind is ever on a drawing — "blur" is a setting,
+ *  not something you stack — and they are applied in the order `filters.ts`
+ *  declares rather than the order they were switched on, so a page looks the
+ *  same however it got there.
+ *
+ *  Every option is a plain number or a flag on the object itself: the panel and
+ *  the dialog read and write them by id off the descriptors, and nothing in the
+ *  UI branches on a filter's kind. */
+export type Filter =
+  | {
+      kind: "blur";
+      /** Gaussian standard deviation, in document pixels. */
+      radius: number;
+    }
+  | {
+      kind: "noise";
+      /** How strongly the grain shows, 0–1. */
+      amount: number;
+      /** How big one speck is, in document pixels. */
+      grain: number;
+      /** Speckle the colours as well as the light. Absent — the usual case —
+       *  means monochrome grain, which is what film leaves. */
+      color?: boolean;
+    };
+
 /** A group of drawings in the side menu. Flat by design — a sketchbook is a
  *  shallow thing, and one level of grouping ("Diagrams", "Scratch") is what a
  *  drawer this size can show without turning into a tree view.
@@ -188,6 +222,10 @@ export type Drawing = {
   layers?: Layer[];
   /** The layer new marks land on. Absent falls back to the top of the stack. */
   activeLayerId?: string;
+  /** The page-wide filters this drawing is seen through (see `Filter`).
+   *  Absent — the usual case — means none, and a drawing that has never been
+   *  filtered is byte-for-byte the document it always was. */
+  filters?: Filter[];
   /** Optional framework glyph + accent colour, used by the side menu row and
    *  the browser-tab favicon (see the `glyphs` module). */
   glyph?: string;
