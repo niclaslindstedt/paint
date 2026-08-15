@@ -6,38 +6,54 @@
 // you could compare against 2 and against 16 and against nothing else. Was 6 a
 // technical pen or a marker? The only way to find out was to draw with it.
 //
-// So the page is pinned to a real sheet of paper. **A document pixel is one
-// dot of a 300 dpi print** — the resolution every scanner, every inkjet and
-// every print shop assumes, and the one the new-drawing dialog already offers
-// under "Print" (A4 at 300 dpi is 2480 × 3508, and it is a preset because that
-// is what a page *is*). Everything else here follows from that single choice:
+// So the page is pinned to something physical. **A document pixel is one dot of
+// an iPhone's screen — 460 pixels to the inch**, which is what every phone in
+// the current line measures (and every OLED iPhone back to the 12).
 //
-//   - a millimetre of page is 11.81 pixels, so a 0.5 mm pencil lead is a
-//     six-pixel line and a 25 mm flat brush is a three-hundred-pixel band;
-//   - the default 3200 × 2000 page is a sheet 271 × 169 mm — a little wider
-//     than A4 on its side, which is about what a sketchbook spread is;
+// It could have been a printing resolution, and it was: 300 dpi, on the
+// reasoning that a page is a piece of paper. But this app is not a page you
+// print, it is a page you **draw on with a finger**, and the sheet it is really
+// laid against is the glass under your hand. Calibrating to the screen makes the
+// number on the size button a distance you can measure *on the device you are
+// holding*: set the marker to 5 mm, hold the drawing at 1:1, and the band under
+// your thumb is five millimetres wide. At 300 dpi that same band came out at
+// three and a third — the app said one thing and the glass said another, and the
+// glass is the one you can put a ruler on.
+//
+// Everything else follows from that single number:
+//
+//   - a millimetre of page is 18.11 pixels, so a 0.5 mm pencil lead is a
+//     nine-pixel line and a 25 mm flat brush is a four-hundred-pixel band;
+//   - the default 3200 × 2000 page is a sheet 177 × 110 mm — a postcard held
+//     landscape, which is about what a phone-drawn sketch is;
+//   - the new-drawing dialog's "A4" preset is A4 *here*, because it is written
+//     in millimetres through this module rather than in the pixels of some
+//     other machine's printer (see `canvasSize.ts`);
 //   - a tool can be described the way its maker describes it. A pencil comes in
 //     0.3, 0.5, 0.7 and 0.9 mm; a round brush numbered 6 is 4.8 mm across the
 //     ferrule; type is set in points. Those are the numbers on the box, and now
 //     they are the numbers in the app (see `plugins/gauge.ts`).
 //
-// The painters were already drawing at very nearly this scale — the crayon's
-// tooth is documented as "a fifth of a millimetre… about two pixels", which is
-// 254 dpi — so pinning it down mostly *ratified* the constants they had rather
-// than moving them. The ones that were written against a page of some other
-// size now say what they are in millimetres and convert here.
+// Every physical constant in the painters is written in millimetres and
+// converted here, so the paper's tooth, a brush's hair gauge and how far a
+// loaded head runs all move with this number rather than having to be re-tuned
+// beside it.
 //
 // Widths on strokes are still document pixels, and nothing already drawn moves:
 // this module changes what a number *means*, not what any mark is.
 
-/** Dots per inch a document pixel stands for. */
-export const DPI = 300;
+/** Pixels per inch a document pixel stands for: an iPhone's screen.
+ *
+ *  460 is the whole current line — the 16, 16 Plus, 16 Pro and 16 Pro Max all
+ *  measure it, as does every OLED iPhone since the 12. (The SE, at 326, is the
+ *  one that does not, and it is the one nobody is drawing a watercolour on.) */
+export const DPI = 460;
 
 /** How many document pixels a millimetre of the page is. */
 export const PX_PER_MM = DPI / 25.4;
 
 /** …and a typographic point, which is what type is measured in everywhere
- *  outside this app. 72 to the inch, so a 12 pt caption is 50 px tall. */
+ *  outside this app. 72 to the inch, so a 12 pt caption is 77 px tall. */
 export const PX_PER_PT = DPI / 72;
 
 /** Millimetres of page, in document pixels. The conversion every physical

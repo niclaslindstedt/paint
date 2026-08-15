@@ -177,9 +177,9 @@ export const PALETTE = [
 export const MAX_CUSTOM_COLORS = 12;
 export const MAX_CUSTOM_SIZES = 6;
 
-// The page's own scale — a document pixel is one dot of a 300 dpi print, so a
-// width is a real distance and a tool can be described the way its maker
-// describes it. Both live in `units.ts` / `plugins/gauge.ts`; they are
+// The page's own scale — a document pixel is one dot of an iPhone's screen, so
+// a width is a distance you can measure on the glass and a tool can be
+// described the way its maker describes it. Both live in `units.ts` / `plugins/gauge.ts`; they are
 // re-exported here because this is where the pickers already look.
 export { MAX_SIZE, MIN_SIZE };
 export { PX_PER_MM } from "./units.ts";

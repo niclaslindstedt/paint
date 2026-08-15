@@ -36,8 +36,10 @@ the same [`oss-framework`](https://github.com/niclaslindstedt/oss-framework).
   Settings → Tools, so the toolbar stays as simple as you want it and grows when
   you need it. Rearrange the row there too, and it rearranges here. Each tool
   remembers its own width, so a fat brush never costs you a fine pen.
-- **Sizes a shop actually sells.** A document pixel is one dot of a 300 dpi
-  print, so a width is a real distance: the pencil comes in 0.3 / 0.5 / 0.7 /
+- **Sizes a shop actually sells.** A document pixel is one dot of an iPhone's
+  screen, so a width is a distance you can measure on the glass — set the marker
+  to 5 mm, hold the drawing at 1:1, and the band under your thumb is five
+  millimetres. The pencil comes in 0.3 / 0.5 / 0.7 /
   0.9 / 2.0 mm of lead, the round brush in a #2 through a one-inch flat, type in
   points. Each tool's slider spends its middle four tenths on the range that
   tool is genuinely made in — the band is drawn on the track and the readout

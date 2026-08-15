@@ -16,7 +16,8 @@ connect a storage backend yourself.
   colour dropper, plus a hand tool that drags the page around — the toolbar out
   of the box.
 - Set every tool in the sizes it is really made in. A page pixel is one dot of
-  a 300 dpi print, so widths are millimetres of paper: the pencil offers the
+  an iPhone's screen, so widths are millimetres you can measure on the glass at
+  1:1: the pencil offers the
   four leads a mechanical pencil takes, the round brush a #2 through a one-inch
   flat, type is set in points, and each tool's slider spends its middle four
   tenths on the range that tool is genuinely manufactured in.
