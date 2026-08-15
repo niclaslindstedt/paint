@@ -79,6 +79,11 @@ const migrations = {
   // for a purely additive shape would have made every new document unreadable
   // to the build a stale service worker is still serving, for no gain. A step
   // belongs here when old bytes need *changing*, not whenever the model grows.
+  //
+  // The same goes for the ground a drawing is on (`Drawing.ground`): a document
+  // carrying none reads as the plain solid sheet, which is the page every
+  // drawing was already on, so there are no old bytes to change — see
+  // `tests/migrations_test.ts`.
 } as const;
 
 export const migrator = createMigrator({

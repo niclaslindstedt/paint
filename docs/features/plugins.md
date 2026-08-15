@@ -244,6 +244,15 @@ two glyphs, its own icon drawn hollow and drawn solid, and no words. That second
 glyph is the descriptor's own `icon` asked for `filled`, so a new fillable tool
 gets the picker by drawing itself solid, with nothing to add to the toolbar.
 
+`wetness` is the flag with a number on it: how much water the tool puts on the
+page, nought for a pencil and one for a loaded watercolour brush. On its own it
+does nothing at all. It is multiplied by how thirsty the **sheet** is (see [the
+surface you draw on](surface.md)), and the product is what decides whether a
+mark mixes with what is under it rather than covering it, drags a little of what
+it crossed into its own wet edge, and runs further past the nib than the tool
+would on its own. A new medium declares how wet it is and gets all three; the
+renderer never learns what watercolour is called.
+
 `selects` is the flag for the tool that chooses marks rather than making one.
 The **selection** tool drags an ordinary two-corner draft — so it inherits the
 whole gesture pipeline, down to abandoning itself when a second finger lands —

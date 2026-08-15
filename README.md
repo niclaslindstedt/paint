@@ -94,6 +94,16 @@ the same [`oss-framework`](https://github.com/niclaslindstedt/oss-framework).
   The marker and the highlighter are two shapes of felt tip — a round bullet and
   a flat wedge that draws a band one way and a hairline the other. Not one pen
   at five different widths.
+- **Paper, canvas, or a plain sheet.** The page has a material as well as a
+  colour: pick a solid digital sheet, one of seven papers (hot-pressed,
+  cold-pressed, rough, cartridge, laid, newsprint, kraft) or primed cotton or
+  linen. The sheet's grain is painted _under_ the marks, so it shows through a
+  wash and not through an opaque line — and on a sheet that drinks, the wet
+  tools start behaving like it. A wash mixes with the colour it lands on instead
+  of covering it, so red over blue is purple and blue over red is a different
+  picture; an ink line a wash crosses feathers out into the water; a marker on
+  newsprint goes furry and a pencil on any of it stays a pencil. Mixing is
+  scoped to a layer, so putting a mark on another one keeps it out of the water.
 - **Type on the page.** The text tool drops a caret wherever you tap and you
   type into the drawing itself, in the size, colour and typeface it will land
   in — four faces, bold and italic. Drag the box to put the caption somewhere

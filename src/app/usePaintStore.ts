@@ -34,6 +34,7 @@ import {
   type Drawing,
   type Folder,
   type Filter,
+  type Ground,
   type Layer,
   type Stroke,
 } from "./types.ts";
@@ -580,6 +581,18 @@ export function usePaintStore(
     [patchActive],
   );
 
+  /** Put this drawing on another sheet — paper, canvas, or the plain solid page
+   *  that `undefined` means (see `Drawing.ground`).
+   *
+   *  An ordinary page edit, exactly like pinning a colour: one undo step, one
+   *  push to the cloud, and it travels with the drawing. It repaints every mark
+   *  on the page, which is the point rather than a side effect — the sheet is
+   *  part of how a mark looks, not a filter over it. */
+  const setGround = useCallback(
+    (ground: Ground | undefined) => patchActive({ ground }),
+    [patchActive],
+  );
+
   const setAppearance = useCallback(
     (patch: { glyph?: string; color?: string }) => patchActive(patch),
     [patchActive],
@@ -1004,6 +1017,7 @@ export function usePaintStore(
     transformActive,
     renameActive,
     setBackground,
+    setGround,
     setAppearance,
     addLayer,
     selectLayer,

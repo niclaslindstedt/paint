@@ -232,6 +232,29 @@ export type Filter =
       color?: boolean;
     };
 
+/** What the page is *made of* — the stock the sheet is cut from, and how much
+ *  of its tooth shows (see `ground.ts`).
+ *
+ *  Held on the drawing rather than in the settings because it is part of the
+ *  picture: a wash laid on rough paper is a different mark from the same wash
+ *  laid on a sealed digital sheet, so the sheet has to travel with the drawing
+ *  and sync with it, exactly as a pinned page colour does.
+ *
+ *  Absent — the usual case, and every drawing made before grounds existed —
+ *  means the plain solid sheet: no tooth, and nothing wet spreads or mixes.
+ *  That is pixel-for-pixel the page this app always had. */
+export type Ground = {
+  /** Which stock, by ground id (`ground.ts`). An id this build doesn't ship
+   *  reads as the solid sheet, so a document from a newer version opens rather
+   *  than failing. */
+  stock: string;
+  /** How strongly the tooth shows, 0–2, scaling the stock's own weight. Absent
+   *  means the stock as it comes, which is what a page nobody has turned this
+   *  down on paints as. It changes only how visible the grain is — how much the
+   *  sheet *drinks* is the stock's, and not a slider. */
+  texture?: number;
+};
+
 /** A group of drawings in the side menu. Flat by design — a sketchbook is a
  *  shallow thing, and one level of grouping ("Diagrams", "Scratch") is what a
  *  drawer this size can show without turning into a tree view.
@@ -260,6 +283,12 @@ export type Drawing = {
    *  Setting it pins the page to that colour for good, and the pin travels with
    *  the drawing when it syncs. */
   background?: string;
+  /** What the sheet is made of — paper, canvas, or the plain solid page (see
+   *  `Ground`). Absent means solid, which is what every drawing was before this
+   *  existed. Where `background` is the page's *colour*, this is its *surface*:
+   *  the two are set apart because a cream sheet and a rough sheet are
+   *  different questions, and every combination of them is a real page. */
+  ground?: Ground;
   strokes: Stroke[];
   /** The stack the marks are painted in, **bottom first**. Absent — the usual
    *  case, and every drawing until someone adds a layer to it — means one
