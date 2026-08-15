@@ -10,10 +10,53 @@
 
 import { describe, expect, it } from "vitest";
 
-import { paintCalligraphy, paintRegion } from "../src/app/plugins/brushes.ts";
+import {
+  paintCalligraphy,
+  paintNib,
+  paintRegion,
+} from "../src/app/plugins/brushes.ts";
 import type { Point } from "../src/app/types.ts";
 
 import { createFakeContext } from "./support/fakeCanvas.ts";
+
+/** One stamp of a felt tip, as `paintNib` emits it. */
+type Stamp = { x: number; y: number; rx: number; ry: number; rot: number };
+
+/** A 2D context that records the nib stamps it is given. */
+function stampingContext(): {
+  ctx: CanvasRenderingContext2D;
+  stamps: Stamp[];
+  /** How many plain-path segments were drawn instead — the round nib's
+   *  fallback. Read after painting, so it is a box rather than a number. */
+  seen: { paths: number };
+} {
+  const stamps: Stamp[] = [];
+  const seen = { paths: 0 };
+  const ctx = {
+    globalAlpha: 1,
+    lineWidth: 1,
+    beginPath() {},
+    moveTo() {},
+    lineTo() {
+      seen.paths++;
+    },
+    arc() {
+      seen.paths++;
+    },
+    quadraticCurveTo() {
+      seen.paths++;
+    },
+    closePath() {},
+    ellipse(x: number, y: number, rx: number, ry: number, rot: number) {
+      stamps.push({ x, y, rx, ry, rot });
+    },
+    fill() {},
+    stroke() {},
+    save() {},
+    restore() {},
+  };
+  return { ctx: ctx as unknown as CanvasRenderingContext2D, stamps, seen };
+}
 
 /** A 2D context that records the path it is given, split into subpaths. */
 function recordingContext(): {
@@ -111,6 +154,78 @@ describe("the calligraphy nib", () => {
     paintCalligraphy(ctx, doubledBack, 12);
     expect(subpaths.length).toBeGreaterThan(0);
     for (const loop of subpaths) expect(loop).toHaveLength(4);
+  });
+});
+
+describe("a felt tip", () => {
+  /** A stroke drawn straight across the page — the underline a highlighter is
+   *  actually used for. */
+  const across: Point[] = [
+    { x: 20, y: 100 },
+    { x: 220, y: 100 },
+  ];
+
+  it("is a plain round line until it is asked for a chisel", () => {
+    // A marker set fully round has nothing a stamped nib can say that a path
+    // cannot, and a path is a great deal cheaper.
+    const { ctx, stamps, seen } = stampingContext();
+    paintNib(ctx, across, 12, 0, 0);
+    expect(stamps).toHaveLength(0);
+    expect(seen.paths).toBeGreaterThan(0);
+  });
+
+  it("stamps a squashed nib along the path once it has one", () => {
+    const { ctx, stamps } = stampingContext();
+    paintNib(ctx, across, 12, 0.85, Math.PI / 2);
+    expect(stamps.length).toBeGreaterThan(1);
+    for (const stamp of stamps) {
+      // The long axis is the nib's own breadth; the short one is what is left
+      // of its thickness once the chisel has taken most of it.
+      expect(stamp.rx).toBeCloseTo(6);
+      expect(stamp.ry).toBeLessThan(stamp.rx);
+      expect(stamp.ry).toBeGreaterThan(0);
+      expect(stamp.rot).toBeCloseTo(Math.PI / 2);
+    }
+  });
+
+  it("is broad one way and fine the other — the whole point of a chisel", () => {
+    // The mark a highlighter leaves depends on which way you pull it, and that
+    // is the one thing the round painter it used to share with the marker could
+    // not say. Measured as the ink's reach across the stroke.
+    const down: Point[] = [
+      { x: 100, y: 20 },
+      { x: 100, y: 220 },
+    ];
+    const reach = (points: Point[]) => {
+      const { ctx, stamps } = stampingContext();
+      paintNib(ctx, points, 24, 0.85, Math.PI / 2);
+      // The nib is vertical, so a horizontal stroke is a band as tall as the
+      // nib and a vertical one is a line as wide as its thickness.
+      const dx = Math.max(...stamps.map((s) => s.rx));
+      const dy = Math.max(...stamps.map((s) => s.ry));
+      return { dx, dy };
+    };
+    const band = reach(across);
+    const line = reach(down);
+    // Same nib either way — what differs is which of its two measurements the
+    // stroke is travelling against.
+    expect(band.dx).toBeCloseTo(line.dx);
+    expect(band.dx / band.dy).toBeGreaterThan(4);
+  });
+
+  it("falls back to a path once the chisel is thinner than a pixel", () => {
+    // Zoomed out far enough that the flat and the round nib rasterise the
+    // same, every stamp lands on the same row of pixels.
+    const { ctx, stamps, seen } = stampingContext();
+    paintNib(ctx, across, 2, 0.85, 0, 0.2);
+    expect(stamps).toHaveLength(0);
+    expect(seen.paths).toBeGreaterThan(0);
+  });
+
+  it("leaves a mark for a press that never travelled", () => {
+    const { ctx, stamps } = stampingContext();
+    paintNib(ctx, [{ x: 10, y: 10 }], 12, 0.85, 0);
+    expect(stamps).toHaveLength(1);
   });
 });
 

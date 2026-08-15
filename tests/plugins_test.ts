@@ -45,6 +45,7 @@ import {
   toolPlugins,
   type ToolbarEntry,
 } from "../src/app/plugins/registry.ts";
+import { graphiteInk } from "../src/app/plugins/graphite.ts";
 import { polygonCorners, starCorners } from "../src/app/plugins/ink.ts";
 import type { ToolContext } from "../src/app/plugins/types.ts";
 import type { Point } from "../src/app/types.ts";
@@ -72,20 +73,20 @@ describe("registry", () => {
   });
 
   it("keeps registration order", () => {
-    // Photoshop's column, top to bottom: sample, paint, erase, fill, type,
-    // shapes, the marquee, and the tool that moves the view last.
+    // The row a hand actually uses: the pen, the rubber that undoes it, the
+    // rest of the media, the bucket, the two families, type — and last the two
+    // tools that touch neither the ink nor the document.
     expect(allPlugins().map((p) => p.id)).toEqual([
-      "dropper",
       "pencil",
+      "eraser",
+      "graphite",
       "paintbrush",
       "airspray",
       "marker",
       "highlighter",
       "crayon",
       "calligraphy",
-      "eraser",
       "filler",
-      "text",
       // The shapes: four a paint program has always had, then the ones a
       // diagram wants. They share a button, not a registration.
       "rectangle",
@@ -105,6 +106,8 @@ describe("registry", () => {
       "select-oval",
       "select-lasso",
       "select-trace",
+      "text",
+      "dropper",
       "hand",
       // Registered, but never in the toolbar: the painter behind a dropped
       // image (see `toolPlugins`).
@@ -112,16 +115,21 @@ describe("registry", () => {
     ]);
   });
 
-  it("samples at the far left and pans at the far right", () => {
+  it("draws at the near end and leaves the marks alone at the far one", () => {
     const ids = toolPlugins().map((p) => p.id);
-    expect(ids[0]).toBe("dropper");
-    expect(ids[ids.length - 1]).toBe("hand");
+    expect(ids[0]).toBe("pencil");
+    // The two that touch neither the ink nor the document, together, last.
+    expect(ids.slice(-2)).toEqual(["dropper", "hand"]);
   });
 
-  it("keeps the eraser directly under the tools it undoes", () => {
+  it("keeps the eraser next to the pen it undoes", () => {
     const ids = toolPlugins().map((p) => p.id);
-    expect(ids[ids.indexOf("eraser") - 1]).toBe("calligraphy");
-    expect(ids[ids.indexOf("eraser") + 1]).toBe("filler");
+    expect(ids[ids.indexOf("eraser") - 1]).toBe("pencil");
+  });
+
+  it("puts type straight after the marquee", () => {
+    const ids = toolbarEntries(defaultEnabledPlugins(), []).map((e) => e.id);
+    expect(ids[ids.indexOf("text") - 1]).toBe(SELECT_GROUP_ID);
   });
 
   it("keeps a hidden plugin out of every list a user picks from", () => {
@@ -153,22 +161,24 @@ describe("registry", () => {
   });
 
   it("opens on a paint program's toolbox and nothing else", () => {
-    // What a first run finds: a nib, a spray can, a rubber, a bucket, a
-    // dropper, type, the shapes and the marquee — the tools anyone who has
-    // opened a paint program already knows, and **nothing else**. This list is
-    // the whole default toolbar, families counted as the one button they are,
-    // so a tool added later has to be switched on before it is seen.
+    // What a first run finds: a pen, a rubber, a pencil, a spray can, a
+    // bucket, the shapes, the marquee, type, a dropper and the hand — the
+    // tools anyone who has opened a paint program already knows, and **nothing
+    // else**. This list is the whole default toolbar, families counted as the
+    // one button they are, so a tool added later has to be switched on before
+    // it is seen.
     expect(
       toolbarEntries(defaultEnabledPlugins(), []).map((e) => e.id),
     ).toEqual([
-      "dropper",
       "pencil",
-      "airspray",
       "eraser",
+      "graphite",
+      "airspray",
       "filler",
-      "text",
       "shapes",
       "select",
+      "text",
+      "dropper",
       "hand",
     ]);
     // …and the rest of the media deliberately not: they are the app's own
@@ -203,7 +213,7 @@ describe("registry", () => {
   });
 
   it("gives every tool a width of its own to open at", () => {
-    // One number never suited all of them: 6 document pixels is a fine pencil
+    // One number never suited all of them: 6 document pixels is a fine pen
     // line, a starved airbrush and type too small to read. A tool without one
     // falls back to the middle of the shared row, which is only right for the
     // tools that have no nib at all.
@@ -230,8 +240,8 @@ describe("registry", () => {
     // must not order the toolbar by when the user switched them on.
     expect(toolbarEntries(["select", "marker"], []).map((e) => e.id)).toEqual([
       "pencil",
-      "marker",
       "eraser",
+      "marker",
       "select",
       "hand",
     ]);
@@ -250,7 +260,7 @@ describe("registry", () => {
       nameKey: "tools.marker.name",
     });
     expect(allPlugins()).toHaveLength(before);
-    expect(allPlugins()[1]!.id).toBe("pencil");
+    expect(allPlugins()[0]!.id).toBe("pencil");
     expect(pluginById("pencil")!.nameKey).toBe("tools.marker.name");
   });
 
@@ -310,7 +320,7 @@ describe("tool groups", () => {
 
   it("sits where its first member registered, not where the group was declared", () => {
     const ids = registeredEntries().map((e) => e.id);
-    expect(ids[ids.indexOf(SHAPES_GROUP_ID) - 1]).toBe("text");
+    expect(ids[ids.indexOf(SHAPES_GROUP_ID) - 1]).toBe("filler");
     expect(ids[ids.indexOf(SHAPES_GROUP_ID) + 1]).toBe("select");
   });
 
@@ -459,6 +469,142 @@ describe("freehand behaviour", () => {
     )!;
     expect(draft.size).toBe(24);
     expect(draft.opacity).toBe(0.35);
+  });
+});
+
+describe("the pencil", () => {
+  beforeEach(() => {
+    resetPlugins();
+    registerBuiltinPlugins();
+  });
+
+  it("mixes its own grey and ignores the ink you picked", () => {
+    // Graphite is a mineral. A pencil that drew in red would be a textured pen.
+    const draft = pluginById("graphite")!.behaviour.start({ x: 0, y: 0 }, ctx)!;
+    expect(draft.color).not.toBe(ctx.color);
+    expect(draft.color).toBe(graphiteInk(ctx.background));
+  });
+
+  it("records the grey it drew in, so a repaint cannot re-tone it", () => {
+    // The colour is chosen against the page *once*, at the moment of drawing.
+    // Recording it is what keeps a sketch the tone it was made in when the
+    // page it sits on is later changed.
+    const onDark = pluginById("graphite")!.behaviour.start(
+      { x: 0, y: 0 },
+      { ...ctx, background: "#111827" },
+    )!;
+    expect(onDark.color).toBe(graphiteInk("#111827"));
+    expect(onDark.color).not.toBe(graphiteInk("#ffffff"));
+  });
+
+  it("is the only tool in the box that will not take the toolbar's ink", () => {
+    const ignoring = toolPlugins().filter((plugin) => {
+      if (plugin.navigates || plugin.picksColor || plugin.selects) return false;
+      const draft = plugin.behaviour.start({ x: 0, y: 0 }, ctx);
+      return Boolean(draft) && draft!.color !== undefined
+        ? draft!.color !== ctx.color
+        : false;
+    });
+    expect(ignoring.map((p) => p.id)).toEqual(["graphite"]);
+  });
+
+  it("keeps the pen's id, whatever the two of them are called", () => {
+    // The plain-line tool is named "Pen" now and the pencil is a different
+    // tool — but an id is persisted on every stroke ever drawn, so the one
+    // that moved was the name.
+    expect(pluginById("pencil")!.nameKey).toBe("tools.pencil.name");
+    expect(pluginById("pencil")!.core).toBe(true);
+    expect(pluginById("graphite")!.nameKey).toBe("tools.graphite.name");
+  });
+});
+
+describe("the felt tips", () => {
+  beforeEach(() => {
+    resetPlugins();
+    registerBuiltinPlugins();
+  });
+
+  it("tells the marker from the highlighter by shape, not just by width", () => {
+    // They used to be the same round painter twice, differing in a width and
+    // an opacity. A chisel is what makes a highlighter a highlighter.
+    const chiselOf = (id: string) =>
+      pluginById(id)!.dials!.find((d) => d.id === "chisel");
+    expect(chiselOf("marker")!.default).toBeLessThan(0.5);
+    expect(chiselOf("highlighter")!.default).toBeGreaterThan(0.5);
+  });
+
+  it("opens the marker at a tip you could write with", () => {
+    // It used to open eighteen document pixels wide, which is a wall marker.
+    const marker = pluginById("marker")!;
+    const draft = marker.behaviour.start({ x: 0, y: 0 }, ctx)!;
+    expect(marker.defaultSize).toBe(4);
+    expect(draft.size).toBe(ctx.size * 2);
+    // Spirit ink: a second pass over the same line darkens it.
+    expect(draft.opacity).toBeLessThan(1);
+  });
+
+  it("lets a broad nib be turned, and only the tools that have one", () => {
+    const angled = toolPlugins()
+      .filter((p) => p.dials?.some((d) => d.id === "angle"))
+      .map((p) => p.id);
+    expect(angled).toEqual(["calligraphy"]);
+    const angle = pluginById("calligraphy")!.dials!.find(
+      (d) => d.id === "angle",
+    )!;
+    // Degrees, because that is what a tilt reads as — the one dial here that
+    // is neither a fraction nor a distance.
+    expect(angle.unit).toBe("deg");
+    expect(angle.default).toBe(-45);
+  });
+});
+
+describe("the airbrush's width", () => {
+  beforeEach(() => {
+    resetPlugins();
+    registerBuiltinPlugins();
+  });
+
+  it("means what it means on every other tool", () => {
+    // It used to take its number times three and spread a cone over 1.6 times
+    // that — a spray set to 8 came out nearly five times as wide as a pen set
+    // to 8. The cone is now about as wide as the nib you asked for.
+    const spray = pluginById("airspray")!.behaviour.start({ x: 0, y: 0 }, ctx)!;
+    const pen = pluginById("pencil")!.behaviour.start({ x: 0, y: 0 }, ctx)!;
+    // `paintSpray`'s own cone is 1.6 × the stroke's size; that against the
+    // pen's half-width is the comparison that matters.
+    const cone = spray.size * 1.6;
+    expect(cone / (pen.size / 2)).toBeGreaterThan(0.8);
+    expect(cone / (pen.size / 2)).toBeLessThan(1.6);
+  });
+});
+
+describe("the eraser's strength", () => {
+  beforeEach(() => {
+    resetPlugins();
+    registerBuiltinPlugins();
+  });
+
+  it("is offered as the one thing a rubber has to set", () => {
+    const eraser = pluginById("eraser")!;
+    expect(eraser.dials?.map((d) => d.id)).toEqual(["opacity"]);
+    // Not called "opacity" anywhere a user can see it — a rubber has a
+    // strength.
+    expect(eraser.dials![0]!.nameKey).toBe("dials.strength.name");
+  });
+
+  it("lands on the mark's own alpha, which is what destination-out reads", () => {
+    // No new plumbing: an erasing mark is composited with `destination-out`,
+    // where the ink's alpha *is* how much of what is underneath goes away.
+    const half = pluginById("eraser")!.behaviour.start(
+      { x: 0, y: 0 },
+      { ...ctx, dials: { opacity: 0.5 } },
+    )!;
+    expect(half.opacity).toBe(0.5);
+    // …and at full strength it records nothing at all, so a page rubbed out
+    // the ordinary way is the document it always was.
+    expect(
+      pluginById("eraser")!.behaviour.start({ x: 0, y: 0 }, ctx)!.opacity,
+    ).toBeUndefined();
   });
 });
 

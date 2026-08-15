@@ -11,13 +11,17 @@
 // `className` for sizing — so they sit beside a framework icon in a menu row
 // without looking imported.
 //
-// They are drawn for 18 pixels, because that is the size the toolbar renders
-// them at (`Toolbar.tsx`), and that size has rules of its own. An outlined
-// detail narrower than about two units — a drop, a speck, a breather hole —
-// closes up into a grey smudge, so anything that small is drawn *filled*
-// instead. Three shapes is about the ceiling before a glyph reads as texture —
-// which is why the airbrush is allowed a dozen of them and nothing else is:
-// texture is the one thing a spray is supposed to look like.
+// They are drawn to survive **18 pixels**, and that size has rules of its own.
+// An outlined detail narrower than about two units — a drop, a speck, a
+// breather hole — closes up into a grey smudge, so anything that small is drawn
+// *filled* instead. Three shapes is about the ceiling before a glyph reads as
+// texture — which is why the airbrush is allowed a dozen of them and nothing
+// else is: texture is the one thing a spray is supposed to look like.
+//
+// The toolbar renders them at 23 now (`Toolbar.tsx` — the button used to be
+// mostly air), which is a few pixels of headroom rather than a licence: they
+// still appear at 18 in Settings → Tools, and a glyph drawn for 23 that smudges
+// at 18 is a glyph that only works in one of the two places it is shown.
 //
 // **A tool is drawn as the implement, not as the mark it leaves.** Every pen in
 // the box is therefore the same stick held at the same 45°, and what tells them
@@ -60,6 +64,26 @@ const base = {
  *  rest of this file stays on `base`, because those glyphs share a row with the
  *  framework's icons and have to match *them*. */
 const toolBase = { ...base, strokeWidth: 1.3 };
+
+/** The pen — the plain nib the app opens with, and the tool the pencil beside
+ *  it used to stand in for.
+ *
+ *  It shares the toolbar's silhouette (a stick at 45°, tip at the near corner)
+ *  with every other pen in the box, so what has to tell it apart is the
+ *  business end and one earned detail: the barrel runs straight into a long
+ *  tapered cone with no wood line cutting across it — a pen is moulded, not
+ *  sharpened — and the clip down its side is the one mark nothing else in the
+ *  set carries. */
+export function PenIcon({ className }: IconProps) {
+  return (
+    <svg {...toolBase} className={className} aria-hidden="true">
+      <g transform="rotate(45 12 12)">
+        <path d="M9.7 4.9a2.3 2.3 0 0 1 2.3-2.3 2.3 2.3 0 0 1 2.3 2.3v7.7L12 21.3l-2.3-8.7Z" />
+        <path d="M14.3 4.9h1.8v5.6" />
+      </g>
+    </svg>
+  );
+}
 
 /** The pencil — the stick every drawing app opens with, and the glyph the whole
  *  toolbar is measured against: it runs corner to corner, tip at the near one.

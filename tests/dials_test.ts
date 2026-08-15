@@ -225,4 +225,14 @@ describe("the shipped set", () => {
     )!;
     expect(dialReadout(feather, 12)).toBe(12);
   });
+
+  it("reads a tilt out as the degrees it is, sign and all", () => {
+    // The nib angle is neither a fraction of anything nor a distance on the
+    // page — showing −45° as −4500% would be nonsense.
+    const angle = pluginById("calligraphy")!.dials!.find(
+      (d) => d.id === "angle",
+    )!;
+    expect(dialReadout(angle, -45)).toBe(-45);
+    expect(dialReadout(angle, 30)).toBe(30);
+  });
 });

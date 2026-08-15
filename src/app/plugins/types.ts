@@ -91,8 +91,9 @@ export type ToolDial = {
   step: number;
   /** How the number reads. A fraction of the tool's normal shows as a
    *  percentage (the default); a dial that measures a real distance on the page
-   *  shows the document pixels it is. */
-  unit?: "percent" | "px";
+   *  shows the document pixels it is; one that measures a *tilt* — the angle a
+   *  flat nib is held at — shows degrees. */
+  unit?: "percent" | "px" | "deg";
   /** What the tool draws at untouched. 1 unless a dial's natural rest is
    *  somewhere else — and whatever it is, the painter's own default argument
    *  has to agree, because that is what an absent value resolves to. */

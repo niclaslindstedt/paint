@@ -13,27 +13,29 @@ There are three kinds, and the only difference is how they are switched on:
 | **Default on** | `defaultOn: true`                | In the toolbar until you switch off |
 | **Optional**   | everything else                  | Off until you switch it on          |
 
-Core is the irreducible three — pencil, eraser, hand. On out of the box:
-airbrush, paint bucket, colour dropper, text, the shapes and the selection tools
-— the toolbox anyone who has opened a paint program already knows how to use,
-spray can included. That is the _whole_ default toolbar: nine buttons, families
-counted as the one button they are, and everything else off until you ask for
-it. Waiting in Settings → Tools: the rest of the media this app
-adds to it (the bristle paintbrush, marker, highlighter, crayon, calligraphy
-pen).
+Core is the irreducible three — pen, eraser, hand. On out of the box: the
+graphite pencil, the airbrush, the paint bucket, text, the shapes, the selection
+tools and the colour dropper — the toolbox anyone who has opened a paint program
+already knows how to use, spray can included. That is the _whole_ default
+toolbar: ten buttons, families counted as the one button they are, and
+everything else off until you ask for it. Waiting in Settings → Tools: the rest
+of the media this app adds to it (the bristle paintbrush, marker, highlighter,
+crayon, calligraphy pen).
 
-The toolbar reads down Photoshop's tool column, so a hand that already knows one
-toolbar finds this one where it expects to. Sample, then paint, then erase, then
-fill, then type, then the shapes, then the selection tools, and the tool that
-moves the view last of all:
+The row reads in the order a hand actually uses it. The pen you draw with, the
+rubber that undoes it, the rest of the media, the bucket, the two families, type
+— which is what you usually reach for right after picking something out — and
+last the two tools that touch neither the ink nor the document:
 
-**dropper · pencil · paintbrush · airbrush · marker · highlighter · crayon ·
-calligraphy pen · eraser · paint bucket · text · shapes · select · hand**
+**pen · eraser · pencil · paintbrush · airbrush · marker · highlighter · crayon
+· calligraphy pen · paint bucket · shapes · select · text · dropper · hand**
 
-Photoshop's other blocks — crop, pen paths — are tools this app has no business
-shipping, so the order is that column with the gaps closed up. Switching a tool
-on in Settings → Tools slots it into its place in that row rather than appending
-it, so the toolbar never reads in the order you happened to discover it in.
+It used to read down Photoshop's tool column instead. That column is a column,
+and a phone's toolbar is a row: it put the one tool that draws nothing (the
+dropper) under the thumb that reaches best, and the rubber at the far end from
+the pen it undoes. Switching a tool on in Settings → Tools slots it into its
+place in this row rather than appending it, so the toolbar never reads in the
+order you happened to discover it in.
 
 That is the _default_ order. Settings → Tools lists the whole toolbar in the
 order the buttons sit in, and the up / down arrow beside each row moves it —
@@ -92,9 +94,9 @@ marks are chosen.
 
 ## Brushes are their medium
 
-A tool that differs from the pencil only in `lineWidth` is not a tool. The
-painters in `src/app/plugins/brushes.ts`, `bristle.ts` and `crayon.ts` model
-what the mark is _made of_:
+A tool that differs from the pen only in `lineWidth` is not a tool. The
+painters in `src/app/plugins/brushes.ts`, `bristle.ts`, `crayon.ts` and
+`graphite.ts` model what the mark is _made of_:
 
 - the **paintbrush** is a head of hair, and the mark it leaves is opaque paint
   with the hairs' partings scratched through it. The hair is a fixed gauge, not
@@ -119,7 +121,22 @@ what the mark is _made of_:
   where a wide one at the same setting is streaking;
 - the **airbrush** is a spray cone — a radial gradient stamped along the path at
   a fraction of its own radius, faint enough that coverage comes from _overlap_,
-  so passing twice really is twice the paint, with a sparse grain over the top;
+  so passing twice really is twice the paint, with a sparse grain over the top.
+  The cone is about as wide as the width you set, so a size-8 airbrush covers
+  roughly what a size-8 pen does, only soft-edged instead of hard;
+- the **pencil** is graphite scratched onto that same tooth, and it is not the
+  crayon: the flakes chip off where they land rather than smearing, the grain is
+  finer because a sharp lead reaches into tooth a blunt wax face rides over, and
+  the tool mixes its own grey rather than taking the ink you picked — because a
+  pencil that drew in red would be a textured pen. The lead's **grade** is its
+  one axis: hard and pale at the H end, soft and dark at the B end, reaching the
+  deposit and never the width;
+- the **marker** and the **highlighter** are two shapes of felt tip, not one
+  painter at two widths. The nib is an ellipse stamped along the path, and how
+  far it is squashed is the **chisel** dial: a marker rests mostly round and
+  draws the same weight whichever way you pull it, a highlighter rests nearly
+  flat and held square across the page, so an underline gets the full band and a
+  stroke down the page gets a hairline;
 - the **crayon** is wax caught on the paper's tooth. The page carries a fixed
   lattice of peaks and valleys; wax lands on the peaks and smears along the way
   you were going, and the valleys stay the colour of the sheet. The tooth
@@ -131,7 +148,8 @@ what the mark is _made of_:
   down solid and the other frays, and the ends fade in instead of starting
   square;
 - the **calligraphy pen** is a flat nib held at an angle: broad across the
-  stroke, hairline along it.
+  stroke, hairline along it. The angle is a dial, in degrees, because the tilt
+  of the hand is the one thing a writer actually changes about a broad nib.
 
 All of it is a pure function of the stored stroke: the scatter is hashed off
 position rather than drawn at random, so a repaint, an undo and the PNG export
@@ -174,18 +192,31 @@ it will land in, so there is no "now render it" beat between typing and having
 typed. Four typefaces, bold and italic ride in a small bar above the caret: they
 are properties of the caption rather than of the gesture, and they mean nothing
 when nothing is being typed. Enter breaks the line, Escape throws it away, and a
-press anywhere else on the page keeps it.
+press anywhere else on the page keeps it. The box can be **dragged** — by its
+rim, or by the grip at the head of the type bar — so a caption that landed in
+the wrong place is moved rather than retyped, and when the caret lands near the
+edge of the screen the field is capped at the room actually left and the bar
+slides back inside the canvas, so its buttons are always reachable.
 
 ## One width per tool — for the tools that have one
 
 Width is the control most tools share — and for a long time it was one
 _number_ shared by all of them, which meant reaching for a fat brush left you
-with a fat pencil. It is now per tool: a pencil width, a paintbrush width, a type
+with a fat pen. It is now per tool: a pen width, a paintbrush width, a type
 size, each remembered separately, and each opening at a value the tool itself
 declares (`defaultSize`) rather than at one number applied to fifteen tools. A
 tool whose scale is its own says so too — the text tool offers type sizes
 (`sizes`) where everything else offers the three nib widths — and the size panel
-renders whatever it is handed without knowing which tool it is drawing for.
+renders whatever it is handed without knowing which tool it is drawing for. The
+panel is headed with the name of the tool it is setting, so a picker opened over
+the drawing says whose widths these are.
+
+Widths read in **millimetres of page**. A bare number is only a comparison
+against the other bare numbers — is 6 a fine pen or a fat one? — where a number
+with a unit on it answers from memory: 0.5 is a technical pen, 5 a thin marker,
+140 a decorator's brush. A document pixel is the millimetre, so nothing already
+drawn moved; what changed is that the ceiling went from 96 to 200, because a
+stroke wider than 96 is a fill with extra steps only if you are holding a pen.
 
 Not every tool has one. The paint bucket fills the area it traced whatever a nib
 might say, so it declares `sizeless` and is offered no width at all; the hand,
@@ -252,15 +283,19 @@ one or two. The paintbrush is the exception and earns it — a head of hair is
 loaded or dry, milled fine or coarse, new or worn open, and on paper that wicks
 or paper that does not, and no one of those four is any of the others:
 
-| Tool                             | Advanced                              |
-| -------------------------------- | ------------------------------------- |
-| **Paintbrush**                   | opacity, hardness, hair, splay, bleed |
-| **Airbrush**                     | hardness, flow                        |
-| **Crayon**                       | opacity, pressure                     |
-| **Paint bucket**                 | opacity, feather — behind its cog     |
-| Pencil, marker, highlighter, pen | opacity                               |
-| Shapes, text                     | opacity                               |
-| Eraser, hand, dropper, select    | nothing — no section appears          |
+| Tool                  | Advanced                              |
+| --------------------- | ------------------------------------- |
+| **Paintbrush**        | opacity, hardness, hair, splay, bleed |
+| **Airbrush**          | hardness, flow                        |
+| **Pencil**            | lead, opacity                         |
+| **Crayon**            | opacity, pressure                     |
+| **Marker**            | opacity, chisel                       |
+| **Highlighter**       | opacity, chisel                       |
+| **Calligraphy pen**   | opacity, nib angle                    |
+| **Eraser**            | strength                              |
+| **Paint bucket**      | opacity, feather — behind its cog     |
+| Pen, shapes, text     | opacity                               |
+| Hand, dropper, select | nothing — no section appears          |
 
 Each one is wired to something the painter actually does. **Hardness** is how
 charged the head is, and it is the brush's main control: turned up it is a
@@ -278,7 +313,14 @@ trigger, and because its coverage
 is built from overlapping passes rather than one opaque dab, turning it down
 really does mean more passes. **Pressure** is how hard the crayon bears down:
 wax only sticks to the peaks it is pressed onto, so a light hand leaves the
-paper's speckle showing and a heavy one fills the valleys in. **Feather** fades
+paper's speckle showing and a heavy one fills the valleys in. **Lead** is the
+pencil's grade — hard and pale like an H, soft and dark like a B — and like
+pressure it reaches the deposit rather than the width. **Chisel** is the shape
+of a felt tip, from a round bullet to a flat wedge, and **nib angle** is the
+tilt a broad nib is held at, in degrees. **Strength** is how much of a mark one
+pass of the eraser takes off: it is the ink's own alpha under `destination-out`,
+so turning it down gives you the pencil eraser you knock a highlight back with
+rather than the one that takes the page to white in a single drag. **Feather** fades
 the bucket's edge out over a few pixels instead of stopping it, which turns the
 tool into a way of laying a soft wash behind a sketch — and it stays a vector
 fill, so the fade holds at eight hundred percent.

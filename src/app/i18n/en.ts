@@ -194,7 +194,10 @@ export const en = {
     keepColor: "Keep",
     colorKept: "Kept",
     removeColor: "Forget",
-    customSize: "Custom width: {size}",
+    // Widths read in millimetres of page (see `PX_PER_MM`) — a number with a
+    // unit on it says what a nib is without a second one to compare it against.
+    sizeMm: "{size} mm",
+    customSize: "Custom width: {size} mm",
     keepSize: "Keep",
     sizeKept: "Kept",
     removeSize: "Forget",
@@ -218,6 +221,22 @@ export const en = {
     opacity: {
       name: "Opacity: {value}%",
       hint: "How much of the page shows through the mark.",
+    },
+    strength: {
+      name: "Strength: {value}%",
+      hint: "How much of a mark one pass takes off. Turn it down to fade something back rather than remove it.",
+    },
+    chisel: {
+      name: "Chisel: {value}%",
+      hint: "Round like a bullet tip, or flat like a wedge that draws broad one way and fine the other.",
+    },
+    angle: {
+      name: "Nib angle: {value}°",
+      hint: "Which way the flat of the nib is turned.",
+    },
+    grade: {
+      name: "Lead: {value}%",
+      hint: "Hard and pale like an H, or soft and dark like a B.",
     },
     hardness: {
       name: "Hardness: {value}%",
@@ -257,6 +276,7 @@ export const en = {
     font: "Typeface",
     bold: "Bold",
     italic: "Italic",
+    move: "Drag to move the text",
     keep: "Keep the text",
     discard: "Discard the text",
   },
@@ -285,13 +305,22 @@ export const en = {
     swipeHint: "Swipe in from the right edge to open this panel.",
   },
   tools: {
+    // Named "Pen" but keyed `pencil`: the id is persisted on every stroke ever
+    // drawn with it, so the name moved and the key stayed put. The tool that
+    // actually behaves like a pencil is `graphite`.
     pencil: {
-      name: "Pencil",
+      name: "Pen",
       description: "Freehand line at the selected width.",
+    },
+    graphite: {
+      name: "Pencil",
+      description:
+        "A graphite sketching pencil. It only ever draws grey — set the lead from a hard, pale H to a soft, dark B.",
     },
     eraser: {
       name: "Eraser",
-      description: "Paints over marks with the page colour.",
+      description:
+        "Rubs marks off the page. Turn the strength down to fade them rather than remove them.",
     },
     line: { name: "Line", description: "A straight line between two points." },
     rectangle: {
@@ -360,11 +389,13 @@ export const en = {
     },
     marker: {
       name: "Marker",
-      description: "A thick freehand pen for bold strokes.",
+      description:
+        "A felt tip loaded with spirit ink: it darkens where it overlaps, and its tip goes from a round bullet to a chisel.",
     },
     highlighter: {
       name: "Highlighter",
-      description: "A wide translucent band that builds up where it overlaps.",
+      description:
+        "A broad translucent wedge — a full band across the page, a hairline down it — that builds up where it overlaps.",
     },
     paintbrush: {
       name: "Paintbrush",
@@ -384,7 +415,7 @@ export const en = {
     calligraphy: {
       name: "Calligraphy pen",
       description:
-        "A flat nib held at an angle — broad across the stroke, hairline along it.",
+        "A flat nib — broad across the stroke, hairline along it. Set the angle it is held at.",
     },
     text: {
       name: "Text",

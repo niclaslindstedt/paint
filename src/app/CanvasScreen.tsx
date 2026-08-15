@@ -745,6 +745,14 @@ export function CanvasScreen({
               onChange={(text) =>
                 setTyping((current) => (current ? { ...current, text } : null))
               }
+              // Dragging the box re-anchors the caption. It is only ever the
+              // anchor that moves — the words, the face and the ink are the
+              // same mark, filed wherever it was let go of.
+              onMove={(where) =>
+                setTyping((current) =>
+                  current ? { ...current, at: where } : null,
+                )
+              }
               ink={{
                 color: settings.color ?? ink,
                 size: textSize,

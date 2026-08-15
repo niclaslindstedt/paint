@@ -222,9 +222,9 @@ it lives in the sidebar's button island (see [cloud sync](cloud-sync.md)).
 ## Keyboard
 
 - `Ctrl/Cmd + Z` undo, `Ctrl/Cmd + Shift + Z` (or `Ctrl + Y`) redo.
-- Each tool has a single-key shortcut, shown in its tooltip: `P` pencil,
-  `B` paintbrush, `S` airbrush, `F` the bucket, `I` the dropper, `E` eraser,
-  `D` the hand (drag), `L` line, `R` rectangle, `O` ellipse, and one
+- Each tool has a single-key shortcut, shown in its tooltip: `P` pen,
+  `G` pencil, `B` paintbrush, `S` airbrush, `F` the bucket, `I` the dropper,
+  `E` eraser, `D` the hand (drag), `L` line, `R` rectangle, `O` ellipse, and one
   per optional tool.
 
 ## Layers
