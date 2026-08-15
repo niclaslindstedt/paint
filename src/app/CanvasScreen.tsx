@@ -172,9 +172,11 @@ type Props = {
   onToggleMenu: () => void;
   /** Whether that menu is showing, so the button can read as pressed. */
   menuOpen: boolean;
-  /** Whether the right-hand panel is docked beside the canvas (a wide screen)
+  /** Whether the right-hand panel *can* dock beside the canvas (a wide screen)
    *  rather than floating over it. Resolved by `App`, which owns the media
-   *  query, so the screen and the canvas can't disagree about it. */
+   *  query, so the screen and the canvas can't disagree about it. Whether a
+   *  dockable panel is actually showing is this screen's own business — the
+   *  header's panel button folds it away. */
   dockPanel: boolean;
   /** Filing the drawing's rendered layers out to the backend — the header's
    *  disk button (see `layerStore.ts`). Absent on a backend that can't take
@@ -224,6 +226,27 @@ export function CanvasScreen({
   // screen too narrow to dock it. Screen state too: which panels are open is
   // not part of the drawing.
   const [layersOpen, setLayersOpen] = useState(false);
+  // …and, on a screen wide enough to dock it, whether that docked column is
+  // folded away. The same two-state shape the sidebar has in `App.tsx`: a wide
+  // screen folds a docked column, a narrow one opens a floating panel, and
+  // `togglePanel` is the one place that knows which of the two it is doing. Not
+  // persisted, for the same reason the sidebar's fold isn't — it is where you
+  // put the screen for a moment, not a setting.
+  const [panelFolded, setPanelFolded] = useState(false);
+  const panelDocked = dockPanel && !panelFolded;
+  const panelShowing = panelDocked || layersOpen;
+  // Showing → put it away, whichever of the two it is; away → bring it back the
+  // way this width shows it. Written on `panelShowing` rather than as two
+  // independent flips so a wide screen that has *both* — a column folded away
+  // and a floating panel swiped in over the page — can't end up with a button
+  // that reads pressed and unfolds a second panel behind the first.
+  const togglePanel = () => {
+    if (panelShowing) {
+      setLayersOpen(false);
+      if (dockPanel) setPanelFolded(true);
+    } else if (dockPanel) setPanelFolded(false);
+    else setLayersOpen(true);
+  };
   // The marks a marquee has picked out — ids only, so the selection can never
   // hold a stale copy of a mark the document has since changed.
   const [selectedIds, setSelectedIds] = useState<readonly string[]>([]);
@@ -643,8 +666,13 @@ export function CanvasScreen({
           ~11px below it — near enough the 9px (`pb-2` + the border) between
           them and the canvas that the row reads centred in its own bar. The
           extra 0.5rem this used to add made that gap 19px, twice the one
-          below, and the header sat visibly low. */}
-      <header className="flex shrink-0 items-center gap-2 border-b border-line bg-surface px-3 pb-2 pt-[env(safe-area-inset-top)]">
+          below, and the header sat visibly low.
+
+          Everywhere the inset is 0 — a desktop browser, a tab rather than an
+          installed app — `max()` falls back on the same 0.5rem that sits under
+          the buttons, so the row reads centred there too rather than pinned to
+          the top edge with all of its air below it. */}
+      <header className="flex shrink-0 items-center gap-2 border-b border-line bg-surface px-3 pb-2 pt-[max(0.5rem,env(safe-area-inset-top))]">
         {/* The way to the drawings. It leads the header — left of the name,
             where every app that has a list behind it puts one — and it replaces
             the button that used to float over the canvas, which spent a corner
@@ -704,18 +732,23 @@ export function CanvasScreen({
               that edge, next to the gesture that does the same job. The swipe
               is the phone gesture; this button is how it is *found*, which is
               also why it wears the panel rather than the layer stack: what
-              slides in holds the page actions too. Gone entirely on a screen
-              wide enough to dock the panel — a button that opens something
-              already open is a button that lies. */}
-          {!dockPanel && (
-            <HeaderIconButton
-              label={t("layers.open")}
-              pressed={layersOpen}
-              onClick={() => setLayersOpen((open) => !open)}
-            >
-              <SidePanelIcon className="h-[18px] w-[18px]" />
-            </HeaderIconButton>
-          )}
+              slides in holds the page actions too.
+
+              It is here on every width, docked panel included: a docked column
+              is width taken off the page for as long as it is there, and a
+              drawing you want the whole screen for is the ordinary reason to
+              want it gone. It is the same button either way — the hamburger's
+              opposite number, folding a docked column on a wide screen and
+              opening a floating one on a narrow — and it shows pressed
+              whenever the panel is showing, so it never claims to open
+              something that is already open. */}
+          <HeaderIconButton
+            label={t("layers.open")}
+            pressed={panelShowing}
+            onClick={togglePanel}
+          >
+            <SidePanelIcon className="h-[18px] w-[18px]" />
+          </HeaderIconButton>
           {/* No bin either. Throwing a drawing away is an action on the
               document, so it sits at the head of the right-hand panel's Image
               section with resize and flip (see `SidePanel.tsx`). The header
@@ -758,7 +791,7 @@ export function CanvasScreen({
             // the way in. Nothing is armed while the panel is open: the scrim
             // below has the canvas then.
             panelSwipeEdge={
-              dockPanel || layersOpen || menuSwipeEdge === "right"
+              panelDocked || layersOpen || menuSwipeEdge === "right"
                 ? null
                 : "right"
             }
@@ -845,7 +878,7 @@ export function CanvasScreen({
             "click outside it" rule a floating menu follows — while the header
             and the toolbar stay live, so picking a colour for the layer you
             just selected doesn't cost you the panel. */}
-          {layersOpen && !dockPanel && (
+          {layersOpen && !panelDocked && (
             <>
               <div
                 className="absolute inset-0 z-10"
@@ -909,9 +942,10 @@ export function CanvasScreen({
           </button>
         </div>
 
-        {/* Docked: a column of its own, always there, taking width from the
-            canvas rather than covering it. */}
-        {dockPanel && (
+        {/* Docked: a column of its own, taking width from the canvas rather
+            than covering it — until the header's panel button folds it away
+            and gives the page the whole width back. */}
+        {panelDocked && (
           <SidePanel
             store={store}
             drawing={drawing}
