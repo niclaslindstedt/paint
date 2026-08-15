@@ -60,7 +60,7 @@ import { TextEntry } from "./TextEntry.tsx";
 import { Toolbar } from "./Toolbar.tsx";
 import { ToolFlash } from "./ToolFlash.tsx";
 import { presetsFor, toolSize, type AppSettings } from "./useAppSettings.ts";
-import type { ToolPreset } from "./presets.ts";
+import type { PresetSettings } from "./presets.ts";
 import type { Point } from "./types.ts";
 import type { PaintStore } from "./usePaintStore.ts";
 import {
@@ -127,7 +127,9 @@ export type PaletteActions = {
     dials: Readonly<Record<string, number>>,
     glyph: string | null,
   ) => void;
-  applyPreset: (tool: string, preset: ToolPreset) => void;
+  /** Either kind — one the user saved, or one the tool ships with (see
+   *  `PresetSettings`). */
+  applyPreset: (tool: string, preset: PresetSettings) => void;
   deletePreset: (tool: string, id: string) => void;
   /** Move one of a tool's dials, or forget it with `null` (see
    *  `plugins/dials.ts`). */

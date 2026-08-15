@@ -326,6 +326,65 @@ that has settings but no width, and nothing for a tool with neither. The dimmed
 size button those last two used to get was a promise that the control worked
 sometimes, and for them there was no sometimes.
 
+## Presets: the tool as it is actually held
+
+Five sliders is a tool a professional can build and a beginner cannot. Nobody
+arrives at dry-brush by dragging the splay up, the hardness down and the opacity
+off to see what happens — they arrive at it by being handed it and told what it
+is called. So most tools **ship with the handful of settings their medium is
+actually used at**, and the panel offers them as a row of chips above everything
+else in it.
+
+A preset is a **whole tool**: a width _and_ every dial. Pressing one sets the
+lot, including the dials it has no opinion about, which go back to their
+defaults — so a dry brush applied over a wet-in-wet is a dry brush and not some
+third thing. What is on offer is the vocabulary of the medium rather than of the
+app:
+
+| Tool            | Ships with                               |
+| --------------- | ---------------------------------------- |
+| Pen             | Liner · Fineliner · Guide line           |
+| Pencil          | Sketch · Construction · Shading · Detail |
+| Eraser          | Block · Detail · Kneaded                 |
+| Round brush     | Round · Hog bristle · Dry brush · Glaze  |
+| Flat brush      | One-stroke · Lettering · Flat wash       |
+| Watercolour     | Wash · Wet-in-wet · Glaze · Dry brush    |
+| Airbrush        | General · Detail · Background            |
+| Marker          | Marker · Chisel · Fineliner              |
+| Highlighter     | Line of text · Broad                     |
+| Crayon          | Colouring · Shading · Solid              |
+| Calligraphy pen | Italic · Foundational · Uncial           |
+| Paint bucket    | Flat fill · Soft edge · Wash             |
+
+Each chip wears **the mark it makes** — a press with the tool as that preset
+sets it, painted by the painter that would paint it, exactly as the widths below
+are (see below). That is what makes a word you may not know yet worth putting on
+a button: "wet-in-wet" reads a great deal more clearly when the chip beside it
+is visibly wetter than the one next to it.
+
+**Every row opens with the tool as it comes.** The first chip of each is
+precisely the tool's own defaults, so opening the panel on a tool nobody has
+touched shows a chip already lit — which is how the row explains itself without a
+word of help text, and which makes "put it back the way it was" one press.
+
+**A tool whose must-haves come to a single setting ships none at all**, and puts
+that setting in its defaults instead — which is what a default is _for_. A row of
+one chip is a worse default than a default. That is why the eleven shapes have
+none (a rectangle is a rectangle; what varies is the width of the line it is
+ruled with, and the width row is already five buttons of exactly that, opening on
+the half-millimetre line you would draw a box with) and why the text tool has
+none either (the size row is the preset row for type, and the face, the weight
+and the slant are not dials — they sit beside the caption you are typing). The
+hand, the dropper and the selection tools have no dials and leave no mark, so
+there is nothing to preset.
+
+The paint bucket is the one whose presets carry **no width**, because the tool
+has none: they are three dial settings, offered from the same cog that holds its
+dials. A fill with a hard edge, one that fades out behind a sketch, and a pale
+wash you can read the drawing through are three different tools to anyone using
+them, and the bucket having no nib is no reason for it to be the one tool you
+have to build by hand.
+
 ## Saved tools
 
 A width and five dials is a lot of decisions, and the ones worth making are
@@ -532,12 +591,15 @@ Three steps, none of which touch the canvas, the store, or the toolbar:
    without being asked for, `defaultSize` for the width it opens at, `gauge`
    for the sizes it is really made in (see `plugins/builtin/gauges.ts` — the
    range, the five buttons, and the trade's name for each), `dials` if it has
-   anything of its own to tune, and `group` if it belongs to a family
+   anything of its own to tune, `presets` if its medium has more than one way
+   of being held (and if it has exactly one, make that its defaults instead of
+   a row of one chip), and `group` if it belongs to a family
    that already has a button (a twelfth shape is one line in the `SHAPES`
    table). A tool with no width says `sizeless` and gets the cog instead of the
    size button; one whose mark cannot picture itself says
    `sizePreview: "circle"`.
-3. Add those two strings to `src/app/i18n/en.ts` (and `sv.ts`).
+3. Add those two strings to `src/app/i18n/en.ts` (and `sv.ts`) — plus one per
+   preset, under `presets.<tool id>`.
 
 Externally-loaded plugins are not implemented yet. When they land they register
 through this same interface rather than a second, parallel one — which is the

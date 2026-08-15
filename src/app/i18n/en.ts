@@ -238,6 +238,10 @@ export const en = {
     sizeFiner: "finer than made",
     sizeWider: "wider than made",
     customSize: "Width",
+    // The settings a tool ships with — the "must haves" of its medium, named by
+    // whoever made the tool (see `plugins/builtin/presets.ts`). Above the saved
+    // row, because it is there on the first run and the saved row is not.
+    builtinPresets: "Presets",
     // Saved tools — a width and every dial, under a name and a mark you pick
     // (see `presets.ts`). The way in is the star on the panel's title row,
     // which is what `savePreset` names.
@@ -326,6 +330,80 @@ export const en = {
     granulation: {
       name: "Granulation: {value}%",
       hint: "How heavily the pigment settles into the paper's dips. Rough stock and mineral colours mottle most.",
+    },
+  },
+  // The presets each tool ships with — the settings its medium is actually used
+  // at, offered as chips above the ones you saved yourself (see
+  // `plugins/builtin/presets.ts`). Grouped by the tool's own id, so the
+  // registration and the string sit under the same word; `pencil` is the
+  // drawing pen and `graphite` the pencil, which is the one place that id shows
+  // through. A tool missing from here ships no presets, and that is deliberate.
+  //
+  // These are the names of *implements and techniques*, so they are the words a
+  // shop or a class would use — "wet-in-wet", "one-stroke", "uncial" — and not
+  // descriptions of the settings behind them.
+  presets: {
+    pencil: {
+      liner: "Liner",
+      fineliner: "Fineliner",
+      guide: "Guide line",
+    },
+    eraser: {
+      block: "Block",
+      detail: "Detail",
+      kneaded: "Kneaded",
+    },
+    graphite: {
+      sketch: "Sketch",
+      construction: "Construction",
+      shading: "Shading",
+      detail: "Detail",
+    },
+    paintbrush: {
+      round: "Round",
+      hog: "Hog bristle",
+      dry: "Dry brush",
+      glaze: "Glaze",
+    },
+    flatbrush: {
+      onestroke: "One-stroke",
+      lettering: "Lettering",
+      wash: "Flat wash",
+    },
+    watercolor: {
+      wash: "Wash",
+      wet: "Wet-in-wet",
+      glaze: "Glaze",
+      dry: "Dry brush",
+    },
+    airspray: {
+      general: "General",
+      detail: "Detail",
+      background: "Background",
+    },
+    marker: {
+      marker: "Marker",
+      chisel: "Chisel",
+      fineliner: "Fineliner",
+    },
+    highlighter: {
+      text: "Line of text",
+      broad: "Broad",
+    },
+    crayon: {
+      coloring: "Colouring",
+      shading: "Shading",
+      solid: "Solid",
+    },
+    calligraphy: {
+      italic: "Italic",
+      foundational: "Foundational",
+      uncial: "Uncial",
+    },
+    filler: {
+      flat: "Flat fill",
+      soft: "Soft edge",
+      wash: "Wash",
     },
   },
   // The text tool's entry box and the bar of type controls over it. The

@@ -28,9 +28,29 @@
 
 import { isGlyphName } from "@niclaslindstedt/oss-framework/glyphs";
 
+/** What applying a preset **sets**: a width, when the tool has one, and where
+ *  every dial goes.
+ *
+ *  The half the two kinds of preset share. A *saved* tool (`ToolPreset`, below)
+ *  is one of these under a name the user chose; a *shipped* one
+ *  (`plugins/types.ts`'s `BuiltinPreset`) is one under a name its tool's maker
+ *  chose. Everything downstream — matching a chip against the tool in hand,
+ *  applying one — takes this and never asks which it was handed, which is what
+ *  keeps one row of chips from being two mechanisms.
+ *
+ *  `size` is absent only for a tool that has no width to set (the bucket).
+ *  A width no mark reads is not a setting, and writing one would leave a number
+ *  in the settings blob that nothing could ever draw with. */
+export type PresetSettings = {
+  size?: number;
+  /** Every dial the tool offers, at the value this preset puts it on —
+   *  *resolved*, not just the moved ones (see `ToolPreset.dials`). */
+  dials: Readonly<Record<string, number>>;
+};
+
 /** One saved tool: a name, a mark to know it by, a width, and where every dial
  *  was. */
-export type ToolPreset = {
+export type ToolPreset = PresetSettings & {
   /** Stable id, minted from the name (see `presetId`). Persisted, and used by
    *  the panel as a key and by rename / remove as the address. */
   id: string;
@@ -148,13 +168,18 @@ export function removePreset(
   return list.filter((p) => p.id !== id);
 }
 
-/** Whether the tool is currently set exactly the way this preset says. */
+/** Whether the tool is currently set exactly the way this preset says.
+ *
+ *  A preset with no width of its own — one for a tool that has none — is
+ *  matched on its dials alone, which is the whole of what it sets. */
 export function presetMatches(
-  preset: ToolPreset,
+  preset: PresetSettings,
   size: number,
   dials: Readonly<Record<string, number>>,
 ): boolean {
-  if (Math.abs(preset.size - size) > SAME_SIZE) return false;
+  if (preset.size !== undefined && Math.abs(preset.size - size) > SAME_SIZE) {
+    return false;
+  }
   const keys = new Set([...Object.keys(preset.dials), ...Object.keys(dials)]);
   for (const key of keys) {
     const a = preset.dials[key];
@@ -168,12 +193,16 @@ export function presetMatches(
 }
 
 /** Which preset the tool is currently set to, if it is set to one. An
- *  observation rather than a mode — see this module's header. */
-export function activePreset(
-  list: readonly ToolPreset[],
+ *  observation rather than a mode — see this module's header.
+ *
+ *  Generic over the two kinds, so the shipped row and the saved row are lit by
+ *  the same reading and a tool can be on one of each at once (the shipped
+ *  preset it came with, saved again under your own name). */
+export function activePreset<T extends PresetSettings>(
+  list: readonly T[],
   size: number,
   dials: Readonly<Record<string, number>>,
-): ToolPreset | undefined {
+): T | undefined {
   return list.find((p) => presetMatches(p, size, dials));
 }
 

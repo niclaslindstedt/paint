@@ -6,6 +6,7 @@ import { CogIcon } from "@niclaslindstedt/oss-framework/components";
 import { useT } from "./i18n/index.ts";
 import { fieldHasKeyboard } from "./keys.ts";
 import { toolControl, usesInk } from "./plugins/controls.ts";
+import { toolPresets } from "./plugins/presets.ts";
 import {
   enabledPlugins,
   pluginById,
@@ -13,7 +14,7 @@ import {
   type ToolbarEntry,
 } from "./plugins/registry.ts";
 import type { PaintPlugin } from "./plugins/types.ts";
-import type { ToolPreset } from "./presets.ts";
+import type { PresetSettings, ToolPreset } from "./presets.ts";
 import {
   groupMemberFor,
   sizesFor,
@@ -98,7 +99,7 @@ type Props = {
   /** The tools saved under a name for the one in hand — per tool, see
    *  `useAppSettings`. */
   presets: readonly ToolPreset[];
-  onApplyPreset: (preset: ToolPreset) => void;
+  onApplyPreset: (preset: PresetSettings) => void;
   onSavePreset: (name: string, glyph: string | null) => void;
   onDeletePreset: (id: string) => void;
   /** Where the active tool's dials sit, resolved — the size panel's Advanced
@@ -441,6 +442,9 @@ export function Toolbar({
           color={color}
           background={background}
           filled={filled}
+          // The presets the tool itself ships with, resolved off the descriptor
+          // — nothing here knows a tool's settings, only that it has some.
+          builtinPresets={toolPresets(active)}
           presets={presets}
           onApplyPreset={onApplyPreset}
           onSavePreset={onSavePreset}
@@ -459,6 +463,10 @@ export function Toolbar({
           onClose={() => setPanel(null)}
           anchor={settingsAnchor}
           plugin={active}
+          builtinPresets={toolPresets(active)}
+          onApplyPreset={onApplyPreset}
+          color={color}
+          background={background}
           dials={active?.dials ?? []}
           values={dialValues}
           onDialChange={onDialChange}

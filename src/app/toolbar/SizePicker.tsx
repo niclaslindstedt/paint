@@ -17,8 +17,9 @@ import {
   stepNote,
   type SizeGauge,
 } from "../plugins/gauge.ts";
+import type { ToolPresetOption } from "../plugins/presets.ts";
 import type { PaintPlugin, ToolDial } from "../plugins/types.ts";
-import type { ToolPreset } from "../presets.ts";
+import type { PresetSettings, ToolPreset } from "../presets.ts";
 import { gaugeFor, sizesFor } from "../useAppSettings.ts";
 import { PressPreview } from "./PressPreview.tsx";
 import { PresetBar } from "./PresetBar.tsx";
@@ -29,11 +30,17 @@ import { ToolDials } from "./ToolDials.tsx";
 //
 // Three sections, top to bottom, in the order a hand reaches for them.
 //
-// **Saved** — the tools the user built (see `PresetBar.tsx`). First, because a
-// preset is the answer to the whole rest of the panel and pressing one should
-// not mean scrolling past the machinery that made it. It is not there at all
-// until something has been saved; the way in is the **star** on the title row,
-// which saves the tool as it is currently set under a name and a mark.
+// **Presets**, then **Saved** — whole tools, one press away (see
+// `PresetBar.tsx`). First, because a preset is the answer to the whole rest of
+// the panel and pressing one should not mean scrolling past the machinery that
+// made it.
+//
+// The first row is the settings the *tool* came with — the ways its medium is
+// actually used, each chip wearing the mark it makes — and it is what a
+// beginner has instead of five sliders and a guess. The second is the tools the
+// *user* built; it is not there at all until something has been saved, and the
+// way in is the **star** on the title row, which saves the tool as it is
+// currently set under a name and a mark.
 //
 // Nothing in this panel closes it. Picking a width, applying a saved tool and
 // turning a dial are all things you may want to do two of, and a panel that
@@ -96,9 +103,12 @@ type Props = {
   background: string;
   /** The fill toggle, so a fillable tool previews solid when it is set solid. */
   filled: boolean;
+  /** The presets the tool ships with, dials resolved (see
+   *  `plugins/presets.ts`) — the row above the saved one. */
+  builtinPresets: readonly ToolPresetOption[];
   /** The tools saved under a name for this tool (see `presets.ts`). */
   presets: readonly ToolPreset[];
-  onApplyPreset: (preset: ToolPreset) => void;
+  onApplyPreset: (preset: PresetSettings) => void;
   onSavePreset: (name: string, glyph: string | null) => void;
   onDeletePreset: (id: string) => void;
   /** What the tool in hand offers past its width, in the order it declared
@@ -141,6 +151,7 @@ export function SizePicker({
   color,
   background,
   filled,
+  builtinPresets,
   presets,
   onApplyPreset,
   onSavePreset,
@@ -229,9 +240,14 @@ export function SizePicker({
         </div>
 
         <PresetBar
+          plugin={plugin}
+          builtin={builtinPresets}
           presets={presets}
           size={size}
           dials={values}
+          color={color}
+          background={background}
+          filled={filled}
           onApply={onApplyPreset}
           onSave={onSavePreset}
           onDelete={onDeletePreset}
