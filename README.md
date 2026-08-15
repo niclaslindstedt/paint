@@ -11,9 +11,9 @@
 ## What
 
 Paint is a small installable web app for sketching a concept: boxes, arrows, a
-circled bit, a scribble. It opens on a page, a paint program's toolbox — pencil,
-airbrush, eraser, paint bucket, colour dropper, text, the shapes and a selection
-marquee — and nothing else in the way. Drawings are vector strokes kept in your browser; nothing leaves the device
+circled bit, a scribble. It opens on a page, a paint program's toolbox — pen,
+pencil, eraser, airbrush, paint bucket, text, the shapes, a selection marquee
+and the colour dropper — and nothing else in the way. Drawings are vector strokes kept in your browser; nothing leaves the device
 unless you connect storage yourself.
 
 It is a sibling of the [`notes`](https://github.com/niclaslindstedt/notes) and
@@ -26,14 +26,15 @@ the same [`oss-framework`](https://github.com/niclaslindstedt/oss-framework).
   colleague what you mean — quick to open, quick to export, quick to throw away.
   Drop a screenshot on the page and annotate it; download the result as a PNG, a
   JPG or a vector SVG, or copy it straight to the clipboard.
-- **Tools are plugins.** Every tool, the pencil included, is registered through
-  one interface. It opens on the toolbox you already know — pencil, airbrush,
-  eraser, bucket, dropper, text, the shapes and a selection marquee — and the
-  media it adds to that (a bristle brush, a marker, a crayon, a calligraphy nib,
-  a highlighter) wait in Settings → Tools, so the toolbar stays as simple as you
-  want it and grows when you need it. Rearrange the row there too, and it
-  rearranges here. Each tool remembers its own width, so a fat brush never costs
-  you a fine pencil.
+- **Tools are plugins.** Every tool, the pen included, is registered through
+  one interface. It opens on the toolbox you already know — pen, pencil,
+  eraser, airbrush, bucket, text, the shapes, a selection marquee and the
+  dropper — and the media it adds to that (a bristle brush, a marker, a crayon,
+  a calligraphy nib, a highlighter) wait in Settings → Tools, so the toolbar
+  stays as simple as you want it and grows when you need it. Rearrange the row
+  there too, and it rearranges here. Each tool remembers its own width — in
+  millimetres of page, from a technical pen's 0.5 to a decorator's brush — so a
+  fat brush never costs you a fine pen.
 - **Eleven shapes, one button.** Rectangle, ellipse, line, arrow, rounded
   rectangle, triangle, diamond, pentagon, hexagon, star and double arrow share a
   single toolbar button and a single switch: press it again for the family, and
@@ -51,10 +52,15 @@ the same [`oss-framework`](https://github.com/niclaslindstedt/oss-framework).
   edge to edge, a medium mark streaked through, a dry brush that is mostly
   paper — and it can be worn open until its side is a fringe, or set on paper
   that wicks its edges soft. The airbrush is a spray cone that builds up where
-  you linger. Not a pencil at a different width.
+  you linger. The pencil is graphite caught on the paper's tooth, grey whatever
+  the ink is set to, with a lead that runs from a hard pale H to a soft dark B.
+  The marker and the highlighter are two shapes of felt tip — a round bullet and
+  a flat wedge that draws a band one way and a hairline the other. Not one pen
+  at five different widths.
 - **Type on the page.** The text tool drops a caret wherever you tap and you
   type into the drawing itself, in the size, colour and typeface it will land
-  in — four faces, bold and italic.
+  in — four faces, bold and italic. Drag the box to put the caption somewhere
+  else before you keep it.
 - **A page the size you meant.** New asks what the drawing is made of — an empty
   page, an image from disk, or whatever is on the clipboard — and, for an empty
   one, how big it is. The four sizes are _drawn_ at one shared scale (this
@@ -120,11 +126,11 @@ make install
 npm run dev          # http://localhost:5173
 ```
 
-Draw on the page. `I` the colour dropper, `P` pencil, `S` airbrush, `E` eraser,
-`F` the paint bucket, `T` text, `R` / `O` / `L` / `A` the rectangle, ellipse,
-line and arrow, `V` the selection marquee, `D` the hand (drag the page around) —
-left to right in the order Photoshop's column runs top to bottom; `Ctrl/Cmd + Z`
-undoes a mark. The hamburger top left opens the drawings, the panel on the right
+Draw on the page. `P` the pen, `E` the eraser, `G` the pencil, `S` airbrush,
+`F` the paint bucket, `R` / `O` / `L` / `A` the rectangle, ellipse, line and
+arrow, `V` the selection marquee, `T` text, `I` the colour dropper, `D` the hand
+(drag the page around) — left to right in the order a hand uses them;
+`Ctrl/Cmd + Z` undoes a mark. The hamburger top left opens the drawings, the panel on the right
 resizes, flips and mirrors the page, and Settings → Tools switches the rest of
 the media on and puts the toolbar in another order.
 
@@ -170,7 +176,10 @@ npm run preview
   open rather than folded away — the knobs belonging to the tool in your hand:
   how charged the head is, its hair gauge, how far it has splayed and how far
   the paper bleeds for the paintbrush, flow for the airbrush, pressure for the
-  crayon, a feathered edge for the paint bucket, opacity for most of the rest.
+  crayon, the lead's grade for the pencil, the chisel of a felt tip for the
+  marker and the highlighter, the angle of the nib for the calligraphy pen,
+  strength for the eraser, a feathered edge for the paint bucket, and opacity
+  for most of the rest.
   They are kept per tool, so a soft brush stays soft without softening anything
   else. A tool with no width to set shows a **cog** in that slot instead — the
   paint bucket fills the area it traced whatever a nib might say, so it opens

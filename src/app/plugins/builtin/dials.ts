@@ -33,6 +33,84 @@ export const OPACITY: ToolDial = {
   step: 0.05,
 };
 
+/** How much of a mark one pass of the eraser takes off.
+ *
+ *  The same number as `OPACITY` and deliberately the same dial *id*: an erasing
+ *  mark is painted with `destination-out`, where the ink's alpha is exactly how
+ *  much of what is underneath goes away (see `render.ts`). So a rubbing out at
+ *  half opacity is a rubbing out at half strength, and nothing new had to be
+ *  wired for it — only the word, because "opacity" is not what anyone would
+ *  call it on a rubber. Turned down, it is the pencil eraser you feather a
+ *  highlight in with rather than the one that takes the page back to white in a
+ *  single drag. */
+export const STRENGTH: ToolDial = {
+  id: "opacity",
+  nameKey: "dials.strength.name",
+  hintKey: "dials.strength.hint",
+  min: 0.05,
+  max: 1,
+  step: 0.05,
+};
+
+/** How chiselled a felt tip is: 0 is a round bullet, 1 very nearly the flat of
+ *  the calligraphy nib.
+ *
+ *  It is what separates the marker from the highlighter, which for a long time
+ *  differed by width and opacity and nothing else. A bullet tip draws the same
+ *  weight whichever way you pull it; a chisel lays a band across the page and a
+ *  hairline down it, and that asymmetry is the entire reason a highlighter looks
+ *  like a highlighter (see `paintNib`).
+ *
+ *  Two tools offer it at two different rests — a marker is mostly round, a
+ *  highlighter mostly flat — so each declares its own descriptor below and the
+ *  painter is handed the matching fallback. */
+export const CHISEL: ToolDial = {
+  id: "chisel",
+  nameKey: "dials.chisel.name",
+  hintKey: "dials.chisel.hint",
+  min: 0,
+  max: 1,
+  step: 0.05,
+  default: 0.35,
+};
+
+/** The highlighter's chisel: the same dial resting most of the way over, because
+ *  a highlighter with a round tip is a fat translucent marker. */
+export const CHISEL_FLAT: ToolDial = { ...CHISEL, default: 0.85 };
+
+/** Which way a flat nib is turned, in degrees off the horizontal.
+ *
+ *  The one dial here measured in neither a percentage nor a distance, because a
+ *  nib angle is neither: it is the tilt a hand holds the pen at, and −45° — up
+ *  to the right — is what a right-handed italic hand does. Turn it to 0 and the
+ *  broad edge lies flat, which is the stroke that swells on the verticals
+ *  instead of the diagonals. */
+export const ANGLE: ToolDial = {
+  id: "angle",
+  nameKey: "dials.angle.name",
+  hintKey: "dials.angle.hint",
+  min: -90,
+  max: 90,
+  step: 5,
+  default: -45,
+  unit: "deg",
+};
+
+/** The pencil's lead, as a fraction of an HB.
+ *
+ *  A pencil has exactly one axis and this is it: below 1 is the H end — hard,
+ *  pale, riding the peaks of the paper — and above it the B end, soft and dark
+ *  and filling the tooth in. It reaches the *deposit* only, so a 6B is a blacker
+ *  line and never a wider one (see `graphite.ts`). */
+export const GRADE: ToolDial = {
+  id: "grade",
+  nameKey: "dials.grade.name",
+  hintKey: "dials.grade.hint",
+  min: 0.35,
+  max: 1.8,
+  step: 0.05,
+};
+
 /** Edge crispness — the dial that used to live in the open under the width, and
  *  the reason this whole seam exists: it was only ever right for two tools, and
  *  it meant something different to each of them. Soft is a splayed dry head on

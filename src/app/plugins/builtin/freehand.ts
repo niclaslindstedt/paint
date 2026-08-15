@@ -11,12 +11,14 @@ import type { Point } from "../../types.ts";
 import { paintBrush } from "../bristle.ts";
 import {
   paintCalligraphy,
+  paintNib,
   paintSoftPath,
   paintSpray,
   strokeHardness,
 } from "../brushes.ts";
 import { paintCrayon } from "../crayon.ts";
 import { extraDials, strokeDial } from "../dials.ts";
+import { paintGraphite } from "../graphite.ts";
 import { applyInk, distance, paintPath, strokeColor } from "../ink.ts";
 import {
   FULL_DETAIL,
@@ -30,10 +32,16 @@ import {
  *  document on a slow, high-frequency pointer. */
 const MIN_SAMPLE_DISTANCE = 1.5;
 
+/** A nib angle as the painters want it. The dial is in degrees because that is
+ *  what a tilt reads as to anyone setting one; the maths is in radians. */
+function radians(degrees: number): number {
+  return (degrees * Math.PI) / 180;
+}
+
 /** Which painter lays the polyline down. The geometry is identical across all
  *  of them — a freehand tool's whole character is in this choice. */
 export type FreehandStyle =
-  "line" | "brush" | "spray" | "crayon" | "calligraphy";
+  "line" | "brush" | "spray" | "crayon" | "calligraphy" | "nib" | "graphite";
 
 type FreehandInk = {
   /** Lift ink rather than lay it down (the eraser). The mark carries no colour
@@ -50,6 +58,23 @@ type FreehandInk = {
   /** Record the toolbar's hardness on the stroke, so this tool's edge follows
    *  the dial. Only the painters that read it should ask for it. */
   useHardness?: boolean;
+  /** A tool that mixes its **own** colour instead of taking the toolbar's.
+   *
+   *  The pencil is the case: graphite is a mineral, and no amount of choosing a
+   *  swatch makes one draw in red — but *which* grey it is still depends on the
+   *  page, so the tool is handed the whole context and answers with a colour
+   *  (see `graphiteInk`). Absent for every ordinary tool, which draws in the ink
+   *  you picked. */
+  ink?: (ctx: ToolContext) => string;
+  /** Where this tool's chisel dial rests, for the `nib` style — 0 is a round
+   *  bullet, 1 very nearly a flat. It has to agree with the `default` on the
+   *  dial the plugin declares, because that is what an untuned mark resolves to
+   *  (see `CHISEL` in `builtin/dials.ts`). */
+  chisel?: number;
+  /** Where this tool's nib-angle dial rests, in degrees off the horizontal —
+   *  the same agreement as `chisel`. A tool that offers no angle dial simply
+   *  draws at this one for ever. */
+  angle?: number;
 };
 
 /** Build a freehand tool behaviour with the given ink. */
@@ -62,6 +87,10 @@ export function freehandBehaviour(ink: FreehandInk = {}): ToolBehaviour {
     // the ones actually moved are there (see `plugins/dials.ts`), so an untuned
     // stroke carries no field at all.
     const extra = extraDials(ctx.dials);
+    // A tool that mixes its own ink (the pencil) records that, whatever the
+    // toolbar is holding — and records it *on the stroke*, so a page redrawn
+    // on a sheet of another colour keeps the grey it was drawn in.
+    const own = ink.erases ? undefined : ink.ink?.(ctx);
     return {
       tool: "",
       // A tool that lifts ink (the eraser) records no colour at all: what it
@@ -69,7 +98,9 @@ export function freehandBehaviour(ink: FreehandInk = {}): ToolBehaviour {
       // toolbar happened to be holding, and a colour on the mark would be a
       // number nothing ever reads. Ink tools record one only when the user
       // picked it.
-      ...(ink.erases || !ctx.color ? {} : { color: ctx.color }),
+      ...(ink.erases || !(own ?? ctx.color)
+        ? {}
+        : { color: own ?? ctx.color! }),
       size: ctx.size * (ink.sizeScale ?? 1),
       ...(opacity < 1 ? { opacity } : {}),
       // Hardness is recorded, not resolved at paint time: a soft stroke is soft
@@ -141,7 +172,32 @@ export function freehandBehaviour(ink: FreehandInk = {}): ToolBehaviour {
           );
           return;
         case "calligraphy":
-          paintCalligraphy(ctx2d, points, stroke.size, scale);
+          paintCalligraphy(
+            ctx2d,
+            points,
+            stroke.size,
+            scale,
+            radians(strokeDial(stroke, "angle", ink.angle ?? -45)),
+          );
+          return;
+        case "nib":
+          paintNib(
+            ctx2d,
+            points,
+            stroke.size,
+            strokeDial(stroke, "chisel", ink.chisel ?? 0),
+            radians(strokeDial(stroke, "angle", ink.angle ?? 0)),
+            scale,
+          );
+          return;
+        case "graphite":
+          paintGraphite(
+            ctx2d,
+            points,
+            stroke.size,
+            scale,
+            strokeDial(stroke, "grade"),
+          );
           return;
         default:
           if (ink.useHardness) {

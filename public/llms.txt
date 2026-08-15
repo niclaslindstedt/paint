@@ -11,9 +11,9 @@ connect a storage backend yourself.
 
 ## What it does
 
-- Draw with a pencil, an airbrush, an eraser, a paint bucket, a colour dropper,
-  a text tool, the shapes and a selection marquee, plus a hand tool that drags
-  the page around — the toolbar out of the box.
+- Draw with a pen, a graphite pencil, an eraser, an airbrush, a paint bucket,
+  the shapes, a selection marquee, a text tool and a colour dropper, plus a hand
+  tool that drags the page around — the toolbar out of the box.
 - Draw eleven shapes from one toolbar button: rectangle, ellipse, line, arrow,
   rounded rectangle, triangle, diamond, pentagon, hexagon, star and double
   arrow. Press the button a second time for the family and the fill toggle.
@@ -29,16 +29,20 @@ connect a storage backend yourself.
   the toolbar in. Every tool is a plugin behind one interface, so the list grows
   without the app changing shape.
 - Type on the page: the text tool opens a caret where you tap, in four
-  typefaces, five type sizes, bold and italic.
+  typefaces, five type sizes, bold and italic. Drag the caption box to reposition
+  it before you keep it.
 - Pick colour and stroke width from two buttons: a palette with a free colour
   mixer that remembers what you mix, and a nib picker with your own widths. Every
   width is shown as a real press with the tool in your hand — the mark it would
   leave, on your page, in your ink — rather than as a dot. The width is
-  remembered per tool, and each tool opens at a width of its own.
+  remembered per tool, and each tool opens at a width of its own. Widths read in
+  millimetres of page, from a technical pen's 0.5 to a decorator's 200.
 - Tune the tool in your hand under the nib picker's Advanced fold — how charged
   the head is, its hair gauge, how far it has splayed and how far the paper
-  bleeds for the paintbrush, flow for the airbrush, pressure for the crayon, a
-  feathered edge for the paint bucket, opacity for most of the rest. Each tool
+  bleeds for the paintbrush, flow for the airbrush, pressure for the crayon, the
+  lead's grade for the pencil, the chisel of a felt tip for the marker and the
+  highlighter, the nib's angle for the calligraphy pen, strength for the eraser,
+  a feathered edge for the paint bucket, opacity for most of the rest. Each tool
   keeps its own settings, and a mark remembers what it was drawn with.
 - Start a drawing from an empty page, an image file, or an image on the
   clipboard. An empty one asks its canvas size up front — this screen, Full HD,

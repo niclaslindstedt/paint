@@ -39,6 +39,14 @@ import { SizePicker } from "./toolbar/SizePicker.tsx";
 // gesture the fill toggle and the eraser's wipe already use, so the toolbar has
 // one rule for "this button does a second job" rather than three.
 //
+// **The button is the glyph, not a frame around one.** An 18-pixel mark in a
+// 36-pixel button is a quarter ink and three quarters air, and a row of them
+// reads as a row of empty boxes with something small in the middle — which is
+// exactly what it looked like. The touch target has to stay 36 (that is a
+// thumb, and it is not negotiable), so what changed is everything else: the
+// glyph fills the button it sits in, and the gaps between buttons came in to
+// match. A phone fits two or three more tools per row for it.
+//
 // **Ink is two buttons, not two rows.** A fixed row of seven swatches and four
 // nib buttons ate half a phone's toolbar for choices most strokes never change,
 // and it grew every time the palette did. Now the colour button is the ink you
@@ -204,7 +212,7 @@ export function Toolbar({
     // safe-area inset plus 10px — enough that the buttons stay a comfortable
     // thumb reach above the indicator instead of sitting on it.
     <div
-      className="flex flex-wrap items-center gap-1 border-t border-line bg-surface px-3 pt-2 [padding-bottom:calc(env(safe-area-inset-bottom)+10px)]"
+      className="flex flex-wrap items-center gap-0.5 border-t border-line bg-surface px-2 pt-2 [padding-bottom:calc(env(safe-area-inset-bottom)+10px)]"
       role="toolbar"
       aria-label={t("canvas.toolbar")}
     >
@@ -259,7 +267,7 @@ export function Toolbar({
               }`}
             >
               <Icon
-                className="h-[18px] w-[18px]"
+                className="h-[23px] w-[23px]"
                 filled={Boolean(shown.supportsFill) && filled}
               />
               {/* The folded corner: the one hint that a second press on this
@@ -280,7 +288,7 @@ export function Toolbar({
       {/* The ink pair stays one box: it wraps as a unit rather than splitting
           the colour from the nib, and the extra left margin is the seam between
           the tools and the ink the flattened gap no longer draws. */}
-      <div className="ml-2 flex items-center gap-1">
+      <div className="ml-1.5 flex items-center gap-1">
         {/* The ink button: the colour you are drawing with, whole. It used to
             be split corner to corner with the page colour below the diagonal,
             back when painting *with* the page was how you rubbed something out.

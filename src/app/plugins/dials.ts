@@ -35,10 +35,12 @@ export function dialDefault(dial: ToolDial): number {
 }
 
 /** The number the panel prints beside a dial's name: a percentage of the tool's
- *  normal, or a count of document pixels for the dials that measure the page.
- *  The unit itself lives in the catalog string (see `ToolDial.nameKey`). */
+ *  normal, or the number itself for the dials that measure something real — the
+ *  page (pixels) or a tilt (degrees). The unit lives in the catalog string (see
+ *  `ToolDial.nameKey`). */
 export function dialReadout(dial: ToolDial, value: number): number {
-  return dial.unit === "px" ? Math.round(value) : Math.round(value * 100);
+  const plain = dial.unit === "px" || dial.unit === "deg";
+  return plain ? Math.round(value) : Math.round(value * 100);
 }
 
 /** A stored value pulled back into the dial's range. A blob written by another

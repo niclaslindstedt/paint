@@ -134,7 +134,14 @@ export function paintSpray(
   // the tool uncontrollable. `flow` is the user moving that line, and it is
   // capped short of opaque for exactly the same reason: an airbrush that covers
   // in one dab is a marker.
-  const faint = Math.min(0.4, (0.055 + hard * 0.05) * Math.max(0, flow));
+  //
+  // What "faint" is worth was set when the cone was three times the nib it was
+  // asked for: a mark that wide reaches the same coverage off far weaker dabs,
+  // and once the cone came down to the width the toolbar actually says (see the
+  // airbrush's `sizeScale`) the trigger at rest was laying down a haze. So the
+  // dab is about twice what it was — an airbrush held still still builds, and a
+  // single pass at flow 100% now leaves a mark you can see.
+  const faint = Math.min(0.55, (0.11 + hard * 0.09) * Math.max(0, flow));
 
   if (onScreen < HAIRLINE) {
     // Pulled back far enough that the whole cone is inside one pixel. A cloud
@@ -245,12 +252,15 @@ export function paintCalligraphy(
   points: readonly Point[],
   size: number,
   scale = 1,
+  angle = -Math.PI / 4,
 ): void {
   const along = resample(points, Math.max(1, size / 4, PIXEL / scale));
   const first = along[0];
   if (!first) return;
-  // 45° up to the right — the angle a right-handed italic hand holds.
-  const angle = -Math.PI / 4;
+  // The angle the nib is held at — 45° up to the right by default, which is
+  // what a right-handed italic hand does. It is the one thing about a broad nib
+  // that a writer actually changes, so the tool offers it as a dial and hands
+  // it down here (see `builtin/dials.ts`).
   const half = size;
   const nx = Math.cos(angle) * half;
   const ny = Math.sin(angle) * half;
@@ -278,6 +288,67 @@ export function paintCalligraphy(
     ctx.lineTo(b.x + ex, b.y + ey);
     ctx.lineTo(b.x - ex, b.y - ey);
     ctx.closePath();
+  }
+  ctx.fill();
+}
+
+/** A felt tip, anywhere between a bullet and a chisel.
+ *
+ *  The calligraphy nib above is one extreme of this — a flat with no thickness
+ *  at all — and a plain round pen is the other. What sits between them is the
+ *  whole difference between the two tools that used to be told apart by nothing
+ *  but their width: a marker's tip is a slightly squashed bullet that broadens
+ *  when you pull it sideways, and a highlighter's is a wide flat wedge that
+ *  lays a band across the page and a hairline down it.
+ *
+ *  So the nib is an **ellipse stamped along the path**: `flat` squashes it (0 is
+ *  a circle, 1 is very nearly the calligraphy nib's edge) and `angle` says which
+ *  way the long axis points. Every stamp goes into one path and is filled once,
+ *  so a translucent marker doubling back over itself composites the way ink does
+ *  rather than printing a dark seam at every overlap. They all wind the same way
+ *  round, which is what keeps a self-crossing stroke from cancelling itself out
+ *  under the nonzero rule (the bug the calligraphy nib above documents).
+ *
+ *  A nib with no chisel in it is a plain round line, and so is one whose flat is
+ *  thinner than a device pixel — at that point every stamp lands on the same
+ *  row of pixels and `paintPath` draws the identical mark for a fraction of the
+ *  cost. */
+export function paintNib(
+  ctx: CanvasRenderingContext2D,
+  points: readonly Point[],
+  size: number,
+  flat: number,
+  angle: number,
+  scale = 1,
+): void {
+  const half = Math.max(0.5, size / 2);
+  const chisel = Math.max(0, Math.min(1, flat));
+  if (chisel < 0.04) {
+    paintPath(ctx, points, size);
+    return;
+  }
+  // How thick the nib stays across its flat. Never nothing: a felt tip is a
+  // wedge of fibre, not a razor, and a stamp with no thickness leaves nothing
+  // behind on a stroke travelling along the nib.
+  const across = half * Math.max(0.1, 1 - chisel);
+  if ((half - across) * scale < HAIRLINE) {
+    paintPath(ctx, points, size);
+    return;
+  }
+  // Close enough together that consecutive stamps overlap even when the stroke
+  // is travelling square across the flat, and never finer than the screen can
+  // show.
+  const step = Math.max(0.5, Math.min(across * 0.8, half), PIXEL / scale);
+  const along = resample(points, step);
+  if (along.length === 0) return;
+  const nx = Math.cos(angle) * half;
+  const ny = Math.sin(angle) * half;
+  ctx.beginPath();
+  for (const p of along) {
+    // `ellipse` draws from wherever the path already is, so each stamp opens
+    // its own subpath at the point the arc starts from.
+    ctx.moveTo(p.x + nx, p.y + ny);
+    ctx.ellipse(p.x, p.y, half, across, angle, 0, Math.PI * 2);
   }
   ctx.fill();
 }

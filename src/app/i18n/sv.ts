@@ -186,7 +186,8 @@ export const sv: Catalog = {
     keepColor: "Spara",
     colorKept: "Sparad",
     removeColor: "Glöm",
-    customSize: "Egen tjocklek: {size}",
+    sizeMm: "{size} mm",
+    customSize: "Egen tjocklek: {size} mm",
     keepSize: "Spara",
     sizeKept: "Sparad",
     removeSize: "Glöm",
@@ -207,6 +208,22 @@ export const sv: Catalog = {
     opacity: {
       name: "Opacitet: {value} %",
       hint: "Hur mycket av sidan som syns genom draget.",
+    },
+    strength: {
+      name: "Styrka: {value} %",
+      hint: "Hur mycket av ett streck ett drag tar bort. Skruva ner för att tona ner något i stället för att sudda bort det.",
+    },
+    chisel: {
+      name: "Kilspets: {value} %",
+      hint: "Rund som en kulspets, eller platt som en kil som drar brett åt ett håll och fint åt det andra.",
+    },
+    angle: {
+      name: "Spetsvinkel: {value}°",
+      hint: "Åt vilket håll den platta spetsen är vänd.",
+    },
+    grade: {
+      name: "Blyerts: {value} %",
+      hint: "Hård och ljus som en H, eller mjuk och mörk som en B.",
     },
     hardness: {
       name: "Hårdhet: {value} %",
@@ -243,6 +260,7 @@ export const sv: Catalog = {
     font: "Typsnitt",
     bold: "Fet",
     italic: "Kursiv",
+    move: "Dra för att flytta texten",
     keep: "Behåll texten",
     discard: "Släng texten",
   },
@@ -272,12 +290,18 @@ export const sv: Catalog = {
   },
   tools: {
     pencil: {
-      name: "Penna",
+      name: "Bläckpenna",
       description: "Frihandslinje med vald tjocklek.",
+    },
+    graphite: {
+      name: "Blyertspenna",
+      description:
+        "En blyertspenna att skissa med. Den ritar alltid i grått — ställ in stiftet från hård och ljus H till mjuk och mörk B.",
     },
     eraser: {
       name: "Suddgummi",
-      description: "Målar över streck med sidans färg.",
+      description:
+        "Suddar bort streck från sidan. Skruva ner styrkan för att tona ner dem i stället för att sudda bort dem.",
     },
     line: { name: "Linje", description: "En rak linje mellan två punkter." },
     rectangle: {
@@ -350,11 +374,13 @@ export const sv: Catalog = {
     },
     marker: {
       name: "Tuschpenna",
-      description: "En tjock frihandspenna för kraftiga streck.",
+      description:
+        "En tuschpenna med spritbläck: den mörknar där den korsar sig själv, och spetsen går från rund kulspets till sned kil.",
     },
     highlighter: {
       name: "Överstrykningspenna",
-      description: "Ett brett genomskinligt band som byggs upp där det korsas.",
+      description:
+        "En bred genomskinlig kil — ett helt band tvärs över sidan, hårfint nedför den — som byggs upp där den korsas.",
     },
     paintbrush: {
       name: "Målarpensel",
@@ -373,7 +399,7 @@ export const sv: Catalog = {
     calligraphy: {
       name: "Kalligrafipenna",
       description:
-        "En platt spets på sned — bred tvärs över draget, hårfin längs med det.",
+        "En platt spets — bred tvärs över draget, hårfin längs med det. Ställ in vinkeln den hålls i.",
     },
     text: {
       name: "Text",
