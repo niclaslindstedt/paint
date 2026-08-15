@@ -90,6 +90,28 @@ describe("saving a tool", () => {
     expect(presetName("  my  pencil  ")).toBe("my pencil");
   });
 
+  it("keeps the mark it was saved with, and drops one it cannot draw", () => {
+    // A row of saved tools is read at a glance and mostly with a thumb, and
+    // four chips of similar words are four chips you have to *read*.
+    const [saved] = addPreset([], "Sketch", 8, {}, "star");
+    expect(saved!.glyph).toBe("star");
+    // …but only a glyph this build's catalogue actually holds: the chip draws
+    // it, and a name it cannot draw is an empty square.
+    const cleaned = cleanPresets({
+      graphite: [
+        { name: "Real", size: 8, dials: {}, glyph: "leaf" },
+        { name: "Invented", size: 8, dials: {}, glyph: "not-a-glyph" },
+      ],
+    });
+    expect(cleaned.graphite!.map((p) => p.glyph ?? null)).toEqual([
+      "leaf",
+      null,
+    ]);
+    // A preset saved without one carries no field at all, so a blob written
+    // before marks existed is byte-for-byte what it was.
+    expect("glyph" in addPreset([], "Plain", 8, {})[0]!).toBe(false);
+  });
+
   it("forgets one by id", () => {
     const list = addPreset(addPreset([], "A", 1, {}), "B", 2, {});
     expect(removePreset(list, list[0]!.id).map((p) => p.name)).toEqual(["B"]);

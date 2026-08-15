@@ -44,11 +44,13 @@ the same [`oss-framework`](https://github.com/niclaslindstedt/oss-framework).
   points. Each tool's slider spends its middle four tenths on the range that
   tool is genuinely made in — the band is drawn on the track and the readout
   says **as made** when you are inside it — with a tenth below for finer than
-  anybody makes and the top half running off to a nib as wide as the page.
+  anybody makes and the top half running off to a nib as wide as the page. Each
+  tool opens on the size it is reached for most of the time.
 - **Save the tool, not the setting.** Once you have found the 4B at 0.7 mm with
-  the opacity eased off, press **Save…**, call it "my sketching pencil", and it
-  is one press away from then on. A saved tool carries its width and every dial,
-  and it belongs to the tool it was saved from.
+  the opacity eased off, press the **star** beside the tool's name, call it "my
+  sketching pencil" and give it a mark to know it by, and it is one press away
+  from then on. A saved tool carries its width and every dial, and it belongs to
+  the tool it was saved from.
 - **Eleven shapes, one button.** Rectangle, ellipse, line, arrow, rounded
   rectangle, triangle, diamond, pentagon, hexagon, star and double arrow share a
   single toolbar button and a single switch: press it again for the family, and

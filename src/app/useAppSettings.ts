@@ -102,14 +102,6 @@ export type AppSettings = {
    *  (`PaintPlugin.defaultSize`), so the kit out of the box is the one its
    *  makers chose rather than one number applied to fifteen tools. */
   toolSizes: Record<string, number>;
-  /** Widths the user added to the five their tool ships with, by tool id and in
-   *  document pixels. Kept sorted, capped at `MAX_CUSTOM_SIZES` each.
-   *
-   *  Per tool, because a width is: the list used to be shared, and a
-   *  twenty-five-millimetre flat kept while painting turned up in the pencil's
-   *  row afterwards, where it is not a pencil. Sparse — a tool nobody has kept
-   *  a width for has no entry and shows the five its gauge declares. */
-  customSizes: Record<string, number[]>;
   /** The kit a user has built for themselves: whole tool settings — a width and
    *  every dial — saved under a name they chose, by tool id.
    *
@@ -171,11 +163,10 @@ export const PALETTE = [
   "#ffffff",
 ] as const;
 
-/** How many colours and sizes a user can keep. Both pickers are meant to be hit
- *  by thumb without reading, so the lists stay short enough to stay scannable —
- *  adding past the cap drops the oldest rather than refusing. */
+/** How many colours a user can keep. The picker is meant to be hit by thumb
+ *  without reading, so the list stays short enough to stay scannable — adding
+ *  past the cap drops the oldest rather than refusing. */
 export const MAX_CUSTOM_COLORS = 12;
-export const MAX_CUSTOM_SIZES = 6;
 
 // The page's own scale — a document pixel is one dot of an iPhone's screen, so
 // a width is a distance you can measure on the glass and a tool can be
@@ -230,7 +221,6 @@ const BASE_SETTINGS: Omit<AppSettings, "enabledPlugins"> = {
   // Empty on purpose: an unresized tool opens at the width its own plugin
   // declares, so this only ever holds the ways your kit differs from the box.
   toolSizes: {},
-  customSizes: {},
   toolPresets: {},
   textFont: DEFAULT_TEXT_FONT,
   textBold: false,
@@ -277,36 +267,6 @@ export function defaultSettings(): AppSettings {
 }
 
 const STORAGE_KEY = "paint:settings";
-
-/** Clean a persisted map of kept widths — one list per tool, sorted and capped
- *  the way the picker keeps them.
- *
- *  A blob written before the widths were per tool holds a bare array here; it
- *  reads as "no kept widths", which is what `parseSettings` explains. */
-function keptSizes(value: unknown): Record<string, number[]> {
-  const out: Record<string, number[]> = {};
-  if (typeof value !== "object" || value === null || Array.isArray(value)) {
-    return out;
-  }
-  for (const [tool, list] of Object.entries(value)) {
-    if (!Array.isArray(list)) continue;
-    const kept = [
-      ...new Set(
-        list.filter(
-          (n): n is number =>
-            typeof n === "number" &&
-            Number.isFinite(n) &&
-            n >= MIN_SIZE &&
-            n <= MAX_SIZE,
-        ),
-      ),
-    ]
-      .sort((a, b) => a - b)
-      .slice(0, MAX_CUSTOM_SIZES);
-    if (kept.length > 0) out[tool] = kept;
-  }
-  return out;
-}
 
 /** Clean a persisted map of string to string — the group memories. */
 function strings(value: unknown): Record<string, string> {
@@ -451,14 +411,12 @@ export function parseSettings(raw: string): AppSettings {
   merged.customColors = Array.isArray(merged.customColors)
     ? merged.customColors.filter((c): c is string => typeof c === "string")
     : [];
-  // The kept widths, which moved from one shared list to a list per tool when
-  // widths became real distances. An old blob's list is **dropped** rather than
-  // handed to every tool: those numbers were widths on a scale where a document
-  // pixel meant nothing in particular, so a kept "96" is not 96 of anything now
-  // — and seeding it into fifteen rows would put a nib as wide as a finger in
-  // the pencil's picker. The five real widths each tool ships with are a better
-  // starting point than a list of numbers that no longer mean what they meant.
-  merged.customSizes = keptSizes(stored.customSizes);
+  // …and the widths a user could once "keep" beside their tool's own five.
+  // They are gone: a width on its own was a worse version of a saved *tool*,
+  // which carries the dials with it and has a name on it (see `presets.ts`).
+  // The field is dropped rather than migrated, because a bare number is not
+  // enough to build a preset out of — there is no name to give it.
+  delete (merged as { customSizes?: unknown }).customSizes;
   merged.toolPresets = cleanPresets(stored.toolPresets);
   // The download menu renders straight off this list, so an unknown id (a
   // format some newer build offered) is dropped rather than kept: there is
@@ -529,47 +487,6 @@ export function useAppSettings() {
     [setSettings],
   );
 
-  /** Remember a width for one tool. Kept sorted so the picker reads
-   *  fine-to-broad however they were added, and silently ignored when it is one
-   *  the tool's own gauge already offers.
-   *
-   *  Held to a tenth of a pixel rather than to a whole one: a width is a real
-   *  distance now, and the difference between an 0.18 and an 0.25 mm pen is
-   *  most of a pixel. */
-  const addCustomSize = useCallback(
-    (tool: string, size: number) =>
-      setSettings((prev) => {
-        const held =
-          Math.round(Math.max(MIN_SIZE, Math.min(MAX_SIZE, size)) * 10) / 10;
-        const own = gaugeSizes(gaugeFor(pluginById(tool)));
-        const kept = prev.customSizes[tool] ?? [];
-        if (own.some((s) => Math.abs(s - held) < 0.05)) return prev;
-        if (kept.some((s) => Math.abs(s - held) < 0.05)) return prev;
-        return {
-          ...prev,
-          customSizes: {
-            ...prev.customSizes,
-            [tool]: [...kept, held]
-              .sort((a, b) => a - b)
-              .slice(0, MAX_CUSTOM_SIZES),
-          },
-        };
-      }),
-    [setSettings],
-  );
-
-  const removeCustomSize = useCallback(
-    (tool: string, size: number) =>
-      setSettings((prev) => {
-        const kept = (prev.customSizes[tool] ?? []).filter((s) => s !== size);
-        const next = { ...prev.customSizes };
-        if (kept.length === 0) delete next[tool];
-        else next[tool] = kept;
-        return { ...prev, customSizes: next };
-      }),
-    [setSettings],
-  );
-
   /** Save the tool as it is set right now under a name — "my sketching
    *  pencil". Saving over a name the tool already has replaces it, which is
    *  what everyone means by saving (see `presets.ts`). */
@@ -579,12 +496,19 @@ export function useAppSettings() {
       name: string,
       size: number,
       dials: Readonly<Record<string, number>>,
+      glyph: string | null = null,
     ) =>
       setSettings((prev) => ({
         ...prev,
         toolPresets: {
           ...prev.toolPresets,
-          [tool]: addPreset(prev.toolPresets[tool] ?? [], name, size, dials),
+          [tool]: addPreset(
+            prev.toolPresets[tool] ?? [],
+            name,
+            size,
+            dials,
+            glyph,
+          ),
         },
       })),
     [setSettings],
@@ -728,8 +652,6 @@ export function useAppSettings() {
     addCustomColor,
     removeCustomColor,
     setToolSize,
-    addCustomSize,
-    removeCustomSize,
     savePreset,
     deletePreset,
     applyPreset,
@@ -752,26 +674,14 @@ export function gaugeFor(plugin: PaintPlugin | undefined): SizeGauge {
   return plugin?.gauge ?? DEFAULT_GAUGE;
 }
 
-/** The widths a tool's size panel offers as buttons, fine to broad: the five its
- *  gauge declares plus whatever the user kept for *this* tool. */
-export function sizesFor(
-  plugin: PaintPlugin | undefined,
-  customSizes: readonly number[],
-): number[] {
-  const own = gaugeSizes(gaugeFor(plugin));
-  const kept = customSizes.filter(
-    (size) => !own.some((s) => Math.abs(s - size) < 0.05),
-  );
-  return [...own, ...kept].sort((a, b) => a - b);
-}
-
-/** The widths one tool keeps, out of the whole map. A tool nobody has kept one
- *  for comes back empty rather than undefined, so callers need no fallback. */
-export function keptSizesFor(
-  settings: AppSettings,
-  tool: string,
-): readonly number[] {
-  return settings.customSizes[tool] ?? [];
+/** The widths a tool's size panel offers as buttons, fine to broad: the five
+ *  its gauge declares, and nothing else.
+ *
+ *  There used to be a sixth kind — widths the user "kept" beside them. They are
+ *  gone: a bare width was a worse version of a saved *tool*, which carries the
+ *  dials with it and has a name and a mark on it (see `presets.ts`). */
+export function sizesFor(plugin: PaintPlugin | undefined): number[] {
+  return gaugeSizes(gaugeFor(plugin));
 }
 
 /** The presets saved for one tool, likewise. */
