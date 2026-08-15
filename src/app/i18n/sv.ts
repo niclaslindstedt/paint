@@ -81,6 +81,11 @@ export const sv: Catalog = {
     chooseImageHint: "Eller släpp en här. Sidan blir lika stor som bilden.",
     dropImage: "Släpp bilden för att börja en teckning från den",
     clipboardName: "Inklistrad bild",
+    clipboardPaste: "Klistra in från urklipp",
+    clipboardAgain: "Titta igen",
+    clipboardAsk: "Webbläsaren frågar innan en sida får läsa urklippet.",
+    clipboardWaiting: "Bekräfta inklistringen när webbläsaren frågar.",
+    clipboardEmpty: "Det finns ingen bild i urklippet.",
     create: "Skapa",
   },
   page: {
