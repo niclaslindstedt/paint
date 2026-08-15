@@ -32,6 +32,7 @@ import {
   addPreset,
   cleanPresets,
   removePreset,
+  type PresetSettings,
   type ToolPreset,
 } from "./presets.ts";
 import type { PaintPlugin } from "./plugins/types.ts";
@@ -526,34 +527,20 @@ export function useAppSettings() {
     [setSettings],
   );
 
-  /** Put a saved tool back in your hand: its width, and every one of its dials.
+  /** Put a preset in your hand: its width, and every one of its dials.
+   *
+   *  Takes either kind — one the user saved or one the tool shipped with (see
+   *  `PresetSettings`) — because by the time a chip is pressed the difference
+   *  between them is a name, and the settings blob has no interest in who chose
+   *  it.
    *
    *  Written in one pass rather than as a width followed by a dial at a time,
    *  because a preset is one decision — and because the dials it does *not*
    *  name have to come back to their defaults, which is the half a
    *  slider-by-slider apply would miss (see `ToolPreset.dials`). */
   const applyPreset = useCallback(
-    (tool: string, preset: ToolPreset) =>
-      setSettings((prev) => {
-        const plugin = pluginById(tool);
-        const kept: Record<string, number> = {};
-        for (const dial of plugin?.dials ?? []) {
-          const at = preset.dials[dial.id];
-          if (at === undefined) continue;
-          // Only what is actually off the default is written, exactly as a
-          // dragged slider writes it — a preset that happens to be the tool as
-          // it ships leaves no tuning behind at all.
-          if (at !== (dial.default ?? 1)) kept[dial.id] = at;
-        }
-        const dials = { ...prev.toolDials };
-        if (Object.keys(kept).length === 0) delete dials[tool];
-        else dials[tool] = kept;
-        return {
-          ...prev,
-          toolSizes: { ...prev.toolSizes, [tool]: preset.size },
-          toolDials: dials,
-        };
-      }),
+    (tool: string, preset: PresetSettings) =>
+      setSettings((prev) => withPreset(prev, tool, preset)),
     [setSettings],
   );
 
@@ -682,6 +669,44 @@ export function gaugeFor(plugin: PaintPlugin | undefined): SizeGauge {
  *  dials with it and has a name and a mark on it (see `presets.ts`). */
 export function sizesFor(plugin: PaintPlugin | undefined): number[] {
   return gaugeSizes(gaugeFor(plugin));
+}
+
+/** `settings` with `preset` applied to `tool` — its width, and every one of its
+ *  dials.
+ *
+ *  Pure, and exported, because it is the one step of a preset that touches
+ *  persisted state: what a chip actually *does* is worth being able to drive
+ *  from a test without a browser.
+ *
+ *  A preset with no width of its own (one for a tool that has none) writes no
+ *  width. Anything else would leave a number in the blob that no mark this tool
+ *  makes could ever read. */
+export function withPreset(
+  settings: AppSettings,
+  tool: string,
+  preset: PresetSettings,
+): AppSettings {
+  const plugin = pluginById(tool);
+  const kept: Record<string, number> = {};
+  for (const dial of plugin?.dials ?? []) {
+    const at = preset.dials[dial.id];
+    if (at === undefined) continue;
+    // Only what is actually off the default is written, exactly as a dragged
+    // slider writes it — a preset that happens to be the tool as it ships
+    // leaves no tuning behind at all.
+    if (at !== (dial.default ?? 1)) kept[dial.id] = at;
+  }
+  const dials = { ...settings.toolDials };
+  if (Object.keys(kept).length === 0) delete dials[tool];
+  else dials[tool] = kept;
+  return {
+    ...settings,
+    toolSizes:
+      preset.size === undefined
+        ? settings.toolSizes
+        : { ...settings.toolSizes, [tool]: preset.size },
+    toolDials: dials,
+  };
 }
 
 /** The presets saved for one tool, likewise. */

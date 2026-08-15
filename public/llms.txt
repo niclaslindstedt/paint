@@ -21,6 +21,11 @@ connect a storage backend yourself.
   four leads a mechanical pencil takes, the round brush a #2 through a one-inch
   flat, type is set in points, and each tool's slider spends its middle four
   tenths on the range that tool is genuinely manufactured in.
+- Reach for a tool the way its medium is actually used: every tool ships with a
+  row of presets — the pencil as Sketch, Construction, Shading and Detail, the
+  watercolour brush as a wash, wet-in-wet, a glaze and a dry brush, the
+  calligraphy pen as an italic, foundational or uncial hand — and each chip sets
+  a width and every dial at once, showing the mark it makes.
 - Save a tool you have set up under a name — "my sketching pencil" — and get
   its width and every dial back in one press.
 - Draw eleven shapes from one toolbar button: rectangle, ellipse, line, arrow,
