@@ -60,11 +60,16 @@ for good.
 
 The **nib button** shows a **press with the tool in your hand** — the mark that
 width actually leaves, on your page, in your ink. An airbrush is a soft cone, a
-highlighter a translucent band, the pen its flat edge, the eraser a bite out of
-the ink. Press it for the widths, a slider that adds your own, and — under
-**Advanced** — whatever the tool in your hand has of its own to tune. Every
-width in the panel is the same press at that width, so the row reads as marks
-rather than as numbers, and turning a dial redraws them under your thumb.
+highlighter a translucent band, the pen its flat edge; the eraser, whose mark is
+a hole, shows a plain circle instead. Press it for the widths, a slider that adds
+your own, and — under **Advanced** — whatever the tool in your hand has of its
+own to tune. Every width in the panel is the same press at that width, so the row
+reads as marks rather than as numbers, and turning a dial redraws them under your
+thumb.
+
+Tools with nothing to set by width say so: the **paint bucket** shows a **cog**
+in that slot, opening its wash and its feathered edge directly, and the hand, the
+dropper and the selection tools show nothing there at all.
 
 The width belongs to the tool: a pencil width, a paintbrush width, a type size,
 each remembered separately. Every tool also opens at a width chosen for it, so

@@ -175,6 +175,7 @@ export const sv: Catalog = {
     grid: "Rutnät",
     color: "Färg",
     size: "Tjocklek",
+    toolSettings: "Verktygsinställningar",
     fill: "Fyll former",
     fillOutline: "Kontur",
     fillFilled: "Fylld",

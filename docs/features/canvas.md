@@ -171,12 +171,21 @@ painter that paints the page, on the page colour, in the ink you have picked.
 Press it for the three widths it ships with, plus any you have added: each is
 that same press at that width, so the row reads fine-to-broad as marks rather
 than as numbers. The slider sets a width live, and **Keep** puts it in the row,
-sorted fine to broad. Under **Advanced** are the knobs belonging to the tool
-itself, and the presses above them redraw as you drag one — turning hardness
-down softens the dab while your thumb is still on the slider.
+sorted fine to broad. Below them, under an **Advanced** heading, are the knobs
+belonging to the tool itself — they are simply there, not folded away — and the
+presses above them redraw as you drag one: turning hardness down softens the dab
+while your thumb is still on the slider.
 
-A tool that leaves no mark at all — the hand, the dropper — has no press to
-show, and its nib button is dimmed and back to a plain dot.
+The **eraser** is the one drawing tool whose width shows as a plain circle. Its
+mark is a hole, and a hole on the bare page a preview is shows nothing at all;
+the nib is round and the number is the nib, so the circle says it at a glance.
+
+Not every tool has a nib button. The **paint bucket** has no width to set — it
+fills the area it traced whatever a nib might say — so it gets a **cog** in that
+slot instead, opening the settings it does have: how much of the page shows
+through the wash, and how far its edge fades out. A dot on the cog means the
+bucket is set away from how it ships. A tool that marks nothing at all — the
+hand, the dropper, the selection tools — gets no button there at all.
 
 ## The header
 

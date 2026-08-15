@@ -8,6 +8,7 @@ import {
   pressReach,
   pressScale,
 } from "../press.ts";
+import { sizePreview } from "../plugins/controls.ts";
 import type { PaintPlugin } from "../plugins/types.ts";
 import { paintStrokes, type InkContext } from "../render.ts";
 import type { Stroke } from "../types.ts";
@@ -34,8 +35,10 @@ import type { Stroke } from "../types.ts";
 //     fine-to-broad the way a row of nibs does, instead of five marks each
 //     fitted to its own cell and all the same size.
 //
-// A tool whose press leaves no mark at all (the hand, the dropper) has nothing
-// to paint, and falls back to the plain dot below.
+// Two kinds of tool fall back to the plain dot below: one whose press leaves no
+// mark at all (the hand, the dropper), and one that asks for a circle because
+// its mark cannot describe itself (`sizePreview: "circle"` — the eraser, whose
+// press is a hole). Both come out of the same branch: no marks, so a dot.
 
 /** How much of the tile the broadest mark on the row is fitted into. */
 const FILL = 0.88;
@@ -193,6 +196,11 @@ export function PressPreview({
   const tuning = JSON.stringify(dials);
   const key = `${plugin?.id}|${size}|${of}|${color}|${background}|${filled}|${tuning}`;
   const marks = useMemo(() => {
+    // A tool that asks for a circle is not simulated at all: there is no press
+    // to paint, and the dot below is the whole preview.
+    if (sizePreview(plugin) === "circle") {
+      return { press: [] as Stroke[], reach: () => 1, widest: 0 };
+    }
     // The yardstick: the broadest width on the row — or the width in hand when
     // it is broader still, which is what the slider is doing while it is being
     // dragged past everything the row offers.

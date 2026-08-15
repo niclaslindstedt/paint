@@ -181,6 +181,9 @@ export const en = {
     grid: "Grid",
     color: "Colour",
     size: "Size",
+    // The cog beside the ink, for a tool whose settings are not a width — the
+    // paint bucket (see `plugins/controls.ts`).
+    toolSettings: "Tool settings",
     fill: "Fill shapes",
     fillOutline: "Outline",
     fillFilled: "Filled",

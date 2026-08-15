@@ -62,22 +62,19 @@ const SAMPLE = "A";
  *  with a finer or a broader line. */
 const REACH = 3;
 
-/** How much wider the ink under a rubbing-out tool is than the bite it takes
- *  out of it — enough that the mark reads as ink being lifted rather than as a
- *  disc of page colour on a page. */
-const UNDER = 1.5;
-
 /** How far a two-anchor gesture should travel for a row whose widest width is
  *  `widest`, in document pixels. */
 export function pressReach(widest: number): number {
   return Math.max(4, widest * REACH);
 }
 
-/** The marks a single press with `plugin` leaves, in press coordinates — the
- *  press itself, and whatever has to be under it for that press to show.
+/** The marks a single press with `plugin` leaves, in press coordinates.
  *
  *  Empty for a tool whose press leaves no mark at all: the hand moves the view,
- *  the dropper reads a colour, and neither has anything to preview. */
+ *  the dropper reads a colour, and neither has anything to preview. Also empty
+ *  for a tool that would rub one out — a hole in a bare page is nothing to
+ *  paint, which is why the eraser previews its width as a circle instead (see
+ *  `PaintPlugin.sizePreview`). */
 export function pressMarks(
   plugin: PaintPlugin | undefined,
   ctx: ToolContext,
@@ -86,9 +83,7 @@ export function pressMarks(
   if (!plugin) return [];
   const mark = pressDraft(plugin, ctx, reach);
   if (!mark) return [];
-  const stroke = withId({ ...mark, tool: plugin.id }, "press");
-  const under = inkUnder(plugin, stroke, ctx);
-  return under ? [under, stroke] : [stroke];
+  return [withId({ ...mark, tool: plugin.id }, "press")];
 }
 
 /** The draft a press produces, tried the three ways a tool can answer one. */
@@ -135,36 +130,6 @@ function pressDraft(
   if (!begun) return null;
   const dragged = behaviour.move(begun, { x: half, y: -half }, page);
   return behaviour.end ? behaviour.end(dragged, page) : dragged;
-}
-
-/** The ink a rubbing-out tool's press takes off, or `null` when there is none
- *  to show.
- *
- *  A tool that `erases` lifts ink rather than laying it down, so on a bare page
- *  its press previews as nothing at all — which is exactly what it does, and
- *  exactly why it needs something to do it *to*. So the preview page carries a
- *  blot of the ink in hand, laid down by the same nib and a half wider, and the
- *  press lifts a hole out of the middle of it.
- *
- *  The blot names no tool. It is not a mark anybody made — it is a swatch for
- *  the press to bite into — and a stroke whose tool the registry doesn't know
- *  is painted by the renderer's own generic painter, which for a path is a
- *  plain line at the nib's width. Naming the erasing tool instead would have
- *  the blot rub *itself* out. */
-function inkUnder(
-  plugin: PaintPlugin,
-  mark: Stroke,
-  ctx: ToolContext,
-): Stroke | null {
-  if (!plugin.erases || !ctx.color) return null;
-  if (mark.shape.kind !== "path") return null;
-  return {
-    ...mark,
-    id: `${mark.id}-under`,
-    tool: "",
-    color: ctx.color,
-    size: mark.size * UNDER,
-  };
 }
 
 /** A page with one round area on it, for the tools that read the page instead
