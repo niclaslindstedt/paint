@@ -100,6 +100,18 @@ function mapShape(
       return {
         kind: "region",
         contours: shape.contours.map((loop) => loop.map(at)),
+        // The ramp is two points on the page like any other geometry, so a page
+        // turned, flipped or scaled turns, flips and scales the run of colour
+        // with the area it fills.
+        ...(shape.gradient
+          ? {
+              gradient: {
+                ...shape.gradient,
+                from: at(shape.gradient.from),
+                to: at(shape.gradient.to),
+              },
+            }
+          : {}),
       };
     case "segment":
     case "box":

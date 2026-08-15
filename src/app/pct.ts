@@ -39,7 +39,7 @@ import { drawingSlug } from "./export.ts";
 import { drawingLayers, groupByLayer, layerFilters } from "./layers.ts";
 import { parseDoc, serializeDoc } from "./migrations.ts";
 import type { InkContext } from "./render.ts";
-import type { Drawing, Filter, Layer, Stroke } from "./types.ts";
+import type { Drawing, Filter, Ground, Layer, Stroke } from "./types.ts";
 
 /** The file extension, and the name of the format. */
 export const PCT_EXTENSION = "pct";
@@ -112,6 +112,11 @@ export type PctManifest = {
     /** The pinned page colour, when the drawing has one. Absent means the page
      *  follows the app's canvas theme — see `Drawing.background`. */
     background?: string;
+    /** What the sheet is made of, when it is anything but the plain solid page
+     *  — see `Drawing.ground`. It is in the manifest because it is part of the
+     *  page rather than of any one layer: a reader that re-renders the vectors
+     *  needs it to get the same picture the layer PNGs hold. */
+    ground?: Ground;
   };
   /** The stack, **bottom first**, matching `Drawing.layers`. */
   layers: PctLayer[];
@@ -148,6 +153,11 @@ export type LayerRenderKey = InkContext & {
   paintsPage: boolean;
   /** The layer's own filters, in the order they are applied. */
   filters?: readonly Filter[];
+  /** The sheet the marks were laid on. Here for the filters' reason exactly:
+   *  changing the paper repaints every mark on it — the grain under them and
+   *  the way the wet ones mix (see `ground.ts`) — without touching a single
+   *  stroke, so a fingerprint blind to it would keep serving the old pixels. */
+  ground?: Ground;
 };
 
 /** FNV-1a over a string, seeded, as an unsigned 32-bit number. */
@@ -186,6 +196,10 @@ export function layerHash(
     // fingerprint of every layer of every drawing already on a backend the
     // moment this shipped, and re-upload the lot.
     key.filters && key.filters.length > 0 ? key.filters : null,
+    // Absent and "the solid sheet" are the same page and must hash the same,
+    // for the reason above: every drawing already on a backend is on the solid
+    // sheet, and a fingerprint that changed for them would re-upload the lot.
+    key.ground ?? null,
   ]);
   const lo = fnv1a(material, 0x811c9dc5);
   const hi = fnv1a(material, 0x01000193);
@@ -250,6 +264,7 @@ export function planLayers(drawing: Drawing, ink: InkContext): PlannedLayer[] {
       height: drawing.height,
       paintsPage: paintsPage(drawing, layer),
       filters: layerFilters(layer),
+      ground: drawing.ground,
     });
     return {
       strokes,
@@ -297,6 +312,7 @@ export function buildManifest(
       width: drawing.width,
       height: drawing.height,
       ...(drawing.background ? { background: drawing.background } : {}),
+      ...(drawing.ground ? { ground: drawing.ground } : {}),
     },
     layers: planned.map((p) => p.entry),
     ...(options.preview ? { preview: PREVIEW_ENTRY } : {}),
@@ -385,6 +401,7 @@ export function adoptDrawing(
     width: drawing.width,
     height: drawing.height,
     ...(drawing.background ? { background: drawing.background } : {}),
+    ...(drawing.ground ? { ground: drawing.ground } : {}),
     ...(drawing.layers ? { layers: drawing.layers } : {}),
     ...(drawing.activeLayerId ? { activeLayerId: drawing.activeLayerId } : {}),
     strokes: drawing.strokes.map((stroke) => ({

@@ -231,6 +231,7 @@ export const sv: Catalog = {
     presetDefaultName: "Inställning",
     presetSave: "Spara",
     presetForget: "Glöm",
+    colorUnused: "Det här verktyget ritar inte med färgen",
     tool: "Verktyg",
     toolbar: "Verktyg",
     selectionActions: "Markering",
@@ -296,6 +297,10 @@ export const sv: Catalog = {
     feather: {
       name: "Mjuk kant: {value} mm",
       hint: "Tonar ut fyllningens kant i stället för att tvärt avsluta den.",
+    },
+    sample: {
+      name: "Yta: {value}",
+      hint: "Hur mycket av sidan ett tryck läser av. Bredare ger medelfärgen av en spretig yta i stället för en enstaka prick.",
     },
     water: {
       name: "Vatten: {value} %",
@@ -412,6 +417,54 @@ export const sv: Catalog = {
     hint: "Nya streck hamnar på det valda lagret. Bakgrunden bär sidans färg; dölj den så blir sidan genomskinlig.",
     swipeHint: "Svep in från högerkanten för att öppna panelen.",
   },
+  swatches: {
+    from: "Från",
+    mid: "Mitten",
+    to: "Till",
+    none: "Ingen {name}-färg",
+  },
+  grounds: {
+    solid: {
+      name: "Enfärgad",
+      hint: "En förseglad digital sida: ingen struktur, och färgen lägger sig ovanpå det den täcker.",
+    },
+    hot: {
+      name: "Satinerat",
+      hint: "Akvarellpapper valsat slätt. Det suger som papper men har nästan inget för pigmentet att lägga sig i.",
+    },
+    cold: {
+      name: "Grovkornigt",
+      hint: "Arket som de flesta akvareller målas på. Tillräckligt med struktur för att granulera, inte så mycket att en linje bryts upp.",
+    },
+    rough: {
+      name: "Grovt",
+      hint: "Torkat utan pressning. Laveringar samlas i dalarna och en torr pensel hoppar över topparna.",
+    },
+    cartridge: {
+      name: "Ritpapper",
+      hint: "Skissblockets papper. Fin struktur, och limmat nog att bläcket stannar där du satte det.",
+    },
+    laid: {
+      name: "Randat",
+      hint: "Räfflat skrivpapper med en kedjelinje tvärsöver. Håller bläcket på ytan i stället för att dricka det.",
+    },
+    newsprint: {
+      name: "Tidningspapper",
+      hint: "Törstigt och olimmat: allt vått flyter ut på det, och en tuschpenna blir luddig.",
+    },
+    kraft: {
+      name: "Kraftpapper",
+      hint: "Brunt omslagspapper — ett fibrigt ark som tål en lavering. Lås en brun sidfärg till det.",
+    },
+    cotton: {
+      name: "Bomullsduk",
+      hint: "Grundad duk: en grov väv som syns genom allt, och en grund som håller färgen på ytan.",
+    },
+    linen: {
+      name: "Linne",
+      hint: "En finare och knottrigare väv än bomull, och lika lite törstig — grundad duk suger knappt alls.",
+    },
+  },
   tools: {
     pencil: {
       name: "Bläckpenna",
@@ -421,6 +474,11 @@ export const sv: Catalog = {
       name: "Blyertspenna",
       description:
         "En blyertspenna att skissa med. Den ritar alltid i grått — ställ in stiftet från hård och ljus H till mjuk och mörk B.",
+    },
+    erasers: {
+      name: "Sudda",
+      description:
+        "Ta bort ett streck — helt med suddgummit, eller lite i taget med radergummit. Tryck igen för att välja vilket.",
     },
     eraser: {
       name: "Suddgummi",
@@ -545,14 +603,25 @@ export const sv: Catalog = {
       description:
         "Tryck på sidan och skriv. Välj typsnitt, storlek, fet eller kursiv medan du skriver.",
     },
+    fills: {
+      name: "Fyll",
+      description:
+        "Fyll en yta — enfärgat med färgburken, eller med en toning. Tryck igen för att välja vilken.",
+    },
     filler: {
       name: "Färgburk",
       description:
         "Tryck på en tom yta så fylls den med färgen, fram till strecken runt omkring.",
     },
+    gradient: {
+      name: "Toning",
+      description:
+        "Tryck på en yta och dra: den fylls med en toning åt det håll du drog, i verktygets egna två färger (eller tre).",
+    },
     dropper: {
       name: "Färgpipett",
-      description: "Tryck på sidan för att rita med färgen du tryckte på.",
+      description:
+        "Tryck på sidan för att rita med färgen du tryckte på. Ställ in hur stor yta ett tryck läser av.",
     },
     image: {
       name: "Bild",
@@ -614,6 +683,16 @@ export const sv: Catalog = {
       pageFollowTheme: "Följ temat",
       pageColorHint:
         "Lås en färg för just den här teckningen — den åsidosätter ritytans tema och följer med teckningen när den synkas.",
+      surfaceTitle: "Underlag",
+      surfaceLabel: "Vad sidan är gjord av",
+      surfaceHint:
+        "Arket är en del av bilden och följer med teckningen: strukturen målas under strecken, och ett vått verktyg på ett törstigt ark blandar sig med det det målas över i stället för att täcka det. Akvarell är verktyget att prova det med.",
+      surfaceSolid: "Enfärgat",
+      surfacePaper: "Papper",
+      surfaceCanvas: "Duk",
+      surfaceTexture: "Struktur: {value}%",
+      surfaceTextureHint:
+        "Hur tydligt arkets struktur syns. Det ändrar vad du ser, aldrig hur mycket arket suger — det är vad sorten är.",
       gridTitle: "Rutnät",
       showGrid: "Visa rutnät",
       showGridHint:

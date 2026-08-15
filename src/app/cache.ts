@@ -64,8 +64,10 @@ import {
   backgroundHidden,
   visibleStrokes,
 } from "./layers.ts";
+import { groundProfile } from "./ground.ts";
 import {
   anyErases,
+  anyStains,
   paintStrokes,
   relayFixed,
   renderDrawing,
@@ -73,7 +75,7 @@ import {
   type RenderOptions,
 } from "./render.ts";
 import { createSurface, resizeSurface, type Surface } from "./surface.ts";
-import type { Drawing, Stroke } from "./types.ts";
+import type { Drawing, Ground, Stroke } from "./types.ts";
 
 /** Where the page sits in the window: a scale and a translation, in CSS pixels
  *  (the canvas's `CanvasView`, which this module deliberately doesn't import —
@@ -172,12 +174,20 @@ export function paintCommitted(
     grewFrom(cache.strokes, cache.count, strokes) &&
     (!layered || strokes.length === cache.count);
 
-  if (usable) {
-    const added = strokes.length - cache.count;
+  // A mark that soaks into the sheet mixes with what is under it (see
+  // `render.ts`), and on these pixels "what is under it" is a *finished*
+  // picture — every layer, and the sheet itself. Appending one would mix it
+  // with all of that, where a repaint mixes it only with its own layer, and the
+  // two would show a different picture the next time anything forced a full
+  // one. So a wet mark landing on a thirsty sheet repaints, exactly as a mark
+  // landing on a filtered stack does. It costs one repaint per finished stroke
+  // and only on the drawings that asked for paper.
+  const landed = usable ? strokes.slice(cache.count) : [];
+  if (usable && !anyStains(landed, groundProfile(spec.options.ground))) {
+    const added = landed.length;
     if (added > 0) {
       // The gesture that just landed, painted onto the marks already there —
       // which is what compositing it over them on screen did anyway.
-      const landed = strokes.slice(cache.count);
       applyView(cache.surface.ctx, spec);
       paintStrokes(cache.surface.ctx, landed, {
         ...spec.options,
@@ -414,12 +424,21 @@ function sameFrame(a: CacheSpec, b: CacheSpec): boolean {
     a.options.defaultInk === b.options.defaultInk &&
     a.options.grid === b.options.grid &&
     a.options.transparentPage === b.options.transparentPage &&
+    // The sheet: change the paper and every mark on the page is painted
+    // differently — the grain under them, and how the wet ones mix with what
+    // they are over.
+    sameGround(a.options.ground, b.options.ground) &&
     // Compared by identity, and the canvas keeps one set for the length of a
     // drag so it holds: what matters is only "are the same marks lifted off",
     // and walking two sets per frame to answer it would cost more than the
     // repaint it saves on the frames where the answer is no.
     a.options.omit === b.options.omit
   );
+}
+
+/** Whether two drawings are on the same stock, at the same weight of grain. */
+function sameGround(a: Ground | undefined, b: Ground | undefined): boolean {
+  return a?.stock === b?.stock && a?.texture === b?.texture;
 }
 
 /** The stack's filters as one string, which changes whenever any of them does.

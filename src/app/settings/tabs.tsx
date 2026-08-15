@@ -47,6 +47,7 @@ import {
   type SyncBackendId,
   type SyncEngine,
 } from "../useSyncEngine.ts";
+import { SurfaceSection } from "./ground.tsx";
 import { LanguagePicker } from "./shared.tsx";
 
 type Update = <K extends keyof AppSettings>(
@@ -221,6 +222,9 @@ export function CanvasTab({
   // behind the dialog, which is the only way to judge the choice.
   const dark = isDarkCanvas(settings.canvasTheme, appearance);
   const pinned = store.activeDrawing?.background;
+  // The colour the open drawing actually paints on, so the surface swatches
+  // below are *this* page on each stock rather than a stranger's.
+  const pinnedPage = resolvePageColor(pinned, dark);
   const themeOptions = [
     { value: "auto" as const, label: t("settings.canvas.themeAuto") },
     { value: "light" as const, label: t("settings.canvas.themeLight") },
@@ -298,6 +302,11 @@ export function CanvasTab({
           </p>
         </div>
       </Section>
+
+      {/* What the sheet is made of — paper, canvas, or the plain page. Applied
+          live like the theme above it, and for the same reason: the only way to
+          judge a surface is to see the drawing on it. */}
+      <SurfaceSection store={store} pageColor={pinnedPage} dark={dark} />
 
       <Section title={t("settings.canvas.gridTitle")}>
         <ToggleRow

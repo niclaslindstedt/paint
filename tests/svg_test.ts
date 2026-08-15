@@ -254,6 +254,50 @@ describe("the SVG export", () => {
     }
   });
 
+  it("writes a poured area as a real gradient over the page's own coordinates", () => {
+    // A ramp is a line across the *page* (see `Gradient`), not a diagonal of the
+    // box it happens to fill — so the def carries the run's own coordinates and
+    // says `userSpaceOnUse`. Fitted to a bounding box it would come out aimed
+    // somewhere else entirely.
+    const svg = toSvg(
+      drawing([
+        {
+          id: "s1",
+          tool: "gradient",
+          size: 8,
+          shape: {
+            kind: "region",
+            contours: [
+              [
+                { x: 20, y: 20 },
+                { x: 120, y: 20 },
+                { x: 120, y: 90 },
+                { x: 20, y: 90 },
+              ],
+            ],
+            gradient: {
+              from: { x: 20, y: 20 },
+              to: { x: 120, y: 90 },
+              stops: [
+                { at: 0, color: "#111827" },
+                { at: 0.5, color: "#f59e0b" },
+                { at: 1, color: "#ffffff" },
+              ],
+            },
+          },
+        },
+      ]),
+    );
+    expect(svg).toContain('gradientUnits="userSpaceOnUse"');
+    expect(svg).toContain('x1="20" y1="20" x2="120" y2="90"');
+    // Every stop, in order, and the area filled by reference rather than with a
+    // colour of its own.
+    expect(svg).toContain('<stop offset="0" stop-color="#111827"/>');
+    expect(svg).toContain('<stop offset="0.5" stop-color="#f59e0b"/>');
+    expect(svg).toContain('<stop offset="1" stop-color="#ffffff"/>');
+    expect(svg).toMatch(/fill="url\(#g\d+\)"/);
+  });
+
   it("writes a rubbing out as a mask over what it rubbed out", () => {
     // SVG has no compositing operator, so `destination-out` becomes the one
     // thing it does have: the marks go into a group, and the eraser's shape is

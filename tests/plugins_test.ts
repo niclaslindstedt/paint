@@ -5,7 +5,10 @@ import { dropperBehaviour } from "../src/app/plugins/builtin/dropper.ts";
 import { fillBehaviour } from "../src/app/plugins/builtin/fill.ts";
 import { freehandBehaviour } from "../src/app/plugins/builtin/freehand.ts";
 import { handBehaviour } from "../src/app/plugins/builtin/hand.ts";
-import { registerBuiltinPlugins } from "../src/app/plugins/builtin/index.ts";
+import {
+  ERASER_GROUP_ID,
+  registerBuiltinPlugins,
+} from "../src/app/plugins/builtin/index.ts";
 import {
   selectBehaviour,
   selectLassoBehaviour,
@@ -77,8 +80,8 @@ describe("registry", () => {
 
   it("keeps registration order", () => {
     // The row a hand actually uses: the pen, the two rubbers that undo it, the
-    // rest of the media, the bucket, the two families, type — and last the two
-    // tools that touch neither the ink nor the document.
+    // rest of the media, the fills, the two other families, type — and last the
+    // two tools that touch neither the ink nor the document.
     expect(allPlugins().map((p) => p.id)).toEqual([
       "pencil",
       "eraser",
@@ -93,6 +96,9 @@ describe("registry", () => {
       "crayon",
       "calligraphy",
       "filler",
+      // …and its variant, which shares the bucket's button: same area, poured
+      // from a ramp instead of one flat colour.
+      "gradient",
       // The shapes: four a paint program has always had, then the ones a
       // diagram wants. They share a button, not a registration.
       "rectangle",
@@ -159,9 +165,12 @@ describe("registry", () => {
   });
 
   it("offers only the core tools with nothing switched on", () => {
+    // Four plugins behind three buttons: the two ways of rubbing out share
+    // theirs, and a core *family* is offered exactly as a core tool is.
     expect(enabledPlugins([]).map((p) => p.id)).toEqual([
       "pencil",
       "eraser",
+      "rubber",
       "hand",
     ]);
   });
@@ -206,7 +215,7 @@ describe("registry", () => {
     // Grouping is what keeps the toolbar the size it is: fifteen tools behind
     // the two family buttons, and one switch each in Settings → Tools.
     const entries = toolbarEntries(defaultEnabledPlugins(), []);
-    for (const id of [SHAPES_GROUP_ID, SELECT_GROUP_ID]) {
+    for (const id of [SHAPES_GROUP_ID, SELECT_GROUP_ID, ERASER_GROUP_ID]) {
       expect(entries.filter((e) => e.id === id)).toHaveLength(1);
       const members = groupMembers(id);
       expect(members.length).toBeGreaterThan(1);
@@ -832,11 +841,37 @@ describe("clearing the page", () => {
     expect(allPlugins().map((p) => p.id)).not.toContain("clear");
   });
 
+  it("puts both ways of rubbing out behind the one button", () => {
+    // The family the user asked for: a rubber is a *variant of the eraser*, not
+    // a second permanent button, so it ships with it and is one press away.
+    expect(groupMembers(ERASER_GROUP_ID).map((p) => p.id)).toEqual([
+      "eraser",
+      "rubber",
+    ]);
+    for (const member of groupMembers(ERASER_GROUP_ID)) {
+      expect(member.group).toBe(ERASER_GROUP_ID);
+      // Grouping is about how they are offered and nothing else: each keeps its
+      // own painter, its own width and its own persisted id.
+      expect(member.erases).toBe(true);
+    }
+    // The family's id is the eraser's own, which is what carries a settings
+    // blob written before the rubber existed into the group rather than
+    // switching its button off.
+    expect(ERASER_GROUP_ID).toBe("eraser");
+    // …and it is offered with nothing switched on, exactly as the eraser was.
+    const entries = toolbarEntries(defaultEnabledPlugins(), []);
+    expect(entries.filter((e) => e.id === ERASER_GROUP_ID)).toHaveLength(1);
+    expect(entries.map((e) => e.id)).not.toContain("rubber");
+  });
+
   it("leaves the eraser an ordinary drawing tool", () => {
     const eraser = pluginById("eraser")!;
     expect(eraser.behaviour.start({ x: 0, y: 0 }, ctx)).not.toBeNull();
     expect(eraser.erases).toBe(true);
-    expect(eraser.core).toBe(true);
+    // Its `core` moved onto the family it now shares a button with — which is
+    // where a grouped tool's switch lives — and it is still always offered.
+    expect(eraser.core).toBeUndefined();
+    expect(groupById(ERASER_GROUP_ID)?.core).toBe(true);
     expect(enabledPlugins([]).map((p) => p.id)).toContain("eraser");
   });
 });

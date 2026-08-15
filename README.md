@@ -12,8 +12,8 @@
 
 Paint is a small installable web app for sketching a concept: boxes, arrows, a
 circled bit, a scribble. It opens on a page, a paint program's toolbox — pen,
-pencil, eraser, watercolour brush, airbrush, paint bucket, text, the shapes, a
-selection marquee and the colour dropper — and nothing else in the way. Drawings are vector strokes kept in your browser; nothing leaves the device
+pencil, eraser, watercolour brush, airbrush, paint bucket and gradient, text,
+the shapes, a selection marquee and the colour dropper — and nothing else in the way. Drawings are vector strokes kept in your browser; nothing leaves the device
 unless you connect storage yourself.
 
 It is a sibling of the [`notes`](https://github.com/niclaslindstedt/notes) and
@@ -30,10 +30,10 @@ the same [`oss-framework`](https://github.com/niclaslindstedt/oss-framework).
   again exactly as you left it.
 - **Tools are plugins.** Every tool, the pen included, is registered through
   one interface. It opens on the toolbox you already know — pen, pencil,
-  eraser, watercolour brush, airbrush, bucket, text, the shapes, a selection
-  marquee and the dropper — and the media it adds to that (a round and a flat
-  bristle brush, a marker, a crayon, a calligraphy nib, a highlighter, and a
-  **rubber** that lifts pencil the way a real one does) wait in
+  eraser, watercolour brush, airbrush, bucket and gradient, text, the shapes, a
+  selection marquee and the dropper — and the media it adds to that (a round and
+  a flat bristle brush, a marker, a crayon, a calligraphy nib, a highlighter)
+  wait in
   Settings → Tools, so the toolbar stays as simple as you want it and grows when
   you need it. Rearrange the row there too, and it rearranges here. Each tool
   remembers its own width, so a fat brush never costs you a fine pen.
@@ -63,6 +63,12 @@ the same [`oss-framework`](https://github.com/niclaslindstedt/oss-framework).
   sketching pencil" and give it a mark to know it by, and it is one press away
   from then on. A saved tool carries its width and every dial, and it belongs to
   the tool it was saved from.
+- **Two ways to rub something out, one button.** The **eraser** is a hole: it
+  takes off whatever it covers, at whatever strength you set it to. Press it
+  again for the **rubber**, which is a real one — it lifts pencil and crayon a
+  little at a time, leaves the paper's grain showing through what is left, never
+  quite takes all of it, and leaves ink, paint and marker exactly where they
+  are. So you can sketch in pencil, ink over the sketch, and rub the sketch out.
 - **Eleven shapes, one button.** Rectangle, ellipse, line, arrow, rounded
   rectangle, triangle, diamond, pentagon, hexagon, star and double arrow share a
   single toolbar button and a single switch: press it again for the family, and
@@ -95,6 +101,16 @@ the same [`oss-framework`](https://github.com/niclaslindstedt/oss-framework).
   The marker and the highlighter are two shapes of felt tip — a round bullet and
   a flat wedge that draws a band one way and a hairline the other. Not one pen
   at five different widths.
+- **Paper, canvas, or a plain sheet.** The page has a material as well as a
+  colour: pick a solid digital sheet, one of seven papers (hot-pressed,
+  cold-pressed, rough, cartridge, laid, newsprint, kraft) or primed cotton or
+  linen. The sheet's grain is painted _under_ the marks, so it shows through a
+  wash and not through an opaque line — and on a sheet that drinks, the wet
+  tools start behaving like it. A wash mixes with the colour it lands on instead
+  of covering it, so red over blue is purple and blue over red is a different
+  picture; an ink line a wash crosses feathers out into the water; a marker on
+  newsprint goes furry and a pencil on any of it stays a pencil. Mixing is
+  scoped to a layer, so putting a mark on another one keeps it out of the water.
 - **Type on the page.** The text tool drops a caret wherever you tap and you
   type into the drawing itself, in the size, colour and typeface it will land
   in — four faces, bold and italic. Drag the box to put the caption somewhere
@@ -180,7 +196,7 @@ npm run dev          # http://localhost:5173
 
 Draw on the page. `P` the pen, `E` the eraser, `G` the pencil, `W` watercolour,
 `S` airbrush,
-`F` the paint bucket, `R` / `O` / `L` / `A` the rectangle, ellipse, line and
+`F` the paint bucket, `Y` the gradient, `R` / `O` / `L` / `A` the rectangle, ellipse, line and
 arrow, `V` the selection marquee, `T` text, `I` the colour dropper, `D` the hand
 (drag the page around) — left to right in the order a hand uses them;
 `Ctrl/Cmd + Z` undoes a mark. The hamburger top left opens the drawings, the panel on the right
@@ -235,17 +251,26 @@ npm run preview
   slider, because there is nothing between a 2B and a 3B — the chisel of a felt
   tip for the marker and the highlighter, the angle of the nib for the flat
   brush and the calligraphy pen, strength for the eraser, pressure for the
-  rubber, a feathered edge for
-  the paint bucket, and opacity for most of the rest. Above the widths are two
-  rows of whole tools, one press each: **Presets**, the ways the tool's own
-  medium is used, shipped with it and each showing the mark it makes, and
-  **Saved**, the ones you named yourself.
+  rubber, a feathered edge for the paint bucket and the gradient, how much page
+  one press of the dropper reads, and opacity for most of the rest. Above the
+  widths are two rows of whole tools, one press each: **Presets**, the ways the
+  tool's own medium is used, shipped with it and each showing the mark it makes,
+  and **Saved**, the ones you named yourself.
   They are kept per tool, so a soft brush stays soft without softening anything
   else. A tool with no width to set shows a **cog** in that slot instead — the
   paint bucket fills the area it traced whatever a nib might say, so it opens
   its own settings directly — and one that marks nothing at all shows no button
-  there. Most tools have a single-key shortcut, and the shapes button opens the
-  other ten — and the hollow / solid toggle — when you press it a second time.
+  there. A tool that mixes **its own inks** puts them at the head of that panel,
+  under a press of the mark they make, and the ink button is crossed out while it
+  is in hand: the gradient is poured from its own two colours (or three) and never
+  from the toolbar's. Most tools have a single-key shortcut, and a button with a
+  family behind it — the shapes, the fills, the two rubbers — opens the rest of
+  it when you press it a second time.
+- **Fills** — one button, two ways to fill an area: the **paint bucket**, flat
+  in the ink you have picked, and the **gradient**, which floods the same area
+  and pours a ramp of its own colours through it — press where the first colour
+  starts, drag the way it should run, let go where the last one lands. Press the
+  button again to choose which.
 - **Selection** — one button, four ways to pick marks out: a box (`V`), an
   oval, a freehand lasso, and a **trace** that follows the contours of whatever
   is drawn under your finger rather than a shape you drew over it. Press the
@@ -265,6 +290,11 @@ npm run preview
   over; the **Filters** section under it blurs or grains the whole page. A press
   on the page closes it again, as does the header button that opened it — there
   is no close cross on the panel.
+- **Canvas** — one finger (or a pen, or the mouse) draws, two pinch and pan,
+  and with a fine pointer the cursor **is the nib**: a circle the size of the
+  mark you are about to leave, on the page you are about to leave it on, growing
+  and shrinking with the zoom. Tools that mark nothing by a nib keep the
+  crosshair.
 - **Header** — the drawing's name (edit in place), the favourite star, the disk
   button (when a backend is connected), the download menu (PNG, JPG, SVG, the
   layered `.pct`, or copy to the clipboard), and — at the far right — the button

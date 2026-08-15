@@ -9,8 +9,8 @@
 // happened to stack them.
 //
 // So it reads: the pen you draw with, the eraser that undoes it, then the rest
-// of the media in a shelf of their own, then the bucket, then the two families
-// (shapes, then choosing marks), then type — which is what you usually reach for
+// of the media in a shelf of their own, then the fills, then the two other
+// families (shapes, then choosing marks), then type — which is what you reach for
 // right after picking something out — and last the two tools that touch neither
 // the ink nor the document: the dropper that reads a colour off the page, and
 // the hand that moves the page. Those two are a pair and they belong at the far
@@ -28,8 +28,9 @@
 //
 // A fourth answer sits above those three: a tool may belong to a **group**, and
 // then the group carries the switch and the toolbar button for the whole family.
-// Two families are the case — the eleven shapes, and the four ways of selecting
-// — and both are below.
+// Four families are the case — the eleven shapes, the four ways of selecting,
+// the two ways of filling an area, and the two ways of taking a mark off — and
+// all four are below.
 //
 // **What a first run finds is the shape of Paint**: a pen, a pencil, an eraser,
 // a watercolour brush, an airbrush, a bucket, type, the shapes, the marquee, a
@@ -85,6 +86,7 @@ import {
   DropperIcon,
   EraserIcon,
   FlatBrushIcon,
+  GradientIcon,
   HandIcon,
   HexagonIcon,
   HighlighterIcon,
@@ -128,6 +130,7 @@ import {
   PIGMENT,
   PRESSURE,
   RUB,
+  SAMPLE,
   SPLAY,
   STRENGTH,
   WATER,
@@ -164,6 +167,12 @@ import {
 } from "./gauges.ts";
 import { dropperBehaviour } from "./dropper.ts";
 import { fillBehaviour } from "./fill.ts";
+import {
+  FILL_GROUP_ID,
+  GRADIENT_SWATCHES,
+  GRADIENT_TOOL_ID,
+  gradientBehaviour,
+} from "./gradient.ts";
 import { freehandBehaviour } from "./freehand.ts";
 import { handBehaviour } from "./hand.ts";
 import { imageBehaviour, IMAGE_TOOL_ID } from "./image.ts";
@@ -338,6 +347,19 @@ const SELECTIONS: readonly Omit<
   },
 ];
 
+/** The id the rubbing-out family shares.
+ *
+ *  It is the **eraser's own plugin id**, exactly as the fill family took the
+ *  bucket's and the selection family took the lone marquee's: that is the id
+ *  every settings blob already has in its enabled list and its toolbar order, so
+ *  an install carries straight into the family rather than losing its button.
+ *
+ *  Declared here rather than in a module of the family's own — where
+ *  `SHAPES_GROUP_ID`, `SELECT_GROUP_ID` and `FILL_GROUP_ID` live — because both
+ *  its members are `freehandBehaviour` with different ink and neither has a
+ *  module to put it in. */
+export const ERASER_GROUP_ID = "eraser";
+
 /** Register the built-in tools. Idempotent — re-registering an id replaces it
  *  in place, so calling this twice (a hot reload, a test) is harmless. */
 export function registerBuiltinPlugins(): void {
@@ -364,6 +386,11 @@ export function registerBuiltinPlugins(): void {
     // says it does, so the number is the mark.
     gauge: PEN_GAUGE,
     defaultSize: mm(0.5),
+    // Liquid ink, but only just: a technical pen is dry the moment it leaves
+    // the nib on any sized paper, and the one stock it feathers on is
+    // newsprint — which is exactly what this number times an absorbency comes
+    // out saying (see `PaintPlugin.wetness`).
+    wetness: 0.18,
     dials: [OPACITY],
     // The three lines a drawing pen is actually asked for — see `./presets.ts`
     // for what a preset is and for why several tools below have none.
@@ -371,9 +398,29 @@ export function registerBuiltinPlugins(): void {
     behaviour: freehandBehaviour(),
   });
 
+  // The two rubbing-out tools share one button, the way the fills and the
+  // shapes do. They are not two tools you choose between so much as one
+  // question — *how much of this should go* — with two honest answers, and a
+  // toolbar that spent a second permanent button on the second one would be
+  // charging every user for a tool most of them will reach for twice a year.
+  //
+  // A second press on the eraser is exactly where the rubber belongs, and it is
+  // what makes it findable at all: nobody goes looking in Settings → Tools for
+  // an eraser they do not know exists.
+
+  registerGroup({
+    id: ERASER_GROUP_ID,
+    // Core, because the eraser was: a canvas with no way to take a mark off is
+    // not a canvas, and the family inherits the switch its first member had.
+    core: true,
+    nameKey: "tools.erasers.name",
+    descriptionKey: "tools.erasers.description",
+    icon: EraserIcon,
+  });
+
   registerPlugin({
     id: "eraser",
-    core: true,
+    group: ERASER_GROUP_ID,
     nameKey: "tools.eraser.name",
     descriptionKey: "tools.eraser.description",
     icon: EraserIcon,
@@ -437,12 +484,14 @@ export function registerBuiltinPlugins(): void {
 
   registerPlugin({
     id: "rubber",
+    group: ERASER_GROUP_ID,
     nameKey: "tools.rubber.name",
     descriptionKey: "tools.rubber.description",
     icon: RubberIcon,
     // No shortcut. The letters near it are spoken for — **e** is the eraser it
-    // sits beside and **r** the rectangle — and a second rubber is not worth
-    // taking one off a tool that has had it since the first release.
+    // shares a button with and **r** the rectangle — and the family is one press
+    // away from a key that already works, which is the arrangement every other
+    // grouped tool here has.
     //
     // The same rack the eraser is sold on, opening two steps down it: a rubber
     // you work a passage back with is held like a pencil rather than swept like
@@ -514,6 +563,9 @@ export function registerBuiltinPlugins(): void {
     // wet and gathered it is, what gauge the hair is, how far the bundle has
     // worn open, and whether the paper under it wicks. Plus the opacity every
     // marking tool offers.
+    // Body colour off a loaded head: wet enough to mix into what it is painted
+    // over on any paper, nowhere near as wet as a wash.
+    wetness: 0.6,
     dials: [OPACITY, HARDNESS, HAIR, SPLAY, BLEED],
     // Four heads rather than four widths — the hog, the dry brush and the
     // glaze are what those five dials are *for*.
@@ -544,6 +596,7 @@ export function registerBuiltinPlugins(): void {
     // The round's dials, plus the one thing a blade has that a cone does not:
     // which way it is turned. Held at −45° out of the box, the same tilt the
     // broad nib rests at, because it is the same right-handed wrist.
+    wetness: 0.6,
     dials: [OPACITY, HARDNESS, ANGLE, SPLAY, BLEED],
     presets: FLAT_BRUSH_PRESETS,
     behaviour: freehandBehaviour({
@@ -576,6 +629,12 @@ export function registerBuiltinPlugins(): void {
     // Three things, and a watercolourist changes exactly these between one
     // stroke and the next: how much water is on the brush, how much colour is
     // in the water, and what the sheet does with what is left behind.
+    // The wettest thing in the box, and the tool the whole ground mechanism
+    // was built for: on paper a wash mixes with the colour it lands on, drags
+    // a little of it into its own wet edge, and spreads past the hair further
+    // the thirstier the sheet is. On the solid sheet it does none of that and
+    // paints exactly as it always has.
+    wetness: 1,
     dials: [OPACITY, WATER, PIGMENT, GRANULATION],
     // Wet-in-wet, glaze and dry brush: the techniques those three dials are the
     // controls for, under the names a watercolourist already uses.
@@ -608,6 +667,9 @@ export function registerBuiltinPlugins(): void {
     defaultSize: mm(12),
     // A spray cone: how tight its core is, and how much paint the trigger lets
     // through per pass.
+    // Atomised: it has crossed a foot of air before it lands and most of the
+    // solvent is gone by then, so it dries almost on contact.
+    wetness: 0.15,
     dials: [HARDNESS, FLOW],
     presets: SPRAY_PRESETS,
     behaviour: freehandBehaviour({
@@ -637,6 +699,9 @@ export function registerBuiltinPlugins(): void {
     defaultSize: mm(2),
     // Spirit ink: it soaks in rather than sitting on top, so a second pass over
     // the same line darkens it the way a real marker does.
+    // Spirit ink, and the reason a marker on newsprint is a fat furry line and
+    // a marker on layout paper is a crisp one.
+    wetness: 0.5,
     dials: [OPACITY, CHISEL],
     presets: MARKER_PRESETS,
     behaviour: freehandBehaviour({
@@ -660,6 +725,7 @@ export function registerBuiltinPlugins(): void {
     // of page: a highlighter that could not cover the word it was over.
     gauge: HIGHLIGHTER_GAUGE,
     defaultSize: mm(5),
+    wetness: 0.45,
     dials: [OPACITY, CHISEL_FLAT],
     presets: HIGHLIGHTER_PRESETS,
     behaviour: freehandBehaviour({
@@ -685,6 +751,10 @@ export function registerBuiltinPlugins(): void {
     // and the face a crayon actually presents once it has been used twice.
     gauge: CRAYON_GAUGE,
     defaultSize: mm(8),
+    // No wetness at all, which is the point of wax: a crayon on the wettest
+    // paper there is behaves exactly as it does on glass, and a wash laid over
+    // one goes round it. (Resisting the water is what a wax resist *is* — see
+    // `docs/features/surface.md`.)
     dials: [OPACITY, PRESSURE],
     presets: CRAYON_PRESETS,
     // Wax is caught on the tooth the same way graphite is, and comes away the
@@ -708,6 +778,9 @@ export function registerBuiltinPlugins(): void {
     // The one thing a writer actually changes about a broad nib is the angle
     // they hold it at — turn it towards flat and the stroke that swells is the
     // vertical instead of the diagonal.
+    // A broad nib carries a bead of ink and puts most of it on the page at
+    // once, which is why writing on the wrong paper feathers.
+    wetness: 0.5,
     dials: [OPACITY, ANGLE],
     // The three hands anyone is taught. A calligrapher changes the nib and the
     // angle they hold it at, and that is the whole difference between them.
@@ -722,10 +795,29 @@ export function registerBuiltinPlugins(): void {
 
   // --- Then filling an area ------------------------------------------------
   // Below the media, above the vector tools.
+  //
+  // Two ways of filling one, behind one button — the shapes' arrangement, for a
+  // reason of its own: the gradient is not a second tool so much as the bucket's
+  // *other answer*. Same press, same flood, same area; poured from a ramp
+  // instead of from one flat colour (see `gradient.ts`). A second press on the
+  // bucket is where that belongs, and it costs the toolbar nothing.
+  //
+  // The group takes the bucket's own plugin id, exactly as the selection family
+  // took the lone marquee's: that is the id an existing settings blob has in its
+  // enabled list and its toolbar order, so an install that had the bucket
+  // switched on gets the pair in the same slot rather than losing its button.
+
+  registerGroup({
+    id: FILL_GROUP_ID,
+    defaultOn: true,
+    nameKey: "tools.fills.name",
+    descriptionKey: "tools.fills.description",
+    icon: BucketIcon,
+  });
 
   registerPlugin({
     id: "filler",
-    defaultOn: true,
+    group: FILL_GROUP_ID,
     nameKey: "tools.filler.name",
     descriptionKey: "tools.filler.description",
     icon: BucketIcon,
@@ -737,10 +829,32 @@ export function registerBuiltinPlugins(): void {
     sizeless: true,
     // A wash you can see through, and an edge that fades out rather than
     // stopping — the two things that separate a bucket from a paint pot.
+    // It lays a wash rather than a coat, so on paper it mixes with the marks
+    // it floods over instead of hiding them.
+    wetness: 0.3,
     dials: [OPACITY, FEATHER],
     // The one set with no width in it, because the tool has none.
     presets: FILL_PRESETS,
     behaviour: fillBehaviour,
+  });
+
+  registerPlugin({
+    id: GRADIENT_TOOL_ID,
+    group: FILL_GROUP_ID,
+    nameKey: "tools.gradient.name",
+    descriptionKey: "tools.gradient.description",
+    icon: GradientIcon,
+    shortcut: "y",
+    // A bucket's reason for having no width, and a bucket's two dials — what
+    // separates them is what the area is filled *with*.
+    sizeless: true,
+    dials: [OPACITY, FEATHER],
+    // …and that is this: the tool carries its own inks rather than drawing with
+    // the toolbar's, which is also what dims the ink button while it is in hand
+    // (see `plugins/swatches.ts`). Two ends and a middle that is off unless you
+    // ask for it.
+    swatches: GRADIENT_SWATCHES,
+    behaviour: gradientBehaviour,
   });
 
   // --- Then the shapes, behind one button ----------------------------------
@@ -865,9 +979,15 @@ export function registerBuiltinPlugins(): void {
     descriptionKey: "tools.dropper.description",
     icon: DropperIcon,
     shortcut: "i",
-    // Reads the page instead of marking it — the canvas samples the colour
-    // under the press and pins it as the ink (see `dropper.ts`).
+    // Reads the page instead of marking it — the press asks the tool what it
+    // sampled and the answer is pinned as the ink (see `dropper.ts`).
     picksColor: true,
+    // How much page one press reads. It is the only setting a dropper has ever
+    // had anywhere, and it is the difference between sampling an airbrushed
+    // passage and sampling one speck of the spray that made it — so the tool
+    // that used to carry no button at all now carries the cog (see
+    // `plugins/controls.ts`).
+    dials: [SAMPLE],
     behaviour: dropperBehaviour,
   });
 

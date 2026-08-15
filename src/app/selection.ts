@@ -244,7 +244,22 @@ export function translateStroke<T extends Measurable>(
     case "region":
       return {
         ...stroke,
-        shape: { ...shape, contours: shape.contours.map((c) => c.map(move)) },
+        shape: {
+          ...shape,
+          contours: shape.contours.map((c) => c.map(move)),
+          // A ramp is laid along a line on the page (see `Gradient`), so it
+          // travels with the area it fills — moving the outlines and leaving
+          // the ramp where it was would slide the colours across the mark.
+          ...(shape.gradient
+            ? {
+                gradient: {
+                  ...shape.gradient,
+                  from: move(shape.gradient.from),
+                  to: move(shape.gradient.to),
+                },
+              }
+            : {}),
+        },
       };
     case "text":
       return { ...stroke, shape: { ...shape, at: move(shape.at) } };

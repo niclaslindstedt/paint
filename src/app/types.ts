@@ -13,6 +13,28 @@
  *  the same thing at any zoom or screen size. */
 export type Point = { x: number; y: number };
 
+/** A ramp of colour laid across an area — what the gradient tool pours and the
+ *  bucket doesn't.
+ *
+ *  It is *geometry as much as ink*: the ramp runs along the line from `from` to
+ *  `to` in document coordinates, so moving the mark moves the ramp with it and
+ *  scaling the page scales it, exactly as the outlines it fills are moved and
+ *  scaled. That is why it lives on the shape rather than beside the stroke's
+ *  colour.
+ *
+ *  The colours are recorded rather than resolved at paint time, like every other
+ *  ink a mark was made with: re-picking the tool's inks tomorrow must not re-pour
+ *  the fills you made today. */
+export type Gradient = {
+  /** Where the ramp starts and ends, in document coordinates. */
+  from: Point;
+  to: Point;
+  /** The colours along it, each at its place on the run (0 at `from`, 1 at
+   *  `to`), in order. Two of them is the usual case; a third in the middle is
+   *  what makes a sunset rather than a fade. */
+  stops: { at: number; color: string }[];
+};
+
 /** The geometry half of a stroke, tagged by kind so renderers can switch on it.
  *
  *  - `path`     freehand — a polyline sampled from the pointer.
@@ -21,7 +43,9 @@ export type Point = { x: number; y: number };
  *  - `region`   an area, as closed outlines — what the paint bucket leaves
  *               behind. Painted with the even-odd rule, so a loop inside
  *               another loop is a hole rather than a second coat (see
- *               `flood.ts`).
+ *               `flood.ts`). It may carry a `gradient`, which is the one thing
+ *               that separates a poured fill from a bucket one: same area, same
+ *               outlines, inked with a ramp instead of a flat colour.
  *  - `text`     a caption typed at a point — the one mark that is entered
  *               rather than drawn. It anchors at its **top-left** corner and
  *               may run to several lines; the typeface it was set in travels
@@ -46,7 +70,7 @@ export type Shape =
   | { kind: "path"; points: Point[] }
   | { kind: "segment"; from: Point; to: Point }
   | { kind: "box"; from: Point; to: Point }
-  | { kind: "region"; contours: Point[][] }
+  | { kind: "region"; contours: Point[][]; gradient?: Gradient }
   | {
       kind: "text";
       at: Point;
@@ -208,6 +232,29 @@ export type Filter =
       color?: boolean;
     };
 
+/** What the page is *made of* — the stock the sheet is cut from, and how much
+ *  of its tooth shows (see `ground.ts`).
+ *
+ *  Held on the drawing rather than in the settings because it is part of the
+ *  picture: a wash laid on rough paper is a different mark from the same wash
+ *  laid on a sealed digital sheet, so the sheet has to travel with the drawing
+ *  and sync with it, exactly as a pinned page colour does.
+ *
+ *  Absent — the usual case, and every drawing made before grounds existed —
+ *  means the plain solid sheet: no tooth, and nothing wet spreads or mixes.
+ *  That is pixel-for-pixel the page this app always had. */
+export type Ground = {
+  /** Which stock, by ground id (`ground.ts`). An id this build doesn't ship
+   *  reads as the solid sheet, so a document from a newer version opens rather
+   *  than failing. */
+  stock: string;
+  /** How strongly the tooth shows, 0–2, scaling the stock's own weight. Absent
+   *  means the stock as it comes, which is what a page nobody has turned this
+   *  down on paints as. It changes only how visible the grain is — how much the
+   *  sheet *drinks* is the stock's, and not a slider. */
+  texture?: number;
+};
+
 /** A group of drawings in the side menu. Flat by design — a sketchbook is a
  *  shallow thing, and one level of grouping ("Diagrams", "Scratch") is what a
  *  drawer this size can show without turning into a tree view.
@@ -236,6 +283,12 @@ export type Drawing = {
    *  Setting it pins the page to that colour for good, and the pin travels with
    *  the drawing when it syncs. */
   background?: string;
+  /** What the sheet is made of — paper, canvas, or the plain solid page (see
+   *  `Ground`). Absent means solid, which is what every drawing was before this
+   *  existed. Where `background` is the page's *colour*, this is its *surface*:
+   *  the two are set apart because a cream sheet and a rough sheet are
+   *  different questions, and every combination of them is a real page. */
+  ground?: Ground;
   strokes: Stroke[];
   /** The stack the marks are painted in, **bottom first**. Absent — the usual
    *  case, and every drawing until someone adds a layer to it — means one

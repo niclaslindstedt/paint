@@ -24,7 +24,7 @@
  *  brushes stamp their dabs by translating rather than by moving the shape. */
 type PaintedState = {
   fillStyle: string | SvgGradient;
-  strokeStyle: string;
+  strokeStyle: string | SvgGradient;
   lineWidth: number;
   lineCap: CanvasLineCap;
   lineJoin: CanvasLineJoin;
@@ -69,18 +69,29 @@ function esc(value: string): string {
 }
 
 /**
- * What `createRadialGradient` hands back: a paint the recorder can turn into a
- * `<radialGradient>` def.
+ * What the two gradient calls hand back: a paint the recorder can turn into a
+ * `<radialGradient>` or a `<linearGradient>` def.
  *
- * The airbrush is the one tool that uses one, and it uses it in a single shape:
- * a cone centred on the dab it fills, running from the middle to the rim. That
- * is why the emitted gradient can use `objectBoundingBox` units — for a circle
- * whose centre and radius are the gradient's own, "the middle of the box" and
- * "half the box" are exactly the right numbers, and one def then serves every
- * dab of the stroke rather than one def per dab.
+ * The two are emitted in **different units**, and each is the right one for the
+ * only caller it has:
+ *
+ *   - **Radial** — the airbrush, and it uses one in a single shape: a cone
+ *     centred on the dab it fills, running from the middle to the rim. So the
+ *     def can use `objectBoundingBox` units, because for a circle whose centre
+ *     and radius are the gradient's own, "the middle of the box" and "half the
+ *     box" are exactly the right numbers — and one def then serves every dab of
+ *     the stroke rather than one def per dab.
+ *   - **Linear** — the gradient tool, whose ramp is a line across the *page*
+ *     that has nothing to do with the box of the area it happens to fill (see
+ *     `Gradient`). Fitting that to a bounding box would re-aim the ramp, so the
+ *     def carries the real coordinates and says `userSpaceOnUse`.
  */
 class SvgGradient {
   readonly stops: { offset: number; color: string }[] = [];
+  /** The run, for a linear ramp; absent for the radial one. */
+  constructor(
+    readonly line?: { x1: number; y1: number; x2: number; y2: number },
+  ) {}
   addColorStop(offset: number, color: string): void {
     this.stops.push({ offset, color });
   }
@@ -150,8 +161,7 @@ export class SvgCanvas {
   save(): void {
     this.stack.push({
       fillStyle: this.fillStyle as string | SvgGradient,
-      strokeStyle:
-        typeof this.strokeStyle === "string" ? this.strokeStyle : "#000",
+      strokeStyle: this.strokeStyle as string | SvgGradient,
       lineWidth: this.lineWidth,
       lineCap: this.lineCap,
       lineJoin: this.lineJoin,
@@ -251,6 +261,23 @@ export class SvgCanvas {
     return new SvgGradient() as unknown as CanvasGradient;
   }
 
+  /** …and the ramp a poured area is filled with. The run is recorded through
+   *  the current translation, exactly as the geometry it inks is, so the two
+   *  cannot drift apart. */
+  createLinearGradient(
+    x0: number,
+    y0: number,
+    x1: number,
+    y1: number,
+  ): CanvasGradient {
+    return new SvgGradient({
+      x1: x0 + this.tx,
+      y1: y0 + this.ty,
+      x2: x1 + this.tx,
+      y2: y1 + this.ty,
+    }) as unknown as CanvasGradient;
+  }
+
   // --- Compositing ----------------------------------------------------------
 
   /** Whether the call being recorded is taking ink off rather than putting it
@@ -298,7 +325,15 @@ export class SvgCanvas {
     // `destination-out` throws it away and keeps the alpha — so the mask does
     // the same, and a half-opaque eraser stroke lifts half the ink here too.
     if (this.erasing) return "#000";
-    const style = this.fillStyle as string | SvgGradient;
+    return this.paint(this.fillStyle as string | SvgGradient);
+  }
+
+  /** One paint, as an attribute value: a colour written out, or a gradient
+   *  registered as a def and referenced. Shared by the fill and the stroke,
+   *  because a mark inked with a ramp is inked with it whichever way round it is
+   *  painted — the gradient tool strokes its feathered skirt with the same paint
+   *  it fills the area with. */
+  private paint(style: string | SvgGradient): string {
     if (typeof style === "string") return esc(style);
     let id = this.gradients.get(style);
     if (!id) {
@@ -310,9 +345,14 @@ export class SvgCanvas {
             `<stop offset="${n(stop.offset)}" stop-color="${esc(stop.color)}"/>`,
         )
         .join("");
+      const line = style.line;
       this.defs.push(
-        `<radialGradient id="${id}" gradientUnits="objectBoundingBox" ` +
-          `cx="0.5" cy="0.5" r="0.5">${stops}</radialGradient>`,
+        line
+          ? `<linearGradient id="${id}" gradientUnits="userSpaceOnUse" ` +
+              `x1="${n(line.x1)}" y1="${n(line.y1)}" ` +
+              `x2="${n(line.x2)}" y2="${n(line.y2)}">${stops}</linearGradient>`
+          : `<radialGradient id="${id}" gradientUnits="objectBoundingBox" ` +
+              `cx="0.5" cy="0.5" r="0.5">${stops}</radialGradient>`,
       );
     }
     return `url(#${id})`;
@@ -325,11 +365,9 @@ export class SvgCanvas {
   private strokeAttrs(): string {
     const color = this.erasing
       ? "#000"
-      : typeof this.strokeStyle === "string"
-        ? this.strokeStyle
-        : "#000";
+      : this.paint(this.strokeStyle as string | SvgGradient);
     return (
-      ` stroke="${esc(color)}" stroke-width="${n(this.lineWidth)}"` +
+      ` stroke="${color}" stroke-width="${n(this.lineWidth)}"` +
       ` stroke-linecap="${this.lineCap}" stroke-linejoin="${this.lineJoin}"` +
       ` fill="none"`
     );

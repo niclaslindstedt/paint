@@ -12,19 +12,21 @@
 //   - **A width, previewed as a circle** — a tool whose mark can't describe
 //     itself (`sizePreview: "circle"`). The eraser: its press is a hole, and a
 //     hole shows nothing on a bare page.
-//   - **A cog** — a tool with no width but settings of its own (`sizeless`).
-//     The paint bucket fills the area it traced whatever the nib says, so
-//     offering it a nib was offering it a slider that moved nothing; its wash
-//     and its feathered edge are what it actually has, and the cog is where
-//     they live.
+//   - **A cog** — a tool with no width but settings of its own (`sizeless`, or
+//     one that leaves no mark and still has something to set). The paint bucket
+//     fills the area it traced whatever the nib says, so offering it a nib was
+//     offering it a slider that moved nothing; its wash and its feathered edge
+//     are what it actually has, and the cog is where they live. The gradient's
+//     own inks and the dropper's sample size are there for the same reason.
 //   - **Nothing at all** — a tool with neither. The hand moves the view, the
-//     dropper reads a colour, the marquee chooses marks: a button that opened
-//     an empty panel is worse than no button, so there isn't one.
+//     marquee chooses marks: a button that opened an empty panel is worse than
+//     no button, so there isn't one.
 //
 // The old answer to the last two was a dimmed size button that still opened a
 // panel of widths, and dimming is a promise that the control works *sometimes*.
 // For these tools there is no sometimes.
 
+import { hasSwatches } from "./swatches.ts";
 import type { PaintPlugin } from "./types.ts";
 
 /** Whether a width means anything to this tool's mark.
@@ -43,20 +45,33 @@ export function usesSize(plugin: PaintPlugin | undefined): boolean {
  *
  *  Three ways to have no use for it, and all three are already on the
  *  descriptor: lift ink instead of laying it (`erases`), move the view
- *  (`navigates`), or choose marks (`selects`). The toolbar dims the swatch for
- *  those, which is the honest thing to say about a control that changes nothing
- *  until you pick up something that paints.
+ *  (`navigates`), or choose marks (`selects`). The toolbar **strikes the swatch
+ *  through and disables it** for those, which is the honest thing to do with a
+ *  control that changes nothing until you pick up something that paints — it
+ *  used to be dimmed and still open its picker, which is a control saying "not
+ *  now" and then working anyway.
  *
- *  **A colour-sampling tool is the exception, and it is the interesting one.**
+ *  **A colour-sampling tool is the exception, and it is asked first on purpose.**
  *  The dropper never paints with the ink either — but it is the tool that
  *  *sets* it, so while it is in your hand the swatch is not an unreachable
  *  control: it is the read-out, the one place the colour you just picked is
- *  shown. Dimming it made every sampled colour look like a darker, weaker
- *  version of itself, which reads as the dropper having missed the colour it
- *  was aimed at. */
+ *  shown — the one place a sampled colour appears at all. Dimming it made every
+ *  sampled colour look like a darker, weaker version of itself, which reads as
+ *  the dropper having missed the colour it was aimed at; striking it out would
+ *  be worse still, because a crossed-out read-out says the press did nothing.
+ *  That is why the check sits above the rest rather than among them: a later
+ *  rule must not be able to take the swatch away from a tool whose whole job is
+ *  to fill it (see `tests/controls_test.ts`).
+ *
+ *  **A tool that mixes its own inks is the fourth way**, and the newest: the
+ *  gradient pours from the two or three colours on its own panel, so the
+ *  toolbar's swatch is a control that changes nothing while it is in hand —
+ *  which is exactly what a strike through it says. Read off `swatches`, so no
+ *  id is recognised here either. */
 export function usesInk(plugin: PaintPlugin | undefined): boolean {
   if (!plugin) return true;
   if (plugin.picksColor) return true;
+  if (hasSwatches(plugin)) return false;
   return !(plugin.erases || plugin.navigates || plugin.selects);
 }
 
@@ -73,6 +88,13 @@ export function hasDials(plugin: PaintPlugin | undefined): boolean {
   return (plugin?.dials?.length ?? 0) > 0;
 }
 
+/** Whether the tool has *settings* at all — knobs, inks, or both. What decides
+ *  whether a widthless tool gets the cog: a tool whose only setting is the
+ *  colours it pours still needs somewhere to pour them from. */
+export function hasSettings(plugin: PaintPlugin | undefined): boolean {
+  return hasDials(plugin) || hasSwatches(plugin);
+}
+
 /** Which button the toolbar puts beside the ink for this tool.
  *
  *  `"size"` — the width (and, under it, the tool's own dials).
@@ -82,5 +104,5 @@ export type ToolControl = "size" | "dials" | "none";
 
 export function toolControl(plugin: PaintPlugin | undefined): ToolControl {
   if (usesSize(plugin)) return "size";
-  return hasDials(plugin) ? "dials" : "none";
+  return hasSettings(plugin) ? "dials" : "none";
 }

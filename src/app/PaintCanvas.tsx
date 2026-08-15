@@ -19,6 +19,7 @@ import {
 import { paintFrame } from "./frame.ts";
 import { onImageDecoded } from "./images.ts";
 import type { MarkCache } from "./cache.ts";
+import { cursorFor, usePointerRing } from "./PointerRing.tsx";
 import { pluginById } from "./plugins/registry.ts";
 import type { CanvasProbe, DraftStroke, ToolContext } from "./plugins/types.ts";
 import { createProbe } from "./probe.ts";
@@ -54,10 +55,9 @@ import {
 //
 // The gesture split is the Procreate one, and it is the whole interaction model:
 //
-//   one finger / pen / mouse   draws — or pans, under a tool that `navigates`,
-//                              samples, under one that `picksColor`, opens a
-//                              caret, under one that `entersText`, or drags a
-//                              marquee, under one that `selects`
+//   one finger / pen / mouse   draws — or pans, under `navigates`, samples,
+//                              under `picksColor`, opens a caret, under
+//                              `entersText`, or drags a marquee, under `selects`
 //   …on a selection, with the  moves the marks instead of the page: the hand is
 //   hand                       what picks things up, and it is the same drag
 //   two fingers                pinch to zoom, drag to pan
@@ -93,8 +93,8 @@ type Props = {
   defaultInk: string;
   /** Called once per finished gesture with the stroke to file. */
   onCommit: (draft: DraftStroke) => void;
-  /** Called with the colour under the pointer when a tool that `picksColor`
-   *  (the dropper) is pressed — the sampled colour becomes the ink. */
+  /** Called with what a tool that `picksColor` (the dropper) sampled when it is
+   *  pressed — that colour becomes the ink. */
   onPickColor?: (color: string) => void;
   /** Called with the document point pressed under a tool that `entersText` (the
    *  text tool) — the caret opens there. Nothing is drawn and nothing reaches
@@ -293,11 +293,11 @@ export function PaintCanvas({
   // costs one paint rather than one each.
   const pending = useRef<number | null>(null);
 
-  // The page as it is actually painted, for the two tools that read it (the
-  // bucket and the dropper). Made fresh for each press and kept for the length
-  // of that gesture: the document can't change while a pointer is down, so one
-  // snapshot answers every question a drag asks — and a press that never
-  // reaches a colour tool never takes one at all (see `probe.ts`).
+  // The page as it is actually painted, for the tools that read it (the fills
+  // and the dropper). Made fresh for each press and kept for that gesture: the
+  // document can't change while a pointer is down, so one snapshot answers every
+  // question a drag asks — and a press that never reaches a tool that reads the
+  // page never takes one at all (see `probe.ts`).
   const probe = useRef<CanvasProbe | null>(null);
   const openProbe = useCallback((): CanvasProbe => {
     probe.current ??= createProbe(pageRef.current, {
@@ -545,11 +545,17 @@ export function PaintCanvas({
     // what this one samples.
     probe.current = null;
 
-    // The dropper. A press under a colour-sampling tool takes the colour it
-    // landed on and hands it to the toolbar; nothing is drawn, and nothing
-    // reaches the document or the undo history.
+    // The dropper. A press under a colour-sampling tool asks the tool what it
+    // read off the page and hands that to the toolbar; nothing is drawn and
+    // nothing reaches the document. *What* it read is the tool's own answer
+    // (`ToolBehaviour.pick`) — how much page one press covers is its own setting
+    // (see `builtin/dropper.ts`) — and a tool offering none falls back to the
+    // colour under the pointer.
     if (plugin.picksColor) {
-      const sampled = openProbe().colorAt(toDoc(at));
+      const where = toDoc(at);
+      const sampled = plugin.behaviour.pick
+        ? plugin.behaviour.pick(where, context())
+        : openProbe().colorAt(where);
       if (sampled) onPickColor?.(sampled);
       return;
     }
@@ -882,8 +888,7 @@ export function PaintCanvas({
     if (!committed) requestPaint();
   };
 
-  // A cancelled gesture (the OS took the pointer — a system gesture, a call)
-  // drops the draft without committing: half a stroke is worse than none.
+  // A cancelled gesture (the OS took the pointer) drops the draft uncommitted.
   const cancel = (e: React.PointerEvent<HTMLCanvasElement>) => {
     release(e);
     endPan(e.pointerId);
@@ -935,39 +940,61 @@ export function PaintCanvas({
     return () => canvas.removeEventListener("wheel", handler);
   }, [applyView]);
 
-  // The cursor names the gesture the surface is currently offering: an open
-  // hand under a navigating tool, a closed one while the page is actually being
-  // moved, crosshairs when the next press would leave a mark.
-  const navigates = Boolean(pluginById(tool)?.navigates);
-  const typing = Boolean(pluginById(tool)?.entersText);
+  // The one thing the cursor can't read off a descriptor: whether the page (or
+  // a selection on it) is being dragged right now.
   const holding = Boolean(
     pinchStart.current || panStart.current || moveStart.current,
   );
 
+  // …and the nib outline a fine pointer wears: a circle the size the next mark
+  // will be on this page, at this zoom. See `PointerRing.tsx`.
+  const ring = usePointerRing({
+    hostRef: canvasRef,
+    plugin: pluginById(tool),
+    size: ink.size,
+    scale: view?.scale ?? 1,
+    disabled: placing,
+  });
+
   return (
-    <canvas
-      ref={canvasRef}
-      role="img"
-      aria-label={ariaLabel}
-      onPointerDown={handleDown}
-      onPointerMove={handleMove}
-      onPointerUp={finish}
-      onPointerCancel={cancel}
-      onContextMenu={contextMenu}
-      // `touch-none` hands every touch to this component: without it a drag on
-      // the canvas scrolls or zooms the page instead of drawing and pinching.
-      className="h-full w-full touch-none"
-      style={{
-        cursor: placing
-          ? "default"
-          : holding
-            ? "grabbing"
-            : navigates
-              ? "grab"
-              : typing
-                ? "text"
-                : "crosshair",
-      }}
-    />
+    // The canvas fills this box and the ring floats over it, positioned against
+    // the element the pointer maths is already measured from.
+    <div className="relative h-full w-full">
+      <canvas
+        ref={canvasRef}
+        role="img"
+        aria-label={ariaLabel}
+        onPointerDown={(e) => {
+          ring.move(e);
+          handleDown(e);
+        }}
+        onPointerMove={(e) => {
+          // The outline follows every pointer over the page, drawing or not —
+          // but not two fingers on the glass, which is a pinch and not an aim.
+          if (pointers.current.size >= 2) ring.hide();
+          else ring.move(e);
+          handleMove(e);
+        }}
+        onPointerUp={finish}
+        onPointerCancel={(e) => {
+          ring.hide();
+          cancel(e);
+        }}
+        onPointerLeave={ring.hide}
+        onContextMenu={contextMenu}
+        // `touch-none` hands every touch to this component: without it a drag on
+        // the canvas scrolls or zooms the page instead of drawing and pinching.
+        className="h-full w-full touch-none"
+        style={{
+          cursor: cursorFor({
+            plugin: pluginById(tool),
+            placing,
+            holding,
+            ring: ring.shown,
+          }),
+        }}
+      />
+      {ring.node}
+    </div>
   );
 }

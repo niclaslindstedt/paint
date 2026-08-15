@@ -171,6 +171,10 @@ type Props = {
   /** The tool's dials, resolved — the preview draws with them, so it is the
    *  mark this tool makes *as you have it set*. */
   dials: Readonly<Record<string, number>>;
+  /** …and its own inks, for a tool that carries them (see
+   *  `plugins/swatches.ts`). Absent for every tool that draws with the
+   *  toolbar's, which is all of them but the gradient. */
+  colors?: Readonly<Record<string, string>>;
   /** The fill toggle, for the tools that honour it. */
   filled?: boolean;
   /** The tile's side, in CSS pixels. */
@@ -184,6 +188,7 @@ export function PressPreview({
   color,
   background,
   dials,
+  colors,
   filled = false,
   box = 26,
 }: Props) {
@@ -193,7 +198,7 @@ export function PressPreview({
   // and the repaint both hang off it, so the preview costs nothing while the
   // toolbar re-renders for reasons it doesn't care about — a pan moves the zoom
   // readout, not the nib.
-  const tuning = JSON.stringify(dials);
+  const tuning = JSON.stringify(dials) + JSON.stringify(colors ?? {});
   const key = `${plugin?.id}|${size}|${of}|${color}|${background}|${filled}|${tuning}`;
   const marks = useMemo(() => {
     // A tool that asks for a circle is not simulated at all: there is no press
@@ -206,7 +211,7 @@ export function PressPreview({
     // dragged past everything the row offers.
     const top = Math.max(of, size);
     const travel = pressReach(top);
-    const ink = { color, dials, filled, background };
+    const ink = { color, dials, colors, filled, background };
     const press = pressMarks(plugin, { ...ink, size }, travel);
     const widest =
       size === top ? press : pressMarks(plugin, { ...ink, size: top }, travel);

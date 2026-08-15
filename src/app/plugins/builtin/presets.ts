@@ -300,7 +300,7 @@ export const FILL_PRESETS: readonly BuiltinPreset[] = [
 
 // --- The tools that ship none, and why ---------------------------------------
 //
-// A preset row of one chip is a worse default than a default. Three families
+// A preset row of one chip is a worse default than a default. Several families
 // have exactly one setting worth handing anybody, so they carry it where a
 // setting that good belongs — in `defaultSize` and the dial defaults — and
 // offer no row at all:
@@ -314,5 +314,13 @@ export const FILL_PRESETS: readonly BuiltinPreset[] = [
 //     twelve point is body copy. The choices that would make a type preset
 //     worth having — the face, the weight, the slant — are not dials at all;
 //     they live in the toolbar beside the caption you are typing.
-//   - **The hand, the dropper and the selection tools.** They have no dials and
-//     leave no mark. There is nothing to preset.
+//   - **The hand and the selection tools.** They have no dials and leave no
+//     mark. There is nothing to preset.
+//   - **The dropper.** It has a dial now — how much page one press reads — and
+//     that dial is already a row of chips (see `SAMPLE`). A preset row over it
+//     would be a second row of the same five answers.
+//   - **The gradient.** Its two dials are the bucket's, and it could wear the
+//     bucket's row unchanged — but what a gradient *is* is decided by the
+//     colours on its own panel rather than by a dial, so a chip called "Flat"
+//     over a ramp would be naming the wrong axis. Its swatch row is its preset
+//     row.

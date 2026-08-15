@@ -103,6 +103,10 @@ export function paintFrame(frame: Frame): void {
   const options = {
     pageColor: frame.pageColor,
     defaultInk: frame.defaultInk,
+    // What the sheet is made of. It travels with the drawing rather than being
+    // a setting of the canvas, so it is read off the document like the page's
+    // colour is (see `ground.ts`).
+    ground: frame.drawing.ground,
     grid: frame.showGrid ? GRID_STEP : undefined,
     // Marks being dragged are left out of the page and painted below instead.
     // The set is the caller's and lives as long as the drag, because the cache
