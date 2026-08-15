@@ -51,13 +51,17 @@ export function usesSize(plugin: PaintPlugin | undefined): boolean {
  *  used to be dimmed and still open its picker, which is a control saying "not
  *  now" and then working anyway.
  *
- *  **A colour-sampling tool is the exception, and it is the interesting one.**
+ *  **A colour-sampling tool is the exception, and it is asked first on purpose.**
  *  The dropper never paints with the ink either — but it is the tool that
  *  *sets* it, so while it is in your hand the swatch is not an unreachable
  *  control: it is the read-out, the one place the colour you just picked is
- *  shown. Dimming it made every sampled colour look like a darker, weaker
- *  version of itself, which reads as the dropper having missed the colour it
- *  was aimed at.
+ *  shown — the one place a sampled colour appears at all. Dimming it made every
+ *  sampled colour look like a darker, weaker version of itself, which reads as
+ *  the dropper having missed the colour it was aimed at; striking it out would
+ *  be worse still, because a crossed-out read-out says the press did nothing.
+ *  That is why the check sits above the rest rather than among them: a later
+ *  rule must not be able to take the swatch away from a tool whose whole job is
+ *  to fill it (see `tests/controls_test.ts`).
  *
  *  **A tool that mixes its own inks is the fourth way**, and the newest: the
  *  gradient pours from the two or three colours on its own panel, so the

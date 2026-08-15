@@ -18,6 +18,8 @@ import {
 } from "../src/app/plugins/registry.ts";
 import { freehandBehaviour } from "../src/app/plugins/builtin/freehand.ts";
 import { handBehaviour } from "../src/app/plugins/builtin/hand.ts";
+import { dropperBehaviour } from "../src/app/plugins/builtin/dropper.ts";
+import { hasSwatches } from "../src/app/plugins/swatches.ts";
 
 // What the toolbar offers beside the ink for the tool in hand: a width, a cog,
 // or nothing (see `src/app/plugins/controls.ts`). Every answer is read off the
@@ -124,7 +126,7 @@ describe("usesInk", () => {
     registerBuiltinPlugins();
   });
 
-  it("dims the swatch for the tools the colour means nothing to", () => {
+  it("strikes the swatch out for the tools the colour means nothing to", () => {
     // Lifting ink, moving the view, choosing marks: none of the three paints,
     // and none of them writes the colour either.
     for (const id of ["eraser", "hand", "select"]) {
@@ -133,12 +135,34 @@ describe("usesInk", () => {
   });
 
   it("keeps the dropper's swatch at full strength", () => {
-    // The dropper paints nothing, so by the rule above it would be dimmed —
-    // but the swatch is where the colour it samples lands, and a sampled
-    // colour shown at 40% reads as the dropper having picked a darker one.
+    // The dropper paints nothing, so by the rule above it would be struck out —
+    // but the swatch is where the colour it samples lands, and it is the *only*
+    // place a sampled colour is shown. A struck-through read-out is a read-out
+    // that says the tool did nothing.
     const dropper = pluginById("dropper")!;
     expect(dropper.picksColor).toBe(true);
     expect(usesInk(dropper)).toBe(true);
+  });
+
+  it("keeps it even for a sampling tool that carries inks of its own", () => {
+    // The order inside `usesInk` is load-bearing, not incidental: a tool that
+    // mixes its own colours loses the ink button, and a tool that *samples*
+    // keeps it — so a tool that did both would come out struck through if the
+    // swatch rule were asked first, and its one read-out would be crossed out.
+    // Nothing ships like this today; the test is what stops the next rule added
+    // here from quietly taking the dropper's swatch away with it.
+    registerPlugin({
+      id: "sampler",
+      nameKey: "tools.dropper.name",
+      descriptionKey: "tools.dropper.description",
+      icon: () => null,
+      picksColor: true,
+      swatches: [{ id: "tint", nameKey: "swatches.from", default: "#ffffff" }],
+      behaviour: dropperBehaviour,
+    });
+    const sampler = pluginById("sampler")!;
+    expect(hasSwatches(sampler)).toBe(true);
+    expect(usesInk(sampler)).toBe(true);
   });
 
   it("gives the ink to everything that lays it down", () => {
