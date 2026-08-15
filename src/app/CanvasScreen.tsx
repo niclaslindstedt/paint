@@ -746,6 +746,7 @@ export function CanvasScreen({
             }}
             defaultInk={ink}
             showGrid={settings.showGrid}
+            washEngine={settings.washEngine}
             fitToken={fitToken}
             refitToken={refitToken}
             onScaleChange={setScale}

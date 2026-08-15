@@ -54,6 +54,33 @@ nothing, and a loaded brush on a sealed page behaves exactly as it always has.
 | **Airbrush**                       | Nearly dry by the time it lands                       |
 | **Pencil, crayon, eraser**         | Dry — a wash laid over wax goes round it              |
 
+## Two watercolours
+
+There are two ways of painting a wash, and **Settings → Tools → Watercolour**
+picks between them. Both read the same three dials — water, pigment,
+granulation — and the same sheet, so switching is a change of how a wash is
+drawn and not of anything you have set. It applies to every wash on every
+drawing, including the ones already made: the engine is a way of looking at the
+page, like the canvas theme, not something recorded in the file.
+
+**Stroke** is the default. A wash is a shape: it runs past the hair that laid
+it, both edges wander with the paper, the rim is drawn dark, and the pigment is
+mottled into the sheet's tooth. It is fast, and it paints the same picture on
+any device.
+
+**Pigment** is a simulation. There is water on the paper and colour in the
+water, and the mark is whatever is left when it dries — so the rim gathers where
+the wash actually stopped, the wet edge frays into the fibres, a heavy pigment
+rolls into the paper's valleys and a staining one does not, and water arriving
+on a part of the stroke that has already started drying blooms into it. Nothing
+in it is drawn on purpose; all of it comes out of the water.
+
+The simulation costs a great deal more — roughly ten times as long per wash —
+and you will feel it on a big page, on a page with many washes on it, and on an
+older phone. It is opt-in for that reason. If a browser cannot run it at all,
+or a mark is too small to be worth simulating, that mark is painted with the
+stroke engine instead: no drawing ever fails to open because of the setting.
+
 ## Layers keep the water apart
 
 Wet mixing happens **within a layer**. A wash mixes with the marks on its own

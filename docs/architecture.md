@@ -517,7 +517,28 @@ lives by: **nothing outside it may branch on a tool id.**
   being painted with is _water_: the wash runs past the hair that laid it, its
   two edges wander independently, the rim dries darkest as the pool evaporates,
   the pigment granulates into the sheet, and every pass is thin because nothing
-  in the medium covers.
+  in the medium covers. This is the **stroke** model, and it is the default: a
+  wash is a closed path with a dried rim, a gathered inner ribbon and a mottle
+  hashed off the page.
+- `washField.ts` / `washSim.ts` — the **second** watercolour engine, and a
+  different kind of answer to the same question. Nothing in it knows what a
+  stroke is: there is a grid of paper cells with water in them and pigment in
+  the water, the brush charges the cells it passes over, the field is stepped
+  until the sheet is dry, and the mark is whatever settled. The rim, the
+  granulation, the fraying wet edge and the blooms where a wet brush meets a
+  drying wash all fall out of that rather than being drawn. `washField.ts` is
+  the simulation and is pure — no canvas, no colour; `washSim.ts` drives it from
+  a gesture and turns the pigment it settled into pixels, subtractively
+  (`colour ^ density`, so glazing deepens towards the colour rather than
+  towards grey).
+- `wash.ts` — which of the two is painting. Both read the same three dials
+  (`water`, `pigment`, `granulation`) and the same sheet, so switching is a
+  change of _rendering_ and not of settings; the choice is a **view**, like the
+  canvas theme, and is never recorded on a stroke or on a drawing. The
+  simulation can always answer "not me" — no canvas to simulate on, a mark too
+  small to be worth a field, a page-wide sweep whose cells would be wider than
+  the brush — and the simple engine paints the mark instead, so a browser that
+  cannot run it still opens every drawing.
 - `crayon.ts` — the wax, which needs one for the opposite reason: it is the only
   painter modelling the _page_. A fixed lattice of paper tooth decides where wax
   sticks, anchored in document coordinates, so it is the same sheet under every

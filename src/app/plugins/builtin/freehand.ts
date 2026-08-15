@@ -9,7 +9,6 @@
 
 import { SOLID_GROUND } from "../../ground.ts";
 import type { Point } from "../../types.ts";
-import { paintWash } from "../aquarelle.ts";
 import { paintBrush, ROUND_HEAD, type BrushHead } from "../bristle.ts";
 import {
   paintCalligraphy,
@@ -23,6 +22,7 @@ import { extraDials, strokeDial } from "../dials.ts";
 import { paintGraphite } from "../graphite.ts";
 import { applyInk, distance, paintPath, strokeColor } from "../ink.ts";
 import { paintRubbing } from "../rubber.ts";
+import { DEFAULT_WASH_ENGINE, paintWashWith } from "../wash.ts";
 import {
   FULL_DETAIL,
   type DraftStroke,
@@ -187,7 +187,12 @@ export function freehandBehaviour(ink: FreehandInk = {}): ToolBehaviour {
           );
           return;
         case "wash":
-          paintWash(
+          paintWashWith(
+            // Which of the two watercolour engines is painting — a view of the
+            // page rather than anything on it, handed down with the scale and
+            // the sheet (see `plugins/wash.ts`). Both read the dials below the
+            // same way, so this changes the rendering and nothing else.
+            detail.wash ?? DEFAULT_WASH_ENGINE,
             ctx2d,
             points,
             stroke.size,
@@ -200,6 +205,10 @@ export function freehandBehaviour(ink: FreehandInk = {}): ToolBehaviour {
             // …and the sheet, which is the other half of all of them (see
             // `paintWash`).
             sheet,
+            // The simulation works in pigment rather than in ink, so it needs
+            // the colour as a value: what it lays down is a *density*, and the
+            // colour is what light has to get through (see `washSim.ts`).
+            strokeColor(stroke),
           );
           return;
         case "spray":

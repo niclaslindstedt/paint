@@ -56,6 +56,7 @@ import {
 import { paintRegion } from "./plugins/brushes.ts";
 import { pluginById } from "./plugins/registry.ts";
 import { applyInk, paintPath, paintRect, paintSegment } from "./plugins/ink.ts";
+import { washEngine, type WashEngine } from "./plugins/wash.ts";
 import { FULL_DETAIL, type PaintDetail } from "./plugins/types.ts";
 import { createSurface, type Surface } from "./surface.ts";
 import type { Drawing, Filter, Ground, Stroke } from "./types.ts";
@@ -303,6 +304,16 @@ export type RenderOptions = InkContext & {
    *  composited outside the renderer — so this is what keeps a layer's filters
    *  behaving like them rather than like ink. */
   unfiltered?: boolean;
+  /** Which watercolour engine paints the washes on this repaint (see
+   *  `plugins/wash.ts`).
+   *
+   *  Absent — which is nearly every caller — means the one the app has in
+   *  force, so the thumbnails, the size preview, the page the colour dropper
+   *  reads and the exported PNG cannot disagree about it. Two callers do set
+   *  it: the canvas, which passes the same value it read so the mark cache can
+   *  *see* it change (see `frame.ts`), and the settings page, which paints a
+   *  sample of each engine side by side. */
+  washEngine?: WashEngine;
   /** Marks to leave off this repaint, by stroke id.
    *
    *  One caller: the canvas, while a selection is being dragged. The marks in
@@ -1043,8 +1054,9 @@ export function paintStrokes(
 }
 
 /** The detail to paint at: what the caller said, or what the context's own
- *  transform says, plus the sheet the marks are landing on. Both are resolved
- *  once per repaint rather than once per stroke. */
+ *  transform says, plus the sheet the marks are landing on and the watercolour
+ *  engine in force. All three are resolved once per repaint rather than once
+ *  per stroke. */
 function detailFor(
   ctx: CanvasRenderingContext2D,
   options: RenderOptions,
@@ -1052,6 +1064,7 @@ function detailFor(
   return {
     scale: options.scale ?? renderScale(ctx),
     ground: groundProfile(options.ground),
+    wash: options.washEngine ?? washEngine(),
   };
 }
 
