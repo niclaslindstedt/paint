@@ -21,9 +21,9 @@
 //
 // Both effects are composited rather than computed per pixel, which is what
 // makes them affordable on every frame of a stroke: the blur is one filtered
-// `drawImage`, and the grain is a small tile of specks tiled across the page.
-// A `getImageData` pass over the window would be several million pixels of
-// arithmetic per frame; this is two draws.
+// `drawImage`, and the grain is two coats of a speck tile laid across the page
+// as a pattern. A `getImageData` pass over the window would be several million
+// pixels of arithmetic per frame; this is three draws.
 
 import { GRAIN_CEILING } from "./filters.ts";
 import { createSurface, type Surface } from "./surface.ts";
@@ -52,9 +52,15 @@ export type FilterPaint = {
  *  where it falls under a thousandth and stops being visible. */
 const BLUR_TAIL = 3;
 
-/** How many specks across the grain tile is. Big enough that the repeat doesn't
- *  read as a pattern, small enough to build in a millisecond. */
-const TILE_SPECKS = 48;
+/** How many specks across a grain tile is.
+ *
+ *  The tile is built at one speck per *pixel* and blown up to the speck size
+ *  when it is painted, so this is a count rather than a size: 512 specks repeat
+ *  every 512 document pixels at the finest grain and every 4096 at the
+ *  coarsest, and zooming in pushes the repeat further away rather than
+ *  rebuilding anything. It is also the whole memory budget — one megabyte per
+ *  coat, whatever the grain and whatever the zoom. */
+const TILE_SPECKS = 512;
 
 /** Paint a drawing's filters over the picture already on `ctx`.
  *
@@ -165,10 +171,22 @@ function blur(
 
 /** Speckle the page.
  *
- *  One tile of specks, tiled across the sheet and anchored to the page's own
- *  origin so the grain sits *on the drawing* — pan the window and it stays
+ *  Specks come from a tile laid across the sheet and anchored to the page's own
+ *  origin, so the grain sits *on the drawing* — pan the window and it stays
  *  where it was, which is the difference between film grain and dirt on the
  *  screen.
+ *
+ *  **It is two coats, not one, and that is what stops the grain repeating.** A
+ *  tile has to repeat somewhere, and a single one gives itself away: the eye is
+ *  very good at spotting the same clump of specks arriving again at a fixed
+ *  spacing, and at a few hundred pixels it reads as a woven texture rather than
+ *  as noise — which is exactly what it measures as, an autocorrelation spike at
+ *  the tile's pitch as strong as the one between neighbouring pixels. So the
+ *  field is two different tiles laid at sizes that don't share a factor (see
+ *  `COATS`): each still repeats, but the pair only agree again a hundred tiles
+ *  out, which is further than any page is wide. It costs one more fill of an
+ *  already-built tile, and it is a truer picture of grain besides — real film
+ *  has a spread of clump sizes rather than one.
  *
  *  `source-atop` rather than `source-over` so the specks land on the picture
  *  and nowhere else: on an ordinary page that is every pixel inside the sheet,
@@ -180,80 +198,87 @@ function grain(
   filter: Extract<Filter, { kind: "noise" }>,
   paint: FilterPaint,
 ): void {
-  const speck = Math.max(1, Math.round(filter.grain * paint.scale));
-  const tile = grainTile(speck, filter.color === true);
-  if (!tile) return;
-  const pattern = ctx.createPattern(tile.canvas, "repeat");
-  if (!pattern) return;
-  ctx.save();
-  ctx.setTransform(1, 0, 0, 1, 0, 0);
-  ctx.beginPath();
-  ctx.rect(region.x, region.y, region.width, region.height);
-  ctx.clip();
-  ctx.globalCompositeOperation = "source-atop";
-  ctx.globalAlpha = Math.min(1, Math.max(0, filter.amount)) * GRAIN_CEILING;
-  // The pattern is laid from the page's corner rather than the canvas's, so the
-  // grain belongs to the drawing rather than to the window it is seen through.
-  ctx.translate(paint.page.x, paint.page.y);
-  ctx.fillStyle = pattern;
-  ctx.fillRect(
-    region.x - paint.page.x,
-    region.y - paint.page.y,
-    region.width,
-    region.height,
-  );
-  ctx.restore();
+  const speck = Math.max(1, filter.grain * paint.scale);
+  const strength = Math.min(1, Math.max(0, filter.amount)) * GRAIN_CEILING;
+  const color = filter.color === true;
+  for (const coat of COATS) {
+    const tile = grainTile(coat.seed, color);
+    if (!tile) continue;
+    const pattern = ctx.createPattern(tile.canvas, "repeat");
+    if (!pattern) continue;
+    const size = speck * coat.speck;
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.beginPath();
+    ctx.rect(region.x, region.y, region.width, region.height);
+    ctx.clip();
+    ctx.globalCompositeOperation = "source-atop";
+    ctx.globalAlpha = strength * coat.share;
+    // Square specks, not soft ones: the tile is one pixel per speck and is
+    // being blown up, and a speck that got interpolated on the way would leave
+    // the page hazy rather than grainy.
+    ctx.imageSmoothingEnabled = false;
+    // The pattern is laid from the page's corner rather than the canvas's, so
+    // the grain belongs to the drawing rather than to the window it is seen
+    // through — and it is scaled with the context, which is what makes one
+    // speck `grain` document pixels across at any zoom.
+    ctx.translate(paint.page.x, paint.page.y);
+    ctx.scale(size, size);
+    ctx.fillStyle = pattern;
+    ctx.fillRect(
+      (region.x - paint.page.x) / size,
+      (region.y - paint.page.y) / size,
+      region.width / size,
+      region.height / size,
+    );
+    ctx.restore();
+  }
 }
 
-/** The last few grain tiles built, keyed by what they look like. A tile is the
- *  same picture for the length of a session — the same page at the same zoom
- *  asks for it on every frame — so building one per frame would be the one
- *  expensive thing in this file. */
-const tiles = new Map<string, Surface | null>();
-const TILE_CACHE = 4;
+/** The two coats a grain is laid in: the specks the size that was asked for,
+ *  and a coarser scattering of a *different* field over them.
+ *
+ *  The size multiplier is deliberately not a whole number. Both coats repeat —
+ *  a tile has to — but at 512 specks and 512 × 1.63 specks they only agree
+ *  again after a hundred tiles, which is further away than any page is wide.
+ *  Between them they come to a little over one coat's worth of ink, because two
+ *  independent fields at half strength each read fainter than one at full. */
+const COATS = [
+  { seed: 0x9e3779b9, speck: 1, share: 0.72 },
+  { seed: 0x85ebca6b, speck: 1.63, share: 0.52 },
+];
 
-/** A square of specks: half of them lighter than what they land on, half
- *  darker, most of them faint. Deterministic, so the screen and the exported
- *  file are speck-for-speck the same picture — a filter that resolves at paint
- *  time may not paint differently each time it is asked. */
-function grainTile(speck: number, color: boolean): Surface | null {
-  const key = `${speck}:${color}`;
+/** The grain tiles, one per (coat, colour). Four at the very most, a megabyte
+ *  each, and built once for the session: the same field serves every zoom, so
+ *  neither zooming nor resizing the page can cost a rebuild. */
+const tiles = new Map<string, Surface | null>();
+
+/** A square of specks, one pixel each: half of them lighter than what they land
+ *  on, half darker, most of them faint. Deterministic, so the screen and the
+ *  exported file are speck-for-speck the same picture — a filter that resolves
+ *  at paint time may not paint differently each time it is asked. */
+function grainTile(seed: number, color: boolean): Surface | null {
+  const key = `${seed}:${color}`;
   const held = tiles.get(key);
   if (held !== undefined) return held;
-  const side = speck * TILE_SPECKS;
-  const surface = createSurface(side, side);
+  const surface = createSurface(TILE_SPECKS, TILE_SPECKS);
   if (surface) {
-    const image = surface.ctx.createImageData(side, side);
+    const image = surface.ctx.createImageData(TILE_SPECKS, TILE_SPECKS);
     const pixels = image.data;
-    const random = seeded(0x9e3779b9);
-    for (let row = 0; row < TILE_SPECKS; row++) {
-      for (let column = 0; column < TILE_SPECKS; column++) {
-        // Faint far more often than strong: squaring a uniform draw is what
-        // gives a field of grain its few bright specks and its many invisible
-        // ones.
-        const strength = random();
-        const alpha = Math.round(strength * strength * 255);
-        const light = random() < 0.5;
-        const r = color ? Math.round(random() * 255) : light ? 255 : 0;
-        const g = color ? Math.round(random() * 255) : r;
-        const b = color ? Math.round(random() * 255) : r;
-        for (let y = 0; y < speck; y++) {
-          const top = (row * speck + y) * side;
-          for (let x = 0; x < speck; x++) {
-            const at = (top + column * speck + x) * 4;
-            pixels[at] = r;
-            pixels[at + 1] = g;
-            pixels[at + 2] = b;
-            pixels[at + 3] = alpha;
-          }
-        }
-      }
+    const random = seeded(seed);
+    for (let at = 0; at < pixels.length; at += 4) {
+      // Faint far more often than strong: squaring a uniform draw is what
+      // gives a field of grain its few bright specks and its many invisible
+      // ones.
+      const strength = random();
+      const light = random() < 0.5;
+      const r = color ? Math.round(random() * 255) : light ? 255 : 0;
+      pixels[at] = r;
+      pixels[at + 1] = color ? Math.round(random() * 255) : r;
+      pixels[at + 2] = color ? Math.round(random() * 255) : r;
+      pixels[at + 3] = Math.round(strength * strength * 255);
     }
     surface.ctx.putImageData(image, 0, 0);
-  }
-  if (tiles.size >= TILE_CACHE) {
-    const oldest = tiles.keys().next();
-    if (!oldest.done) tiles.delete(oldest.value);
   }
   tiles.set(key, surface);
   return surface;

@@ -249,9 +249,15 @@ Keeping it out of the renderer is also what keeps the mark cache honest: the
 cache holds the **unfiltered** picture, so moving a slider costs one composite
 rather than a repaint of the document, and a committed stroke is still absorbed
 by the same append it always was. Neither effect touches pixels one at a time —
-the blur is one filtered `drawImage` and the grain is a deterministic tile of
-specks laid as a repeating pattern anchored to the page — which is what makes
-them affordable on every frame of a stroke.
+the blur is one filtered `drawImage` and the grain is a deterministic speck tile
+laid as a pattern anchored to the page — which is what makes them affordable on
+every frame of a stroke. The grain goes down in **two coats** of different speck
+sizes, because a single tile gives itself away: the eye reads the same clump
+arriving at a fixed spacing as a weave rather than as noise, and it measures as
+an autocorrelation spike at the tile's pitch. Two coats whose periods do not
+share a factor push that agreement further than a page is wide. The tile is
+built at one speck per pixel and scaled when it is painted, so the field costs
+the same megabyte at every zoom and a zoom never rebuilds it.
 
 The SVG export is the one place the picture is generated twice, because a vector
 file has no pixels to composite: `svgFilter` emits the same two effects as SVG
