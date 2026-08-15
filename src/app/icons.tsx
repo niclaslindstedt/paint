@@ -343,35 +343,40 @@ export function PasteIcon({ className }: IconProps) {
   );
 }
 
-/** A felt tip marker — a straight fat barrel and the chisel cut at the end of
- *  it, leaning with the rest of the pens. It used to carry the opaque bar it
- *  lays down, on the reading that a barrel and a nib are just "a pen"; the
- *  silhouette does that work instead now. Against the highlighter next to it
- *  the marker is the squared-off one — plain barrel, square shoulders, a nib
- *  the width of the body — where the highlighter folds back on itself. */
+/** A felt tip marker — a straight barrel and the chisel cut at the end of it,
+ *  leaning with the rest of the pens. It used to carry the opaque bar it lays
+ *  down, on the reading that a barrel and a nib are just "a pen"; the
+ *  silhouette does that work instead now.
+ *
+ *  It is the **narrow** one of the pair — see `HighlighterIcon` for why the
+ *  two are told apart by width rather than by decoration. */
 export function MarkerIcon({ className }: IconProps) {
   return (
     <svg {...toolBase} className={className} aria-hidden="true">
       <g transform="rotate(45 12 12)">
-        <path d="M9 4.3a1.9 1.9 0 0 1 1.9-1.9h2.2A1.9 1.9 0 0 1 15 4.3V13.9h-.9V16l-1 3.1-3.2 1.2-.4-4.3V13.9H9Z" />
-        <path d="M9.5 13.9h4.6" />
-        <path d="M9.5 16h4.6" />
+        <path d="M9.4 4.3a1.7 1.7 0 0 1 1.7-1.7h1.8a1.7 1.7 0 0 1 1.7 1.7V13.9h-.8V16l-.9 3.1-2.8 1.2-.4-4.3V13.9H9.4Z" />
+        <path d="M9.8 13.9h4.4" />
+        <path d="M9.8 16h4.4" />
       </g>
     </svg>
   );
 }
 
 /** A highlighter — the chisel wedge and the barrel above it, leaning the way
- *  every other pen in the toolbar leans. The wedge is the tool: it is the one
- *  nib in the set wide enough to see the shape of, and it is what tells the
- *  highlighter from the marker beside it. */
+ *  every other pen in the toolbar leans.
+ *
+ *  It is drawn as **the broad one of the pair it shares a silhouette with**,
+ *  and that is not arbitrary: the highlighter lays down a band twice the
+ *  marker's width (`sizeScale` 6 against 3) at a third of its opacity. The
+ *  tools already differ in width, so the glyphs are allowed to differ in width
+ *  too — a free, truthful difference, and worth more than an invented one. */
 export function HighlighterIcon({ className }: IconProps) {
   return (
     <svg {...toolBase} className={className} aria-hidden="true">
       <g transform="rotate(45 12 12)">
-        <path d="M8.7 4.8a2.2 2.2 0 0 1 2.2-2.2h2.2a2.2 2.2 0 0 1 2.2 2.2V14.2h-.8v2.1l-1.1 3.3-3.4 1.3-.4-4.6V14.2H8.7Z" />
-        <path d="M9.6 14.2h4.9" />
-        <path d="M9.6 16.3h4.9" />
+        <path d="M8.4 4.8a2.4 2.4 0 0 1 2.4-2.4h2.4a2.4 2.4 0 0 1 2.4 2.4V14.2h-.9v2.1l-1.2 3.3-3.6 1.3-.5-4.6V14.2H8.4Z" />
+        <path d="M9.3 14.2h5.4" />
+        <path d="M9.3 16.3h5.4" />
       </g>
     </svg>
   );
@@ -432,11 +437,11 @@ export function BucketIcon({ className }: IconProps) {
   return (
     <svg {...toolBase} className={className} aria-hidden="true">
       <g transform="rotate(45 11 11)">
-        <rect x="4.5" y="4.5" width="13" height="13" rx="2.3" />
+        <rect x="4.75" y="4.75" width="12.5" height="12.5" rx="2.2" />
       </g>
-      <path d="M9.1 4.7a2 2 0 0 1 2.9-2.3" />
-      <path d="m5.8 12 5.2-5.2 5.2 5.2" />
-      <path d="M20 16c1.2 1.8 1.9 2.9 1.9 3.6a1.9 1.9 0 0 1-3.8 0c0-.7.7-1.8 1.9-3.6Z" />
+      <circle cx="8.8" cy="4.4" r="0.85" />
+      <path d="m8.2 10.5 3.5-3.5 3.5 3.5" />
+      <path d="M19.4 15.2c1.1 1.7 1.7 2.7 1.7 3.4a1.7 1.7 0 0 1-3.4 0c0-.7.6-1.7 1.7-3.4Z" />
     </svg>
   );
 }
@@ -540,9 +545,9 @@ export function CustomColorIcon({ className }: IconProps) {
 export function HandIcon({ className }: IconProps) {
   return (
     <svg {...toolBase} className={className} aria-hidden="true">
-      <path d="M8.6 14V8a1.4 1.4 0 0 1 2.8 0V6.8a1.4 1.4 0 0 1 2.8 0v.8a1.4 1.4 0 0 1 2.8 0v2.2a1.4 1.4 0 0 1 2.8 0V16.3a6.1 6.1 0 0 1-6.1 6.1h-1.5a5.9 5.9 0 0 1-5.9-5.9" />
-      <path d="M8.6 11.8a1.4 1.4 0 0 0-2.8 0v4.7" />
-      <path d="M11.4 8v5M14.2 6.8v5.8M17 7.6v5.2" />
+      <path d="M8.3 13.6V7a1.425 1.425 0 0 1 2.85 0V5.6a1.425 1.425 0 0 1 2.85 0v.9a1.425 1.425 0 0 1 2.85 0v2.4a1.425 1.425 0 0 1 2.85 0V15.8a6 6 0 0 1-6 6h-1.3a7.1 7.1 0 0 1-7.1-6.9" />
+      <path d="M8.3 11.4a1.5 1.5 0 0 0-3 0v3.5" />
+      <path d="M11.15 7v5.4M14 5.6v6.2M16.85 6.5v5.6" />
     </svg>
   );
 }
