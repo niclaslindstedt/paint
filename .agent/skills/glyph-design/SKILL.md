@@ -110,7 +110,11 @@ Iterate the same way regardless:
 1. Draw a first pass and `contact` it — including at the real size, which is
    the size that decides whether it works.
 2. `measure`, and pull anything more than ~18% off the set's median back in.
-3. Show the contact sheet and say what you changed and why. Two or three
+3. When the glyph has to be told apart from a **sibling**, decide that with
+   `ascii --only X` on each of them rather than off the contact sheet: the 18px
+   column is a handful of pixels wide once the sheet is scaled to be looked at,
+   and the text picture is the same comparison at a size you can actually read.
+4. Show the contact sheet and say what you changed and why. Two or three
    rounds is normal; one is suspicious.
 
 ## Drawing rules that hold up at small sizes

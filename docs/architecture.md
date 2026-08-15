@@ -474,9 +474,15 @@ lives by: **nothing outside it may branch on a tool id.**
   of smearing, finds a finer tooth than a blunt wax face does, and is a _colour_
   rather than an ink — the tool mixes its own grey against the page rather than
   taking the one the toolbar is holding.
-- `grain.ts` — the hashes all four scatter with, the even walk along a path
-  they lay texture down on, and the floor below which a detail is too small to
-  draw.
+- `rubber.ts` — the rubber, and the only painter here whose alpha is spent
+  taking something off. It reads `graphite.ts`'s own lattice rather than one of
+  its own — that is the point of it: a rubber lifts from the peaks a lead
+  reached and bridges the dips it never got into, so what survives a rubbing out
+  is graphite in tooth the face could not reach. Nothing it does reaches 1, so a
+  passage fades under the hand and is never quite gone.
+- `grain.ts` — the hashes every one of them scatters with, the smoothstep and
+  the path length they size their grain by, the even walk along a path they lay
+  texture down on, and the floor below which a detail is too small to draw.
 
 All of them are pure functions of the stroke, with every scatter hashed off
 position rather than drawn at random, so a repaint and the PNG export grain
@@ -486,6 +492,18 @@ A tool that needs the app to treat it differently says so on its descriptor —
 `erases` for the eraser, `navigates` for the hand, `picksColor` for the
 dropper, `selects` for the selection family — so the canvas and the
 toolbar read a property instead of learning a name.
+
+`lifts` and `liftable` are that seam carrying a whole feature. A canvas gives up
+pixels one way only, so the **rubber** takes off everything it covers exactly as
+the eraser does; what makes it a rubber is that the renderer then lays the marks
+it could never have lifted straight back over the hole (`relayFixed`). The mask
+they come back through is the erasing lanes painted the ordinary way round,
+which is _to the pixel_ the fraction that went, so opaque ink returns at the
+strength it had. The two flags are the whole of the tool knowledge involved:
+`lifts` on the rubber, `liftable` on graphite and wax. What it costs is stacking
+order inside the rubbed patch — the ink goes back on top rather than back into
+its place in the stack — and the pixels that pays for are pixels being rubbed
+away anyway.
 
 `selects` carries one extra obligation past the flag: the behaviour answers
 `selection(draft)` with the **closed contours** its gesture chose, in document
@@ -532,7 +550,7 @@ ordinary default argument, and a page drawn without touching one serialises
 byte-for-byte the way it did before dials existed.
 
 `sizeless` and `sizePreview` are the same seam pointed at the _button_ rather
-than at the panel. The bucket has no nib and the eraser's mark is a hole, and
+than at the panel. The bucket has no nib and an erasing mark is a hole, and
 both used to be handled by the toolbar knowing which tool it was holding — a
 dimmed size button for one, a fabricated blot of ink under the other's press for
 the other. Now each says what it is on its descriptor and `controls.ts` answers

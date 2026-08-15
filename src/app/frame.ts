@@ -39,10 +39,10 @@ import type { Box } from "./bounds.ts";
 import { createCache, paintCommitted, type MarkCache } from "./cache.ts";
 import { activeFilters } from "./filters.ts";
 import { paintFilters } from "./filterPaint.ts";
-import { activeLayerId, backgroundHidden } from "./layers.ts";
+import { activeLayerId, backgroundHidden, visibleStrokes } from "./layers.ts";
 import { paintMarquee } from "./plugins/builtin/select.ts";
 import type { DraftStroke } from "./plugins/types.ts";
-import { anyErases, paintDetached, underlay } from "./render.ts";
+import { anyErases, paintDetached, relayFixed, underlay } from "./render.ts";
 import { translateStrokes } from "./selection.ts";
 import type { Drawing, Point, Stroke } from "./types.ts";
 import type { CanvasView } from "./viewport.ts";
@@ -152,12 +152,11 @@ export function paintFrame(frame: Frame): void {
   // The marks being dragged, at the offset the drag has reached. Painted from
   // the same renderer the page uses, so what you are dragging looks exactly like
   // what will land.
+  const dragged = moving
+    ? translateStrokes(moving.strokes, moving.offset.x, moving.offset.y)
+    : [];
   if (moving) {
-    const { x: dx, y: dy } = moving.offset;
-    paintDetached(ctx, drawing, translateStrokes(moving.strokes, dx, dy), {
-      ...options,
-      omit: undefined,
-    });
+    paintDetached(ctx, drawing, dragged, { ...options, omit: undefined });
   }
 
   const draft = frame.draft ? { ...frame.draft, id: "draft" } : null;
@@ -172,7 +171,13 @@ export function paintFrame(frame: Frame): void {
   // therefore takes the page with it, so the sheet goes back under whatever the
   // hole exposed (see `underlay`). Only when something actually erased: this is
   // every frame of an eraser stroke, and no frame of anything else.
-  if ((draft && anyErases([draft])) || (moving && anyErases(moving.strokes))) {
+  const inFlight = draft ? [...dragged, draft] : dragged;
+  if (anyErases(inFlight)) {
+    // …and a rubbing out that only lifts what a rubber can lift took the ink
+    // with it too, for the same reason: those pixels are a finished picture and
+    // it cannot tell what made them. The marks it could not have lifted go back
+    // first, under nothing and over the hole (see `relayFixed`).
+    relayFixed(ctx, inFlight, options, visibleStrokes(drawing));
     underlay(ctx, drawing, options);
   }
 

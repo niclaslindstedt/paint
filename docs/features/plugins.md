@@ -21,20 +21,20 @@ the one medium this app has of its own. That is the _whole_ default toolbar:
 eleven buttons, families counted as the one button they are, and everything else
 off until you ask for it. Waiting in Settings → Tools: the rest of the media
 (the round and flat bristle brushes, marker, highlighter, crayon, calligraphy
-pen).
+pen) and the **rubber**, which is the eraser's opposite number — see below.
 
 The row reads in the order a hand actually uses it. The pen you draw with, the
-rubber that undoes it, the rest of the media, the bucket, the two families, type
+eraser that undoes it, the rest of the media, the bucket, the two families, type
 — which is what you usually reach for right after picking something out — and
 last the two tools that touch neither the ink nor the document:
 
-**pen · eraser · pencil · round brush · flat brush · watercolour · airbrush ·
-marker · highlighter · crayon · calligraphy pen · paint bucket · shapes · select
-· text · dropper · hand**
+**pen · eraser · rubber · pencil · round brush · flat brush · watercolour ·
+airbrush · marker · highlighter · crayon · calligraphy pen · paint bucket ·
+shapes · select · text · dropper · hand**
 
 It used to read down Photoshop's tool column instead. That column is a column,
 and a phone's toolbar is a row: it put the one tool that draws nothing (the
-dropper) under the thumb that reaches best, and the rubber at the far end from
+dropper) under the thumb that reaches best, and the eraser at the far end from
 the pen it undoes. Switching a tool on in Settings → Tools slots it into its
 place in this row rather than appending it, so the toolbar never reads in the
 order you happened to discover it in.
@@ -173,11 +173,40 @@ painters in `src/app/plugins/brushes.ts`, `bristle.ts`, `crayon.ts` and
   the paper does with what is left;
 - the **calligraphy pen** is a flat nib held at an angle: broad across the
   stroke, hairline along it. The angle is a dial, in degrees, because the tilt
-  of the hand is the one thing a writer actually changes about a broad nib.
+  of the hand is the one thing a writer actually changes about a broad nib;
+- and the **rubber** is the one medium here that takes something off instead of
+  putting it on. It reads the pencil's own sheet — literally the same lattice,
+  so the two agree about where the paper is low — and lifts from the peaks the
+  lead reached, bridging the dips it never got into. That is the whole model,
+  and everything anyone knows about rubbing out falls out of it: a passage goes
+  _paler_ rather than away, what survives is a speckled ghost in the tooth, the
+  edge of the rub feathers into the tone around it instead of cutting a window,
+  and passing again takes the same _fraction_ of what is left — so it fades and
+  fades and is never quite gone. **Pressure** is how hard you lean on it, which
+  is how deep into the sheet the face deforms: it fades the ghost, it never
+  widens the mark. And it lifts only what a rubber can lift.
 
 All of it is a pure function of the stored stroke: the scatter is hashed off
 position rather than drawn at random, so a repaint, an undo and the PNG export
 produce identical grain instead of a mark that shimmers when you pan.
+
+### What a rubber will not take off
+
+Graphite and wax sit on the sheet and come away; ink, paint, felt tip, a bucket
+of colour and a dropped photograph have soaked into it and do not, however hard
+you rub. So the rubber leaves all of those exactly where they are — which is
+what finally makes the oldest workflow in drawing work here: **sketch it in
+pencil, ink over the sketch, then rub the sketch out.**
+
+Two flags say all of it, and nothing anywhere reads a tool's name: `lifts` on
+the rubber, `liftable` on the pencil and the crayon. The renderer does the rest
+— an erasing mark can only be a hole, so it takes everything for the length of
+one composite and the marks it could never have lifted are laid straight back
+over it (`relayFixed` in `render.ts`). Ink comes back at exactly the strength it
+had, because the mask it comes back through _is_ the fraction that went. The
+plain **eraser** is still there and still indifferent: it is a hole, it goes
+through ink and pencil at the same rate, and at full strength it takes the page
+to white in one drag. That is the one you want for a mistake.
 
 ## Flags, not names
 
@@ -187,6 +216,12 @@ than start a stroke, and what dims the ink it would never use. The **dropper**
 works the same way through `picksColor`. That is the pattern for any tool that
 needs the app to treat it differently: a property on the descriptor, so nothing
 outside `plugins/` has to know a tool by name.
+
+`lifts` and `liftable` are the pair that make a rubbing out selective. `lifts`
+says a tool only takes off what a rubber could have taken; `liftable` says a
+medium is one of those. Neither is a rule about erasers and pencils — a charcoal
+tool would declare `liftable` and be lifted, a shape that scrubbed would declare
+`lifts` and need nothing else.
 
 `hidden` is the flag taken to its limit: a hidden plugin has no button anywhere
 and no gesture at all. The dropped image's painter is the one this build ships —
@@ -346,6 +381,7 @@ app:
 | Pen             | Liner · Fineliner · Guide line           |
 | Pencil          | Sketch · Construction · Shading · Detail |
 | Eraser          | Block · Detail · Kneaded                 |
+| Rubber          | Pocket rubber · Kneaded · Pencil top     |
 | Round brush     | Round · Hog bristle · Dry brush · Glaze  |
 | Flat brush      | One-stroke · Lettering · Flat wash       |
 | Watercolour     | Wash · Wet-in-wet · Glaze · Dry brush    |
@@ -423,8 +459,8 @@ rectangle a rectangle at that line width, the text tool a letter at that type
 size.
 
 A tool whose mark cannot describe itself says so instead
-(`sizePreview: "circle"`) and gets a plain disc. The eraser is the one that
-does: its mark is a _hole_, and a hole on the bare page a preview is shows
+(`sizePreview: "circle"`) and gets a plain disc. The two rubbers are the ones
+that do: their mark is a _hole_, and a hole on the bare page a preview is shows
 nothing at all. It used to be previewed as a bite out of a blot of ink that
 nobody had drawn — a mark invented for the preview so that the preview would
 have something to show. The nib is round and the number is the nib, so the
@@ -479,6 +515,7 @@ or paper that does not, and no one of those four is any of the others:
 | **Highlighter**       | opacity, chisel                            |
 | **Calligraphy pen**   | opacity, nib angle                         |
 | **Eraser**            | strength                                   |
+| **Rubber**            | pressure                                   |
 | **Paint bucket**      | opacity, feather — behind its cog          |
 | Pen, shapes, text     | opacity                                    |
 | Hand, dropper, select | nothing — no section appears               |
@@ -504,7 +541,10 @@ trigger, and because its coverage
 is built from overlapping passes rather than one opaque dab, turning it down
 really does mean more passes. **Pressure** is how hard the crayon bears down:
 wax only sticks to the peaks it is pressed onto, so a light hand leaves the
-paper's speckle showing and a heavy one fills the valleys in. **Lead** is the
+paper's speckle showing and a heavy one fills the valleys in — and the **rubber
+carries the same word for the other end of the same idea**, how far into that
+tooth its face deforms, which fades the ghost a rubbing out leaves rather than
+removing it. **Lead** is the
 pencil's grade, by name — 8H is hard and pale and rides the paper, 9B is soft
 and dark and fills its tooth in — and like pressure it reaches the deposit
 rather than the width. **Water** is how charged the watercolour brush is: turned

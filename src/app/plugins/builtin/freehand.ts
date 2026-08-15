@@ -21,6 +21,7 @@ import { paintCrayon } from "../crayon.ts";
 import { extraDials, strokeDial } from "../dials.ts";
 import { paintGraphite } from "../graphite.ts";
 import { applyInk, distance, paintPath, strokeColor } from "../ink.ts";
+import { paintRubbing } from "../rubber.ts";
 import {
   FULL_DETAIL,
   type DraftStroke,
@@ -49,6 +50,7 @@ export type FreehandStyle =
   | "calligraphy"
   | "nib"
   | "graphite"
+  | "rubber"
   | "wash";
 
 type FreehandInk = {
@@ -237,6 +239,19 @@ export function freehandBehaviour(ink: FreehandInk = {}): ToolBehaviour {
             stroke.size,
             scale,
             strokeDial(stroke, "grade"),
+          );
+          return;
+        case "rubber":
+          // The one painter here whose alpha is spent taking something off
+          // rather than putting it on — the tool that asks for it declares
+          // `erases`, and the renderer has already turned the compositing round
+          // (see `render.ts`).
+          paintRubbing(
+            ctx2d,
+            points,
+            stroke.size,
+            scale,
+            strokeDial(stroke, "pressure"),
           );
           return;
         default:

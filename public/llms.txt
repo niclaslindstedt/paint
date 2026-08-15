@@ -39,7 +39,9 @@ connect a storage backend yourself.
   into the drawing — words open the caption box so the typeface and size are
   yours to set first.
 - Switch more tools on in Settings → Tools (a round and a flat bristle brush,
-  marker, highlighter, crayon, calligraphy pen), and put the rows in the order you want
+  marker, highlighter, crayon, calligraphy pen, and a rubber that lifts pencil
+  and crayon the way a real one does — a little at a time, never all of it, and
+  never the ink drawn over them), and put the rows in the order you want
   the toolbar in. Every tool is a plugin behind one interface, so the list grows
   without the app changing shape.
 - Type on the page: the text tool opens a caret where you tap, in four
@@ -56,7 +58,8 @@ connect a storage backend yourself.
   bleeds for the paintbrush, flow for the airbrush, pressure for the crayon, the
   lead's grade for the pencil, the chisel of a felt tip for the marker and the
   highlighter, the nib's angle for the calligraphy pen, strength for the eraser,
-  a feathered edge for the paint bucket, opacity for most of the rest. Each tool
+  pressure for the rubber, a feathered edge for the paint bucket, opacity for
+  most of the rest. Each tool
   keeps its own settings, and a mark remembers what it was drawn with.
 - Start a drawing from an empty page, an image file, or an image on the
   clipboard. An empty one asks its canvas size up front — this screen, Full HD,

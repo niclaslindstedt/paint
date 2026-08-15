@@ -48,7 +48,7 @@ beforeEach(() => {
   // point — that it erased is, because the cache then has to put the sheet back
   // under the hole it left in pixels it is keeping.
   registerPlugin({
-    id: "rubber",
+    id: "wiper",
     core: true,
     nameKey: "tools.eraser.name",
     descriptionKey: "tools.eraser.description",
@@ -56,7 +56,30 @@ beforeEach(() => {
     erases: true,
     behaviour: {
       start: (p) => ({
-        tool: "rubber",
+        tool: "wiper",
+        size: 1,
+        shape: { kind: "path", points: [p] },
+      }),
+      move: (draft) => draft,
+      paint: (_ctx, stroke) => {
+        painted.push(stroke);
+      },
+    },
+  });
+  // …and one that rubs out the way a rubber does: it takes ink off, but only
+  // ink a rubber could have lifted. Nothing here is `liftable`, so everything
+  // the cache is holding has to be laid back over the hole it leaves.
+  registerPlugin({
+    id: "lifter",
+    core: true,
+    nameKey: "tools.eraser.name",
+    descriptionKey: "tools.eraser.description",
+    icon: () => null,
+    erases: true,
+    lifts: true,
+    behaviour: {
+      start: (p) => ({
+        tool: "lifter",
         size: 1,
         shape: { kind: "path", points: [p] },
       }),
@@ -177,13 +200,47 @@ describe("the committed marks cache", () => {
     const surface = dom.created[0]!.ctx;
     const before = surface.painted.length;
 
-    const rubbed = { ...stroke(120), tool: "rubber" };
+    const rubbed = { ...stroke(120), tool: "wiper" };
     expect(
       paintCommitted(ctx, canvas, cache, spec(drawing([...strokes, rubbed]))),
     ).toBe("appended");
     expect(
       surface.painted.slice(before).map((p) => `${p.call}@${p.composite}`),
     ).toEqual(["fillRect@destination-over"]);
+  });
+
+  it("lays the ink back too when what it appended was a rubber", () => {
+    // The other half of the same problem: the cache's pixels are a finished
+    // picture and a lifting mark cannot tell what made them, so it takes the
+    // marks it could never have lifted with it. They go back over the hole
+    // before the sheet goes under it (see `relayFixed`).
+    const cache = createCache(400, 300)!;
+    const { ctx, canvas } = screen();
+    const strokes = [stroke(100)];
+    paintCommitted(ctx, canvas, cache, spec(drawing(strokes)));
+    const surface = dom.created[0]!.ctx;
+    const surfaces = dom.created.length;
+    painted = [];
+
+    const lifted = { ...stroke(100), tool: "lifter" };
+    expect(
+      paintCommitted(ctx, canvas, cache, spec(drawing([...strokes, lifted]))),
+    ).toBe("appended");
+    // Three painter calls for one gesture, and each is a different surface: the
+    // rubbing out onto the cache, the mark it took with it onto a surface of
+    // its own, and the rubbing out *again* onto a second one — painted the
+    // ordinary way round there, which is the mask that says how much went.
+    expect(painted.map((s) => s.id)).toEqual([
+      lifted.id,
+      strokes[0]!.id,
+      lifted.id,
+    ]);
+    expect(dom.created.length).toBe(surfaces + 2);
+    // …and the sheet still goes back under the lot, last.
+    expect(surface.painted.at(-1)).toMatchObject({
+      call: "fillRect",
+      composite: "destination-over",
+    });
   });
 
   it("leaves the cache alone when the mark it appended only added ink", () => {
@@ -342,7 +399,7 @@ describe("layers", () => {
     const surface = dom.created[0]!.ctx;
     const before = surface.painted.length;
 
-    const rubbed = { ...stroke(120), tool: "rubber" };
+    const rubbed = { ...stroke(120), tool: "wiper" };
     expect(
       paintCommitted(ctx, canvas, cache, spec(drawing([...strokes, rubbed]))),
     ).toBe("appended");

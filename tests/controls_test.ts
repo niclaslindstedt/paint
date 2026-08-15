@@ -139,14 +139,14 @@ describe("sizePreview", () => {
     registerBuiltinPlugins();
   });
 
-  it("is the press itself for every tool but the one that rubs out", () => {
-    // The eraser's mark is a hole, and a hole shows nothing on the bare page a
-    // preview is — so its width is drawn as the circle its nib is. Everything
-    // else previews as the mark it leaves.
+  it("is the press itself for every tool but the ones that rub out", () => {
+    // An erasing mark is a hole, and a hole shows nothing on the bare page a
+    // preview is — so both rubbers draw their width as the circle their nib is.
+    // Everything else previews as the mark it leaves.
     const circles = toolPlugins()
       .filter((p) => sizePreview(p) === "circle")
       .map((p) => p.id);
-    expect(circles).toEqual(["eraser"]);
+    expect(circles).toEqual(["eraser", "rubber"]);
     expect(sizePreview(pluginById("pencil"))).toBe("press");
     expect(sizePreview(undefined)).toBe("press");
   });

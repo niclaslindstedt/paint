@@ -76,12 +76,13 @@ describe("registry", () => {
   });
 
   it("keeps registration order", () => {
-    // The row a hand actually uses: the pen, the rubber that undoes it, the
+    // The row a hand actually uses: the pen, the two rubbers that undo it, the
     // rest of the media, the bucket, the two families, type — and last the two
     // tools that touch neither the ink nor the document.
     expect(allPlugins().map((p) => p.id)).toEqual([
       "pencil",
       "eraser",
+      "rubber",
       "graphite",
       "paintbrush",
       "flatbrush",

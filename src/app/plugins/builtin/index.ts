@@ -8,7 +8,7 @@
 // reach for next to each other rather than in the order a 1990 tool palette
 // happened to stack them.
 //
-// So it reads: the pen you draw with, the rubber that undoes it, then the rest
+// So it reads: the pen you draw with, the eraser that undoes it, then the rest
 // of the media in a shelf of their own, then the bucket, then the two families
 // (shapes, then choosing marks), then type — which is what you usually reach for
 // right after picking something out — and last the two tools that touch neither
@@ -31,7 +31,7 @@
 // Two families are the case — the eleven shapes, and the four ways of selecting
 // — and both are below.
 //
-// **What a first run finds is the shape of Paint**: a pen, a pencil, a rubber,
+// **What a first run finds is the shape of Paint**: a pen, a pencil, an eraser,
 // a watercolour brush, an airbrush, a bucket, type, the shapes, the marquee, a
 // dropper and the hand — the toolbox anyone who has opened a paint program has
 // already used, spray can included, plus the two things that toolbox never had:
@@ -97,6 +97,7 @@ import {
   PencilIcon,
   PentagonIcon,
   RoundSquareIcon,
+  RubberIcon,
   SelectIcon,
   SelectOvalIcon,
   ShapesIcon,
@@ -126,6 +127,7 @@ import {
   OPACITY,
   PIGMENT,
   PRESSURE,
+  RUB,
   SPLAY,
   STRENGTH,
   WATER,
@@ -141,6 +143,7 @@ import {
   NIB_PRESETS,
   PEN_PRESETS,
   PENCIL_PRESETS,
+  RUBBER_PRESETS,
   SPRAY_PRESETS,
   WASH_PRESETS,
 } from "./presets.ts";
@@ -338,7 +341,7 @@ const SELECTIONS: readonly Omit<
 /** Register the built-in tools. Idempotent — re-registering an id replaces it
  *  in place, so calling this twice (a hot reload, a test) is harmless. */
 export function registerBuiltinPlugins(): void {
-  // --- The pen, and the rubber that undoes it ------------------------------
+  // --- The pen, and the two things that undo it ----------------------------
   // The two tools a blank page has to have, and the two the user asked to have
   // beside each other: whatever else is switched off, these are what is left.
   //
@@ -410,6 +413,54 @@ export function registerBuiltinPlugins(): void {
     behaviour: freehandBehaviour({ erases: true }),
   });
 
+  // …and the **rubber**, which is the other one of those and is a *medium*
+  // rather than a hole. The two are named apart the way a stationer names them:
+  // the eraser is the thing that removes a mistake, the rubber is the thing you
+  // work a pencil drawing back with.
+  //
+  // The eraser above is indifferent to what is under it, because a hole is
+  // indifferent: it goes through a pencil line and a marker line at the same
+  // rate, and at full strength it takes the page back to white in one drag.
+  // That is the tool you want for a mistake and it is not what a rubber does to
+  // a drawing. Rub at a pencil passage with one and the passage does not go — it
+  // goes paler, unevenly, with the sheet's tooth showing through what is left,
+  // and paler again next time. Meanwhile the ink you drew *over* that pencil is
+  // exactly where it was, because it soaked into the paper and no amount of
+  // rubbing lifts it.
+  //
+  // Both halves are declared rather than coded anywhere: `lifts` says this
+  // rubbing out only takes what a rubber could take, `liftable` on the pencil
+  // and the crayon says what that is, and the renderer lays everything else back
+  // over the hole (see `relayFixed` in `render.ts`). Which means the tool that
+  // finally makes "sketch it, ink it, rub the sketch out" work is two flags, a
+  // painter, and nothing else in the app.
+
+  registerPlugin({
+    id: "rubber",
+    nameKey: "tools.rubber.name",
+    descriptionKey: "tools.rubber.description",
+    icon: RubberIcon,
+    // No shortcut. The letters near it are spoken for — **e** is the eraser it
+    // sits beside and **r** the rectangle — and a second rubber is not worth
+    // taking one off a tool that has had it since the first release.
+    //
+    // The same rack the eraser is sold on, opening two steps down it: a rubber
+    // you work a passage back with is held like a pencil rather than swept like
+    // a board eraser, and 5 mm is the pocket one in a pencil case.
+    gauge: ERASER_GAUGE,
+    defaultSize: mm(5),
+    // Its width shows as a circle, for the eraser's reason: a preview of a
+    // rubbing out on a bare page has nothing to lift and nothing to show.
+    sizePreview: "circle",
+    // One dial, and it is the hand rather than the ink: how hard you lean on it,
+    // which is how deep into the sheet the face reaches. See `RUB`.
+    dials: [RUB],
+    presets: RUBBER_PRESETS,
+    erases: true,
+    lifts: true,
+    behaviour: freehandBehaviour({ erases: true, style: "rubber" }),
+  });
+
   // --- Then the media shelf ------------------------------------------------
   // Everything else that lays something down, sketching tool first.
 
@@ -432,6 +483,11 @@ export function registerBuiltinPlugins(): void {
     // The four pencils in the tin: a grade and a width together *are* a pencil,
     // which is the case this whole feature was built on.
     presets: PENCIL_PRESETS,
+    // Graphite sits on the sheet rather than soaking into it, so a rubber takes
+    // it off again — which is what the rubber reads to know a pencil line
+    // from an inked one. It is the medium saying what it is made of, not a tool
+    // recognising another tool by name.
+    liftable: true,
     behaviour: freehandBehaviour({
       style: "graphite",
       // Graphite is a mineral, not an ink: the tool mixes its own grey and the
@@ -631,6 +687,9 @@ export function registerBuiltinPlugins(): void {
     defaultSize: mm(8),
     dials: [OPACITY, PRESSURE],
     presets: CRAYON_PRESETS,
+    // Wax is caught on the tooth the same way graphite is, and comes away the
+    // same way — worse, in fact, since it smears. The other lifting medium.
+    liftable: true,
     behaviour: freehandBehaviour({ style: "crayon" }),
   });
 

@@ -52,6 +52,26 @@ export function driftNoise(t: number, seed: number): number {
   return a + (b - a) * u;
 }
 
+/** The smooth 0→1 ramp between two edges — the falloff of everything here that
+ *  fades rather than stops: the shoulder of a nib, the fray at the edge of a
+ *  crayon's face, the outer half of a rubber. */
+export function smoothstep(from: number, to: number, x: number): number {
+  const t = Math.max(0, Math.min(1, (x - from) / (to - from)));
+  return t * t * (3 - 2 * t);
+}
+
+/** The length of a sampled path. Wanted *before* it is resampled, by every
+ *  painter that sizes its grain to what the whole mark is about to cost. */
+export function pathLength(points: readonly Point[]): number {
+  let total = 0;
+  for (let i = 1; i < points.length; i++) {
+    const a = points[i - 1]!;
+    const b = points[i]!;
+    total += Math.hypot(b.x - a.x, b.y - a.y);
+  }
+  return total;
+}
+
 /** Resample a polyline at a fixed spacing, so a painter that puts something
  *  *at* each point (a spray dot, a bristle) lays them down evenly however fast
  *  the pointer was moving when the path was sampled. */

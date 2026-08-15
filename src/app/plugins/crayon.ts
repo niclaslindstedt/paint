@@ -38,6 +38,8 @@ import {
   driftNoise,
   hashedRandom,
   normalAt,
+  pathLength,
+  smoothstep,
   trace,
   type Trace,
 } from "./grain.ts";
@@ -64,13 +66,6 @@ const GRAIN_BUDGET = 30000;
  *  together. Four is enough that the ramp from bare paper to solid wax reads as
  *  a ramp; a fifth is not visible. */
 const LEVELS = [0.4, 0.63, 0.83, 1] as const;
-
-/** The smooth 0→1 ramp between two edges — the falloff of everything here that
- *  fades rather than stops. */
-function smoothstep(from: number, to: number, x: number): number {
-  const t = Math.max(0, Math.min(1, (x - from) / (to - from)));
-  return t * t * (3 - 2 * t);
-}
 
 /** The paper's height at one grain cell, centred on 0.5.
  *
@@ -101,18 +96,6 @@ function grainCell(length: number, size: number, scale: number): number {
   const wanted = ((length + size) * (size + 2 * cell)) / (cell * cell);
   if (wanted <= GRAIN_BUDGET) return cell;
   return cell * Math.sqrt(wanted / GRAIN_BUDGET);
-}
-
-/** The length of the sampled path, needed before it is resampled so the grain
- *  can be sized to what the whole mark will cost. */
-function pathLength(points: readonly Point[]): number {
-  let total = 0;
-  for (let i = 1; i < points.length; i++) {
-    const a = points[i - 1]!;
-    const b = points[i]!;
-    total += Math.hypot(b.x - a.x, b.y - a.y);
-  }
-  return total;
 }
 
 /** Wax being laid onto the sheet: `lay` offers a deposit at a point, the paper

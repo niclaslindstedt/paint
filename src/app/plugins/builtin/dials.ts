@@ -53,6 +53,29 @@ export const STRENGTH: ToolDial = {
   step: 0.05,
 };
 
+/** How hard the rubber is bearing down.
+ *
+ *  The same id as the crayon's `PRESSURE` and a different word for it, the way
+ *  `STRENGTH` is `OPACITY` — a dial is stored per tool, so two implements can
+ *  both have a hand leaning on them without either reading the other's number.
+ *
+ *  What it reaches is how far into the sheet's tooth the rubber's face deforms
+ *  (see `rubber.ts`), which is the one thing pressing harder actually changes: a
+ *  light hand takes the graphite off the peaks and leaves the dips full, and a
+ *  heavy one gets down into them. So it fades the ghost rather than widening the
+ *  mark — and it never reaches a clean page, because no rubber does.
+ *
+ *  Deliberately *not* the eraser's `STRENGTH`. That one is an alpha and answers
+ *  "how much of this goes"; this one is a depth, and what goes follows from it. */
+export const RUB: ToolDial = {
+  id: "pressure",
+  nameKey: "dials.rub.name",
+  hintKey: "dials.rub.hint",
+  min: 0.3,
+  max: 1.6,
+  step: 0.05,
+};
+
 /** How chiselled a felt tip is: 0 is a round bullet, 1 very nearly the flat of
  *  the calligraphy nib.
  *

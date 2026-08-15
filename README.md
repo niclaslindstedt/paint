@@ -32,7 +32,8 @@ the same [`oss-framework`](https://github.com/niclaslindstedt/oss-framework).
   one interface. It opens on the toolbox you already know — pen, pencil,
   eraser, watercolour brush, airbrush, bucket, text, the shapes, a selection
   marquee and the dropper — and the media it adds to that (a round and a flat
-  bristle brush, a marker, a crayon, a calligraphy nib, a highlighter) wait in
+  bristle brush, a marker, a crayon, a calligraphy nib, a highlighter, and a
+  **rubber** that lifts pencil the way a real one does) wait in
   Settings → Tools, so the toolbar stays as simple as you want it and grows when
   you need it. Rearrange the row there too, and it rearranges here. Each tool
   remembers its own width, so a fat brush never costs you a fine pen.
@@ -223,7 +224,8 @@ npm run preview
   palette, your own mixed colours, and a free colour mixer; the second button is
   the **nib**, and it shows a **press with the tool in your hand** — the mark
   that width actually leaves, painted by the painter that paints the page (bar
-  the eraser, whose mark is a hole, so its width shows as a plain circle). It
+  the two rubbers, whose mark is a hole, so their width shows as a plain
+  circle). It
   opens the widths, a slider for new ones, and — under an **Advanced** heading,
   open rather than folded away — the knobs belonging to the tool in your hand:
   how charged the head is, its hair gauge, how far it has splayed and how far
@@ -232,7 +234,8 @@ npm run preview
   lead's grade for the pencil — 8H through 9B, as a row of chips rather than a
   slider, because there is nothing between a 2B and a 3B — the chisel of a felt
   tip for the marker and the highlighter, the angle of the nib for the flat
-  brush and the calligraphy pen, strength for the eraser, a feathered edge for
+  brush and the calligraphy pen, strength for the eraser, pressure for the
+  rubber, a feathered edge for
   the paint bucket, and opacity for most of the rest. Above the widths are two
   rows of whole tools, one press each: **Presets**, the ways the tool's own
   medium is used, shipped with it and each showing the mark it makes, and

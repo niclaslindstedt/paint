@@ -279,6 +279,10 @@ export const en = {
       name: "Strength: {value}%",
       hint: "How much of a mark one pass takes off. Turn it down to fade something back rather than remove it.",
     },
+    rub: {
+      name: "Pressure: {value}%",
+      hint: "How hard you lean on the rubber — how far into the paper's tooth it reaches. Press harder to fade the ghost, never to remove it.",
+    },
     chisel: {
       name: "Chisel: {value}%",
       hint: "Round like a bullet tip, or flat like a wedge that draws broad one way and fine the other.",
@@ -352,6 +356,11 @@ export const en = {
       block: "Block",
       detail: "Detail",
       kneaded: "Kneaded",
+    },
+    rubber: {
+      pocket: "Pocket rubber",
+      kneaded: "Kneaded",
+      top: "Pencil top",
     },
     graphite: {
       sketch: "Sketch",
@@ -459,6 +468,11 @@ export const en = {
       name: "Eraser",
       description:
         "Rubs marks off the page. Turn the strength down to fade them rather than remove them.",
+    },
+    rubber: {
+      name: "Rubber",
+      description:
+        "The pencil eraser, as one really behaves: it lifts pencil and crayon a little at a time, leaves the paper's grain showing, and never quite takes all of it. Ink, paint and marker stay where they are.",
     },
     line: { name: "Line", description: "A straight line between two points." },
     rectangle: {

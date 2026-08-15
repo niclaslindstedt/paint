@@ -33,6 +33,8 @@ import {
   driftNoise,
   hashedRandom,
   normalAt,
+  pathLength,
+  smoothstep,
   trace,
   type Trace,
 } from "./grain.ts";
@@ -43,8 +45,13 @@ import { paintPath } from "./ink.ts";
  *  Half the crayon's fifth of a millimetre: a sharp lead reaches into tooth
  *  that a blunt wax face bridges over, and the difference between the two
  *  speckles is most of what tells a pencil line from a crayon one at the same
- *  width. */
-const TOOTH = mm(0.1);
+ *  width.
+ *
+ *  Exported for the one other implement that works this same sheet: a rubber
+ *  lifts what a lead put down, so it has to read the paper at the pitch the lead
+ *  wrote it at (see `rubber.ts`). */
+export const PAPER_TOOTH = mm(0.1);
+const TOOTH = PAPER_TOOTH;
 
 /** The most grain cells one mark will lay down. Past this the grain is
  *  coarsened rather than drawn (see `grainCell`) — a page-long sweep with a
@@ -60,16 +67,15 @@ const LEVELS = [0.42, 0.72, 1] as const;
  *  solid on purpose — even 6B leaves a sheen rather than ink. */
 const DENSITY = 0.86;
 
-/** The smooth 0→1 ramp between two edges. */
-function smoothstep(from: number, to: number, x: number): number {
-  const t = Math.max(0, Math.min(1, (x - from) / (to - from)));
-  return t * t * (3 - 2 * t);
-}
-
 /** The paper's height at one grain cell, centred on 0. Three octaves, the same
  *  arrangement the crayon's sheet uses — speck, clump and island — because it
- *  is the same sheet, only read at a finer pitch. */
-function toothAt(gx: number, gy: number): number {
+ *  is the same sheet, only read at a finer pitch.
+ *
+ *  Exported because the rubber reads it too, and reads it the other way round:
+ *  a low cell is a peak the lead reached and a rubber can wipe, a high one is a
+ *  dip neither of them gets far into. Two implements arguing about where the
+ *  paper is low would leave a ghost that has nothing to do with the mark. */
+export function paperTooth(gx: number, gy: number): number {
   const speck = hashedRandom(gx, gy, 23);
   const clump = hashedRandom(gx >> 1, gy >> 1, 29);
   const island = hashedRandom(gx >> 2, gy >> 2, 31);
@@ -85,18 +91,6 @@ function grainCell(length: number, size: number, scale: number): number {
   const wanted = ((length + size) * (size + 2 * cell)) / (cell * cell);
   if (wanted <= GRAIN_BUDGET) return cell;
   return cell * Math.sqrt(wanted / GRAIN_BUDGET);
-}
-
-/** The length of the sampled path, needed before it is resampled so the grain
- *  can be sized to what the whole mark will cost. */
-function pathLength(points: readonly Point[]): number {
-  let total = 0;
-  for (let i = 1; i < points.length; i++) {
-    const a = points[i - 1]!;
-    const b = points[i]!;
-    total += Math.hypot(b.x - a.x, b.y - a.y);
-  }
-  return total;
 }
 
 /** Graphite coming off the lead: `lay` offers a deposit at a point, the paper
@@ -118,7 +112,7 @@ function openLead(cell: number) {
       // under a repaint and two crossing strokes skip the same valleys.
       const gx = Math.floor(x / TOOTH);
       const gy = Math.floor(y / TOOTH);
-      const paper = toothAt(gx, gy);
+      const paper = paperTooth(gx, gy);
       // The valley the lead never reached. This one line is the medium.
       if (paper >= deposit) return;
       const bite = Math.min(1, (deposit - paper) / 0.3);

@@ -253,6 +253,10 @@ export const sv: Catalog = {
       name: "Styrka: {value} %",
       hint: "Hur mycket av ett streck ett drag tar bort. Skruva ner för att tona ner något i stället för att sudda bort det.",
     },
+    rub: {
+      name: "Tryck: {value} %",
+      hint: "Hur hårt du trycker på gummit — hur djupt ner i papprets struktur det når. Tryck hårdare för att tona bort skuggan, aldrig för att få bort den helt.",
+    },
     chisel: {
       name: "Kilspets: {value} %",
       hint: "Rund som en kulspets, eller platt som en kil som drar brett åt ett håll och fint åt det andra.",
@@ -316,6 +320,11 @@ export const sv: Catalog = {
       block: "Kloss",
       detail: "Detalj",
       kneaded: "Knådgummi",
+    },
+    rubber: {
+      pocket: "Fickgummi",
+      kneaded: "Knådgummi",
+      top: "Pennsudd",
     },
     graphite: {
       sketch: "Skiss",
@@ -417,6 +426,11 @@ export const sv: Catalog = {
       name: "Suddgummi",
       description:
         "Suddar bort streck från sidan. Skruva ner styrkan för att tona ner dem i stället för att sudda bort dem.",
+    },
+    rubber: {
+      name: "Radergummi",
+      description:
+        "Blyertsgummit, som ett sådant faktiskt beter sig: det lyfter blyerts och krita lite i taget, låter papprets struktur skina igenom och får aldrig bort allt. Bläck, färg och tusch sitter kvar.",
     },
     line: { name: "Linje", description: "En rak linje mellan två punkter." },
     rectangle: {
