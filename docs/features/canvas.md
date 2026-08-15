@@ -155,8 +155,23 @@ a readable JSON file rather than a blob of pixels.
   — and files that area as a vector shape, so it stays crisp however far you
   zoom in. Marks stranded inside the area stay unpainted. Tap a gap in your
   outline and it will leak through it, the same way a bucket always has.
+- The **gradient**, behind the same button, fills that area with a ramp instead
+  of a flat colour: press where the first colour should start, drag the way you
+  want it to run, and let go where the last one should land. Its colours are its
+  own — from, to, and a middle one if you want three — so the toolbar's ink is
+  struck through while it is in your hand — a control that changes nothing is
+  not offered.
 - The **dropper** takes the colour you tap and makes it the ink — including a
-  colour that only exists where two translucent passes overlap.
+  colour that only exists where two translucent passes overlap. Its cog sets how
+  much page one tap reads: the single pixel under the pointer, or the average of
+  a disc up to eight millimetres across, which is the setting you want on
+  anything sprayed or grainy.
+- With a mouse or a stylus, **the pointer is the nib**: a circle the size of the
+  mark you are about to leave, at the page's own scale, so it grows as you zoom
+  in and shrinks as you pull back. It is the width you set made visible before
+  you commit to it. A finger gets none — it is already covering what it is
+  aiming at — and neither do the tools that leave no mark by a nib, which keep
+  the crosshair.
 
 ## Colour and size
 

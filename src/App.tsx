@@ -110,6 +110,7 @@ export function App() {
     applyPreset,
     deletePreset,
     setToolDial,
+    setToolColor,
     resetToolDials,
   } = useAppSettings();
 
@@ -331,6 +332,7 @@ export function App() {
               applyPreset,
               deletePreset,
               setDial: setToolDial,
+              setColor: setToolColor,
               resetDials: resetToolDials,
             }}
             tool={tool}

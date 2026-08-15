@@ -109,8 +109,14 @@ type Props = {
   /** Move one — or forget it with `null`, which is what the panel sends for a
    *  dial dragged back to where it started. */
   onDialChange: (id: string, value: number | null) => void;
+  /** …and the same pair for the inks a tool carries of its own, which sit at the
+   *  head of the same panel (see `plugins/swatches.ts`). Which swatches those
+   *  are comes off the descriptor, so the toolbar never learns one by name
+   *  either. */
+  colorValues: Readonly<Record<string, string>>;
+  onToolColorChange: (id: string, color: string | null) => void;
   onResetDials: () => void;
-  /** Whether any of them are off their default. */
+  /** Whether any of them — dial or ink — is off what the tool ships with. */
   dialsTuned: boolean;
   filled: boolean;
   onFilledChange: (filled: boolean) => void;
@@ -143,6 +149,8 @@ export function Toolbar({
   onDeletePreset,
   dialValues,
   onDialChange,
+  colorValues,
+  onToolColorChange,
   onResetDials,
   dialsTuned,
   filled,
@@ -178,15 +186,25 @@ export function Toolbar({
   // rendered — so they share the anchor their panel opens over.
   const settingsAnchor = useRef<HTMLButtonElement | null>(null);
 
-  // A tool that lifts ink (the eraser), moves the view (the hand) or chooses
-  // marks (the marquee) has no use for the colour, so its swatch is dimmed —
-  // but the dropper's swatch is where a sampled colour *lands*, so it stays
-  // full strength. Read off descriptor flags (see `plugins/controls.ts`);
-  // nothing here knows a tool by name.
+  // A tool that lifts ink (the eraser), moves the view (the hand), chooses
+  // marks (the marquee) or pours colours of its own (the gradient) has no use
+  // for the ink button, so its swatch is dimmed — but the dropper's swatch is
+  // where a sampled colour *lands*, so it stays full strength. Read off
+  // descriptor flags (see `plugins/controls.ts`); nothing here knows a tool by
+  // name.
   const inkIrrelevant = !usesInk(active);
   // What the button beside the ink is for this tool: its width, its own
   // settings, or nothing (see `plugins/controls.ts`).
   const control = toolControl(active);
+
+  // A picker open over a button that has just gone dead closes itself: picking
+  // up the eraser while the palette is out must not leave a live palette hanging
+  // off a control that no longer does anything.
+  useEffect(() => {
+    if (inkIrrelevant) {
+      setPanel((prev) => (prev?.kind === "color" ? null : prev));
+    }
+  }, [inkIrrelevant]);
 
   // Single-key tool shortcuts, read straight off the plugin descriptors. Held
   // back while a text field or a dialog owns the keyboard so typing a drawing's
@@ -298,24 +316,79 @@ export function Toolbar({
             back when painting *with* the page was how you rubbed something out.
             The eraser lifts ink now (see `render.ts`) and the sheet's colour
             belongs to the background layer, so the second half stood for
-            nothing. */}
+            nothing.
+
+            **With a tool the ink means nothing to, it is struck through and
+            genuinely dead.** It used to be dimmed and still open its picker,
+            which is a control saying "not now" and then working anyway: you
+            could mix a colour with the eraser in hand, watch the swatch change,
+            and get exactly the rubbing out you would have got. The rule stays
+            the descriptor's (`usesInk`) — the eraser lifts ink, the hand moves
+            the view, the marquee chooses marks, and the gradient pours colours
+            of its own — so a tool that lands next year is struck through
+            without this file learning its name. The dropper is the one tool
+            that paints nothing and keeps the button, because this is where the
+            colour it samples lands. */}
         <button
           ref={colorAnchor}
           type="button"
+          disabled={inkIrrelevant}
           onClick={() =>
             setPanel((prev) =>
               prev?.kind === "color" ? null : { kind: "color" },
             )
           }
-          aria-haspopup="menu"
-          aria-expanded={panel?.kind === "color"}
+          aria-haspopup={inkIrrelevant ? undefined : "menu"}
+          aria-expanded={inkIrrelevant ? undefined : panel?.kind === "color"}
           aria-label={t("canvas.color")}
-          title={t("canvas.color")}
-          className={`h-9 w-9 shrink-0 cursor-pointer rounded border border-line hover:border-accent ${
-            inkIrrelevant ? "opacity-40" : ""
+          title={inkIrrelevant ? t("canvas.colorUnused") : t("canvas.color")}
+          className={`relative h-9 w-9 shrink-0 rounded border border-line ${
+            inkIrrelevant
+              ? "cursor-default"
+              : "cursor-pointer hover:border-accent"
           }`}
-          style={{ backgroundColor: color }}
-        />
+        >
+          {/* The colour itself, dimmed rather than the whole button — the line
+              over it has to stay at full strength to read as a line. */}
+          <span
+            aria-hidden="true"
+            className={`absolute inset-0 rounded-[3px] ${
+              inkIrrelevant ? "opacity-40" : ""
+            }`}
+            style={{ backgroundColor: color }}
+          />
+          {/* The strike: corner to corner the way every prohibition sign is
+              drawn, in red, over a white line a shade wider — the marquee's
+              two-tone trick, because a red line on a red swatch is no line at
+              all. */}
+          {inkIrrelevant && (
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 36 36"
+              className="pointer-events-none absolute inset-0 h-full w-full"
+            >
+              <line
+                x1="7"
+                y1="7"
+                x2="29"
+                y2="29"
+                stroke="#ffffff"
+                strokeWidth="4.5"
+                strokeLinecap="round"
+                opacity="0.7"
+              />
+              <line
+                x1="7"
+                y1="7"
+                x2="29"
+                y2="29"
+                stroke="#ef4444"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+              />
+            </svg>
+          )}
+        </button>
 
         {/* The nib button — a press with the tool in your hand, on your page,
             in your ink. Not a dot the width of the nib: what a width *is* is
@@ -452,6 +525,10 @@ export function Toolbar({
           dials={active?.dials ?? []}
           values={dialValues}
           onDialChange={onDialChange}
+          swatches={active?.swatches ?? []}
+          colors={colorValues}
+          onColorChange={onToolColorChange}
+          customColors={customColors}
           onResetDials={onResetDials}
           tuned={dialsTuned}
         />
@@ -470,6 +547,10 @@ export function Toolbar({
           dials={active?.dials ?? []}
           values={dialValues}
           onDialChange={onDialChange}
+          swatches={active?.swatches ?? []}
+          colors={colorValues}
+          onColorChange={onToolColorChange}
+          customColors={customColors}
           onResetDials={onResetDials}
           tuned={dialsTuned}
         />

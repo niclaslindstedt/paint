@@ -14,6 +14,12 @@ drawing was made, this screen's own resolution unless you chose otherwise — so
 sketch looks the same on a laptop and a phone. On a page bigger than the window
 you just see less of it at once. [More](features/canvas.md).
 
+With a mouse or a stylus, the pointer **is the nib**: a circle the size of the
+mark you are about to make, on the page you are about to make it on, growing
+and shrinking as you zoom. Tools that leave no mark by a nib — the fills, the
+dropper, the hand, the marquee — keep the crosshair, and so does a nib too fine
+for a circle to say anything the crosshair doesn't.
+
 The toolbar runs left to right in the order a hand uses it: what you draw with,
 what undoes it, the rest of the media, and last the two tools that touch neither
 the ink nor the drawing.
@@ -33,7 +39,13 @@ the ink nor the drawing.
 - **Airbrush** (`S`) lays down a soft cloud of paint that builds up the longer
   you hold it over one spot.
 - **Paint bucket** (`F`) fills the empty space you tap, up to the marks around
-  it.
+  it. Press its button a second time for the other way of filling one —
+  **Gradient** (`Y`), which floods the same area and pours a _ramp_ of colour
+  through it: press where the first colour should start, drag the way you want
+  it to run, and let go where the last one should land. Its colours are its own
+  (**From**, **To**, and a **Middle** one if you want three), set on its cog
+  beside the ink — which is why the ink button is struck out while it is in your
+  hand.
 - **Rectangle** (`R`), **Ellipse** (`O`) and **Line** (`L`) are dragged from one
   corner (or end) to the other.
 - **Text** (`T`) drops a caret where you tap and you type into the drawing
@@ -41,7 +53,11 @@ the ink nor the drawing.
   Enter breaks the line, Escape throws it away, and a press anywhere else on the
   page keeps it. Drag the box by its edge — or by the grip at the head of that
   bar — to put the caption somewhere else before you keep it.
-- **Colour dropper** (`I`) makes the colour you tap the ink.
+- **Colour dropper** (`I`) makes the colour you tap the ink. Its cog sets how
+  much page one tap reads: a single pixel, or the average of a disc up to eight
+  millimetres across — which is what you want on anything textured, where the
+  one pixel under the pointer is a speck of spray rather than the colour the
+  passage looks like.
 - **Hand** (`D`), at the far right, drags the page around instead of drawing on
   it — and double-tapping with it fits the whole page, again for 1:1.
 - `Ctrl/Cmd + Z` undoes the last mark, `Ctrl/Cmd + Shift + Z` redoes it. Every

@@ -46,6 +46,11 @@ import { initialPlacement, type Placement } from "./placement.ts";
 import { imageStroke } from "./plugins/builtin/image.ts";
 import { textStroke, TEXT_TOOL_ID } from "./plugins/builtin/text.ts";
 import { resolveDials, tunedDials } from "./plugins/dials.ts";
+import {
+  hasPicked,
+  pickedSwatches,
+  resolveSwatches,
+} from "./plugins/swatches.ts";
 import { groupOf, pluginById } from "./plugins/registry.ts";
 import type { DraftStroke } from "./plugins/types.ts";
 import {
@@ -134,7 +139,10 @@ export type PaletteActions = {
   /** Move one of a tool's dials, or forget it with `null` (see
    *  `plugins/dials.ts`). */
   setDial: (tool: string, dial: string, value: number | null) => void;
-  /** Put every dial on one tool back where it started. */
+  /** Re-colour one of a tool's own inks, or forget it with `null` (see
+   *  `plugins/swatches.ts`). */
+  setColor: (tool: string, swatch: string, color: string | null) => void;
+  /** Put every dial *and* every ink on one tool back where it started. */
   resetDials: (tool: string) => void;
 };
 
@@ -250,6 +258,12 @@ export function CanvasScreen({
   const dialValues = resolveDials(activePlugin, tuning);
   const inkDials = tunedDials(activePlugin, tuning);
   const size = toolSize(settings, tool);
+  // …and the same two reads for the inks a tool carries of its own: the panel
+  // wants every swatch it declares, the canvas only the ones re-coloured, which
+  // is what a poured mark records (see `plugins/swatches.ts`).
+  const inking = settings.toolColors[tool];
+  const colorValues = resolveSwatches(activePlugin, inking);
+  const inkColors = pickedSwatches(activePlugin, inking);
 
   // …and the same two reads for the *text* tool, whatever is in hand. A caption
   // is normally opened by the text tool, in which case these are the numbers
@@ -720,6 +734,7 @@ export function CanvasScreen({
               color: settings.color,
               size,
               dials: inkDials,
+              colors: inkColors,
               filled: settings.filled,
             }}
             defaultInk={ink}
@@ -939,8 +954,17 @@ export function CanvasScreen({
         onDeletePreset={(id) => palette.deletePreset(tool, id)}
         dialValues={dialValues}
         onDialChange={(dial, value) => palette.setDial(tool, dial, value)}
+        colorValues={colorValues}
+        onToolColorChange={(swatch, color) =>
+          palette.setColor(tool, swatch, color)
+        }
         onResetDials={() => palette.resetDials(tool)}
-        dialsTuned={Object.keys(inkDials).length > 0}
+        // One reset for the panel, so one answer to "is this tool as it
+        // ships?": a dial off its default, or an ink off the one the tool was
+        // built with, and either offers it.
+        dialsTuned={
+          Object.keys(inkDials).length > 0 || hasPicked(activePlugin, inking)
+        }
         filled={settings.filled}
         onFilledChange={(filled) => update("filled", filled)}
       />

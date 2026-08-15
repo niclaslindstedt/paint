@@ -14,8 +14,9 @@ There are three kinds, and the only difference is how they are switched on:
 | **Optional**   | everything else                  | Off until you switch it on          |
 
 Core is the irreducible three — pen, eraser, hand. On out of the box: the
-graphite pencil, the watercolour brush, the airbrush, the paint bucket, text,
-the shapes, the selection tools and the colour dropper — the toolbox anyone who
+graphite pencil, the watercolour brush, the airbrush, the fills (the paint
+bucket, and the gradient behind it), text, the shapes, the selection tools and
+the colour dropper — the toolbox anyone who
 has opened a paint program already knows how to use, spray can included, plus
 the one medium this app has of its own. That is the _whole_ default toolbar:
 eleven buttons, families counted as the one button they are, and everything else
@@ -24,13 +25,13 @@ off until you ask for it. Waiting in Settings → Tools: the rest of the media
 pen).
 
 The row reads in the order a hand actually uses it. The pen you draw with, the
-rubber that undoes it, the rest of the media, the bucket, the two families, type
+rubber that undoes it, the rest of the media, the fills, the two other families, type
 — which is what you usually reach for right after picking something out — and
 last the two tools that touch neither the ink nor the document:
 
 **pen · eraser · pencil · round brush · flat brush · watercolour · airbrush ·
-marker · highlighter · crayon · calligraphy pen · paint bucket · shapes · select
-· text · dropper · hand**
+marker · highlighter · crayon · calligraphy pen · fills · shapes · select ·
+text · dropper · hand**
 
 It used to read down Photoshop's tool column instead. That column is a column,
 and a phone's toolbar is a row: it put the one tool that draws nothing (the
@@ -51,7 +52,8 @@ A **group** is a family of tools that share one toolbar button and one switch.
 The shapes are the case it was built for, and they are the reason it exists:
 eleven of them as eleven buttons would be most of a phone's toolbar spent on one
 idea, and eleven switches in Settings → Tools for a question nobody asks eleven
-times. The four selection tools are the second (see below).
+times. The four selection tools are the second, and the two fills the third (see
+below).
 
 So the shapes button wears whichever shape you last held. Press it again and the
 family opens over the canvas — rectangle, ellipse, line, arrow, rounded
@@ -71,6 +73,46 @@ drag, stretched to fill it — so a hexagon dragged square is a hexagon and one
 dragged wide is a squashed one — which means no new shape kind in the document
 and no field on the stroke saying which shape it is. The painter answers that,
 and the painter is chosen by the stroke's tool id, exactly as it always was.
+
+## Two ways to fill an area
+
+The **paint bucket** and the **gradient** share a button for a reason of their
+own: the gradient is not a second tool so much as the bucket's other answer. Same
+press, same flood, same traced outline, same `region` stroke in the document —
+what differs is what the area is filled _with_. So a second press on the bucket
+offers the pair, and the button wears whichever you last used.
+
+Press inside the space you want filled, drag the way you want the colour to run,
+and let go: where you pressed is the first colour, where you let go is the last,
+and the ramp runs between them. A press that never travels still fills — the ramp
+is laid straight across the area instead — because a fill that came out empty
+would be a strange answer to a tap.
+
+The one thing it does not inherit is the bucket's "dragging re-aims it" rule:
+re-flooding mid-drag would move the area out from under the ramp being drawn.
+
+## A tool can carry its own inks
+
+The gradient is poured from **two colours (or three)**, and neither of them could
+ever be the one on the toolbar's ink button. So a plugin may declare `swatches`
+the way it declares dials — an id, a name, the colour it rests at, and whether
+"none" is one of its answers — and everything follows from that:
+
+- the tool's settings panel grows a **swatch row** at its head, over a press of
+  the mark those colours make, and a palette for whichever swatch you are
+  setting;
+- the toolbar's ink button is **struck through and disabled** while the tool is
+  in hand, because that colour genuinely changes nothing — the same treatment
+  the eraser, the hand and the marquee get, and for the same reason;
+- the values are kept per tool per swatch in the settings blob, sparsely — only
+  what differs from the colours the tool ships with;
+- and a poured mark **records the ramp it was poured with**, so re-mixing the
+  tool tomorrow cannot re-colour the fills you made today.
+
+The gradient's are `from`, `to` and an optional `mid`, which is off out of the
+box: a three-stop ramp is a deliberate thing, and a fill that quietly ran through
+a third colour nobody asked for would be a puzzle. Nothing outside
+`plugins/builtin/gradient.ts` knows those names.
 
 ## Four ways to select
 
@@ -183,10 +225,12 @@ produce identical grain instead of a mark that shimmers when you pan.
 
 The **hand** draws nothing. Its descriptor carries `navigates: true`, and that
 flag — not its id — is what tells the canvas a press should pan the page rather
-than start a stroke, and what dims the ink it would never use. The **dropper**
-works the same way through `picksColor`. That is the pattern for any tool that
-needs the app to treat it differently: a property on the descriptor, so nothing
-outside `plugins/` has to know a tool by name.
+than start a stroke, and what strikes out the ink it would never use. The **dropper**
+works the same way through `picksColor` — and answers `pick` with the colour a
+press read, because _how much page_ one press covers is the dropper's own
+setting and the canvas has no business knowing what that dial is called. That is
+the pattern for any tool that needs the app to treat it differently: a property
+on the descriptor, so nothing outside `plugins/` has to know a tool by name.
 
 `hidden` is the flag taken to its limit: a hidden plugin has no button anywhere
 and no gesture at all. The dropped image's painter is the one this build ships —
@@ -326,10 +370,10 @@ and turning a dial are all things you may want to do two of — and the panel is
 where a tool gets saved, so shutting it the moment a width was picked put the
 star one re-open away from the decision that earned it.
 
-Not every tool has one. The paint bucket fills the area it traced whatever a nib
-might say, so it declares `sizeless` and is offered no width at all; the hand,
-the dropper and the selection tools leave no mark, which the descriptor already
-says. What the toolbar puts beside the ink follows from that in one place
+Not every tool has one. The paint bucket and the gradient fill the area they
+traced whatever a nib might say, so they declare `sizeless` and are offered no
+width at all; the hand, the dropper and the selection tools leave no mark, which
+the descriptor already says. What the toolbar puts beside the ink follows from that in one place
 (`plugins/controls.ts`): the width for a tool that has one, a **cog** for a tool
 that has settings but no width, and nothing for a tool with neither. The dimmed
 size button those last two used to get was a promise that the control worked
@@ -476,21 +520,23 @@ one or two. The paintbrush is the exception and earns it — a head of hair is
 loaded or dry, milled fine or coarse, new or worn open, and on paper that wicks
 or paper that does not, and no one of those four is any of the others:
 
-| Tool                  | Advanced                                   |
-| --------------------- | ------------------------------------------ |
-| **Round brush**       | opacity, hardness, hair, splay, bleed      |
-| **Flat brush**        | opacity, hardness, nib angle, splay, bleed |
-| **Watercolour**       | opacity, water, pigment, granulation       |
-| **Airbrush**          | hardness, flow                             |
-| **Pencil**            | lead, opacity                              |
-| **Crayon**            | opacity, pressure                          |
-| **Marker**            | opacity, chisel                            |
-| **Highlighter**       | opacity, chisel                            |
-| **Calligraphy pen**   | opacity, nib angle                         |
-| **Eraser**            | strength                                   |
-| **Paint bucket**      | opacity, feather — behind its cog          |
-| Pen, shapes, text     | opacity                                    |
-| Hand, dropper, select | nothing — no section appears               |
+| Tool                | Advanced                                   |
+| ------------------- | ------------------------------------------ |
+| **Round brush**     | opacity, hardness, hair, splay, bleed      |
+| **Flat brush**      | opacity, hardness, nib angle, splay, bleed |
+| **Watercolour**     | opacity, water, pigment, granulation       |
+| **Airbrush**        | hardness, flow                             |
+| **Pencil**          | lead, opacity                              |
+| **Crayon**          | opacity, pressure                          |
+| **Marker**          | opacity, chisel                            |
+| **Highlighter**     | opacity, chisel                            |
+| **Calligraphy pen** | opacity, nib angle                         |
+| **Eraser**          | strength                                   |
+| **Paint bucket**    | opacity, feather — behind its cog          |
+| **Gradient**        | opacity, feather — behind its cog          |
+| **Dropper**         | sample size — behind its cog               |
+| Pen, shapes, text   | opacity                                    |
+| Hand, select        | nothing — no section appears               |
 
 Most of them are sliders. A dial with a handful of values is **pressed**
 instead: there is nothing between a 2B and a 3B, so the pencil's lead is a row
@@ -544,14 +590,21 @@ their width, so re-tuning a dial never re-draws work you already did. And a dial
 left alone is recorded nowhere at all — a drawing made without touching one is
 exactly the document it would have been.
 
-## The bucket and the dropper read the page
+## The fills and the dropper read the page
 
-Two tools need to know what is actually painted, not what was drawn — the
-dropper wants the colour under your finger, the bucket wants the shape of the
-area under it, and a stroke list can't answer either after twenty passes of a
-translucent highlighter. So the canvas hands them a narrow window onto its own
-raster (`ToolContext.probe`), taken once per press from the same renderer the
-screen and the PNG export use.
+Some tools need to know what is actually painted, not what was drawn — the
+dropper wants the colour under your finger, the bucket and the gradient want the
+shape of the area under it, and a stroke list can't answer either after twenty
+passes of a translucent highlighter. So the canvas hands them a narrow window
+onto its own raster (`ToolContext.probe`), taken once per press from the same
+renderer the screen and the PNG export use.
+
+**How much** of that raster one press reads is the dropper's own setting. Its
+sample size runs from the single pixel under the pointer to a disc eight
+millimetres across, and the wider settings are what make it usable on anything
+textured: aim at an airbrushed passage and the one pixel under the pointer is a
+speck of spray, where the average over the disc is the colour the passage reads
+as.
 
 The bucket then throws the pixels away. It floods the snapshot, traces the
 outline of what it flooded, and files _that_ as an ordinary vector stroke — so a
@@ -600,9 +653,10 @@ Three steps, none of which touch the canvas, the store, or the toolbar:
    without being asked for, `defaultSize` for the width it opens at, `gauge`
    for the sizes it is really made in (see `plugins/builtin/gauges.ts` — the
    range, the five buttons, and the trade's name for each), `dials` if it has
-   anything of its own to tune, `presets` if its medium has more than one way
-   of being held (and if it has exactly one, make that its defaults instead of
-   a row of one chip), and `group` if it belongs to a family
+   anything of its own to tune, `swatches` if it mixes inks of its own rather
+   than drawing with the toolbar's, `presets` if its medium has more than one
+   way of being held (and if it has exactly one, make that its defaults instead
+   of a row of one chip), and `group` if it belongs to a family
    that already has a button (a twelfth shape is one line in the `SHAPES`
    table). A tool with no width says `sizeless` and gets the cog instead of the
    size button; one whose mark cannot picture itself says

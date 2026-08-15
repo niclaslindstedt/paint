@@ -231,6 +231,7 @@ export const sv: Catalog = {
     presetDefaultName: "Inställning",
     presetSave: "Spara",
     presetForget: "Glöm",
+    colorUnused: "Det här verktyget ritar inte med färgen",
     tool: "Verktyg",
     toolbar: "Verktyg",
     selectionActions: "Markering",
@@ -292,6 +293,10 @@ export const sv: Catalog = {
     feather: {
       name: "Mjuk kant: {value} mm",
       hint: "Tonar ut fyllningens kant i stället för att tvärt avsluta den.",
+    },
+    sample: {
+      name: "Yta: {value}",
+      hint: "Hur mycket av sidan ett tryck läser av. Bredare ger medelfärgen av en spretig yta i stället för en enstaka prick.",
     },
     water: {
       name: "Vatten: {value} %",
@@ -402,6 +407,12 @@ export const sv: Catalog = {
     empty: "Tomt",
     hint: "Nya streck hamnar på det valda lagret. Bakgrunden bär sidans färg; dölj den så blir sidan genomskinlig.",
     swipeHint: "Svep in från högerkanten för att öppna panelen.",
+  },
+  swatches: {
+    from: "Från",
+    mid: "Mitten",
+    to: "Till",
+    none: "Ingen {name}-färg",
   },
   grounds: {
     solid: {
@@ -573,14 +584,25 @@ export const sv: Catalog = {
       description:
         "Tryck på sidan och skriv. Välj typsnitt, storlek, fet eller kursiv medan du skriver.",
     },
+    fills: {
+      name: "Fyll",
+      description:
+        "Fyll en yta — enfärgat med färgburken, eller med en toning. Tryck igen för att välja vilken.",
+    },
     filler: {
       name: "Färgburk",
       description:
         "Tryck på en tom yta så fylls den med färgen, fram till strecken runt omkring.",
     },
+    gradient: {
+      name: "Toning",
+      description:
+        "Tryck på en yta och dra: den fylls med en toning åt det håll du drog, i verktygets egna två färger (eller tre).",
+    },
     dropper: {
       name: "Färgpipett",
-      description: "Tryck på sidan för att rita med färgen du tryckte på.",
+      description:
+        "Tryck på sidan för att rita med färgen du tryckte på. Ställ in hur stor yta ett tryck läser av.",
     },
     image: {
       name: "Bild",

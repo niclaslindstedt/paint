@@ -77,8 +77,8 @@ describe("registry", () => {
 
   it("keeps registration order", () => {
     // The row a hand actually uses: the pen, the rubber that undoes it, the
-    // rest of the media, the bucket, the two families, type — and last the two
-    // tools that touch neither the ink nor the document.
+    // rest of the media, the fills, the two other families, type — and last the
+    // two tools that touch neither the ink nor the document.
     expect(allPlugins().map((p) => p.id)).toEqual([
       "pencil",
       "eraser",
@@ -92,6 +92,9 @@ describe("registry", () => {
       "crayon",
       "calligraphy",
       "filler",
+      // …and its variant, which shares the bucket's button: same area, poured
+      // from a ramp instead of one flat colour.
+      "gradient",
       // The shapes: four a paint program has always had, then the ones a
       // diagram wants. They share a button, not a registration.
       "rectangle",

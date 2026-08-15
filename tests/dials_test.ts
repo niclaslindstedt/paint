@@ -205,13 +205,18 @@ describe("the shipped set", () => {
     }
   });
 
-  it("offers dials only on tools that leave a mark", () => {
-    const marks = (id: string) => {
+  it("offers dials only on tools that touch the page at all", () => {
+    // A dial changes what a press *does*. Every tool that leaves a mark can
+    // have one, and so can the one that reads the page rather than marking it
+    // — the dropper's sample size is exactly this kind of setting. The hand and
+    // the marquee change nothing about the page either way, and neither has
+    // one.
+    const touchesPage = (id: string) => {
       const p = pluginById(id)!;
-      return !p.navigates && !p.picksColor;
+      return !p.navigates && !p.selects;
     };
     for (const p of toolPlugins()) {
-      if ((p.dials?.length ?? 0) > 0) expect(marks(p.id)).toBe(true);
+      if ((p.dials?.length ?? 0) > 0) expect(touchesPage(p.id)).toBe(true);
     }
   });
 

@@ -422,6 +422,14 @@ gesture split (one pointer draws, two pinch, a second finger mid-stroke abandons
 the stroke). The view is screen state and deliberately never reaches the store —
 where you scrolled to is not part of the document.
 
+The **nib outline** a mouse or a stylus wears (`PointerRing.tsx`) is deliberately
+not part of a frame. It is one absolutely-positioned element moved by
+`transform`, so following the pointer costs the compositor a move rather than
+costing the canvas a full repaint per sample — a mouse reports as fast as a
+stylus, and the drawing has not changed. Its diameter is the tool's width through
+the view transform (so it says how much _page_ the nib covers at any zoom), and
+whether it appears at all is `usesSize` on the descriptor.
+
 One pointer draws **unless the active plugin declares `navigates`**, in which
 case it pans and a double-tap fits the page — or, with something selected and
 the press inside it, moves the marks instead of the window. That is a flag on the descriptor,
@@ -472,9 +480,14 @@ lives by: **nothing outside it may branch on a tool id.**
   only what each one moves and resolved here into a whole tool, so applying one
   puts the dials it says nothing about back where they rest.
 - `controls.ts` — which button the toolbar puts beside the ink for the tool in
-  hand: its width, a cog holding just its dials (a `sizeless` tool — the
-  bucket), or nothing at all (a tool with neither). One place, read entirely off
-  descriptor flags.
+  hand: its width, a cog holding just its own settings (a `sizeless` tool — the
+  bucket, the gradient — or one that leaves no mark and still has something to
+  set, like the dropper's sample size), or nothing at all (a tool with neither).
+  One place, read entirely off descriptor flags — including whether the ink
+  button means anything at all, which a tool mixing its own inks answers no to.
+- `swatches.ts` — `dials.ts` for colours: the inks a tool carries of its own
+  (`PaintPlugin.swatches`), resolved for the panel and pared back to what
+  differs from the tool's own defaults for the canvas and the mark.
 - `registry.ts` — registration order (which is the toolbar's _default_ order),
   the core / default-on / optional split, resolution, and the two things a
   toolbar is actually built from: **entries** (a lone tool, or a whole family
@@ -486,8 +499,8 @@ lives by: **nothing outside it may branch on a tool id.**
   it existed.
 - `builtin/` — the shipped tools, built from two family factories (freehand and
   shape) plus their ink configuration, and the three that begin no stroke of
-  their own: the hand, the dropper, and the bucket (which files the area the
-  probe traced for it).
+  their own: the hand, the dropper, and the two fills — the bucket and the
+  gradient, which file the area the probe traced for them.
 - `brushes.ts` — the characterful painters: spray cones, soft nibs, chisel felt
   tips, feathered fills.
 - `builtin/text.ts` — the one tool whose mark is typed rather than drawn. Its
@@ -526,6 +539,12 @@ A tool that needs the app to treat it differently says so on its descriptor —
 `erases` for the eraser, `navigates` for the hand, `picksColor` for the
 dropper, `selects` for the selection family — so the canvas and the
 toolbar read a property instead of learning a name.
+
+`picksColor` carries one obligation past the flag, for the reason `selects`
+does: the behaviour answers `pick(p, ctx)` with the colour that press read off
+the page. How much page a press covers is the tool's own setting — the dropper's
+sample size is a dial, and a canvas that applied it would have to know that
+dial's name.
 
 `selects` carries one extra obligation past the flag: the behaviour answers
 `selection(draft)` with the **closed contours** its gesture chose, in document
@@ -571,6 +590,13 @@ behaviour or written onto a mark — so a painter can keep its rest value as an
 ordinary default argument, and a page drawn without touching one serialises
 byte-for-byte the way it did before dials existed.
 
+`swatches` is `dials` again, for colour rather than for number. A tool that
+pours ink of its own — the gradient's two ends and its optional middle — declares
+them, and the panel grows a swatch row, the settings blob keeps a colour per tool
+per swatch (sparsely, like the dials), the toolbar dims its ink button, and the
+mark records the ramp it was poured with. Nothing outside
+`plugins/builtin/gradient.ts` knows a swatch by name.
+
 `sizeless` and `sizePreview` are the same seam pointed at the _button_ rather
 than at the panel. The bucket has no nib and the eraser's mark is a hole, and
 both used to be handled by the toolbar knowing which tool it was holding — a
@@ -586,13 +612,17 @@ without any screen learning that "image" means something. `toolPlugins()` is the
 list everything user-facing reads; `allPlugins()` keeps the hidden one so a
 stroke never loses its painter.
 
-Two tools need to know what is _painted_ rather than what was drawn. They ask
+Some tools need to know what is _painted_ rather than what was drawn. They ask
 through `ToolContext.probe`, a narrow read of the page (`probe.ts`) that
 rasterises the drawing off-screen through the same renderer, once per press. The
-bucket floods that snapshot and traces the outline of what it flooded
-(`flood.ts` — pure, and tested on hand-built images with no canvas), then files
+fills flood that snapshot and trace the outline of what they flooded
+(`flood.ts` — pure, and tested on hand-built images with no canvas), then file
 the outline as an ordinary `region` stroke: the pixels never reach the document,
-so a fill zooms, undoes and syncs like any other mark.
+so a fill zooms, undoes and syncs like any other mark. The gradient files the
+same stroke with a `Gradient` on it — the run across the page and the colours
+along it, which is geometry as much as ink and so travels with the mark when it
+is moved, scaled or turned. The dropper reads the same snapshot for a colour,
+averaged over the disc its sample size asks for.
 
 `render.ts` dispatches each stroke to the plugin named in `stroke.tool`, falling
 back to a generic painter when the plugin is unknown — a document from a newer

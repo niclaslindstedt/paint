@@ -9,8 +9,8 @@
 // happened to stack them.
 //
 // So it reads: the pen you draw with, the rubber that undoes it, then the rest
-// of the media in a shelf of their own, then the bucket, then the two families
-// (shapes, then choosing marks), then type — which is what you usually reach for
+// of the media in a shelf of their own, then the fills, then the two other
+// families (shapes, then choosing marks), then type — which is what you reach for
 // right after picking something out — and last the two tools that touch neither
 // the ink nor the document: the dropper that reads a colour off the page, and
 // the hand that moves the page. Those two are a pair and they belong at the far
@@ -28,8 +28,8 @@
 //
 // A fourth answer sits above those three: a tool may belong to a **group**, and
 // then the group carries the switch and the toolbar button for the whole family.
-// Two families are the case — the eleven shapes, and the four ways of selecting
-// — and both are below.
+// Three families are the case — the eleven shapes, the four ways of selecting,
+// and the two ways of filling an area — and all three are below.
 //
 // **What a first run finds is the shape of Paint**: a pen, a pencil, a rubber,
 // a watercolour brush, an airbrush, a bucket, type, the shapes, the marquee, a
@@ -85,6 +85,7 @@ import {
   DropperIcon,
   EraserIcon,
   FlatBrushIcon,
+  GradientIcon,
   HandIcon,
   HexagonIcon,
   HighlighterIcon,
@@ -126,6 +127,7 @@ import {
   OPACITY,
   PIGMENT,
   PRESSURE,
+  SAMPLE,
   SPLAY,
   STRENGTH,
   WATER,
@@ -161,6 +163,12 @@ import {
 } from "./gauges.ts";
 import { dropperBehaviour } from "./dropper.ts";
 import { fillBehaviour } from "./fill.ts";
+import {
+  FILL_GROUP_ID,
+  GRADIENT_SWATCHES,
+  GRADIENT_TOOL_ID,
+  gradientBehaviour,
+} from "./gradient.ts";
 import { freehandBehaviour } from "./freehand.ts";
 import { handBehaviour } from "./hand.ts";
 import { imageBehaviour, IMAGE_TOOL_ID } from "./image.ts";
@@ -692,10 +700,29 @@ export function registerBuiltinPlugins(): void {
 
   // --- Then filling an area ------------------------------------------------
   // Below the media, above the vector tools.
+  //
+  // Two ways of filling one, behind one button — the shapes' arrangement, for a
+  // reason of its own: the gradient is not a second tool so much as the bucket's
+  // *other answer*. Same press, same flood, same area; poured from a ramp
+  // instead of from one flat colour (see `gradient.ts`). A second press on the
+  // bucket is where that belongs, and it costs the toolbar nothing.
+  //
+  // The group takes the bucket's own plugin id, exactly as the selection family
+  // took the lone marquee's: that is the id an existing settings blob has in its
+  // enabled list and its toolbar order, so an install that had the bucket
+  // switched on gets the pair in the same slot rather than losing its button.
+
+  registerGroup({
+    id: FILL_GROUP_ID,
+    defaultOn: true,
+    nameKey: "tools.fills.name",
+    descriptionKey: "tools.fills.description",
+    icon: BucketIcon,
+  });
 
   registerPlugin({
     id: "filler",
-    defaultOn: true,
+    group: FILL_GROUP_ID,
     nameKey: "tools.filler.name",
     descriptionKey: "tools.filler.description",
     icon: BucketIcon,
@@ -714,6 +741,25 @@ export function registerBuiltinPlugins(): void {
     // The one set with no width in it, because the tool has none.
     presets: FILL_PRESETS,
     behaviour: fillBehaviour,
+  });
+
+  registerPlugin({
+    id: GRADIENT_TOOL_ID,
+    group: FILL_GROUP_ID,
+    nameKey: "tools.gradient.name",
+    descriptionKey: "tools.gradient.description",
+    icon: GradientIcon,
+    shortcut: "y",
+    // A bucket's reason for having no width, and a bucket's two dials — what
+    // separates them is what the area is filled *with*.
+    sizeless: true,
+    dials: [OPACITY, FEATHER],
+    // …and that is this: the tool carries its own inks rather than drawing with
+    // the toolbar's, which is also what dims the ink button while it is in hand
+    // (see `plugins/swatches.ts`). Two ends and a middle that is off unless you
+    // ask for it.
+    swatches: GRADIENT_SWATCHES,
+    behaviour: gradientBehaviour,
   });
 
   // --- Then the shapes, behind one button ----------------------------------
@@ -838,9 +884,15 @@ export function registerBuiltinPlugins(): void {
     descriptionKey: "tools.dropper.description",
     icon: DropperIcon,
     shortcut: "i",
-    // Reads the page instead of marking it — the canvas samples the colour
-    // under the press and pins it as the ink (see `dropper.ts`).
+    // Reads the page instead of marking it — the press asks the tool what it
+    // sampled and the answer is pinned as the ink (see `dropper.ts`).
     picksColor: true,
+    // How much page one press reads. It is the only setting a dropper has ever
+    // had anywhere, and it is the difference between sampling an airbrushed
+    // passage and sampling one speck of the spray that made it — so the tool
+    // that used to carry no button at all now carries the cog (see
+    // `plugins/controls.ts`).
+    dials: [SAMPLE],
     behaviour: dropperBehaviour,
   });
 
