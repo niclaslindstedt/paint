@@ -25,8 +25,8 @@ import type { Stroke } from "../types.ts";
 //
 //   - **It is on your page.** The tile is the page colour, and the mark is the
 //     ink you have picked, at the opacity it will land at — so a pale nib on a
-//     dark sheet looks like a pale nib on a dark sheet, and the eraser (which
-//     paints *with* the page) has something to rub out.
+//     dark sheet looks like a pale nib on a dark sheet, and the eraser has a
+//     blot of ink to take a bite out of.
 //   - **It follows the dials.** The Advanced sliders are in the same panel, and
 //     turning hardness down softens the dab under your thumb as you drag it.
 //   - **The row is one scale.** Every cell is shrunk by the same amount — the
@@ -229,12 +229,6 @@ export function PressPreview({
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    // The page first, opaque: a preview of a white nib on nothing is nothing,
-    // and the tool that paints *with* the page has nothing to lift without it.
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.fillStyle = background;
-    ctx.fillRect(0, 0, side, side);
-
     // The geometry, grown by however far this medium's ink reaches past it —
     // so what is fitted to the tile is the mark that lands, not the box the
     // stroke claims.
@@ -257,6 +251,16 @@ export function PressPreview({
       pageColor: background,
       defaultInk: color,
     });
+
+    // The page last, under the mark — the same order the canvas paints in, and
+    // for the same reason: a tool that rubs out has to take ink off without
+    // taking the sheet with it (see `render.ts`). Opaque, because a preview of
+    // a white nib on nothing is nothing.
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.globalCompositeOperation = "destination-over";
+    ctx.fillStyle = background;
+    ctx.fillRect(0, 0, side, side);
+    ctx.globalCompositeOperation = "source-over";
   }, [marks, background, color, box]);
 
   if (marks.press.length === 0) return <SizeDot size={size} of={of} />;

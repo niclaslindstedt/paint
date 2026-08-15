@@ -196,8 +196,8 @@ make it and painted by the same painter that would paint it, on the page colour
 and in the ink you have picked. So an airbrush is a soft cone, a highlighter a
 translucent band, the crayon its speckle, the calligraphy pen its flat, the
 rectangle a rectangle at that line width, the text tool a letter at that type
-size — and the eraser, which paints _with_ the page, is a bite out of a blot of
-ink, because on its own it would preview as page on page.
+size — and the eraser, which lifts ink rather than laying it down, is a bite out
+of a blot of ink, because on its own it would preview as nothing at all.
 
 A tool has nothing to add for this. The simulation drives the contract every
 tool already implements: `start` at a point and `end` is what a press _is_; a

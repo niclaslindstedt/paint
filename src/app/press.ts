@@ -140,21 +140,28 @@ function pressDraft(
 /** The ink a rubbing-out tool's press takes off, or `null` when there is none
  *  to show.
  *
- *  A tool that paints with the page (`usesBackground`) previews as page colour
- *  on page colour — which is exactly what it does, and exactly why it needs
- *  something to do it *to*. So the preview page carries a blot of the ink in
- *  hand, laid down by the same nib and a half wider, and the press lifts a hole
- *  out of the middle of it. */
+ *  A tool that `erases` lifts ink rather than laying it down, so on a bare page
+ *  its press previews as nothing at all — which is exactly what it does, and
+ *  exactly why it needs something to do it *to*. So the preview page carries a
+ *  blot of the ink in hand, laid down by the same nib and a half wider, and the
+ *  press lifts a hole out of the middle of it.
+ *
+ *  The blot names no tool. It is not a mark anybody made — it is a swatch for
+ *  the press to bite into — and a stroke whose tool the registry doesn't know
+ *  is painted by the renderer's own generic painter, which for a path is a
+ *  plain line at the nib's width. Naming the erasing tool instead would have
+ *  the blot rub *itself* out. */
 function inkUnder(
   plugin: PaintPlugin,
   mark: Stroke,
   ctx: ToolContext,
 ): Stroke | null {
-  if (!plugin.usesBackground || !ctx.color) return null;
+  if (!plugin.erases || !ctx.color) return null;
   if (mark.shape.kind !== "path") return null;
   return {
     ...mark,
     id: `${mark.id}-under`,
+    tool: "",
     color: ctx.color,
     size: mark.size * UNDER,
   };

@@ -37,12 +37,11 @@ import { SizePicker } from "./toolbar/SizePicker.tsx";
 //
 // **Ink is two buttons, not two rows.** A fixed row of seven swatches and four
 // nib buttons ate half a phone's toolbar for choices most strokes never change,
-// and it grew every time the palette did. Now the colour button shows the two
-// colours that matter — the ink, and what the eraser paints — split across one
-// square, and the size button shows a *press* with the tool in your hand: the
-// mark that width actually leaves, painted by the painter that would paint it.
-// Each opens its picker over the canvas; both close as soon as you have chosen.
-// The row that is left is tools, and it can afford to be.
+// and it grew every time the palette did. Now the colour button is the ink you
+// are drawing with, and the size button shows a *press* with the tool in your
+// hand: the mark that width actually leaves, painted by the painter that would
+// paint it. Each opens its picker over the canvas; both close as soon as you
+// have chosen. The row that is left is tools, and it can afford to be.
 //
 // The size button is also where a tool's *own* settings live — its dials, under
 // an Advanced fold in the same panel (see `toolbar/SizePicker.tsx`). Which ones
@@ -69,7 +68,9 @@ type Props = {
   /** The ink in use, already resolved against the page by the caller. */
   color: string;
   onColorChange: (color: string) => void;
-  /** The page colour — the eraser's ink, and a swatch in its own right. */
+  /** The page colour. Not a choice offered here — it belongs to the drawing's
+   *  background layer — but the previews are painted *on* it: a pale nib has to
+   *  read on a dark sheet the way it will on the page. */
   background: string;
   customColors: readonly string[];
   onAddColor: (color: string) => void;
@@ -152,13 +153,13 @@ export function Toolbar({
   const colorAnchor = useRef<HTMLButtonElement | null>(null);
   const sizeAnchor = useRef<HTMLButtonElement | null>(null);
 
-  // A tool that paints with the page colour (the eraser) or moves the view (the
-  // hand) has no use for the ink; one that samples a colour, moves the page or
-  // chooses marks has no use for the nib either. Both are read off descriptor
-  // flags — nothing here knows a tool by name.
+  // A tool that lifts ink (the eraser) or moves the view (the hand) has no use
+  // for the colour; one that samples a colour, moves the page or chooses marks
+  // has no use for the nib either. Both are read off descriptor flags — nothing
+  // here knows a tool by name.
   const leavesNoMark =
     active?.navigates || active?.picksColor || active?.selects;
-  const inkIrrelevant = active?.usesBackground || leavesNoMark;
+  const inkIrrelevant = active?.erases || leavesNoMark;
   const nibIrrelevant = leavesNoMark;
 
   // Single-key tool shortcuts, read straight off the plugin descriptors. Held
@@ -266,9 +267,12 @@ export function Toolbar({
           the colour from the nib, and the extra left margin is the seam between
           the tools and the ink the flattened gap no longer draws. */}
       <div className="ml-2 flex items-center gap-1">
-        {/* The ink button. Split corner to corner: the ink you are drawing
-            with above the diagonal, the colour that rubs it out below — the
-            two colours a drawing hand actually holds. */}
+        {/* The ink button: the colour you are drawing with, whole. It used to
+            be split corner to corner with the page colour below the diagonal,
+            back when painting *with* the page was how you rubbed something out.
+            The eraser lifts ink now (see `render.ts`) and the sheet's colour
+            belongs to the background layer, so the second half stood for
+            nothing. */}
         <button
           ref={colorAnchor}
           type="button"
@@ -281,31 +285,11 @@ export function Toolbar({
           aria-expanded={panel?.kind === "color"}
           aria-label={t("canvas.color")}
           title={t("canvas.color")}
-          className={`relative h-9 w-9 shrink-0 cursor-pointer overflow-hidden rounded border border-line hover:border-accent ${
+          className={`h-9 w-9 shrink-0 cursor-pointer rounded border border-line hover:border-accent ${
             inkIrrelevant ? "opacity-40" : ""
           }`}
-        >
-          <span
-            aria-hidden="true"
-            className="absolute inset-0"
-            style={{
-              backgroundColor: color,
-              clipPath: "polygon(0 0, 100% 0, 0 100%)",
-            }}
-          />
-          <span
-            aria-hidden="true"
-            className="absolute inset-0"
-            style={{
-              backgroundColor: background,
-              clipPath: "polygon(100% 0, 100% 100%, 0 100%)",
-            }}
-          />
-          <span
-            aria-hidden="true"
-            className="absolute inset-0 bg-line [clip-path:polygon(100%_0,calc(100%_-_1px)_0,0_calc(100%_-_1px),0_100%)]"
-          />
-        </button>
+          style={{ backgroundColor: color }}
+        />
 
         {/* The nib button — a press with the tool in your hand, on your page,
             in your ink. Not a dot the width of the nib: what a width *is* is
@@ -383,7 +367,6 @@ export function Toolbar({
         anchor={colorAnchor}
         color={color}
         onPick={onColorChange}
-        background={background}
         customColors={customColors}
         onAddColor={onAddColor}
         onRemoveColor={onRemoveColor}

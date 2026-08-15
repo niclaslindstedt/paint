@@ -36,9 +36,9 @@ nothing on it falls back to the whole sheet.
 **Background.** Transparent leaves the whole **Background layer** out — the page
 colour and anything you drew on the sheet itself — so the marks land on
 transparency and the drawing takes on whatever it is pasted over. Two caveats,
-both physics rather than policy: JPG has no transparency and always keeps the
-page colour, and the eraser _paints_ with the page colour, so anywhere you
-erased stays opaque.
+one physics rather than policy: JPG has no transparency and always keeps the
+page colour. Anywhere you erased comes out transparent — the eraser takes ink
+off rather than painting over it, so there is nothing there to export.
 
 ## About the SVG
 

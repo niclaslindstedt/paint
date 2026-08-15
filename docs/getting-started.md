@@ -53,10 +53,10 @@ until you want it. [More](features/canvas.md).
 
 The two buttons at the end of the toolbar hold everything about the ink.
 
-The **ink button** is split: the colour you are drawing with above the diagonal,
-the page colour that rubs it out below. Press it for the palette and for **Mix a
-colour…**, which opens a hue strip and a brightness field — drag either and the
-ink changes as you go, then **Keep** adds it to your own swatches for good.
+The **ink button** is the colour you are drawing with. Press it for the palette
+and for **Mix a colour…**, which opens a hue strip and a brightness field — drag
+either and the ink changes as you go, then **Keep** adds it to your own swatches
+for good.
 
 The **nib button** shows a **press with the tool in your hand** — the mark that
 width actually leaves, on your page, in your ink. An airbrush is a soft cone, a

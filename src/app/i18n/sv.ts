@@ -173,7 +173,6 @@ export const sv: Catalog = {
     fill: "Fyll former",
     fillOutline: "Kontur",
     fillFilled: "Fylld",
-    eraseColor: "Sidfärg (suddar)",
     mixColor: "Blanda en färg…",
     hideMixer: "Dölj blandaren",
     mixField: "Mättnad och ljushet",

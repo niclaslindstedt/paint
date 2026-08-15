@@ -14,9 +14,14 @@ import { PALETTE } from "../useAppSettings.ts";
 //
 // The toolbar used to spend seven cells on a fixed swatch row — a third of a
 // phone's width, permanently, for a choice most strokes never change. It is now
-// a single split button showing the two colours that actually matter (the ink
-// you are drawing with, and the colour the eraser paints) which opens this
-// panel when you want a different one.
+// a single button showing the ink you are drawing with, which opens this panel
+// when you want a different one.
+//
+// It shows one colour, not two. It used to carry the page colour as a swatch of
+// its own, because painting with the page was how you rubbed something out —
+// the eraser was a nib that held it. The eraser lifts ink now (see `render.ts`)
+// and the sheet's colour is the background layer's, so a page-colour swatch in
+// the *ink* picker is a colour that erases nothing and belongs to nothing here.
 //
 // The panel is two halves. The top is the arsenal: the built-in palette, then
 // whatever the user has mixed, each one tap away. The bottom is the mixer,
@@ -33,9 +38,6 @@ type Props = {
    *  unpicked colour against the page first). */
   color: string;
   onPick: (color: string) => void;
-  /** The page colour — what the eraser paints with, offered here as a swatch of
-   *  its own so a mark can be made to disappear without switching tools. */
-  background: string;
   customColors: readonly string[];
   onAddColor: (color: string) => void;
   onRemoveColor: (color: string) => void;
@@ -47,7 +49,6 @@ export function ColorPicker({
   anchor,
   color,
   onPick,
-  background,
   customColors,
   onAddColor,
   onRemoveColor,
@@ -118,27 +119,6 @@ export function ColorPicker({
             />
           ))}
         </div>
-
-        {/* The page colour, as a swatch. Painting with it is how you rub
-            something out with the tool already in your hand — the eraser is the
-            same idea wearing a nib of its own. */}
-        <button
-          type="button"
-          onClick={() => pickAndClose(background)}
-          aria-pressed={sameColor(background, color)}
-          className={`flex cursor-pointer items-center gap-2 rounded border px-2 py-1 text-left text-xs ${
-            sameColor(background, color)
-              ? "border-accent bg-accent/15 text-accent"
-              : "border-line text-muted hover:bg-surface-2"
-          }`}
-        >
-          <span
-            aria-hidden="true"
-            className="h-4 w-4 shrink-0 rounded-full border border-line"
-            style={{ backgroundColor: background }}
-          />
-          {t("canvas.eraseColor")}
-        </button>
 
         <button
           type="button"

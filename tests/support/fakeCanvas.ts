@@ -26,6 +26,19 @@ export type FakeStroke = {
   runs: [number, number, number, number][];
 };
 
+/** One call that put (or took) something on the pixels, and how it was
+ *  composited.
+ *
+ *  Compositing is the whole of how a mark rubs something out and how the sheet
+ *  ends up under it (see `render.ts`), and like the cache's blits it is a
+ *  decision that leaves no trace in a stroke or a colour. This is where it can
+ *  be read. */
+export type PaintedCall = {
+  call: string;
+  composite: GlobalCompositeOperation;
+  fillStyle: string;
+};
+
 /** A recording 2D context, plus the tallies the tests assert on. */
 export type FakeContext = CanvasRenderingContext2D & {
   calls: Record<string, number>;
@@ -34,43 +47,68 @@ export type FakeContext = CanvasRenderingContext2D & {
   blits: unknown[];
   /** Each `stroke()` since the context was made, in order. */
   strokes: FakeStroke[];
+  /** Every call that painted, in order, with the compositing it painted with. */
+  painted: PaintedCall[];
 };
 
 const METHODS = [
   "arc",
   "beginPath",
-  "clearRect",
   "clip",
   "closePath",
   "ellipse",
-  "fill",
-  "fillRect",
-  "fillText",
   "quadraticCurveTo",
   "rect",
-  "restore",
-  "save",
   "strokeRect",
   "translate",
+] as const;
+
+/** The calls that put something on the pixels — recorded with the state they
+ *  were made in rather than merely counted. */
+const PAINTS = ["clearRect", "fill", "fillRect", "fillText"] as const;
+
+/** The context state `save`/`restore` carry. The real thing carries a good deal
+ *  more; this is what the renderer sets. */
+const SAVED = [
+  "globalAlpha",
+  "globalCompositeOperation",
+  "lineWidth",
+  "lineCap",
+  "lineJoin",
+  "fillStyle",
+  "strokeStyle",
+  "font",
 ] as const;
 
 export function createFakeContext(): FakeContext {
   const calls: Record<string, number> = {};
   const blits: unknown[] = [];
   const strokes: FakeStroke[] = [];
+  const painted: PaintedCall[] = [];
   let transform = { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 };
   const tick = (name: string) => {
     calls[name] = (calls[name] ?? 0) + 1;
+  };
+  const record = (name: string) => {
+    tick(name);
+    painted.push({
+      call: name,
+      composite: ctx.globalCompositeOperation as GlobalCompositeOperation,
+      fillStyle: String(ctx.fillStyle),
+    });
   };
   // The pen's position, and the runs drawn since the last `stroke()`.
   let atX = 0;
   let atY = 0;
   let pending: [number, number, number, number][] = [];
 
+  const saved: Record<string, unknown>[] = [];
+
   const ctx: Record<string, unknown> = {
     calls,
     blits,
     strokes,
+    painted,
     globalAlpha: 1,
     globalCompositeOperation: "source-over",
     lineWidth: 1,
@@ -115,7 +153,7 @@ export function createFakeContext(): FakeContext {
       atY = y;
     },
     stroke() {
-      tick("stroke");
+      record("stroke");
       strokes.push({
         lineWidth: ctx.lineWidth as number,
         alpha: ctx.globalAlpha as number,
@@ -123,8 +161,24 @@ export function createFakeContext(): FakeContext {
       });
       pending = [];
     },
+    // Real save/restore, not a counter: the renderer leans on them to keep one
+    // stroke's compositing off the next one, and a fake that let the eraser's
+    // mode leak would pass a test the browser fails.
+    save() {
+      tick("save");
+      const state: Record<string, unknown> = {};
+      for (const key of SAVED) state[key] = ctx[key];
+      saved.push(state);
+    },
+    restore() {
+      tick("restore");
+      const state = saved.pop();
+      if (!state) return;
+      for (const key of SAVED) ctx[key] = state[key];
+    },
   };
   for (const name of METHODS) ctx[name] = () => tick(name);
+  for (const name of PAINTS) ctx[name] = () => record(name);
   return ctx as unknown as FakeContext;
 }
 

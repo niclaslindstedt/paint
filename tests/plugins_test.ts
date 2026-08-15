@@ -442,10 +442,10 @@ describe("freehand behaviour", () => {
     expect(draft.color).toBeUndefined();
   });
 
-  it("records no colour for a background-painting tool", () => {
-    // The eraser must follow the page for good — pinning the page colour it
-    // erased on would show as a stripe once the canvas theme flips.
-    const draft = freehandBehaviour({ useBackground: true }).start(
+  it("records no colour for a tool that lifts ink", () => {
+    // The eraser takes ink off by where the nib went, not by what the toolbar
+    // was holding — a colour on the mark would be a number nothing ever reads.
+    const draft = freehandBehaviour({ erases: true }).start(
       { x: 0, y: 0 },
       ctx,
     )!;
@@ -659,7 +659,7 @@ describe("clearing the page", () => {
   it("leaves the eraser an ordinary drawing tool", () => {
     const eraser = pluginById("eraser")!;
     expect(eraser.behaviour.start({ x: 0, y: 0 }, ctx)).not.toBeNull();
-    expect(eraser.usesBackground).toBe(true);
+    expect(eraser.erases).toBe(true);
     expect(eraser.core).toBe(true);
     expect(enabledPlugins([]).map((p) => p.id)).toContain("eraser");
   });

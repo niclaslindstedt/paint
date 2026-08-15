@@ -29,6 +29,7 @@ type PaintedState = {
   lineCap: CanvasLineCap;
   lineJoin: CanvasLineJoin;
   globalAlpha: number;
+  globalCompositeOperation: GlobalCompositeOperation;
   font: string;
   textBaseline: CanvasTextBaseline;
   imageSmoothingEnabled: boolean;
@@ -43,6 +44,7 @@ const INITIAL: Omit<PaintedState, "tx" | "ty"> = {
   lineCap: "butt",
   lineJoin: "miter",
   globalAlpha: 1,
+  globalCompositeOperation: "source-over",
   font: "10px sans-serif",
   textBaseline: "alphabetic",
   imageSmoothingEnabled: true,
@@ -89,10 +91,25 @@ class SvgGradient {
  *
  * Deliberately *only* the subset the painters use: paths, rectangles, ellipses,
  * text (with the one baseline the text tool sets), images, radial-gradient
- * fills, a translation, and the ink properties `applyInk` sets. Calls it has no meaning for (`clearRect` — an SVG starts
- * transparent; `clip` — used only by the screen's grid, which never exports)
- * are accepted and ignored, so a caller can hand it to the shared renderer
- * unchanged.
+ * fills, a translation, the two composite modes the renderer sets, and the ink
+ * properties `applyInk` sets. Calls it has no meaning for (`clearRect` — an SVG
+ * starts transparent; `clip` — used only by the screen's grid, which never
+ * exports) are accepted and ignored, so a caller can hand it to the shared
+ * renderer unchanged.
+ *
+ * The two composite modes are the interesting part, because SVG has no
+ * compositing operator and both have an exact structural equivalent:
+ *
+ *   - **`destination-over`** — what the sheet and the grid are laid down with —
+ *     is *painted first*. So a call made in this mode is written to the front of
+ *     the element list rather than the back, and the file comes out in the order
+ *     a reader paints it in.
+ *   - **`destination-out`** — what an erasing tool's mark is painted with — is a
+ *     `<mask>`. The shapes recorded while it is set are collected as black (mask
+ *     black is transparent), everything recorded *before* them is wrapped in a
+ *     group wearing that mask, and the group is what the rest of the file is
+ *     appended to. Runs of erasing therefore nest, which is exactly the order
+ *     they happened in.
  */
 export class SvgCanvas {
   private elements: string[] = [];
@@ -102,6 +119,13 @@ export class SvgCanvas {
   private path: string[] = [];
   private tx = 0;
   private ty = 0;
+  /** The shapes recorded since the current run of erasing began, or `null` when
+   *  nothing is being rubbed out. */
+  private lifted: string[] | null = null;
+  /** One mask per closed run of erasing. The white rectangle that makes the
+   *  rest of the mask opaque needs the framing region, which isn't known until
+   *  `toSvg`, so the defs are written there. */
+  private masks: { id: string; shapes: string[] }[] = [];
 
   // --- The properties the painters write -----------------------------------
   fillStyle: string | CanvasGradient | CanvasPattern =
@@ -111,6 +135,8 @@ export class SvgCanvas {
   lineCap: CanvasLineCap = INITIAL.lineCap;
   lineJoin: CanvasLineJoin = INITIAL.lineJoin;
   globalAlpha = INITIAL.globalAlpha;
+  globalCompositeOperation: GlobalCompositeOperation =
+    INITIAL.globalCompositeOperation;
   font = INITIAL.font;
   textBaseline: CanvasTextBaseline = INITIAL.textBaseline;
   imageSmoothingEnabled = INITIAL.imageSmoothingEnabled;
@@ -124,6 +150,7 @@ export class SvgCanvas {
       lineCap: this.lineCap,
       lineJoin: this.lineJoin,
       globalAlpha: this.globalAlpha,
+      globalCompositeOperation: this.globalCompositeOperation,
       font: this.font,
       textBaseline: this.textBaseline,
       imageSmoothingEnabled: this.imageSmoothingEnabled,
@@ -141,6 +168,7 @@ export class SvgCanvas {
     this.lineCap = prev.lineCap;
     this.lineJoin = prev.lineJoin;
     this.globalAlpha = prev.globalAlpha;
+    this.globalCompositeOperation = prev.globalCompositeOperation;
     this.font = prev.font;
     this.textBaseline = prev.textBaseline;
     this.imageSmoothingEnabled = prev.imageSmoothingEnabled;
@@ -217,9 +245,53 @@ export class SvgCanvas {
     return new SvgGradient() as unknown as CanvasGradient;
   }
 
+  // --- Compositing ----------------------------------------------------------
+
+  /** Whether the call being recorded is taking ink off rather than putting it
+   *  on — which is what decides both where it is written and what colour it is
+   *  written in. */
+  private get erasing(): boolean {
+    return this.globalCompositeOperation === "destination-out";
+  }
+
+  /** File one recorded element, wherever this composite mode puts it. */
+  private emit(element: string): void {
+    if (this.erasing) {
+      (this.lifted ??= []).push(element);
+      return;
+    }
+    this.closeMask();
+    if (this.globalCompositeOperation === "destination-over") {
+      this.elements.unshift(element);
+    } else {
+      this.elements.push(element);
+    }
+  }
+
+  /** End a run of erasing: everything recorded so far becomes one group wearing
+   *  a mask with the lifted shapes punched out of it. A no-op when nothing has
+   *  been rubbed out, which is every drawing that never reached for the eraser.
+   *
+   *  Wrapping *everything* rather than the marks alone is what makes the sheet
+   *  survive: it is laid down last (`destination-over`), so it is unshifted in
+   *  front of the finished group and no mask ever reaches it. */
+  private closeMask(): void {
+    const shapes = this.lifted;
+    this.lifted = null;
+    if (!shapes || shapes.length === 0) return;
+    const id = `m${this.masks.length}`;
+    this.masks.push({ id, shapes });
+    this.elements = [`<g mask="url(#${id})">${this.elements.join("")}</g>`];
+  }
+
   /** The `fill` attribute for the current fill style, registering a gradient
    *  def the first time one is used. */
   private fillPaint(): string {
+    // Inside a mask, black is "gone". A rubbing out has a colour on it (the
+    // renderer resolves one for every mark), and on a real canvas
+    // `destination-out` throws it away and keeps the alpha — so the mask does
+    // the same, and a half-opaque eraser stroke lifts half the ink here too.
+    if (this.erasing) return "#000";
     const style = this.fillStyle as string | SvgGradient;
     if (typeof style === "string") return esc(style);
     let id = this.gradients.get(style);
@@ -245,8 +317,11 @@ export class SvgCanvas {
   }
 
   private strokeAttrs(): string {
-    const color =
-      typeof this.strokeStyle === "string" ? this.strokeStyle : "#000";
+    const color = this.erasing
+      ? "#000"
+      : typeof this.strokeStyle === "string"
+        ? this.strokeStyle
+        : "#000";
     return (
       ` stroke="${esc(color)}" stroke-width="${n(this.lineWidth)}"` +
       ` stroke-linecap="${this.lineCap}" stroke-linejoin="${this.lineJoin}"` +
@@ -258,27 +333,27 @@ export class SvgCanvas {
 
   fill(): void {
     if (this.path.length === 0) return;
-    this.elements.push(
+    this.emit(
       `<path d="${this.path.join("")}" fill="${this.fillPaint()}"${this.opacity()}/>`,
     );
   }
 
   stroke(): void {
     if (this.path.length === 0) return;
-    this.elements.push(
+    this.emit(
       `<path d="${this.path.join("")}"${this.strokeAttrs()}${this.opacity()}/>`,
     );
   }
 
   fillRect(x: number, y: number, width: number, height: number): void {
-    this.elements.push(
+    this.emit(
       `<rect x="${n(x + this.tx)}" y="${n(y + this.ty)}" width="${n(width)}" height="${n(height)}"` +
         ` fill="${this.fillPaint()}"${this.opacity()}/>`,
     );
   }
 
   strokeRect(x: number, y: number, width: number, height: number): void {
-    this.elements.push(
+    this.emit(
       `<rect x="${n(x + this.tx)}" y="${n(y + this.ty)}" width="${n(width)}" height="${n(height)}"` +
         `${this.strokeAttrs()}${this.opacity()}/>`,
     );
@@ -297,7 +372,7 @@ export class SvgCanvas {
       this.textBaseline === "top"
         ? ` dominant-baseline="text-before-edge"`
         : "";
-    this.elements.push(
+    this.emit(
       `<text x="${n(x + this.tx)}" y="${n(y + this.ty)}" fill="${this.fillPaint()}"` +
         `${baseline} style="font:${esc(this.font)}"${this.opacity()}>${esc(text)}</text>`,
     );
@@ -320,7 +395,7 @@ export class SvgCanvas {
     const rendering = this.imageSmoothingEnabled
       ? ""
       : ` image-rendering="pixelated"`;
-    this.elements.push(
+    this.emit(
       `<image x="${n(x + this.tx)}" y="${n(y + this.ty)}" width="${n(width)}" height="${n(height)}"` +
         ` preserveAspectRatio="none"${rendering} href="${esc(href)}"${this.opacity()}/>`,
     );
@@ -333,6 +408,27 @@ export class SvgCanvas {
    *  exports — so the export never needs to honour one. */
   clip(): void {}
 
+  /** The masks the erasing runs left, as defs. Written here because a mask has
+   *  to start out *opaque* everywhere the eraser didn't go, and "everywhere" is
+   *  the framing region, which the recorder only learns at the end. */
+  private maskDefs(region: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  }): string {
+    const box =
+      `x="${n(region.x)}" y="${n(region.y)}"` +
+      ` width="${n(region.width)}" height="${n(region.height)}"`;
+    return this.masks
+      .map(
+        (mask) =>
+          `<mask id="${mask.id}" maskUnits="userSpaceOnUse" ${box}>` +
+          `<rect ${box} fill="#fff"/>${mask.shapes.join("")}</mask>`,
+      )
+      .join("");
+  }
+
   /** The recorded elements, wrapped in an `<svg>` framing `region`. */
   toSvg(region: {
     x: number;
@@ -340,12 +436,14 @@ export class SvgCanvas {
     width: number;
     height: number;
   }): string {
-    const defs = this.defs.length ? `<defs>${this.defs.join("")}</defs>` : "";
+    // A drawing whose last mark was a rubbing out leaves a run still open.
+    this.closeMask();
+    const defs = [...this.defs, this.maskDefs(region)].join("");
     return (
       `<svg xmlns="http://www.w3.org/2000/svg" ` +
       `width="${n(region.width)}" height="${n(region.height)}" ` +
       `viewBox="${n(region.x)} ${n(region.y)} ${n(region.width)} ${n(region.height)}">` +
-      defs +
+      (defs ? `<defs>${defs}</defs>` : "") +
       this.elements.join("") +
       `</svg>`
     );

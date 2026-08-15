@@ -92,18 +92,23 @@ export function LayerThumbnail({
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    // The sheet, then the marks on it — the page painted opaque rather than
-    // left transparent, because a preview of white marks on nothing is nothing.
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.fillStyle = pageColor;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
     const scale = canvas.width / drawing.width;
     ctx.setTransform(scale, 0, 0, scale, 0, 0);
     // `paintStrokes` reads the detail off this transform, so the textured
     // painters drop the bristles and specks that would land inside one pixel
     // here without being asked to.
     paintStrokes(ctx, legible(strokes, scale), { pageColor, defaultInk });
+
+    // Then the sheet, *under* the marks — the order the canvas paints in, so a
+    // layer whose marks include a rubbing out previews with the page showing
+    // through the hole rather than with the hole punched through the page (see
+    // `render.ts`). Opaque rather than left transparent, because a preview of
+    // white marks on nothing is nothing.
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.globalCompositeOperation = "destination-over";
+    ctx.fillStyle = pageColor;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.globalCompositeOperation = "source-over";
   }, [
     drawing.width,
     drawing.height,

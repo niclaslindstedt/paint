@@ -239,9 +239,19 @@ export type PaintPlugin = {
   icon: (props: { className?: string; filled?: boolean }) => ReactNode;
   /** Single-key shortcut (lower case), shown in the tooltip. */
   shortcut?: string;
-  /** True when the tool paints with the page background rather than the ink
-   *  colour — the colour swatch is then irrelevant and the toolbar dims it. */
-  usesBackground?: boolean;
+  /** True when the tool **lifts ink** instead of laying it down — the eraser.
+   *
+   *  Its marks are painted with `destination-out`, so what they cover is
+   *  removed from the picture rather than painted over: the sheet comes back
+   *  through the hole on screen, and a transparent export gets a real hole (see
+   *  `render.ts`). The ink colour means nothing to such a tool — only how wide
+   *  the nib is and how hard it presses (the opacity dial) — so the toolbar dims
+   *  the colour button for it.
+   *
+   *  Like `navigates` and `picksColor`, it is a flag the renderer reads rather
+   *  than a tool id anything recognises: a shape or a bucket that rubbed out
+   *  would declare this and need nothing else. */
+  erases?: boolean;
   /** True when the tool moves the *view* instead of leaving a mark — the hand.
    *  A one-finger drag then pans the page and a double-tap fits it, no stroke is
    *  ever begun, and the toolbar dims the ink it would not use. This is the flag

@@ -161,9 +161,8 @@ npm run preview
   footer below it (foldable behind a chevron) holds Donate, About — What's new,
   the source, the privacy policy — check for updates, and Settings.
 - **Toolbar** — the enabled tools, then one button for colour and one for the
-  nib. The ink button is split between the colour you draw with and the page
-  colour that erases it, and opens the palette, your own mixed colours, and a
-  free colour mixer; the nib button shows a **press with the tool in your
+  nib. The ink button is the colour you draw with, and opens the palette, your
+  own mixed colours, and a free colour mixer; the nib button shows a **press with the tool in your
   hand** — the mark that width actually leaves, painted by the painter that
   paints the page — and opens the
   widths, a slider for new ones, and — behind an **Advanced** fold — the knobs

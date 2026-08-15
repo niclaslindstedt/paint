@@ -253,6 +253,57 @@ describe("the SVG export", () => {
     }
   });
 
+  it("writes a rubbing out as a mask over what it rubbed out", () => {
+    // SVG has no compositing operator, so `destination-out` becomes the one
+    // thing it does have: the marks go into a group, and the eraser's shape is
+    // punched out of that group's mask in black.
+    const svg = toSvg(
+      drawing([
+        {
+          id: "s1",
+          tool: "pencil",
+          color: "#ef4444",
+          size: 8,
+          shape: {
+            kind: "path",
+            points: [
+              { x: 10, y: 10 },
+              { x: 80, y: 40 },
+            ],
+          },
+        },
+        {
+          id: "s2",
+          tool: "eraser",
+          size: 20,
+          shape: {
+            kind: "path",
+            points: [
+              { x: 30, y: 20 },
+              { x: 60, y: 30 },
+            ],
+          },
+        },
+      ]),
+    );
+    expect(svg).toContain('<mask id="m0" maskUnits="userSpaceOnUse"');
+    // The mask starts opaque over the whole frame and the rubbing out is taken
+    // out of it — white keeps, black drops.
+    expect(svg).toContain('<rect x="0" y="0" width="400" height="300"');
+    expect(svg).toContain('stroke="#000" stroke-width="20"');
+    // The ink is inside the masked group; the eraser's own path is not an
+    // element of the file at all.
+    expect(svg).toMatch(/<g mask="url\(#m0\)">.*stroke="#ef4444".*<\/g>/);
+
+    // …and the sheet is outside it. It is laid down *under* the marks, so no
+    // mask can reach it: a rubbing out shows the page, it doesn't cut through
+    // it to nothing.
+    const page = svg.indexOf('fill="#ffffff"');
+    const group = svg.indexOf("<g mask=");
+    expect(page).toBeGreaterThan(-1);
+    expect(page).toBeLessThan(group);
+  });
+
   it("keeps a translucent mark translucent", () => {
     const svg = toSvg(
       drawing([

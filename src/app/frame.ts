@@ -18,7 +18,11 @@
 //      offset the finger has reached, so a drag is the marks moving rather than
 //      a ghost hovering over the copy they came from.
 //   3. **the gesture in flight** — the draft stroke, which changes every frame.
-//   4. **the chrome** — the selection's marching ants and the sheet's edge.
+//   4. **the sheet, back under the hole**, if either of those two rubbed
+//      something out. Coats 2 and 3 land on a finished picture rather than on
+//      bare canvas, so an erasing mark takes the page away with the ink; this
+//      puts it back (see `underlay`). Skipped entirely unless something erased.
+//   5. **the chrome** — the selection's marching ants and the sheet's edge.
 //
 // The chrome is painted last and deliberately *after* the cache has taken its
 // copy of the screen, which is why it lives here rather than in `render.ts`: it
@@ -29,7 +33,7 @@ import type { Box } from "./bounds.ts";
 import { createCache, paintCommitted, type MarkCache } from "./cache.ts";
 import { paintMarquee } from "./plugins/builtin/select.ts";
 import type { DraftStroke } from "./plugins/types.ts";
-import { paintStrokes } from "./render.ts";
+import { anyErases, paintStrokes, underlay } from "./render.ts";
 import { translateStrokes } from "./selection.ts";
 import type { Drawing, Point, Stroke } from "./types.ts";
 import type { CanvasView } from "./viewport.ts";
@@ -147,8 +151,16 @@ export function paintFrame(frame: Frame): void {
     });
   }
 
-  if (frame.draft) {
-    paintStrokes(ctx, [{ ...frame.draft, id: "draft" }], options);
+  const draft = frame.draft ? { ...frame.draft, id: "draft" } : null;
+  if (draft) paintStrokes(ctx, [draft], options);
+
+  // Both coats above landed on pixels that already have the sheet in them — the
+  // cache hands back a finished picture, page and all. A mark that rubs out
+  // therefore takes the page with it, so the sheet goes back under whatever the
+  // hole exposed (see `underlay`). Only when something actually erased: this is
+  // every frame of an eraser stroke, and no frame of anything else.
+  if ((draft && anyErases([draft])) || (moving && anyErases(moving.strokes))) {
+    underlay(ctx, drawing, options);
   }
 
   // The selection's outline: the same marching ants the marquee was dragged

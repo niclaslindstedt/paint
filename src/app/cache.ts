@@ -60,7 +60,13 @@
 // gave the word back.)
 
 import { backgroundHidden, visibleStrokes } from "./layers.ts";
-import { paintStrokes, renderDrawing, type RenderOptions } from "./render.ts";
+import {
+  anyErases,
+  paintStrokes,
+  renderDrawing,
+  underlay,
+  type RenderOptions,
+} from "./render.ts";
 import { createSurface, resizeSurface, type Surface } from "./surface.ts";
 import type { Drawing, Stroke } from "./types.ts";
 
@@ -149,11 +155,18 @@ export function paintCommitted(
     if (added > 0) {
       // The gesture that just landed, painted onto the marks already there —
       // which is what compositing it over them on screen did anyway.
+      const landed = strokes.slice(cache.count);
       applyView(cache.surface.ctx, spec);
-      paintStrokes(cache.surface.ctx, strokes.slice(cache.count), {
+      paintStrokes(cache.surface.ctx, landed, {
         ...spec.options,
         clip: windowOnPage(spec),
       });
+      // …with the same caveat the screen has: what is already on these pixels
+      // is a finished picture, sheet included, so a mark that rubs out takes
+      // the page with it and the page has to go back under the hole.
+      if (anyErases(landed)) {
+        underlay(cache.surface.ctx, spec.drawing, spec.options);
+      }
     }
     remember(cache, spec, strokes);
     blitCache(ctx, cache);
