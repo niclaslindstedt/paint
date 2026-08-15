@@ -63,13 +63,17 @@ describe("pressMarks", () => {
     expect(pale?.opacity).toBe(0.5);
   });
 
-  it("lays ink under a tool that paints with the page", () => {
+  it("lays ink under a tool that lifts it", () => {
     const [under, mark] = press("eraser");
-    // The eraser records no colour of its own — it follows the page for good —
-    // so without something to lift it would preview as page on page.
+    // The eraser records no colour of its own — what it takes off is decided
+    // by the nib, not by the toolbar — and on a bare page it would lift
+    // nothing, so the preview gives it a blot to bite into.
     expect(mark?.color).toBeUndefined();
     expect(under?.color).toBe("#ef4444");
     expect(under?.size).toBeGreaterThan(mark?.size ?? 0);
+    // The blot names no tool: painted by the eraser it would rub *itself* out,
+    // so it goes through the renderer's generic painter instead.
+    expect(under?.tool).toBe("");
     // …and it is the blot that comes first: painted in order, the bite lands on
     // top of the ink rather than under it.
     expect(press("eraser").map((m) => m.id)).toEqual(["press-under", "press"]);

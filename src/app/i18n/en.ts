@@ -179,7 +179,6 @@ export const en = {
     fill: "Fill shapes",
     fillOutline: "Outline",
     fillFilled: "Filled",
-    eraseColor: "Page colour (erases)",
     mixColor: "Mix a colour…",
     hideMixer: "Hide the mixer",
     mixField: "Saturation and brightness",

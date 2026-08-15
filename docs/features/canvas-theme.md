@@ -27,8 +27,8 @@ flipping a whole sketch from dark to light re-inks it rather than leaving it
 invisible against the new page — and the marks you deliberately drew in red stay
 red. Nothing in the drawing is rewritten; the theme is a way of viewing it.
 
-Eraser strokes work the same way: they follow the page for good, so a page flip
-can't leave old eraser marks painted in the previous page's colour.
+Eraser strokes never had a colour to flip: they take ink off rather than paint
+the page over it, so a page flip finds nothing in them to re-ink.
 
 ## Pinning one drawing's colour
 

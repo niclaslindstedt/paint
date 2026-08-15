@@ -8,6 +8,21 @@
 // The same function paints the on-screen canvas, the in-flight gesture, and the
 // off-screen canvas the PNG export rasterises, so what you export is exactly
 // what you saw.
+//
+// **The sheet goes on last, underneath.** The marks are painted onto nothing
+// and the page colour is laid *under* them at the end (`destination-over`),
+// which is pixel-for-pixel the same picture as painting the page first — and it
+// is what lets a tool rub something out. An erasing mark (`PaintPlugin.erases`)
+// paints with `destination-out`: it removes what it covers instead of covering
+// it. Painted over an opaque page that would punch a hole clean through the
+// sheet to the desk; painted before the sheet arrives it takes off ink and
+// nothing else, and the page comes back up through the hole.
+//
+// So an eraser lifts ink down to the sheet, whatever layer it was drawn on —
+// the same thing a rubber does to a drawing on paper, and the same thing this
+// tool always *looked* like it did. What is new is that the hole is a real one:
+// a transparent export has nothing in it, where it used to have page-coloured
+// smears.
 
 import { strokeVisible, type Rect } from "./geometry.ts";
 import { backgroundHidden, visibleStrokes } from "./layers.ts";
@@ -27,20 +42,34 @@ export type InkContext = {
 
 /** Give a stroke a concrete colour.
  *
- *  A stroke records a colour only when the user picked one. Everything else
- *  resolves here, at paint time: a tool that paints with the background (the
- *  eraser) takes the page colour, and any other mark takes the page's default
- *  ink. That indirection is what makes the canvas theme a *view* of a drawing
- *  rather than an edit to it — flipping a sketch from a dark page to a light
- *  one re-inks it instead of leaving it invisible, and nothing in the document
- *  changes. */
+ *  A stroke records a colour only when the user picked one; everything else
+ *  resolves here, at paint time, against the page's default ink. That
+ *  indirection is what makes the canvas theme a *view* of a drawing rather than
+ *  an edit to it — flipping a sketch from a dark page to a light one re-inks it
+ *  instead of leaving it invisible, and nothing in the document changes.
+ *
+ *  An erasing mark is resolved like any other and the colour is then thrown
+ *  away by the compositing: `destination-out` reads a source's alpha and
+ *  nothing else. */
 export function resolveStrokeInk(stroke: Stroke, ink: InkContext): Stroke {
   if (stroke.color) return stroke;
-  const usesBackground = pluginById(stroke.tool)?.usesBackground ?? false;
-  return {
-    ...stroke,
-    color: usesBackground ? ink.pageColor : ink.defaultInk,
-  };
+  return { ...stroke, color: ink.defaultInk };
+}
+
+/** Whether this mark takes ink off the page rather than putting it on — read
+ *  off the descriptor of the plugin that drew it (`PaintPlugin.erases`).
+ *
+ *  Asked outside this module by the two places that paint marks onto pixels
+ *  they didn't lay the sheet under: the canvas's frame, and the mark cache. A
+ *  mark that erases leaves a hole, and both have to put the page back under it
+ *  (see `underlay`). */
+export function strokeErases(stroke: Stroke): boolean {
+  return pluginById(stroke.tool)?.erases === true;
+}
+
+/** Whether any of these marks erases. */
+export function anyErases(strokes: readonly Stroke[]): boolean {
+  return strokes.some(strokeErases);
 }
 
 /** Paint one stroke through its tool's painter.
@@ -48,7 +77,9 @@ export function resolveStrokeInk(stroke: Stroke, ink: InkContext): Stroke {
  *  A stroke whose tool this build doesn't ship — a document written by a newer
  *  version, or one that used a plugin since removed — still renders: we fall
  *  back to a generic painter keyed off the shape kind. Losing the tool must
- *  never mean losing the drawing. */
+ *  never mean losing the drawing. (A mark from a lost *erasing* tool therefore
+ *  comes back as a plain one. There is no honest alternative — the flag lived
+ *  on the plugin, not on the stroke — and a visible mark beats a silent one.) */
 export function paintStroke(
   ctx: CanvasRenderingContext2D,
   stroke: Stroke,
@@ -58,6 +89,12 @@ export function paintStroke(
   const resolved = resolveStrokeInk(stroke, ink);
   ctx.save();
   const plugin = pluginById(resolved.tool);
+  // A rubbing out is the same painter laying the same mark, composited the
+  // other way round: `destination-out` subtracts the mark's alpha from what is
+  // already there. Set here rather than inside the painter so a tool only has
+  // to *declare* that it erases — and so every painter, textured ones included,
+  // rubs out exactly the shape it would have drawn.
+  if (plugin?.erases) ctx.globalCompositeOperation = "destination-out";
   if (plugin) plugin.behaviour.paint(ctx, resolved, detail);
   else paintGeneric(ctx, resolved);
   ctx.restore();
@@ -108,10 +145,8 @@ function paintGeneric(ctx: CanvasRenderingContext2D, stroke: Stroke): void {
 export type RenderOptions = InkContext & {
   /** Leave the background layer out: no page fill, and none of the marks drawn
    *  on the sheet either. What a transparent export asks for — the drawing then
-   *  lands on nothing rather than on a page that happens to match.
-   *
-   *  The page colour is still required: the eraser paints with it, whether or
-   *  not the sheet under it is being painted. */
+   *  lands on nothing rather than on a page that happens to match, and a patch
+   *  the eraser took out is a hole rather than a page-coloured smear. */
   transparentPage?: boolean;
   /** Rule a grid of this spacing (document pixels) across the page, under the
    *  marks. A **screen-only** drawing aid: the PNG export leaves it unset, so a
@@ -202,22 +237,15 @@ export function renderDrawing(
   draft: Stroke | null,
   options: RenderOptions,
 ): void {
-  // The sheet is the background layer's to paint (see `layers.ts`), so it goes
-  // down only while that layer is in play: hidden by its own eye, or dropped by
-  // a transparent export, and the page comes up empty.
-  const withoutBackground =
-    options.transparentPage === true || backgroundHidden(drawing);
+  // Start from nothing. The sheet is laid under the marks at the end rather
+  // than painted before them (see the note at the top of the file), but the
+  // page still has to be *cleared* first: a caller may be repainting over
+  // pixels it has already blitted, and an under-fill leaves those alone.
   ctx.save();
   ctx.globalAlpha = 1;
-  if (withoutBackground) {
-    ctx.clearRect(0, 0, drawing.width, drawing.height);
-  } else {
-    ctx.fillStyle = options.pageColor;
-    ctx.fillRect(0, 0, drawing.width, drawing.height);
-  }
+  ctx.globalCompositeOperation = "source-over";
+  ctx.clearRect(0, 0, drawing.width, drawing.height);
   ctx.restore();
-
-  if (options.grid) paintGrid(ctx, drawing, options.grid);
 
   // Hiding the sheet takes the colour but keeps what was drawn on it; a
   // transparent export takes both, which is what makes it transparent.
@@ -227,6 +255,44 @@ export function renderDrawing(
     options,
   );
   if (draft) paintStroke(ctx, draft, options, detailFor(ctx, options));
+
+  underlay(ctx, drawing, options);
+}
+
+/** Lay the grid and the sheet *under* everything already painted.
+ *
+ *  This is the other half of erasing. Both are backdrops — the marks belong on
+ *  top of them — and painting them last with `destination-over` puts them
+ *  exactly where painting them first would have, with one difference that is
+ *  the whole point: a hole an eraser took out of the marks is filled by them
+ *  rather than punched through them. A drawing with nothing erased in it comes
+ *  out identical either way.
+ *
+ *  Exported because the two callers that paint marks onto pixels somebody else
+ *  laid the sheet under — the canvas's in-flight gesture (`frame.ts`) and the
+ *  mark cache's append (`cache.ts`) — have to put it back afterwards. */
+export function underlay(
+  ctx: CanvasRenderingContext2D,
+  drawing: Drawing,
+  options: RenderOptions,
+): void {
+  // The sheet is the background layer's to paint (see `layers.ts`), so it goes
+  // down only while that layer is in play: hidden by its own eye, or dropped by
+  // a transparent export, and the page stays empty.
+  const withoutBackground =
+    options.transparentPage === true || backgroundHidden(drawing);
+  ctx.save();
+  ctx.globalAlpha = 1;
+  ctx.globalCompositeOperation = "destination-over";
+  // The grid first, so it ends up between the sheet and the marks — which is
+  // where it was when it was painted before them, and which is why a rubbed-out
+  // patch shows the ruling again rather than bare page.
+  if (options.grid) paintGrid(ctx, drawing, options.grid);
+  if (!withoutBackground) {
+    ctx.fillStyle = options.pageColor;
+    ctx.fillRect(0, 0, drawing.width, drawing.height);
+  }
+  ctx.restore();
 }
 
 /** Paint a run of strokes onto an already-prepared page — the marks half of a

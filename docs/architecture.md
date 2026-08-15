@@ -376,7 +376,7 @@ position rather than drawn at random, so a repaint and the PNG export grain
 identically.
 
 A tool that needs the app to treat it differently says so on its descriptor —
-`usesBackground` for the eraser, `navigates` for the hand, `picksColor` for the
+`erases` for the eraser, `navigates` for the hand, `picksColor` for the
 dropper, `selects` for the selection family — so the canvas and the
 toolbar read a property instead of learning a name.
 

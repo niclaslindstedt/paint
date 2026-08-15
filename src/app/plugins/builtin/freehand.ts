@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 // The freehand family: tools that sample the pointer into a polyline. They
 // differ only in their ink — where the colour comes from, how wide the nib is,
-// how opaque it is, and which painter lays it down — so they share one
-// behaviour factory. It is the clearest demonstration of what a tool plugin
+// how opaque it is, which painter lays it down, and whether it lays any down at
+// all — so they share one behaviour factory. It is the clearest demonstration
+// of what a tool plugin
 // actually has to supply: the pencil, the marker, the airbrush, the crayon and
 // the eraser are all one call to this with different arguments.
 
@@ -35,8 +36,10 @@ export type FreehandStyle =
   "line" | "brush" | "spray" | "crayon" | "calligraphy";
 
 type FreehandInk = {
-  /** Paint with the page background instead of the ink colour (the eraser). */
-  useBackground?: boolean;
+  /** Lift ink rather than lay it down (the eraser). The mark carries no colour
+   *  — the renderer paints it with `destination-out`, where only its width and
+   *  its opacity mean anything. */
+  erases?: boolean;
   /** Multiplier on the toolbar's size — a marker is fatter than a pencil. */
   sizeScale?: number;
   /** Ink opacity, 0–1. The highlighter is translucent so overlapping passes
@@ -61,11 +64,12 @@ export function freehandBehaviour(ink: FreehandInk = {}): ToolBehaviour {
     const extra = extraDials(ctx.dials);
     return {
       tool: "",
-      // A background-painting tool (the eraser) records no colour at all, so it
-      // follows the page for good: flipping the canvas theme must not leave old
-      // eraser strokes painted in the previous page's colour. Ink tools record
-      // one only when the user picked it.
-      ...(ink.useBackground || !ctx.color ? {} : { color: ctx.color }),
+      // A tool that lifts ink (the eraser) records no colour at all: what it
+      // takes off the page is decided by where the nib went, not by what the
+      // toolbar happened to be holding, and a colour on the mark would be a
+      // number nothing ever reads. Ink tools record one only when the user
+      // picked it.
+      ...(ink.erases || !ctx.color ? {} : { color: ctx.color }),
       size: ctx.size * (ink.sizeScale ?? 1),
       ...(opacity < 1 ? { opacity } : {}),
       // Hardness is recorded, not resolved at paint time: a soft stroke is soft

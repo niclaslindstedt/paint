@@ -130,9 +130,13 @@ a readable JSON file rather than a blob of pixels.
   you ask for it, which is the row of toolbar the old "Fill shapes" checkbox
   used to cost. The choice sticks until you change it, and both shape buttons
   show it.
-- The eraser paints with the page colour. In a vector document there are no
-  pixels to clear, and painting over means an eraser stroke is undoable like any
-  other mark.
+- The **eraser takes ink off**. Its mark subtracts rather than paints, so what
+  it covers is gone and the sheet shows through the hole — including on a
+  transparent export, where an erased patch is a real hole rather than a
+  page-coloured smear. It lifts ink from the whole picture, whichever layer it
+  was drawn on, the way a rubber does to a drawing on paper. The stroke itself
+  is still an ordinary mark in the document, so a rubbing out undoes, syncs and
+  re-renders exactly like the line it took off.
 - **Starting over** is not the eraser's job. Throwing a drawing away is an
   action on the whole document, so it is the bin at the end of the **Image**
   heading in the right-hand panel: every mark, every layer and the page colour
@@ -149,12 +153,17 @@ a readable JSON file rather than a blob of pixels.
 
 Both live behind a single button, at the right-hand end of the toolbar.
 
-The **ink button** is split corner to corner: the colour you are drawing with
-above the diagonal, the page colour that rubs it out below. Press it for the
-palette, whatever colours you have mixed, and the page colour as a swatch of its
-own. **Mix a colour…** opens a hue strip and a saturation/brightness field —
-drag either and the ink changes as you go; **Keep** adds it to your own swatches
-for good, and a swatch you no longer want has a small × on it.
+The **ink button** is the colour you are drawing with. Press it for the palette
+and whatever colours you have mixed. **Mix a colour…** opens a hue strip and a
+saturation/brightness field — drag either and the ink changes as you go;
+**Keep** adds it to your own swatches for good, and a swatch you no longer want
+has a small × on it.
+
+There is no second half to it. It used to be split corner to corner with the
+page colour below the diagonal, back when painting with the page was how you
+rubbed something out. The eraser lifts ink now, and the sheet's colour belongs
+to the background layer (Settings → Canvas pins it), so the second half stood
+for nothing.
 
 The **nib button** shows a press with the tool in your hand: not a dot the size
 of the nib, but the mark that width actually leaves — painted by the same

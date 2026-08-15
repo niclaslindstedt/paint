@@ -44,6 +44,28 @@ beforeEach(() => {
       },
     },
   });
+  // The same tool again, but one that takes ink off. What it paints is not the
+  // point — that it erased is, because the cache then has to put the sheet back
+  // under the hole it left in pixels it is keeping.
+  registerPlugin({
+    id: "rubber",
+    core: true,
+    nameKey: "tools.eraser.name",
+    descriptionKey: "tools.eraser.description",
+    icon: () => null,
+    erases: true,
+    behaviour: {
+      start: (p) => ({
+        tool: "rubber",
+        size: 1,
+        shape: { kind: "path", points: [p] },
+      }),
+      move: (draft) => draft,
+      paint: (_ctx, stroke) => {
+        painted.push(stroke);
+      },
+    },
+  });
   painted = [];
   dom = withFakeDocument();
 });
@@ -143,6 +165,41 @@ describe("the committed marks cache", () => {
       paintCommitted(ctx, canvas, cache, spec(drawing([...strokes, landed]))),
     ).toBe("appended");
     expect(painted.map((s) => s.id)).toEqual([landed.id]);
+  });
+
+  it("lays the sheet back under a rubbing out it appended", () => {
+    const cache = createCache(400, 300)!;
+    const { ctx, canvas } = screen();
+    const strokes = [stroke(100)];
+    paintCommitted(ctx, canvas, cache, spec(drawing(strokes)));
+    // The cache's own pixels: a finished picture, sheet and all, copied off the
+    // screen. Appending onto them is where a rubbing out would take the page.
+    const surface = dom.created[0]!.ctx;
+    const before = surface.painted.length;
+
+    const rubbed = { ...stroke(120), tool: "rubber" };
+    expect(
+      paintCommitted(ctx, canvas, cache, spec(drawing([...strokes, rubbed]))),
+    ).toBe("appended");
+    expect(
+      surface.painted.slice(before).map((p) => `${p.call}@${p.composite}`),
+    ).toEqual(["fillRect@destination-over"]);
+  });
+
+  it("leaves the cache alone when the mark it appended only added ink", () => {
+    const cache = createCache(400, 300)!;
+    const { ctx, canvas } = screen();
+    const strokes = [stroke(100)];
+    paintCommitted(ctx, canvas, cache, spec(drawing(strokes)));
+    const surface = dom.created[0]!.ctx;
+    const before = surface.painted.length;
+    paintCommitted(
+      ctx,
+      canvas,
+      cache,
+      spec(drawing([...strokes, stroke(120)])),
+    );
+    expect(surface.painted).toHaveLength(before);
   });
 
   it("repaints when a stroke is undone", () => {
@@ -273,6 +330,41 @@ describe("layers", () => {
       paintCommitted(ctx, canvas, cache, spec(layered([under, landed]))),
     ).toBe("appended");
     expect(painted.map((s) => s.id)).toEqual([landed.id]);
+  });
+
+  it("lays the sheet back under a rubbing out it appended", () => {
+    const cache = createCache(400, 300)!;
+    const { ctx, canvas } = screen();
+    const strokes = [stroke(100)];
+    paintCommitted(ctx, canvas, cache, spec(drawing(strokes)));
+    // The cache's own pixels: a finished picture, sheet and all, copied off the
+    // screen. Appending onto them is where a rubbing out would take the page.
+    const surface = dom.created[0]!.ctx;
+    const before = surface.painted.length;
+
+    const rubbed = { ...stroke(120), tool: "rubber" };
+    expect(
+      paintCommitted(ctx, canvas, cache, spec(drawing([...strokes, rubbed]))),
+    ).toBe("appended");
+    expect(
+      surface.painted.slice(before).map((p) => `${p.call}@${p.composite}`),
+    ).toEqual(["fillRect@destination-over"]);
+  });
+
+  it("leaves the cache alone when the mark it appended only added ink", () => {
+    const cache = createCache(400, 300)!;
+    const { ctx, canvas } = screen();
+    const strokes = [stroke(100)];
+    paintCommitted(ctx, canvas, cache, spec(drawing(strokes)));
+    const surface = dom.created[0]!.ctx;
+    const before = surface.painted.length;
+    paintCommitted(
+      ctx,
+      canvas,
+      cache,
+      spec(drawing([...strokes, stroke(120)])),
+    );
+    expect(surface.painted).toHaveLength(before);
   });
 
   it("repaints when a mark lands *under* what is already painted", () => {

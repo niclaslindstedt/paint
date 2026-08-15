@@ -418,11 +418,17 @@ export function registerBuiltinPlugins(): void {
     // 8 × 2.5 — a rubber you can actually rub something out with. An eraser the
     // width of the pencil takes as many passes as the drawing took.
     defaultSize: 8,
-    // The eraser paints the page colour rather than removing strokes: a vector
-    // document has no pixels to clear, and painting over is what makes an
-    // eraser stroke undoable like any other mark.
-    usesBackground: true,
-    behaviour: freehandBehaviour({ useBackground: true, sizeScale: 2.5 }),
+    // It takes ink *off*: the mark is painted with `destination-out`, so what
+    // it covers is removed from the picture and the sheet comes back through
+    // the hole (see `render.ts`). It used to paint the page colour instead,
+    // which read the same on an opaque sheet and was wrong everywhere else — a
+    // transparent export came out with page-coloured smears where the rubbing
+    // out had been, and hiding the background layer showed them too.
+    //
+    // The stroke is still an ordinary mark in the document, so a rubbing out
+    // undoes, syncs and re-renders exactly like the line it took off.
+    erases: true,
+    behaviour: freehandBehaviour({ erases: true, sizeScale: 2.5 }),
   });
 
   // --- Then filling an area ------------------------------------------------
