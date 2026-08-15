@@ -361,6 +361,11 @@ export function registerBuiltinPlugins(): void {
     // says it does, so the number is the mark.
     gauge: PEN_GAUGE,
     defaultSize: mm(0.5),
+    // Liquid ink, but only just: a technical pen is dry the moment it leaves
+    // the nib on any sized paper, and the one stock it feathers on is
+    // newsprint — which is exactly what this number times an absorbency comes
+    // out saying (see `PaintPlugin.wetness`).
+    wetness: 0.18,
     dials: [OPACITY],
     // The three lines a drawing pen is actually asked for — see `./presets.ts`
     // for what a preset is and for why several tools below have none.
@@ -458,6 +463,9 @@ export function registerBuiltinPlugins(): void {
     // wet and gathered it is, what gauge the hair is, how far the bundle has
     // worn open, and whether the paper under it wicks. Plus the opacity every
     // marking tool offers.
+    // Body colour off a loaded head: wet enough to mix into what it is painted
+    // over on any paper, nowhere near as wet as a wash.
+    wetness: 0.6,
     dials: [OPACITY, HARDNESS, HAIR, SPLAY, BLEED],
     // Four heads rather than four widths — the hog, the dry brush and the
     // glaze are what those five dials are *for*.
@@ -488,6 +496,7 @@ export function registerBuiltinPlugins(): void {
     // The round's dials, plus the one thing a blade has that a cone does not:
     // which way it is turned. Held at −45° out of the box, the same tilt the
     // broad nib rests at, because it is the same right-handed wrist.
+    wetness: 0.6,
     dials: [OPACITY, HARDNESS, ANGLE, SPLAY, BLEED],
     presets: FLAT_BRUSH_PRESETS,
     behaviour: freehandBehaviour({
@@ -520,6 +529,12 @@ export function registerBuiltinPlugins(): void {
     // Three things, and a watercolourist changes exactly these between one
     // stroke and the next: how much water is on the brush, how much colour is
     // in the water, and what the sheet does with what is left behind.
+    // The wettest thing in the box, and the tool the whole ground mechanism
+    // was built for: on paper a wash mixes with the colour it lands on, drags
+    // a little of it into its own wet edge, and spreads past the hair further
+    // the thirstier the sheet is. On the solid sheet it does none of that and
+    // paints exactly as it always has.
+    wetness: 1,
     dials: [OPACITY, WATER, PIGMENT, GRANULATION],
     // Wet-in-wet, glaze and dry brush: the techniques those three dials are the
     // controls for, under the names a watercolourist already uses.
@@ -552,6 +567,9 @@ export function registerBuiltinPlugins(): void {
     defaultSize: mm(12),
     // A spray cone: how tight its core is, and how much paint the trigger lets
     // through per pass.
+    // Atomised: it has crossed a foot of air before it lands and most of the
+    // solvent is gone by then, so it dries almost on contact.
+    wetness: 0.15,
     dials: [HARDNESS, FLOW],
     presets: SPRAY_PRESETS,
     behaviour: freehandBehaviour({
@@ -581,6 +599,9 @@ export function registerBuiltinPlugins(): void {
     defaultSize: mm(2),
     // Spirit ink: it soaks in rather than sitting on top, so a second pass over
     // the same line darkens it the way a real marker does.
+    // Spirit ink, and the reason a marker on newsprint is a fat furry line and
+    // a marker on layout paper is a crisp one.
+    wetness: 0.5,
     dials: [OPACITY, CHISEL],
     presets: MARKER_PRESETS,
     behaviour: freehandBehaviour({
@@ -604,6 +625,7 @@ export function registerBuiltinPlugins(): void {
     // of page: a highlighter that could not cover the word it was over.
     gauge: HIGHLIGHTER_GAUGE,
     defaultSize: mm(5),
+    wetness: 0.45,
     dials: [OPACITY, CHISEL_FLAT],
     presets: HIGHLIGHTER_PRESETS,
     behaviour: freehandBehaviour({
@@ -629,6 +651,10 @@ export function registerBuiltinPlugins(): void {
     // and the face a crayon actually presents once it has been used twice.
     gauge: CRAYON_GAUGE,
     defaultSize: mm(8),
+    // No wetness at all, which is the point of wax: a crayon on the wettest
+    // paper there is behaves exactly as it does on glass, and a wash laid over
+    // one goes round it. (Resisting the water is what a wax resist *is* — see
+    // `docs/features/surface.md`.)
     dials: [OPACITY, PRESSURE],
     presets: CRAYON_PRESETS,
     behaviour: freehandBehaviour({ style: "crayon" }),
@@ -649,6 +675,9 @@ export function registerBuiltinPlugins(): void {
     // The one thing a writer actually changes about a broad nib is the angle
     // they hold it at — turn it towards flat and the stroke that swells is the
     // vertical instead of the diagonal.
+    // A broad nib carries a bead of ink and puts most of it on the page at
+    // once, which is why writing on the wrong paper feathers.
+    wetness: 0.5,
     dials: [OPACITY, ANGLE],
     // The three hands anyone is taught. A calligrapher changes the nib and the
     // angle they hold it at, and that is the whole difference between them.
@@ -678,6 +707,9 @@ export function registerBuiltinPlugins(): void {
     sizeless: true,
     // A wash you can see through, and an edge that fades out rather than
     // stopping — the two things that separate a bucket from a paint pot.
+    // It lays a wash rather than a coat, so on paper it mixes with the marks
+    // it floods over instead of hiding them.
+    wetness: 0.3,
     dials: [OPACITY, FEATHER],
     // The one set with no width in it, because the tool has none.
     presets: FILL_PRESETS,

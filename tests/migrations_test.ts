@@ -269,6 +269,36 @@ describe("parseDoc", () => {
     expect(parseDoc(serializeDoc(doc))).toEqual(doc);
   });
 
+  // The ground is additive in exactly the same way: an optional field on a
+  // drawing, no step, no version bump. The part worth pinning is that a page on
+  // the plain solid sheet — which is every page in every install until someone
+  // picks a stock — still writes the bytes it always did, because that is what
+  // makes shipping this a no-op for existing work.
+  it("round-trips a drawing's ground, and adds nothing to a page without one", () => {
+    const doc = parseDoc(
+      JSON.stringify({
+        version: LATEST_VERSION,
+        folders: [],
+        drawings: [
+          {
+            id: "d1",
+            name: "sketch",
+            width: 400,
+            height: 300,
+            strokes: [],
+            ground: { stock: "rough", texture: 0.5 },
+          },
+          { id: "d2", name: "plain", width: 400, height: 300, strokes: [] },
+        ],
+        activeDrawingId: "d1",
+      }),
+    );
+    expect(doc.drawings[0]!.ground).toEqual({ stock: "rough", texture: 0.5 });
+    expect(doc.drawings[1]!.ground).toBeUndefined();
+    expect(JSON.stringify(doc.drawings[1])).not.toContain("ground");
+    expect(parseDoc(serializeDoc(doc))).toEqual(doc);
+  });
+
   it("refuses a document from a newer build rather than mangling it", () => {
     expect(() =>
       parseDoc(JSON.stringify({ version: LATEST_VERSION + 5, drawings: [] })),

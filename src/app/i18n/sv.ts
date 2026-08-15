@@ -403,6 +403,48 @@ export const sv: Catalog = {
     hint: "Nya streck hamnar på det valda lagret. Bakgrunden bär sidans färg; dölj den så blir sidan genomskinlig.",
     swipeHint: "Svep in från högerkanten för att öppna panelen.",
   },
+  grounds: {
+    solid: {
+      name: "Enfärgad",
+      hint: "En förseglad digital sida: ingen struktur, och färgen lägger sig ovanpå det den täcker.",
+    },
+    hot: {
+      name: "Satinerat",
+      hint: "Akvarellpapper valsat slätt. Det suger som papper men har nästan inget för pigmentet att lägga sig i.",
+    },
+    cold: {
+      name: "Grovkornigt",
+      hint: "Arket som de flesta akvareller målas på. Tillräckligt med struktur för att granulera, inte så mycket att en linje bryts upp.",
+    },
+    rough: {
+      name: "Grovt",
+      hint: "Torkat utan pressning. Laveringar samlas i dalarna och en torr pensel hoppar över topparna.",
+    },
+    cartridge: {
+      name: "Ritpapper",
+      hint: "Skissblockets papper. Fin struktur, och limmat nog att bläcket stannar där du satte det.",
+    },
+    laid: {
+      name: "Randat",
+      hint: "Räfflat skrivpapper med en kedjelinje tvärsöver. Håller bläcket på ytan i stället för att dricka det.",
+    },
+    newsprint: {
+      name: "Tidningspapper",
+      hint: "Törstigt och olimmat: allt vått flyter ut på det, och en tuschpenna blir luddig.",
+    },
+    kraft: {
+      name: "Kraftpapper",
+      hint: "Brunt omslagspapper — ett fibrigt ark som tål en lavering. Lås en brun sidfärg till det.",
+    },
+    cotton: {
+      name: "Bomullsduk",
+      hint: "Grundad duk: en grov väv som syns genom allt, och en grund som håller färgen på ytan.",
+    },
+    linen: {
+      name: "Linne",
+      hint: "En finare och knottrigare väv än bomull, och lika lite törstig — grundad duk suger knappt alls.",
+    },
+  },
   tools: {
     pencil: {
       name: "Bläckpenna",
@@ -600,6 +642,16 @@ export const sv: Catalog = {
       pageFollowTheme: "Följ temat",
       pageColorHint:
         "Lås en färg för just den här teckningen — den åsidosätter ritytans tema och följer med teckningen när den synkas.",
+      surfaceTitle: "Underlag",
+      surfaceLabel: "Vad sidan är gjord av",
+      surfaceHint:
+        "Arket är en del av bilden och följer med teckningen: strukturen målas under strecken, och ett vått verktyg på ett törstigt ark blandar sig med det det målas över i stället för att täcka det. Akvarell är verktyget att prova det med.",
+      surfaceSolid: "Enfärgat",
+      surfacePaper: "Papper",
+      surfaceCanvas: "Duk",
+      surfaceTexture: "Struktur: {value}%",
+      surfaceTextureHint:
+        "Hur tydligt arkets struktur syns. Det ändrar vad du ser, aldrig hur mycket arket suger — det är vad sorten är.",
       gridTitle: "Rutnät",
       showGrid: "Visa rutnät",
       showGridHint:

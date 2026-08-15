@@ -128,6 +128,12 @@ export async function drawingToBlob(
   const paint = {
     pageColor: options.pageColor,
     defaultInk: options.defaultInk,
+    // The sheet travels with the drawing, so an export is on the same paper the
+    // canvas was — grain included in the bitmap formats, and the marks blended
+    // the way the sheet blends them. (A vector file gets the marks and the page
+    // without the grain: there is nothing in SVG that a canvas pattern of noise
+    // maps onto. See `groundPaint.ts`.)
+    ground: drawing.ground,
     transparentPage: wantsTransparency(format, options),
   };
 

@@ -23,10 +23,27 @@
 // tool always *looked* like it did. What is new is that the hole is a real one:
 // a transparent export has nothing in it, where it used to have page-coloured
 // smears.
+//
+// **The sheet is also a material.** A drawing carries a ground — solid, paper,
+// canvas (see `ground.ts`) — and it changes how the marks land as well as how
+// the page looks: its grain is painted under them, a wet mark on a sheet that
+// soaks mixes with what is under it instead of covering it, and it drags a
+// little of what it crossed into its own wet edge. All of that is read off the
+// drawing's ground and the tool's declared wetness, so no part of the renderer
+// knows what watercolour is called.
 
 import { filterReach, svgFilter } from "./filters.ts";
 import { paintFilters } from "./filterPaint.ts";
 import { strokeVisible, type Rect } from "./geometry.ts";
+import {
+  groundProfile,
+  groundStains,
+  inkBlend,
+  stains,
+  SOLID_GROUND,
+  type GroundProfile,
+} from "./ground.ts";
+import { paintGroundTexture } from "./groundPaint.ts";
 import {
   anyLayerFiltered,
   backgroundHidden,
@@ -41,7 +58,8 @@ import { pluginById } from "./plugins/registry.ts";
 import { applyInk, paintPath, paintRect, paintSegment } from "./plugins/ink.ts";
 import { FULL_DETAIL, type PaintDetail } from "./plugins/types.ts";
 import { createSurface } from "./surface.ts";
-import type { Drawing, Filter, Stroke } from "./types.ts";
+import type { Drawing, Filter, Ground, Stroke } from "./types.ts";
+import { liftUnder } from "./wet.ts";
 
 /** The colours a repaint resolves absent stroke ink against. */
 export type InkContext = {
@@ -83,6 +101,31 @@ export function anyErases(strokes: readonly Stroke[]): boolean {
   return strokes.some(strokeErases);
 }
 
+/** How wet the tool that drew this mark is (`PaintPlugin.wetness`) — 0 for a
+ *  pencil, 1 for a loaded watercolour brush, and 0 for a mark whose tool this
+ *  build doesn't ship. Read off the plugin rather than off the stroke for the
+ *  same reason `erases` is: it is a property of the *implement*, and a document
+ *  written before wetness existed has to answer it too. */
+export function strokeWetness(stroke: Stroke): number {
+  return pluginById(stroke.tool)?.wetness ?? 0;
+}
+
+/** Whether this mark soaks into `ground` — mixing with what is under it instead
+ *  of covering it, and dragging some of it along (see `ground.ts`). */
+export function strokeStains(stroke: Stroke, ground: GroundProfile): boolean {
+  return stains(strokeWetness(stroke), ground);
+}
+
+/** Whether any of these marks soaks in. Asked by the mark cache before it takes
+ *  its shortcut, and by the renderer before it lifts a layer onto a surface. */
+export function anyStains(
+  strokes: readonly Stroke[],
+  ground: GroundProfile,
+): boolean {
+  if (!groundStains(ground)) return false;
+  return strokes.some((stroke) => strokeStains(stroke, ground));
+}
+
 /** Paint one stroke through its tool's painter.
  *
  *  A stroke whose tool this build doesn't ship — a document written by a newer
@@ -90,7 +133,15 @@ export function anyErases(strokes: readonly Stroke[]): boolean {
  *  back to a generic painter keyed off the shape kind. Losing the tool must
  *  never mean losing the drawing. (A mark from a lost *erasing* tool therefore
  *  comes back as a plain one. There is no honest alternative — the flag lived
- *  on the plugin, not on the stroke — and a visible mark beats a silent one.) */
+ *  on the plugin, not on the stroke — and a visible mark beats a silent one.)
+ *
+ *  **What the sheet does to the mark happens here**, and it is two things (see
+ *  `ground.ts`). A wet mark on a sheet that soaks *mixes* with what is under it
+ *  rather than covering it — `multiply` on a light page, `screen` on a dark one
+ *  — and it *lifts* a little of whatever it crossed into its own wet edge before
+ *  it lands (`wet.ts`). Both are read off the tool's declared wetness and the
+ *  drawing's ground; neither knows a tool by name, and on the plain solid sheet
+ *  neither happens at all. */
 export function paintStroke(
   ctx: CanvasRenderingContext2D,
   stroke: Stroke,
@@ -98,16 +149,39 @@ export function paintStroke(
   detail: PaintDetail = FULL_DETAIL,
 ): void {
   const resolved = resolveStrokeInk(stroke, ink);
-  ctx.save();
   const plugin = pluginById(resolved.tool);
+  // Laying the mark down, as a function, because a wet one is painted twice:
+  // once onto a scratch surface to cut its bleed to its own shape, and once for
+  // real. Both have to be the *same* mark, or the bleed would follow an outline
+  // the mark does not have.
+  const lay = (target: CanvasRenderingContext2D) => {
+    if (plugin) plugin.behaviour.paint(target, resolved, detail);
+    else paintGeneric(target, resolved);
+  };
+
+  // An erasing tool is dry by definition: it takes ink off, and a hole cannot
+  // soak into anything.
+  const blend = inkBlend(
+    plugin?.erases ? 0 : (plugin?.wetness ?? 0),
+    detail.ground ?? SOLID_GROUND,
+    ink.pageColor,
+  );
+  // The water goes down before the pigment does, so what it lifts is what was
+  // on the page *before* this mark — which is exactly why laying red over blue
+  // is not the same picture as laying blue over red.
+  if (blend.lift > 0) liftUnder(ctx, resolved, blend.lift, lay);
+
+  ctx.save();
   // A rubbing out is the same painter laying the same mark, composited the
   // other way round: `destination-out` subtracts the mark's alpha from what is
   // already there. Set here rather than inside the painter so a tool only has
   // to *declare* that it erases — and so every painter, textured ones included,
   // rubs out exactly the shape it would have drawn.
   if (plugin?.erases) ctx.globalCompositeOperation = "destination-out";
-  if (plugin) plugin.behaviour.paint(ctx, resolved, detail);
-  else paintGeneric(ctx, resolved);
+  else if (blend.mode !== "source-over") {
+    ctx.globalCompositeOperation = blend.mode;
+  }
+  lay(ctx);
   ctx.restore();
 }
 
@@ -154,6 +228,16 @@ function paintGeneric(ctx: CanvasRenderingContext2D, stroke: Stroke): void {
 
 /** How a repaint treats the page, and what it inks unpicked strokes with. */
 export type RenderOptions = InkContext & {
+  /** What the sheet is made of (see `ground.ts`). Absent means the plain solid
+   *  page — no grain, and nothing wet behaves any differently on it — which is
+   *  what every drawing painted before grounds existed is.
+   *
+   *  Only the callers that paint marks **without a drawing** need set it: the
+   *  mark cache appending a finished gesture, a layer thumbnail, a size
+   *  preview. `renderDrawing` and `underlay` are handed the drawing and take
+   *  the sheet off that instead, so what a page is painted on can never depend
+   *  on a caller having remembered to say. */
+  ground?: Ground;
   /** Leave the background layer out: no page fill, and none of the marks drawn
    *  on the sheet either. What a transparent export asks for — the drawing then
    *  lands on nothing rather than on a page that happens to match, and a patch
@@ -260,8 +344,13 @@ export function renderDrawing(
   ctx: CanvasRenderingContext2D,
   drawing: Drawing,
   draft: Stroke | null,
-  options: RenderOptions,
+  given: RenderOptions,
 ): void {
+  // The sheet is the *drawing's*, so it is taken from the drawing rather than
+  // from what the caller remembered to pass. Every path below is handed the
+  // resolved options, which is what stops a repaint and an export from ever
+  // disagreeing about which paper the page is on (see `RenderOptions.ground`).
+  const options: RenderOptions = { ...given, ground: drawing.ground };
   // Start from nothing. The sheet is laid under the marks at the end rather
   // than painted before them (see the note at the top of the file), but the
   // page still has to be *cleared* first: a caller may be repainting over
@@ -275,20 +364,38 @@ export function renderDrawing(
   // Hiding the sheet takes the colour but keeps what was drawn on it; a
   // transparent export takes both, which is what makes it transparent.
   const scope = { withoutBackground: options.transparentPage };
-  if (anyLayerFiltered(drawing) && !options.unfiltered) {
+  const strokes = visibleStrokes(drawing, scope);
+  // A sheet at a time when some layer has to be composited as a unit: one that
+  // carries filters, and one that carries wet marks on a ground that mixes them
+  // (see `paintStack`). Everything else is one flat fold, as it always was.
+  const apart =
+    !options.unfiltered &&
+    (anyLayerFiltered(drawing) ||
+      anyStains(strokes, groundProfile(options.ground)));
+  if (apart) {
     paintStack(ctx, drawing, scope, options);
   } else {
-    paintStrokes(ctx, visibleStrokes(drawing, scope), options);
+    paintStrokes(ctx, strokes, options);
   }
   if (draft) paintStroke(ctx, draft, options, detailFor(ctx, options));
 
   underlay(ctx, drawing, options);
 }
 
-/** Paint the stack a sheet at a time, so a layer carrying filters of its own can
- *  be composited as a unit (see `Layer.filters`).
+/** Paint the stack a sheet at a time, so a layer that has to be composited as a
+ *  unit can be — one carrying filters of its own (see `Layer.filters`), and one
+ *  carrying wet marks on a ground that mixes them.
  *
- *  Only reached when some layer *is* filtered. Every other drawing keeps the
+ *  **This is what keeps wet mixing inside a layer.** A wash mixes with what it
+ *  is painted over and drags a little of it along (see `paintStroke`), and "what
+ *  it is painted over" is whatever is on the pixels underneath — which, painted
+ *  flat, would be every lower layer as well. Giving the layer a surface of its
+ *  own makes the answer "the marks on this sheet", so a wash mixes with the ink
+ *  beside it and leaves the layer below alone. That is the useful behaviour as
+ *  well as the tidy one: putting a mark on another layer is how you keep it out
+ *  of the water.
+ *
+ *  Only reached when some layer *is* filtered or mixing. Every other drawing keeps the
  *  flat fold above, which is not merely an optimisation: painting layer by layer
  *  changes what an eraser reaches. In one pass a rubbing out on the top layer
  *  takes ink off everything already painted, whatever layer it was drawn on,
@@ -297,27 +404,33 @@ export function renderDrawing(
  *  what makes a filtered layer erasable *through* to the ones below, and exactly
  *  what must not happen to a drawing nobody has filtered.
  *
- *  So the rule is: **a layer is only lifted onto a surface when it has filters
- *  to apply.** Unfiltered layers paint straight onto the page, in order, and go
- *  on erasing everything under them. */
+ *  So the rule is: **a layer is only lifted onto a surface when it has
+ *  something to do there** — filters to apply, or wet marks to mix. Every other
+ *  layer paints straight onto the page, in order, and goes on erasing
+ *  everything under it. */
 function paintStack(
   ctx: CanvasRenderingContext2D,
   drawing: Drawing,
   scope: PaintScope,
   options: RenderOptions,
 ): void {
+  const ground = groundProfile(options.ground);
   for (const { layer, strokes } of paintedLayers(drawing, scope)) {
     const filters = layerFilters(layer);
-    if (filters.length === 0) {
+    if (filters.length === 0 && !anyStains(strokes, ground)) {
       paintStrokes(ctx, strokes, options);
       continue;
     }
-    paintFilteredLayer(ctx, drawing, strokes, filters, options);
+    paintLayerApart(ctx, drawing, strokes, filters, options);
   }
 }
 
-/** One filtered layer: its marks onto a surface of their own, the filters over
- *  that, and the result composited onto the page.
+/** One layer painted apart: its marks onto a surface of their own, any filters
+ *  over that, and the result composited onto the page.
+ *
+ *  A layer with no filters at all reaches here when its wet marks have to mix
+ *  among themselves rather than with the stack below — the surface is then the
+ *  whole point and there is nothing to apply over it.
  *
  *  The surface matches the canvas being painted pixel for pixel and inherits its
  *  transform, so the layer's marks land in exactly the places they would have
@@ -330,7 +443,7 @@ function paintStack(
  *  down. A blur moves ink, so a mark just off the edge of the window still fogs
  *  its way into it, and culling it for being out of frame would leave the edge
  *  of the layer lighter than its middle — a seam that moves as you pan. */
-function paintFilteredLayer(
+function paintLayerApart(
   ctx: CanvasRenderingContext2D,
   drawing: Drawing,
   strokes: readonly Stroke[],
@@ -342,7 +455,16 @@ function paintFilteredLayer(
   // as SVG filter primitives (see `svg.ts`). Duck-typed for the same reason
   // `renderScale` duck-types `getTransform` — the painters are written against
   // the canvas API, and a recorder that answers more of it gets more.
+  //
+  // A layer here only to mix its wet marks has nothing to record: the mixing is
+  // pixels — blending and bleeding — and a vector file has neither. It paints
+  // as a plain layer, which is the same call the whole export makes about the
+  // sheet's grain (see `groundPaint.ts`).
   const recorder = asFilterRecorder(ctx);
+  if (recorder && filters.length === 0) {
+    paintStrokes(ctx, strokes, options);
+    return;
+  }
   if (recorder) {
     recorder.beginFilterGroup();
     paintStrokes(ctx, strokes, options);
@@ -373,12 +495,14 @@ function paintFilteredLayer(
   // under them — that is the background layer's job and it is somewhere else in
   // this stack — so the blur fades into nothing at the page's edge, which is
   // what a filtered cut-out should do.
-  paintFilters(surface.ctx, filters, {
-    page: pageOn(view, drawing),
-    scale,
-    pageColor: options.pageColor,
-    transparent: true,
-  });
+  if (filters.length > 0) {
+    paintFilters(surface.ctx, filters, {
+      page: pageOn(view, drawing),
+      scale,
+      pageColor: options.pageColor,
+      transparent: true,
+    });
+  }
   ctx.save();
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.globalAlpha = 1;
@@ -405,6 +529,15 @@ function paintFilteredLayer(
  *  where the new stroke overlaps existing ones the softening shifts slightly on
  *  commit. It is the same picture a fraction differently blended, which is far
  *  less than the alternative of watching the whole stroke change focus.
+ *
+ *  A **wet** mark in flight is the same trade the other way round. It is
+ *  painted onto the finished picture rather than onto its layer's own surface,
+ *  so under the finger it mixes with everything showing beneath it and on commit
+ *  it mixes only with its own layer (see `paintStack`). A wash drawn on the one
+ *  layer a drawing has — which is most of them — comes out identical either way;
+ *  on a stack it settles a shade when you lift, and the alternative is a preview
+ *  that shows no mixing at all, since a fresh surface has nothing on it to mix
+ *  with.
  *
  *  `landsOn` names the layer for marks that carry none — the draft, which is not
  *  stamped with its layer until the store commits it. */
@@ -437,7 +570,7 @@ export function paintDetached(
     if (run.length === 0) return;
     const filters = byLayer.get(runLayer) ?? [];
     if (filters.length === 0) paintStrokes(ctx, run, options);
-    else paintFilteredLayer(ctx, drawing, run, filters, options);
+    else paintLayerApart(ctx, drawing, run, filters, options);
     run = [];
   };
   for (const stroke of strokes) {
@@ -548,6 +681,20 @@ export function underlay(
   // patch shows the ruling again rather than bare page.
   if (options.grid) paintGrid(ctx, drawing, options.grid);
   if (!withoutBackground) {
+    // Then the sheet's own grain, between the page colour and the ruling: the
+    // paper is what the grid is ruled on. Laid *under* the marks like
+    // everything else here, which is what makes it show through a wash in
+    // proportion to how transparent the wash is — the tooth reading through
+    // watercolour and not through an opaque line is the whole of why paper
+    // looks like paper.
+    paintGroundTexture(
+      ctx,
+      drawing,
+      // The drawing's own sheet, for `renderDrawing`'s reason: the grain
+      // belongs to the page and not to whoever asked for the repaint.
+      groundProfile(drawing.ground),
+      options.scale ?? renderScale(ctx),
+    );
     ctx.fillStyle = options.pageColor;
     ctx.fillRect(0, 0, drawing.width, drawing.height);
   }
@@ -576,12 +723,16 @@ export function paintStrokes(
 }
 
 /** The detail to paint at: what the caller said, or what the context's own
- *  transform says. Measured once per repaint rather than once per stroke. */
+ *  transform says, plus the sheet the marks are landing on. Both are resolved
+ *  once per repaint rather than once per stroke. */
 function detailFor(
   ctx: CanvasRenderingContext2D,
   options: RenderOptions,
 ): PaintDetail {
-  return { scale: options.scale ?? renderScale(ctx) };
+  return {
+    scale: options.scale ?? renderScale(ctx),
+    ground: groundProfile(options.ground),
+  };
 }
 
 // Screen-to-document mapping used to live here, back when the canvas element
