@@ -84,6 +84,11 @@ export const en = {
     chooseImageHint: "Or drop one here. The page is cut to the picture's size.",
     dropImage: "Drop the image to start a drawing from it",
     clipboardName: "Pasted image",
+    clipboardPaste: "Paste from clipboard",
+    clipboardAgain: "Look again",
+    clipboardAsk: "Your browser asks before a page may read the clipboard.",
+    clipboardWaiting: "Confirm the paste when your browser asks for it.",
+    clipboardEmpty: "There's no picture on the clipboard.",
     create: "Create",
   },
   // The page actions — what the right-hand panel does to a whole drawing rather

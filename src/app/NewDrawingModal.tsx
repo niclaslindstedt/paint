@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 
 import {
   Button,
+  CopyIcon,
   ImageUpIcon,
   LABELED_FIELD_CLASS,
   Modal,
@@ -26,7 +27,21 @@ import {
   type CanvasPreset,
   type CanvasSize,
 } from "./canvasSize.ts";
-import { clipboardImage } from "./clipboard.ts";
+import {
+  canLookAtClipboard,
+  clipboardCanBeRead,
+  pasteClipboardImage,
+  peekClipboardImage,
+} from "./clipboard.ts";
+import {
+  afterPaste,
+  afterPeek,
+  looking,
+  pastedImage,
+  tabEnabled,
+  tabShown,
+  type ClipboardSource,
+} from "./clipboardSource.ts";
 import { useT } from "./i18n/index.ts";
 import {
   imageFileStem,
@@ -47,10 +62,18 @@ import * as output from "../output.ts";
 //
 // The three sources are a segmented control rather than three buttons because
 // they are the same act — start a drawing — from three places, and only one of
-// them can be true at a time. Clipboard shows up only when there is actually a
-// picture on it; a tab that is always there and usually says "nothing here" is a
-// tab that teaches you to skip it (see `clipboard.ts` for why that question is
-// harder to ask than it sounds).
+// them can be true at a time.
+//
+// **Clipboard is the awkward one**, because "is there a picture on the
+// clipboard" is a question some browsers won't answer quietly. Where a look is
+// free the tab keeps its old manners: it appears when there is something to
+// paste and stays away when there isn't, since a tab that is always there and
+// usually says "nothing here" is a tab that teaches you to skip it. Where a look
+// is *not* free — every WebKit, so every installed iOS PWA — the dialog must not
+// take one on opening: doing that put the system's own Paste button on screen in
+// answer to a press nobody made, and then timed out and pulled the tab away
+// while the user was still reading it. So there the tab is simply offered, and
+// looking is a button inside it. See `clipboard.ts` and `clipboardSource.ts`.
 //
 // **The sizes are drawn, not listed.** Four rectangles at one shared scale
 // answer "how much bigger is 4K than Full HD" and "is A4 taller than my screen"
@@ -109,25 +132,47 @@ export function NewDrawingModal({
     image: ImportedImage;
     name: string;
   } | null>(null);
-  // What is on the clipboard: undefined while we are still asking, null once we
-  // know there is nothing we can use.
-  const [pasted, setPasted] = useState<ImportedImage | null | undefined>(
-    undefined,
-  );
+  // What we know about the clipboard, which is a state rather than a picture
+  // (see `clipboardSource.ts`).
+  const [clip, setClip] = useState<ClipboardSource>({ kind: "looking" });
   const fileRef = useRef<HTMLInputElement>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
 
-  // Ask the clipboard once, as the dialog opens. Every failure is "nothing
-  // there" (see `clipboard.ts`), so this can never leave the dialog stuck.
+  // Look at the clipboard as the dialog opens — but only if looking is free.
+  // Where it isn't, the tab is offered with a button on it instead, and nothing
+  // at all happens until that button is pressed. Every failure is "nothing
+  // there" (see `clipboard.ts`), so neither path can leave the dialog stuck.
   useEffect(() => {
     let live = true;
-    void clipboardImage().then((image) => {
-      if (live) setPasted(image);
+    // A browser that won't hand the clipboard over on any terms gets no tab —
+    // offering a button that can only ever come back empty is worse than not
+    // offering one.
+    if (!clipboardCanBeRead()) {
+      setClip({ kind: "hidden" });
+      return;
+    }
+    void canLookAtClipboard().then((free) => {
+      if (!live) return;
+      if (!free) {
+        setClip({ kind: "ask" });
+        return;
+      }
+      void peekClipboardImage().then((image) => {
+        if (live) setClip(afterPeek(image));
+      });
     });
     return () => {
       live = false;
     };
   }, []);
+
+  /** Look because the user asked us to. Inside their press, so the browser's
+   *  own prompt — iOS's Paste button — comes up in answer to a deliberate act,
+   *  and we wait for it however long it takes. */
+  const askClipboard = () => {
+    setClip({ kind: "reading" });
+    void pasteClipboardImage().then((image) => setClip(afterPaste(image)));
+  };
 
   const take = (file: File | null | undefined) => {
     if (!file) return;
@@ -158,6 +203,7 @@ export function NewDrawingModal({
   const blankSize = typedSize ? customSize : size;
 
   const chosen = source === "file" ? picked?.image : undefined;
+  const pasted = pastedImage(clip);
   const ready =
     (source === "blank" && blankSize) ||
     (source === "file" && picked) ||
@@ -216,15 +262,15 @@ export function NewDrawingModal({
           options={[
             { value: "blank", label: t("newDrawing.sourceBlank") },
             { value: "file", label: t("newDrawing.sourceFile") },
-            // Offered only when the clipboard actually holds a picture — while
-            // we are still asking it is there but disabled, which is a second
-            // of a dimmed tab rather than a tab that appears under your thumb.
-            ...(pasted !== null
+            // There unless a free look proved there is nothing to paste — and
+            // dim only for the second such a look takes, never once the tab is
+            // something you are meant to press.
+            ...(tabShown(clip)
               ? [
                   {
                     value: "clipboard" as const,
                     label: t("newDrawing.sourceClipboard"),
-                    disabled: pasted === undefined,
+                    disabled: !tabEnabled(clip),
                   },
                 ]
               : []),
@@ -312,22 +358,40 @@ export function NewDrawingModal({
 
         {source === "clipboard" && (
           <div className="flex flex-col gap-2">
-            <div className="flex items-center justify-center rounded-lg border border-line px-4 py-4">
+            {/* One box, whatever the clipboard is currently worth saying: the
+                picture itself, the spinner while a look is in flight, or the
+                button that takes the look where we may not take it unasked. */}
+            <div className="flex min-h-28 flex-col items-center justify-center gap-3 rounded-lg border border-line px-4 py-4">
               {pasted ? (
                 <img
                   src={pasted.src}
                   alt=""
                   className="max-h-32 max-w-full rounded object-contain"
                 />
-              ) : (
+              ) : looking(clip) ? (
                 <SpinnerIcon className="h-5 w-5 text-muted" />
+              ) : (
+                <>
+                  <CopyIcon className="h-6 w-6 text-accent" />
+                  <Button variant="secondary" onClick={askClipboard}>
+                    {t(
+                      clip.kind === "nothing"
+                        ? "newDrawing.clipboardAgain"
+                        : "newDrawing.clipboardPaste",
+                    )}
+                  </Button>
+                </>
               )}
             </div>
-            {pasted && (
-              <p className="text-xs text-muted tabular-nums">
-                {dimensions(pasted)}
-              </p>
-            )}
+            <p className="text-xs text-muted tabular-nums">
+              {pasted
+                ? dimensions(pasted)
+                : clip.kind === "reading"
+                  ? t("newDrawing.clipboardWaiting")
+                  : clip.kind === "nothing"
+                    ? t("newDrawing.clipboardEmpty")
+                    : t("newDrawing.clipboardAsk")}
+            </p>
           </div>
         )}
 

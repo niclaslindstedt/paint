@@ -121,8 +121,12 @@ sync** glyph, which shows the sync state and opens the sync details.
 
 **New drawing** gets the sidebar out of the way and asks what the drawing is
 made of: **New** for an empty page, **Load** for an image from disk (or dropped
-onto the dialog), and **Clipboard** when there is a picture on it — a drawing
-made from a picture is cut to the picture's size. An empty one asks how big it
+onto the dialog), and **Clipboard** for the picture you copied — a drawing made
+from a picture is cut to the picture's size. Browsers differ on how much they
+will say about the clipboard: where a page may look freely the tab appears only
+when there is actually something to paste, and where it may not — Safari, and so
+every drawing app installed to an iPhone home screen — the tab holds a **Paste
+from clipboard** button, and the browser puts up its own Paste to confirm. An empty one asks how big it
 is, and the sizes are drawn rather than listed: this screen, Full HD, 4K, A4 and
 one you type, all at one shared scale, so you can see how much bigger 4K is
 before you pick it. The page can still be resized afterwards, from the
