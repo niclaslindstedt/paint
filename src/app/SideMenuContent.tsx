@@ -683,10 +683,15 @@ export function SideMenuContent({
       {/* The footer: Donate, an About dropdown that folds away the project
           links, the framework's "check for updates" row, and Settings pinned
           last under the thumb. The panel's own bottom reserve is reclaimed
-          above, so this is the whole gap under Settings: 10px, enough to keep
-          the row off the screen's edge without stranding it above it. */}
+          above, so the padding here is the whole gap around the block: the
+          same `1.25rem - var(--density-row-py)` the reclaim is measured in, so
+          a row's own padding plus the block's adds up to a constant 1.25rem
+          however dense the theme is — and 10px more at the bottom, because
+          this PWA paints edge to edge and Settings would otherwise sit on the
+          screen's edge. The sibling `contacts` app spaces its footer the same
+          way. */}
       {!footerCollapsed && (
-        <div className="flex shrink-0 flex-col border-t border-line pt-1 pb-[10px]">
+        <div className="flex shrink-0 flex-col border-t border-line [padding-top:calc(1.25rem-var(--density-row-py))] [padding-bottom:calc(1.25rem-var(--density-row-py)+10px)]">
           <FooterLink
             icon={<HeartIcon className="h-5 w-5 text-danger" />}
             href={DONATE_URL}
