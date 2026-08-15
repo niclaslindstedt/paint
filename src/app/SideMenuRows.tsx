@@ -366,9 +366,10 @@ export function FooterLink({
  *  it folds the footer away — handing the freed height to the drawing list —
  *  and again to bring it back. Down folds it away, up restores it.
  *
- *  With the footer folded the rail is the drawer's last row, so it takes over
- *  the footer's 10px of bottom breathing room — as a margin, so the row itself
- *  stays symmetrical either way. */
+ *  The rail is the same row either way: its own symmetric padding is the whole
+ *  gap under it when the footer is folded, which is what the sibling `contacts`
+ *  app does. Adding a margin on top of that read as a stray band of dead space
+ *  below the chevron. */
 export function FooterCollapseRail({
   collapsed,
   label,
@@ -385,9 +386,7 @@ export function FooterCollapseRail({
       aria-label={label}
       aria-expanded={!collapsed}
       title={label}
-      className={`flex w-full shrink-0 cursor-pointer items-center justify-center border-t border-line py-[calc(var(--density-row-py)+0.25rem)] text-muted hover:bg-surface-2 hover:text-fg-bright ${
-        collapsed ? "mb-[10px]" : ""
-      }`}
+      className="flex w-full shrink-0 cursor-pointer items-center justify-center border-t border-line py-[calc(var(--density-row-py)+0.25rem)] text-muted hover:bg-surface-2 hover:text-fg-bright"
     >
       {collapsed ? (
         <ChevronUpIcon className="h-4 w-4" />
