@@ -212,11 +212,13 @@ export function Toolbar({
 
   return (
     // The toolbar is the last thing above the screen edge, and the app paints
-    // under the home indicator (`viewport-fit=cover`), so it carries the bottom
-    // safe-area inset plus 10px — enough that the buttons stay a comfortable
-    // thumb reach above the indicator instead of sitting on it.
+    // under the home indicator (`viewport-fit=cover`), so 10px is the whole of
+    // what sits below the last row of buttons. Carrying the bottom safe-area
+    // inset as well put them 44px clear of the edge on a phone — a strip of
+    // empty surface as tall as a toolbar row, taken off the page for a home
+    // indicator that floats over chrome perfectly happily.
     <div
-      className="flex flex-wrap items-center gap-0.5 border-t border-line bg-surface px-2 pt-2 [padding-bottom:calc(env(safe-area-inset-bottom)+10px)]"
+      className="flex flex-wrap items-center gap-0.5 border-t border-line bg-surface px-2 pt-2 pb-[10px]"
       role="toolbar"
       aria-label={t("canvas.toolbar")}
     >

@@ -620,10 +620,17 @@ export function CanvasScreen({
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      {/* The header pads by the top safe-area inset so its title and buttons
-          sit clear of the status bar / Dynamic Island in the installed iOS PWA,
-          which paints edge to edge (`viewport-fit=cover`). */}
-      <header className="flex shrink-0 items-center gap-2 border-b border-line bg-surface px-3 pb-2 pt-[calc(0.5rem+env(safe-area-inset-top))]">
+      {/* The header pads by the top safe-area inset and nothing on top of it,
+          so its title and buttons sit clear of the status bar / Dynamic Island
+          in the installed iOS PWA, which paints edge to edge
+          (`viewport-fit=cover`), without a band of dead surface above them.
+          The inset is already generous: on an island phone it is 59px while
+          the island's bottom edge is at ~48px, so the buttons still breathe
+          ~11px below it — near enough the 9px (`pb-2` + the border) between
+          them and the canvas that the row reads centred in its own bar. The
+          extra 0.5rem this used to add made that gap 19px, twice the one
+          below, and the header sat visibly low. */}
+      <header className="flex shrink-0 items-center gap-2 border-b border-line bg-surface px-3 pb-2 pt-[env(safe-area-inset-top)]">
         {/* The way to the drawings. It leads the header — left of the name,
             where every app that has a list behind it puts one — and it replaces
             the button that used to float over the canvas, which spent a corner
