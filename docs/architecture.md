@@ -259,6 +259,19 @@ share a factor push that agreement further than a page is wide. The tile is
 built at one speck per pixel and scaled when it is painted, so the field costs
 the same megabyte at every zoom and a zoom never rebuilds it.
 
+The blur has **two painters**, and the reason is worth knowing before touching
+it. `ctx.filter` is the obvious way to blur a canvas and it is unavailable in
+Safari — not missing, which would be catchable, but _inert_: the property takes
+a value, reads it back, and changes nothing that gets drawn. A painter that sets
+it and blits therefore degrades to no blur at all on every iPhone, iPad and Mac,
+silently. So the capability is **probed by behaviour** once per session — put a
+pixel down under a blur, ask whether ink landed beside it — and a context that
+did not deliver gets a resampling blur instead: shrink the picture, draw it back
+up smoothed, twice. That is a handful of `drawImage` calls on an image that is
+getting smaller each time, which keeps it inside the same per-frame budget as
+the fast path, and it tracks a real Gaussian closely enough that the two agree to
+about four levels per channel across the whole radius slider.
+
 The SVG export is the one place the picture is generated twice, because a vector
 file has no pixels to composite: `svgFilter` emits the same two effects as SVG
 filter primitives and the recorder wraps the drawing in them. The blur is

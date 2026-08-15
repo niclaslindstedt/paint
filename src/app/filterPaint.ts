@@ -24,6 +24,10 @@
 // `drawImage`, and the grain is two coats of a speck tile laid across the page
 // as a pattern. A `getImageData` pass over the window would be several million
 // pixels of arithmetic per frame; this is three draws.
+//
+// The blur has a second painter behind it, because `ctx.filter` — the whole of
+// how it used to work — is unavailable in Safari and fails *silently* there.
+// See "Softening without `ctx.filter`" below.
 
 import { GRAIN_CEILING } from "./filters.ts";
 import { createSurface, type Surface } from "./surface.ts";
@@ -154,6 +158,13 @@ function blur(
     copy.ctx.globalCompositeOperation = "source-over";
   }
 
+  // Where the softening actually happens. On a context that honours `filter`
+  // it is the blit itself; everywhere else the copy is softened first and
+  // blitted sharp (see `soften`).
+  const native = canvasFilterBlurs();
+  const softened = native ? copy : soften(copy, sigma);
+  if (!softened) return;
+
   ctx.save();
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.globalAlpha = 1;
@@ -164,9 +175,179 @@ function blur(
   // painting a softened copy over its own original would only ever look half
   // applied. Clearing is safe because the copy above already holds it.
   ctx.clearRect(region.x, region.y, region.width, region.height);
-  ctx.filter = `blur(${sigma}px)`;
-  ctx.drawImage(copy.canvas, source.x, source.y);
+  if (native) ctx.filter = `blur(${sigma}px)`;
+  ctx.drawImage(
+    softened.canvas,
+    source.x,
+    source.y,
+    source.width,
+    source.height,
+  );
   ctx.restore();
+}
+
+// --- Softening without `ctx.filter` -----------------------------------------
+//
+// `ctx.filter` is the obvious way to blur a canvas and the one this file used
+// to rely on outright. It is also **not available in Safari** — not on the Mac,
+// not on iOS, and not in any shipped version: WebKit has the property behind a
+// flag that is off by default. An assignment to it there is silently ignored,
+// which is the worst possible failure for a filter: `drawImage` puts the sharp
+// picture straight back and the page looks exactly as it did, so a blur set to
+// its maximum reads as a blur that does nothing at all.
+//
+// So the blur is asked for and then *checked*, and a context that didn't
+// deliver gets the resampling path below instead.
+
+/** Whether `ctx.filter` actually blurs on this browser, worked out once and
+ *  remembered for the session.
+ *
+ *  Behaviour, not feature detection: Safari 18 and later *have* the property —
+ *  it reads back the value you set — and ignore it. The only question worth
+ *  asking is whether ink lands where an unblurred draw would have left none, so
+ *  that is the question this asks. */
+let filterBlurs: boolean | null = null;
+
+/** Forget the answer. Only the tests call this — a browser does not change its
+ *  mind about `ctx.filter` mid-session, and re-probing per frame would spend a
+ *  `getImageData` on a question that has already been settled. */
+export function forgetFilterSupport(): void {
+  filterBlurs = null;
+}
+
+function canvasFilterBlurs(): boolean {
+  if (filterBlurs !== null) return filterBlurs;
+  const probe = createSurface(PROBE, PROBE);
+  if (!probe) return false; // No DOM to ask in — don't remember a non-answer.
+  filterBlurs = false;
+  try {
+    const { ctx } = probe;
+    ctx.filter = "blur(2px)";
+    ctx.fillStyle = "#000";
+    // One opaque pixel dead centre. Blurred, its ink reaches the sample below;
+    // unblurred, that pixel is untouched and stays fully transparent.
+    ctx.fillRect(PROBE >> 1, PROBE >> 1, 1, 1);
+    const spread = ctx.getImageData((PROBE >> 1) - 2, PROBE >> 1, 1, 1).data[3];
+    filterBlurs = spread > 0;
+  } catch {
+    // A context that won't hand its pixels back can't be asked. Take the
+    // fallback, which needs no readback.
+    filterBlurs = false;
+  }
+  return filterBlurs;
+}
+
+/** How big the probe canvas is. Wide enough that a 2px blur's tail stays well
+ *  inside it, small enough that the one `getImageData` it costs is nothing. */
+const PROBE = 17;
+
+/** How many source pixels one pixel of the shrunken copy stands for, per sigma
+ *  of blur asked for.
+ *
+ *  Shrinking an image and drawing it back up *is* a blur: each small pixel is
+ *  the average of the `span` source pixels it was made from, and the smooth
+ *  climb back spreads it over that span again — a triangular kernel a couple of
+ *  spans wide. What the number should be is therefore a question about how a
+ *  tent compares to a bell, and it was settled by measuring rather than by
+ *  algebra: this is the value at which the result sits closest to the Gaussian
+ *  a browser with a working `ctx.filter` produces, across the whole of the
+ *  radius slider. */
+const SPAN_PER_SIGMA = 1.8;
+
+/** How many shrink-and-climb passes one blur is made of.
+ *
+ *  One tent is a recognisable blur but a slightly boxy one, and it shows on the
+ *  wide radii where the effect is most visible. Two passes cascade into
+ *  something much rounder — measured against Chromium's own `blur()` over a
+ *  page of hard edges, thin lines and an erased hole, one pass lands about 8
+ *  levels per channel away and two lands about 4, which is under the step
+ *  between two positions of the slider. A third pass buys almost nothing (3.8)
+ *  and costs another half of the work, so two is where this stops. */
+const PASSES = 2;
+
+/** The smallest the shrunken copy is allowed to get. Below a few pixels across
+ *  there is not enough of the picture left to climb back out of, and a heavy
+ *  blur would read as flat colour rather than as a soft one. */
+const MIN_SMALL = 4;
+
+/** A blurred copy of `copy`, made without `ctx.filter`.
+ *
+ *  Shrink the picture, draw it back up smoothed, and do it twice. Both halves
+ *  of each pass go in factor-of-two steps rather than in one jump: a single big
+ *  downscale is free to point-sample, which throws detail into aliasing instead
+ *  of into the blur, and repeated halving is the one resize every browser
+ *  filters properly.
+ *
+ *  It costs a handful of `drawImage` calls on an image that is getting smaller
+ *  each time — a few hundred thousand pixels of work in total, against the
+ *  several million a `getImageData` blur over the window would spend per frame.
+ *  That is what keeps it affordable on every frame of a stroke, which is the
+ *  same bar the rest of this file is held to. */
+function soften(copy: Surface, sigma: number): Surface | null {
+  // Blurs compose in quadrature, so `PASSES` of this much come to `sigma`.
+  const each = sigma / Math.sqrt(PASSES);
+  let softened: Surface | null = copy;
+  for (let pass = 0; pass < PASSES && softened; pass += 1) {
+    softened = onePass(softened, each);
+  }
+  return softened;
+}
+
+/** One shrink-and-climb. */
+function onePass(copy: Surface, sigma: number): Surface | null {
+  const width = copy.canvas.width;
+  const height = copy.canvas.height;
+  const span = Math.max(1, sigma * SPAN_PER_SIGMA);
+  const small = {
+    width: Math.max(MIN_SMALL, Math.round(width / span)),
+    height: Math.max(MIN_SMALL, Math.round(height / span)),
+  };
+  // Already smaller than the blur would shrink it to — nothing to soften.
+  if (small.width >= width || small.height >= height) return copy;
+  const shrunk = resample(copy, small.width, small.height);
+  if (!shrunk) return null;
+  return resample(shrunk, width, height);
+}
+
+/** Resize a surface to `width`×`height`, halving or doubling until it gets
+ *  there. The last step lands on the exact size asked for, which is rarely a
+ *  whole factor of two. */
+function resample(
+  from: Surface,
+  width: number,
+  height: number,
+): Surface | null {
+  let current = from;
+  // Bounded rather than `while (true)`: each step at least halves or doubles a
+  // dimension, so this can only run log2 of the canvas's size — and a surface
+  // that fails to allocate mid-climb must not spin.
+  for (let step = 0; step < RESAMPLE_STEPS; step += 1) {
+    const at = current.canvas;
+    if (at.width === width && at.height === height) return current;
+    const next = createSurface(
+      stepToward(at.width, width),
+      stepToward(at.height, height),
+    );
+    if (!next) return null;
+    next.ctx.imageSmoothingEnabled = true;
+    next.ctx.imageSmoothingQuality = "high";
+    next.ctx.drawImage(at, 0, 0, next.canvas.width, next.canvas.height);
+    current = next;
+  }
+  return current;
+}
+
+/** The most resampling steps a climb may take. A canvas cannot be more than a
+ *  few tens of thousands of pixels across, so sixteen halvings is past any real
+ *  one — this is a backstop, not a limit anything reaches. */
+const RESAMPLE_STEPS = 16;
+
+/** One step of a resize: half the distance to the target, or the target itself
+ *  when it is within one factor of two. */
+function stepToward(at: number, to: number): number {
+  if (to < at) return Math.max(to, Math.ceil(at / 2));
+  if (to > at) return Math.min(to, at * 2);
+  return at;
 }
 
 /** Speckle the page.
