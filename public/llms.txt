@@ -81,9 +81,19 @@ connect a storage backend yourself.
   clipboard, or export the whole document as JSON. Settings → Download chooses
   which types the menu offers, whether a file covers the whole page or crops to
   the marks, and whether the background is kept or transparent.
+- Save a whole drawing as a `.pct` paint file and open it again exactly as it
+  was. It is a zip holding one transparent PNG per layer plus a readable
+  `manifest.json` — so other tools can read the layers — and the vector marks
+  in `vectors.json` alongside, which is what makes reopening it lossless rather
+  than a flatten. Open one from New drawing → File, or by dropping it there.
 - Work offline: it is an installable PWA with a precaching service worker.
 - Optionally sync to a local folder, Dropbox, or Google Drive, with optional
   end-to-end encryption of the synced file.
+- Press the header's disk button (or Ctrl/Cmd+S) to file the rendered layers out
+  to that backend as browsable PNGs under `drawings/<name>-<tag>/`. Only that
+  half of a save is manual: the marks push themselves on every settled edit, as
+  they always have. A layer whose pixels have not changed costs nothing on the
+  next press, because each layer's file name carries a hash of its content.
 
 ## Links
 

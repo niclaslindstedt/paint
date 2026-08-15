@@ -80,8 +80,10 @@ export const en = {
     width: "Width",
     height: "Height",
     sizeHint: "Pixels, {min}–{max} on each side.",
-    chooseImage: "Choose an image…",
-    chooseImageHint: "Or drop one here. The page is cut to the picture's size.",
+    chooseImage: "Choose an image or a paint file…",
+    chooseImageHint:
+      "Or drop one here. A picture cuts the page to its own size; a .pct opens with its layers and marks intact.",
+    pctChosen: "Paint file · {layers} layers · {dimensions}",
     dropImage: "Drop the image to start a drawing from it",
     clipboardName: "Pasted image",
     clipboardPaste: "Paste from clipboard",
@@ -170,6 +172,7 @@ export const en = {
     exportJson: "Export as JSON",
     download: "Download",
     downloadFormat: "Download {format}",
+    downloadPct: "Paint file, with layers",
     copyToClipboard: "Copy to clipboard",
     dropImage: "Drop the image to add it to this drawing",
     placeImage: "Placed image",
@@ -589,6 +592,15 @@ export const en = {
         "The in-app log buffer, rendered live from the framework's logging module.",
       logsTitle: "Logs",
     },
+  },
+  // The header's disk button — filing the drawing's rendered layers out to the
+  // backend as a `.pct` tree. Not the same thing as the document save, which
+  // happens on its own; these read "layers" throughout so the two are never
+  // mistaken for each other.
+  layerSave: {
+    save: "Save the layers",
+    saving: "Saving the layers…",
+    saved: "The layers are saved",
   },
   cloudSetup: {
     heading: "{provider} already has drawings",

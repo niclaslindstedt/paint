@@ -20,6 +20,7 @@ import { HeaderIconButton } from "./HeaderIconButton.tsx";
 import { FileFormatIcon } from "./icons.tsx";
 import { useT } from "./i18n/index.ts";
 import { log } from "./log.ts";
+import { PCT_EXTENSION } from "./pct.ts";
 import * as output from "../output.ts";
 import type { Drawing } from "./types.ts";
 
@@ -74,6 +75,29 @@ export function DownloadMenu({ drawing, options, formats }: Props) {
     }
   };
 
+  // The layered file. Always on the menu, like the clipboard and unlike the
+  // image types: PNG / JPG / SVG are *pictures of* the drawing and which ones
+  // you want is a matter of taste (Settings → Download), while this one is the
+  // drawing itself — the only exit that reopens with its layers and its marks
+  // intact. Switching it off would be switching off "save my work".
+  const savePct = async () => {
+    setOpen(false);
+    const { writePct } = await import("./pctFile.ts");
+    const name = exportFileName(drawing, PCT_EXTENSION);
+    try {
+      downloadBlob(
+        name,
+        await writePct(drawing, {
+          pageColor: options.pageColor,
+          defaultInk: options.defaultInk,
+        }),
+      );
+      log.info(`export: wrote ${name}`);
+    } catch (err) {
+      output.error(`Couldn't write the paint file — ${message(err)}`);
+    }
+  };
+
   const copy = () => {
     setOpen(false);
     // Not awaited before the clipboard write is *started*: some browsers only
@@ -124,6 +148,17 @@ export function DownloadMenu({ drawing, options, formats }: Props) {
           {formats.length > 0 && (
             <div className="my-1 border-t border-line" aria-hidden="true" />
           )}
+          <MenuItem
+            label={t("canvas.downloadPct")}
+            icon={
+              <FileFormatIcon
+                className="h-5 w-5"
+                label={PCT_EXTENSION.toUpperCase()}
+              />
+            }
+            onSelect={() => void savePct()}
+          />
+          <div className="my-1 border-t border-line" aria-hidden="true" />
           {/* Always offered, whatever is switched off above: the clipboard is
               the one exit with no file to find afterwards, and it is a PNG
               because that is what every clipboard on every platform takes. */}

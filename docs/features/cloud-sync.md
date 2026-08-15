@@ -30,6 +30,14 @@ is hidden rather than offered as a dead option.
 - Offline, an auth expiry, or rate limiting each show in the sync glyph and in
   the command centre behind it, with the matching recovery action.
 
+That is your _marks_ — they save themselves, and always have. Your **rendered
+layers** are the one thing you save by hand: press the disk button in the header
+(or ⌘/Ctrl+S) and each layer is written to your backend as a browsable
+transparent PNG under `drawings/<name>-<tag>/`. They are megabytes where the
+marks are kilobytes, which is why they wait for you to ask. A layer you haven't
+touched costs nothing on the next press. See
+[the paint file](file-format.md).
+
 ## Dropped pictures become real files
 
 A drawing is vector geometry, so the document is small — until you drop a photo

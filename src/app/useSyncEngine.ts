@@ -11,13 +11,9 @@ import {
   createDropboxAdapter,
   createFolderAdapter,
   createGdriveAdapter,
-  ensurePermission,
   hasPendingDropboxAuth,
-  isFolderBackendAvailable,
   isRetryableSaveError,
-  loadDirectoryHandle,
   localCacheKey,
-  saveDirectoryHandle,
   startDropboxAuth,
   startGdriveAuth,
   withLocalCache,
@@ -46,7 +42,15 @@ import {
 } from "./imageStore.ts";
 import { logStore } from "./log.ts";
 import { serializeDoc } from "./migrations.ts";
+import {
+  layerBackendFor,
+  useLayerSave,
+  type LayerSave,
+} from "./useLayerSave.ts";
+import { useFolderBackend } from "./useFolderBackend.ts";
 import { docKey, type PaintStore } from "./usePaintStore.ts";
+
+export { FOLDER_BACKEND_AVAILABLE } from "./useFolderBackend.ts";
 
 // The app's sync engine — the state machine the framework's `SyncStatus` glyph
 // and `SyncDetailsModal` command centre paint over. The local document
@@ -62,14 +66,15 @@ import { docKey, type PaintStore } from "./usePaintStore.ts";
 // are filed out beside the document as real image files by `withExternalImages`
 // (see `imageStore.ts`), which keeps the pushed JSON small and the pictures
 // browsable. An encrypted copy skips that layer and keeps them in the envelope.
+//
+// **Two saves, on two clocks.** The document push above is automatic and stays
+// that way: strokes are cheap, and work you can lose is work you will lose. The
+// drawings' *rendered layers* are the other half, they are megabytes, and they
+// move only when the user asks — see `useLayerSave.ts`, which this composes.
 
 const syncLog = logStore.createLogger("sync");
 
 export type SyncBackendId = "local" | "folder" | "dropbox" | "gdrive";
-
-/** True in browsers that expose the File System Access API directory picker
- *  (Chromium-based). The local-folder backend is hidden where this is false. */
-export const FOLDER_BACKEND_AVAILABLE = isFolderBackendAvailable();
 
 const BACKEND_KEY = "paint:sync:backend";
 const DROPBOX_TOKENS_KEY = "paint:sync:dropbox";
@@ -221,7 +226,7 @@ export type SyncEngine = {
   reload: () => void;
   reconnect: (() => Promise<void>) | null;
   checkConnection: () => Promise<ConnectionProbeResult>;
-};
+} & LayerSave;
 
 export function useSyncEngine(
   store: PaintStore,
@@ -235,17 +240,6 @@ export function useSyncEngine(
   const [gdriveToken, setGdriveToken] = useState<string | null>(() =>
     sessionStorage.getItem(GDRIVE_TOKEN_KEY),
   );
-  // The picked local folder (File System Access API). `null` until the boot
-  // probe rehydrates the stored grant, the user picks one, or a revoked grant
-  // drops it. The handle itself is persisted in IndexedDB by the framework.
-  const [folderHandle, setFolderHandle] =
-    useState<FileSystemDirectoryHandle | null>(null);
-  // Gates the folder branch until the boot probe has run, so we don't briefly
-  // show "not connected" for a folder whose grant is about to rehydrate.
-  const [folderHandleLoaded, setFolderHandleLoaded] = useState<boolean>(
-    () => readBackend() !== "folder",
-  );
-  const [folderReconnectNeeded, setFolderReconnectNeeded] = useState(false);
   const [encrypted, setEncryptedState] = useState<boolean>(
     () => localStorage.getItem(ENCRYPTED_KEY) === "1",
   );
@@ -293,6 +287,18 @@ export function useSyncEngine(
   // save so the adapter can detect another device's write (ConflictError).
   const baseRevision = useRef<string | undefined>(undefined);
 
+  // The local folder's OS-grant lifecycle — boot probe, revocation, re-consent
+  // — lives in its own hook; the engine only needs the live handle and the two
+  // flags the UI reads. A revoked grant raises the engine's auth fault.
+  const folder = useFolderBackend(
+    readBackend() === "folder",
+    useCallback(() => setFault("auth-error"), []),
+  );
+  const folderHandle = folder.handle;
+  const folderHandleLoaded = folder.loaded;
+  const folderReconnectNeeded = folder.reconnectNeeded;
+  const markFolderPermissionLost = folder.markPermissionLost;
+
   // A "remote" backend is anything that pushes the document through a
   // `StorageAdapter` (folder or cloud). "Cloud" is the OAuth subset.
   const isRemote = backend !== "local";
@@ -304,31 +310,31 @@ export function useSyncEngine(
     (backend === "gdrive" && gdriveToken !== null) ||
     (backend === "folder" && folderHandle !== null);
 
-  // Drop the live folder handle and surface the reconnect cue — called by the
-  // folder adapter when an in-flight op hits a revoked OS grant. The IndexedDB
-  // record is kept so Settings can re-grant in one click.
-  const markFolderPermissionLost = useCallback(() => {
-    syncLog.warn("folder: permission lost — reconnect required");
-    setFolderHandle(null);
-    setFolderReconnectNeeded(true);
-    setFault("auth-error");
-  }, []);
+  // Dropbox's credentials, including the refresh callback that persists a
+  // rotated access token. Shared by the document adapter and the layer save —
+  // one object so a refresh on either path is written back once.
+  const dropboxAuth = useMemo(
+    () =>
+      dropboxTokens
+        ? {
+            accessToken: dropboxTokens.accessToken,
+            refreshToken: dropboxTokens.refreshToken,
+            onAccessTokenRefreshed: (accessToken: string) => {
+              const next = { ...dropboxTokens, accessToken };
+              writeDropboxTokens(next);
+              setDropboxTokens(next);
+            },
+          }
+        : null,
+    [dropboxTokens],
+  );
 
   // The storage adapter for the active backend, wrapped so a cloud copy is
   // readable offline (`withLocalCache`), dropped bitmaps are filed out beside
   // the document (`withExternalImages`) and — when the user opted in —
   // encrypted at the byte boundary (`withEncryption`).
   const adapter: StorageAdapter | null = useMemo(() => {
-    if (backend === "dropbox" && dropboxTokens) {
-      const dropboxAuth = {
-        accessToken: dropboxTokens.accessToken,
-        refreshToken: dropboxTokens.refreshToken,
-        onAccessTokenRefreshed: (accessToken: string) => {
-          const next = { ...dropboxTokens, accessToken };
-          writeDropboxTokens(next);
-          setDropboxTokens(next);
-        },
-      };
+    if (backend === "dropbox" && dropboxAuth) {
       const cloud = createDropboxAdapter(dropboxAuth, {
         appKey: DROPBOX_APP_KEY || undefined,
         fileName: cloudFileName(slug),
@@ -373,7 +379,7 @@ export function useSyncEngine(
     if (backend === "folder" && folderHandle) {
       // Unlike the cloud adapters there's no `withLocalCache` — the folder is
       // already local and never raises network errors.
-      const folder = createFolderAdapter(folderHandle, {
+      const folderAdapter = createFolderAdapter(folderHandle, {
         fileName: cloudFileName(slug),
         onPermissionLost: markFolderPermissionLost,
         logger: logStore.createLogger("folder"),
@@ -381,11 +387,11 @@ export function useSyncEngine(
       // Plaintext: file the bitmaps out as real image files beside the document
       // — a browsable tree is the whole point of the folder backend.
       return encrypted
-        ? withEncryption(folder, passwordRef, {
+        ? withEncryption(folderAdapter, passwordRef, {
             logger: logStore.createLogger("encrypt"),
           })
         : withExternalImages(
-            folder,
+            folderAdapter,
             folderImageStore(folderHandle, markFolderPermissionLost),
             () => setImageSweep(true),
           );
@@ -393,7 +399,7 @@ export function useSyncEngine(
     return null;
   }, [
     backend,
-    dropboxTokens,
+    dropboxAuth,
     gdriveToken,
     folderHandle,
     encrypted,
@@ -432,32 +438,6 @@ export function useSyncEngine(
         window.history.replaceState(null, "", url.toString());
       }
     })();
-  }, []);
-
-  // Folder boot probe: when the saved backend is the local folder, rehydrate
-  // the stored directory handle from IndexedDB and ask the OS whether the grant
-  // still stands.
-  useEffect(() => {
-    if (readBackend() !== "folder") return;
-    let cancelled = false;
-    setFolderHandleLoaded(false);
-    void (async () => {
-      const stored = await loadDirectoryHandle();
-      if (cancelled) return;
-      if (!stored) {
-        setFolderReconnectNeeded(true);
-        setFolderHandleLoaded(true);
-        return;
-      }
-      const status = await ensurePermission(stored, false);
-      if (cancelled) return;
-      if (status === "granted") setFolderHandle(stored);
-      else setFolderReconnectNeeded(true);
-      setFolderHandleLoaded(true);
-    })();
-    return () => {
-      cancelled = true;
-    };
   }, []);
 
   // On adopting an adapter (connect, namespace switch, unlock), read the
@@ -721,56 +701,18 @@ export function useSyncEngine(
     syncLog.info("gdrive: connected");
   }, [setBackend]);
 
-  // Pick a local folder and switch to it. The framework persists the handle to
-  // IndexedDB so the grant survives reloads.
+  // Pick a local folder and switch to it, once the grant is in hand.
   const connectFolder = useCallback(async () => {
-    if (!FOLDER_BACKEND_AVAILABLE || !window.showDirectoryPicker) return;
-    syncLog.info("folder: opening the directory picker…");
-    let handle: FileSystemDirectoryHandle;
-    try {
-      handle = await window.showDirectoryPicker({ mode: "readwrite" });
-    } catch (err) {
-      // AbortError = the user dismissed the picker; nothing to do.
-      if (err instanceof DOMException && err.name === "AbortError") return;
-      syncLog.error(
-        `folder: picker failed — ${err instanceof Error ? err.message : String(err)}`,
-      );
-      return;
+    if (await folder.connect()) {
+      justConnected.current = true;
+      setBackend("folder");
     }
-    const status = await ensurePermission(handle, true);
-    if (status !== "granted") {
-      syncLog.warn("folder: read-write permission was not granted");
-      return;
-    }
-    await saveDirectoryHandle(handle);
-    justConnected.current = true;
-    setFolderReconnectNeeded(false);
-    setFolderHandleLoaded(true);
-    setFolderHandle(handle);
-    setBackend("folder");
-    syncLog.info("folder: connected");
-  }, [setBackend]);
+  }, [folder, setBackend]);
 
-  // Re-confirm a revoked OS grant on the already-stored handle.
-  // `requestPermission` needs a user gesture, which is why this lives behind a
-  // click handler. Falls back to a fresh pick when the stored record is gone.
+  // Re-confirm a revoked grant. Clears the fault only on a granted re-confirm.
   const reconnectFolder = useCallback(async () => {
-    const stored = await loadDirectoryHandle();
-    if (!stored) {
-      await connectFolder();
-      return;
-    }
-    const status = await ensurePermission(stored, true);
-    if (status === "granted") {
-      setFolderHandle(stored);
-      setFolderReconnectNeeded(false);
-      setFolderHandleLoaded(true);
-      setFault("none");
-      syncLog.info("folder: reconnected");
-    } else {
-      syncLog.warn("folder: reconnect declined");
-    }
-  }, [connectFolder]);
+    if (await folder.reconnect()) setFault("none");
+  }, [folder]);
 
   const disconnect = useCallback(() => {
     writeDropboxTokens(null);
@@ -778,13 +720,11 @@ export function useSyncEngine(
     setDropboxTokens(null);
     setGdriveToken(null);
     void clearDirectoryHandle();
-    setFolderHandle(null);
-    setFolderReconnectNeeded(false);
-    setFolderHandleLoaded(true);
+    folder.clear();
     baseRevision.current = undefined;
     setBackend("local");
     syncLog.info("backend: back to this device only");
-  }, [setBackend]);
+  }, [setBackend, folder]);
 
   const setEncrypted = useCallback((v: boolean) => {
     localStorage.setItem(ENCRYPTED_KEY, v ? "1" : "0");
@@ -795,6 +735,41 @@ export function useSyncEngine(
     if (!isRemote || !connected || blocked) return;
     void doSave();
   }, [isRemote, connected, blocked, doSave]);
+
+  // Which backend the layer tree is written through — described from the live
+  // credentials, and deliberately *not* the document adapter: a layer save must
+  // not disturb the revision the next document push is based on.
+  const layerBackend = useMemo(
+    () =>
+      layerBackendFor({
+        backend,
+        dropbox: dropboxAuth
+          ? { auth: dropboxAuth, appKey: DROPBOX_APP_KEY || undefined }
+          : null,
+        gdrive: gdriveToken
+          ? { token: gdriveToken, appFolder: GDRIVE_APP_FOLDER }
+          : null,
+        folder: folderHandle
+          ? { handle: folderHandle, onPermissionLost: markFolderPermissionLost }
+          : null,
+      }),
+    [backend, dropboxAuth, gdriveToken, folderHandle, markFolderPermissionLost],
+  );
+
+  const layerSave = useLayerSave(
+    layerBackend,
+    {
+      isRemote,
+      connected,
+      blocked,
+      locked,
+      encrypted,
+      pendingSetup: pendingSetup !== null,
+      baselineReady,
+    },
+    dataRef,
+    store.version,
+  );
 
   // Pull the backend copy down and adopt it as the working document — the
   // command centre's "Reload from the backend" (and the conflict resolution).
@@ -958,5 +933,6 @@ export function useSyncEngine(
         ? reconnect
         : null,
     checkConnection,
+    ...layerSave,
   };
 }

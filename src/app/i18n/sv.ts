@@ -77,8 +77,10 @@ export const sv: Catalog = {
     width: "Bredd",
     height: "Höjd",
     sizeHint: "Bildpunkter, {min}–{max} på varje sida.",
-    chooseImage: "Välj en bild…",
-    chooseImageHint: "Eller släpp en här. Sidan blir lika stor som bilden.",
+    chooseImage: "Välj en bild eller en paint-fil…",
+    chooseImageHint:
+      "Eller släpp en här. En bild gör sidan lika stor som bilden; en .pct öppnas med sina lager och streck kvar.",
+    pctChosen: "Paint-fil · {layers} lager · {dimensions}",
     dropImage: "Släpp bilden för att börja en teckning från den",
     clipboardName: "Inklistrad bild",
     clipboardPaste: "Klistra in från urklipp",
@@ -164,6 +166,7 @@ export const sv: Catalog = {
     exportJson: "Exportera som JSON",
     download: "Ladda ner",
     downloadFormat: "Ladda ner {format}",
+    downloadPct: "Paint-fil, med lager",
     copyToClipboard: "Kopiera till urklipp",
     dropImage: "Släpp bilden för att lägga till den i teckningen",
     placeImage: "Placerad bild",
@@ -574,6 +577,11 @@ export const sv: Catalog = {
         "Appens loggbuffert, renderad live från ramverkets loggningsmodul.",
       logsTitle: "Loggar",
     },
+  },
+  layerSave: {
+    save: "Spara lagren",
+    saving: "Sparar lagren…",
+    saved: "Lagren är sparade",
   },
   cloudSetup: {
     heading: "{provider} har redan teckningar",
