@@ -262,8 +262,8 @@ function octave(u: number, v: number, seed: number): number {
  *
  *  Two octaves of the same hash — the same shape the painted grain is built
  *  from (see `groundPaint.ts`) — so what the water finds and what the eye sees
- *  are the same paper. A laid sheet adds the ribs it was couched on and a cloth
- *  its over-and-under, because both of those are real channels for water. */
+ *  are the same paper. A cloth adds its over-and-under on top of that, because
+ *  a weave is a real channel for water. */
 function bedAt(
   x: number,
   y: number,
@@ -274,12 +274,6 @@ function bedAt(
     (octave(x / pitch, y / pitch, 5) * 0.62 +
       octave(x / (pitch * 2), y / (pitch * 2), 9) * 0.5) /
     1.12;
-  if (pattern === "ribs") {
-    // Wires down the page: a wash crossing them has to climb each one, and a
-    // wash running along them runs.
-    const rib = 0.5 + 0.5 * Math.cos((x / pitch) * Math.PI * 2);
-    return Math.min(1, fibre * 0.45 + rib * 0.55);
-  }
   if (pattern === "cloth") {
     // Warp over weft: the crossings stand proud and the gaps between them hold
     // the water, which is why a wash on canvas prints the weave.

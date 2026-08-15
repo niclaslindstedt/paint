@@ -21,9 +21,9 @@
 //     paper comes out purple and on a digital sheet comes out red. The wetter
 //     the tool and the thirstier the sheet, the more true that is (`inkBlend`).
 //   - **How coarse it is** (`tooth`, `pattern`). The pitch of the grain and how
-//     it is arranged: the random dip of paper, the ribs of a laid sheet, the
-//     over-and-under of cloth. It is painted onto the page (`groundPaint.ts`)
-//     and it is what the pigment settles into.
+//     it is arranged: the random dip of paper, the over-and-under of cloth. It
+//     is painted onto the page (`groundPaint.ts`) and it is what the pigment
+//     settles into.
 //   - **How deep that grain is** (`bite`). How much of the tooth shows through
 //     — hot-pressed paper has a grain you can barely find, rough has one you
 //     can feel through the mark.
@@ -42,11 +42,10 @@ import type { TKey } from "./i18n/index.ts";
 import type { Ground } from "./types.ts";
 import { mm } from "./units.ts";
 
-/** How a ground's grain is arranged. Three real answers, because a sheet's
- *  grain comes from how it was made: paper is pressed out of a slurry and dips
- *  at random, laid paper carries the ribs of the wires it was couched on, and
- *  cloth is woven. */
-export type GroundPattern = "none" | "tooth" | "ribs" | "cloth";
+/** How a ground's grain is arranged. Two real answers, because a sheet's grain
+ *  comes from how it was made: paper is pressed out of a slurry and dips at
+ *  random, and cloth is woven. */
+export type GroundPattern = "none" | "tooth" | "cloth";
 
 /** The numbers a painter actually reads off the sheet. */
 export type GroundProfile = {
@@ -95,15 +94,15 @@ export type GroundDescriptor = {
 /** The stocks this build ships, in the order the picker lays them out: the
  *  plain sheet first, then the papers from smoothest to roughest, then cloth.
  *
- *  They are real sorts with real behaviour rather than a list of textures. A
- *  watercolour paper is sold in exactly three surfaces — hot-pressed,
- *  cold-pressed and rough — and the difference between them is the difference
- *  between three quite different paintings; cartridge is what a sketchbook is;
- *  laid is the ribbed writing paper an ink drawing wants; newsprint drinks
- *  everything you put on it and is why a marker bleeds on it; kraft is the
- *  brown wrapping stock people draw on because it is there. Cotton duck and
- *  linen are the two cloths a stretched canvas is made of, and both are primed
- *  — which is why they are *less* thirsty than any of the papers, not more.
+ *  It is a **short** shelf on purpose. The choice is made once, in the dialog
+ *  that makes the drawing, and a page you can't change your mind about later is
+ *  a page whose options have to be readable in one glance — so the list is the
+ *  stocks an artist actually reaches for and nothing else. Watercolour paper is
+ *  sold in exactly three surfaces — hot-pressed, cold-pressed and rough — and
+ *  the difference between them is the difference between three quite different
+ *  paintings; cartridge is what a sketchbook is; cotton duck is what a
+ *  stretched canvas is made of, and it is primed, which is why it is *less*
+ *  thirsty than any of the papers rather than more.
  *
  *  Numbers are in millimetres of real sheet (see `units.ts`), so the grain is
  *  the size it would be under a ruler at 1:1 rather than a value someone
@@ -172,47 +171,6 @@ export const GROUNDS: readonly GroundDescriptor[] = [
     },
   },
   {
-    id: "laid",
-    family: "paper",
-    nameKey: "grounds.laid.name",
-    hintKey: "grounds.laid.hint",
-    // The ribs of the wires the sheet was couched on, about a millimetre apart,
-    // with a chain line every inch or so. Sized writing paper, so it holds ink
-    // on its face rather than drinking it.
-    profile: {
-      absorbency: 0.32,
-      tooth: mm(0.9),
-      bite: 0.3,
-      pattern: "ribs",
-    },
-  },
-  {
-    id: "newsprint",
-    family: "paper",
-    nameKey: "grounds.newsprint.name",
-    hintKey: "grounds.newsprint.hint",
-    // Unsized, short-fibred and thirsty: everything wet spreads on it, which is
-    // exactly what a marker does to a newspaper.
-    profile: {
-      absorbency: 1,
-      tooth: mm(0.25),
-      bite: 0.3,
-      pattern: "tooth",
-    },
-  },
-  {
-    id: "kraft",
-    family: "paper",
-    nameKey: "grounds.kraft.name",
-    hintKey: "grounds.kraft.hint",
-    profile: {
-      absorbency: 0.68,
-      tooth: mm(0.45),
-      bite: 0.5,
-      pattern: "tooth",
-    },
-  },
-  {
     id: "cotton",
     family: "canvas",
     nameKey: "grounds.cotton.name",
@@ -226,25 +184,38 @@ export const GROUNDS: readonly GroundDescriptor[] = [
       pattern: "cloth",
     },
   },
-  {
-    id: "linen",
-    family: "canvas",
-    nameKey: "grounds.linen.name",
-    hintKey: "grounds.linen.hint",
-    profile: {
-      absorbency: 0.22,
-      tooth: mm(0.34),
-      bite: 0.6,
-      pattern: "cloth",
-    },
-  },
 ];
 
-/** The stock with this id, or `undefined` for one this build doesn't ship. */
+/** Stocks this build no longer offers, and the one each page that named them
+ *  reads as now.
+ *
+ *  A stock id is *persisted* on the drawing, so shortening the shelf would
+ *  otherwise drop somebody's finished painting onto the plain sheet — a silent
+ *  edit to their work, and the one thing the ground mechanism must never do.
+ *  Each retired sort is aliased to the survivor nearest it in the thing that
+ *  matters, which is how much the sheet drinks: laid was sized writing paper
+ *  and reads as cartridge, kraft was a fibrous sheet that takes a wash and
+ *  reads as cold-pressed, newsprint was the thirstiest of the lot and reads as
+ *  rough, and linen was the finer of the two cloths and reads as cotton duck.
+ *
+ *  The alias is a *read*: the document keeps the id it was written with, so a
+ *  page made on newsprint still says so if it is ever opened by a build that
+ *  has it. Nothing writes one of these ids. */
+const RETIRED_GROUNDS: Readonly<Record<string, string>> = {
+  laid: "cartridge",
+  kraft: "cold",
+  newsprint: "rough",
+  linen: "cotton",
+};
+
+/** The stock with this id, or `undefined` for one this build doesn't ship —
+ *  after a retired id has been read as whatever replaced it. */
 export function groundById(
   id: string | undefined,
 ): GroundDescriptor | undefined {
-  return id === undefined ? undefined : GROUNDS.find((g) => g.id === id);
+  if (id === undefined) return undefined;
+  const current = RETIRED_GROUNDS[id] ?? id;
+  return GROUNDS.find((g) => g.id === current);
 }
 
 /** The stocks on one shelf of the picker, in catalog order. */

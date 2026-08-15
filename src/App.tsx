@@ -381,19 +381,29 @@ export function App() {
               store.data.folders.find((f) => f.id === pendingDrawing.folderId)
                 ?.name
             }
+            dark={darkCanvas}
             onCancel={() => setPendingDrawing(null)}
-            onCreate={(size) => {
-              store.addDrawing("", pendingDrawing.folderId, size);
+            // The size and the sheet are both part of making the page rather
+            // than edits to it, so they arrive together and the drawing is
+            // created finished (see `NewDrawingModal`). A page on the plain
+            // solid sheet carries no ground at all, which is what every drawing
+            // made before surfaces existed is.
+            onCreate={(size, ground) => {
+              store.addDrawing("", pendingDrawing.folderId, {
+                ...size,
+                ...(ground ? { ground } : {}),
+              });
               setPendingDrawing(null);
               setView("canvas");
             }}
             // A drawing made from a picture is the size of the picture, and it
             // opens with the picture already on it as one ordinary mark — the
             // same stroke a drop onto the canvas would have left.
-            onCreateFromImage={(image, name) => {
+            onCreateFromImage={(image, name, ground) => {
               store.addDrawing(name, pendingDrawing.folderId, {
                 width: image.width,
                 height: image.height,
+                ...(ground ? { ground } : {}),
                 strokes: [
                   {
                     ...imageStroke(image.src, {

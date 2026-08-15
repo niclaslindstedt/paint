@@ -85,6 +85,14 @@ describe("the catalog", () => {
     expect(groundsInFamily("solid")).toHaveLength(1);
   });
 
+  // The shelf is picked from once, in the dialog that makes the drawing, so it
+  // has to be comparable at a glance rather than read through. Past this many
+  // it stops being a choice and starts being a catalogue — the same call the
+  // page-size shelf makes about four named sizes.
+  it("stays short enough to compare in one row", () => {
+    expect(GROUNDS.length).toBeLessThanOrEqual(6);
+  });
+
   it("names every stock in the catalog, in both halves of the row", () => {
     for (const ground of GROUNDS) {
       for (const key of [ground.nameKey, ground.hintKey]) {
@@ -125,6 +133,28 @@ describe("resolving a drawing's ground", () => {
     expect(groundProfile({ stock: "papyrus" })).toEqual(SOLID_GROUND);
   });
 
+  // A stock id is persisted on the drawing, so shortening the shelf must never
+  // drop a finished painting onto the plain sheet — every sort this build
+  // stopped offering reads as the survivor nearest it in how much it drinks.
+  it("keeps a page made on a retired stock on a sheet, not on glass", () => {
+    for (const [retired, replacement] of [
+      ["laid", "cartridge"],
+      ["kraft", "cold"],
+      ["newsprint", "rough"],
+      ["linen", "cotton"],
+    ] as const) {
+      expect(groundById(retired)?.id, retired).toBe(replacement);
+      expect(groundProfile({ stock: retired }), retired).toEqual(
+        stock(replacement).profile,
+      );
+      expect(groundStains(groundProfile({ stock: retired })), retired).toBe(
+        true,
+      );
+    }
+    // …and the shelf itself offers none of them, so nothing writes one back.
+    expect(GROUNDS.map((g) => g.id)).not.toContain("newsprint");
+  });
+
   it("scales how far the grain shows, and nothing else", () => {
     const half = groundProfile({ stock: "cold", texture: 0.5 });
     expect(half.bite).toBeCloseTo(COLD.bite / 2);
@@ -145,11 +175,11 @@ describe("wetness times absorbency", () => {
     expect(groundStains(COLD)).toBe(true);
   });
 
-  it("leaves a pen dry on sized paper and lets it feather on newsprint", () => {
+  it("leaves a pen dry on sized paper and lets it feather on rough", () => {
     const pen = pluginById("pencil")?.wetness ?? 0;
     expect(stains(pen, stock("cartridge").profile)).toBe(false);
     expect(stains(pen, stock("cold").profile)).toBe(false);
-    expect(stains(pen, stock("newsprint").profile)).toBe(true);
+    expect(stains(pen, ROUGH)).toBe(true);
   });
 
   it("has watercolour soak into every paper there is", () => {
@@ -203,7 +233,7 @@ describe("the renderer's compositing", () => {
     const ctx = createFakeContext();
     paintStroke(ctx, mark("graphite"), LIGHT, {
       scale: 1,
-      ground: stock("newsprint").profile,
+      ground: ROUGH,
     });
     expect(composites(ctx).every((c) => c === "source-over")).toBe(true);
   });
@@ -270,7 +300,7 @@ describe("the wash on a sheet", () => {
     // other, so how far the water got is how far the path went: more curve
     // segments on a sheet the water ran further into.
     const dry = washOn(SOLID_GROUND).calls.quadraticCurveTo ?? 0;
-    const wet = washOn(stock("newsprint").profile).calls.quadraticCurveTo ?? 0;
+    const wet = washOn(ROUGH).calls.quadraticCurveTo ?? 0;
     expect(wet).toBeGreaterThanOrEqual(dry);
   });
 });
