@@ -713,6 +713,15 @@ export const en = {
       shortcut: "Shortcut: {key}",
       moveUp: "Move {name} earlier in the toolbar",
       moveDown: "Move {name} later in the toolbar",
+      washTitle: "Watercolour",
+      washHint:
+        "Two ways of painting a wash. Both read the same three dials and the same paper, so this changes how a wash is drawn and nothing you have set — every wash on every drawing, including the ones already made.",
+      washSimple: "Stroke",
+      washSimpleHint:
+        "A wash is a shape with a dried rim and a mottle. Fast, and the same on any device.",
+      washSimulation: "Pigment",
+      washSimulationHint:
+        "Water and pigment on paper, dried a step at a time: blooms, backruns and a rim that settles where it dries. Much slower — noticeable on a big page or an older phone.",
     },
     canvas: {
       intro: "Defaults for the page you draw on.",

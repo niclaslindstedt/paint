@@ -36,6 +36,7 @@ import type { GroundProfile } from "../ground.ts";
 import type { Point, Stroke } from "../types.ts";
 import type { TKey } from "../i18n/index.ts";
 import type { SizeGauge } from "./gauge.ts";
+import type { WashEngine } from "./wash.ts";
 
 /** A stroke that hasn't been committed to the document yet — the live gesture.
  *  It has no id until the store files it. */
@@ -257,6 +258,12 @@ export type PaintDetail = {
    *  in this app landed on before grounds existed, so a painter that reads it
    *  and a painter that ignores it both keep drawing what they always drew. */
   ground?: GroundProfile;
+  /** Which watercolour engine is in force (see `plugins/wash.ts`). A *view* of
+   *  the drawing rather than anything in it — like the canvas theme — so it is
+   *  handed down with the scale and the sheet rather than recorded on a mark.
+   *  Absent is the simple engine, which is what every painter called directly
+   *  gets and what this app has always painted. */
+  wash?: WashEngine;
 };
 
 /** The detail a painter assumes when it is handed none — 1:1 onto a plain

@@ -22,6 +22,7 @@ import type { MarkCache } from "./cache.ts";
 import { cursorFor, usePointerRing } from "./PointerRing.tsx";
 import { pluginById } from "./plugins/registry.ts";
 import type { CanvasProbe, DraftStroke, ToolContext } from "./plugins/types.ts";
+import { DEFAULT_WASH_ENGINE, type WashEngine } from "./plugins/wash.ts";
 import { createProbe } from "./probe.ts";
 import { inBox } from "./selection.ts";
 import type { Drawing, Point, Stroke } from "./types.ts";
@@ -122,6 +123,12 @@ type Props = {
   onContextMenu?: (at: Point) => void;
   /** Paint a faint grid behind the page as a drawing aid. Never exported. */
   showGrid?: boolean;
+  /** Which watercolour engine paints a wash (see `plugins/wash.ts`). Threaded
+   *  in rather than read off the module the app puts it in force on, because
+   *  the canvas needs it as a *render input*: it is what makes a page repaint
+   *  when the setting changes, and what lets the mark cache tell the two
+   *  engines' pixels apart. */
+  washEngine?: WashEngine;
   /** Bumped by the zoom pill to toggle between fitting the page and 1:1. */
   fitToken?: number;
   /** Bumped when the *page itself* changed shape — a turn, a resize. The view
@@ -175,6 +182,7 @@ export function PaintCanvas({
   onMoveSelection,
   onContextMenu,
   showGrid = false,
+  washEngine = DEFAULT_WASH_ENGINE,
   fitToken = 0,
   refitToken = 0,
   onScaleChange,
@@ -275,6 +283,7 @@ export function PaintCanvas({
     pageColor,
     defaultInk,
     showGrid,
+    washEngine,
     decodedAt,
     selection,
   });
@@ -283,6 +292,7 @@ export function PaintCanvas({
     pageColor,
     defaultInk,
     showGrid,
+    washEngine,
     decodedAt,
     selection,
   };
@@ -479,6 +489,7 @@ export function PaintCanvas({
     pageColor,
     defaultInk,
     showGrid,
+    washEngine,
     decodedAt,
     selection,
     requestPaint,

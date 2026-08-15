@@ -36,6 +36,11 @@ import {
   type ToolPreset,
 } from "./presets.ts";
 import type { PaintPlugin } from "./plugins/types.ts";
+import {
+  DEFAULT_WASH_ENGINE,
+  isWashEngine,
+  type WashEngine,
+} from "./plugins/wash.ts";
 
 // The app's own (non-theme) settings — how the side menu opens, which optional
 // tool plugins are switched on, the last-used ink, developer mode, and log
@@ -138,6 +143,13 @@ export type AppSettings = {
    *  string is a value rather than a gap — that is how a swatch that may be
    *  absent (the gradient's middle stop) records being switched off. */
   toolColors: Record<string, Record<string, string>>;
+  /** Which watercolour engine paints a wash (see `plugins/wash.ts`).
+   *
+   *  A setting rather than a property of a drawing, and deliberately: it is a
+   *  *view*, like the canvas theme. A wash drawn with one paints with whichever
+   *  is in force, so switching cannot orphan work — and a phone that cannot
+   *  afford the simulation can still open a page painted with it on a desktop. */
+  washEngine: WashEngine;
   /** Whether shape tools fill rather than outline. */
   filled: boolean;
   /** Paint the canvas over a grid, so a sketch of boxes and arrows lines up. */
@@ -241,6 +253,10 @@ const BASE_SETTINGS: Omit<AppSettings, "enabledPlugins"> = {
   // black-to-white ramp it ships with.
   toolDials: {},
   toolColors: {},
+  // The stroke model out of the box. The pigment simulation is the better
+  // picture and it is opt-in anyway, because it costs a great deal more per
+  // wash and a page of them on an old phone is a real difference.
+  washEngine: DEFAULT_WASH_ENGINE,
   filled: false,
   showGrid: false,
   // On out of the box: the first thing a new user does is try the tools, and a
@@ -466,6 +482,11 @@ export function parseSettings(raw: string): AppSettings {
     merged.downloadScope = base.downloadScope;
   }
   merged.downloadTransparent = Boolean(merged.downloadTransparent);
+  // An engine this build doesn't ship falls back to the default rather than
+  // being kept, unlike an unknown tool id: there is nothing to paint a wash
+  // with but the engines that are here, and a name we can't resolve would leave
+  // the setting showing nothing selected.
+  if (!isWashEngine(merged.washEngine)) merged.washEngine = base.washEngine;
   return merged;
 }
 

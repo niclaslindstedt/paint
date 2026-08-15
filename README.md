@@ -86,7 +86,12 @@ the same [`oss-framework`](https://github.com/niclaslindstedt/oss-framework).
   into the sheet's dips, and nothing covers — every layer shows what is under
   it, so glazing a second pass over the first really does deepen it. How much
   water is on the brush, how much colour is in the water, and how heavily the
-  paper takes it are three dials.
+  paper takes it are three dials. There are **two engines** behind them, and
+  Settings → Tools picks: the fast stroke model above, or a pigment simulation
+  that puts water on the paper a step at a time and lets the mark be whatever
+  dries — blooms, backruns, a frayed wet edge and a rim that gathers where the
+  wash actually stopped. It is much slower, so it is opt-in, and any browser
+  that cannot run it paints with the first one instead.
 - **Brushes that are their medium.** The round brush is a head of hair: it lays
   down opaque paint with the hairs' partings scratched through it, frays at the
   sides, and runs dry towards the end of a long drag. The flat is the same head

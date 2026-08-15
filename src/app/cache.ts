@@ -424,6 +424,11 @@ function sameFrame(a: CacheSpec, b: CacheSpec): boolean {
     a.options.defaultInk === b.options.defaultInk &&
     a.options.grid === b.options.grid &&
     a.options.transparentPage === b.options.transparentPage &&
+    // Which watercolour engine is painting. It is a view of the drawing rather
+    // than part of it (see `plugins/wash.ts`), so switching it changes every
+    // wash on the page without touching a stroke — the third of the edits this
+    // comparison would otherwise be blind to.
+    a.options.washEngine === b.options.washEngine &&
     // The sheet: change the paper and every mark on the page is painted
     // differently — the grain under them, and how the wet ones mix with what
     // they are over.

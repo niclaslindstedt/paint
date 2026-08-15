@@ -37,6 +37,7 @@ import { cacheIdForBase } from "./app/pwa.ts";
 import { adoptDrawing } from "./app/pct.ts";
 import { imageStroke } from "./app/plugins/builtin/image.ts";
 import { resolveActiveTool } from "./app/plugins/registry.ts";
+import { setWashEngine } from "./app/plugins/wash.ts";
 import { applyBackdropVars, useAppSettings } from "./app/useAppSettings.ts";
 import { useNamespaces } from "./app/useNamespaces.ts";
 import { freshId, usePaintStore } from "./app/usePaintStore.ts";
@@ -217,6 +218,14 @@ export function App() {
     // Keyed on the two backdrop knobs, not the whole settings object.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [settings.modalBackdropDarkness, settings.modalBackdropBlur]);
+
+  // Put the chosen watercolour engine in force. It is app-wide rather than
+  // threaded through each repaint so that every surface painting this document
+  // — the screen, the mark cache, the thumbnails, the page the dropper reads,
+  // the exported PNG — cannot disagree about it (see `plugins/wash.ts`).
+  useEffect(() => {
+    setWashEngine(settings.washEngine);
+  }, [settings.washEngine]);
 
   useEffect(() => {
     status("App started");

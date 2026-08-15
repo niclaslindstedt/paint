@@ -42,6 +42,7 @@ import { paintFilters } from "./filterPaint.ts";
 import { activeLayerId, backgroundHidden, visibleStrokes } from "./layers.ts";
 import { paintMarquee } from "./plugins/builtin/select.ts";
 import type { DraftStroke } from "./plugins/types.ts";
+import type { WashEngine } from "./plugins/wash.ts";
 import { anyErases, paintDetached, relayFixed, underlay } from "./render.ts";
 import { translateStrokes } from "./selection.ts";
 import type { Drawing, Point, Stroke } from "./types.ts";
@@ -74,6 +75,11 @@ export type Frame = {
   pageColor: string;
   defaultInk: string;
   showGrid: boolean;
+  /** Which watercolour engine paints a wash on this frame (see
+   *  `plugins/wash.ts`). Written into the render options so the mark cache can
+   *  see it change — switching engine repaints the page rather than blitting
+   *  the picture the other one left. */
+  washEngine: WashEngine;
   /** Bumped whenever a bitmap finishes decoding — see `CacheSpec`. */
   decodedAt: number;
   /** The gesture in flight, or `null`. */
@@ -108,6 +114,7 @@ export function paintFrame(frame: Frame): void {
     // colour is (see `ground.ts`).
     ground: frame.drawing.ground,
     grid: frame.showGrid ? GRID_STEP : undefined,
+    washEngine: frame.washEngine,
     // Marks being dragged are left out of the page and painted below instead.
     // The set is the caller's and lives as long as the drag, because the cache
     // compares it by identity (see `cache.ts`).

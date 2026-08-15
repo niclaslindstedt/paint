@@ -194,6 +194,9 @@ export function SettingsModal({
     // registered in.
     updateLive("toolOrder", fresh.toolOrder);
     updateLive("canvasTheme", fresh.canvasTheme);
+    // …and the watercolour engine, which lives on the same live-applied page
+    // as the switchboard above it.
+    updateLive("washEngine", fresh.washEngine);
     setDraft(fresh);
   }
 
@@ -343,6 +346,8 @@ export function SettingsModal({
               settings={settings}
               setPluginEnabled={setPluginEnabled}
               moveTool={moveTool}
+              update={updateLive}
+              appearance={appearance}
             />
           )}
           {activeTab === "canvas" && (
