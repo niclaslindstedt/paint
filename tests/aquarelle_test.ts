@@ -159,7 +159,7 @@ describe("a wash", () => {
     // that small is a line, and it is painted as one at the weight the wash
     // would have dried to, so the page does not lighten as you zoom out of it.
     const near = paint(mm(6), { scale: 1 });
-    const pulled = paint(mm(6), { scale: 0.05 });
+    const pulled = paint(mm(6), { scale: 0.02 });
     expect(pulled.edge.length).toBeLessThan(near.edge.length / 3);
     // The mottle goes first — a pool finer than a pixel is arithmetic with
     // nothing to show for it.

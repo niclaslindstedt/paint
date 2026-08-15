@@ -88,8 +88,10 @@ The width belongs to the tool: a pen width, a brush width, a type size, each
 remembered separately. Every tool also opens at a width chosen for it, so
 nothing needs setting up before it draws the way it should.
 
-**The sizes are the ones the real thing comes in.** A page pixel is one dot of a
-300 dpi print, so a width is a distance you can measure: the pencil's five
+**The sizes are the ones the real thing comes in.** A page pixel is one dot of
+an iPhone's screen, so a width is a distance you can measure on the glass — set
+the marker to 5 mm, hold the drawing at 1:1, and the band under your thumb is
+five millimetres wide. The pencil's five
 buttons are the four leads a mechanical pencil takes plus a 2 mm clutch lead,
 the round brush's are a #2 through a one-inch flat, and type is set in points.
 The slider under them spends its middle four tenths on the range that tool is

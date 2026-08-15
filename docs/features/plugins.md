@@ -234,12 +234,24 @@ drawing says whose widths these are.
 
 ### A document pixel is a real distance
 
-**One dot of a 300 dpi print.** That is the resolution every scanner, inkjet and
-print shop assumes, and it is already the page the new-drawing dialog offers
-under "Print" (A4 at 300 dpi is 2480 × 3508). Pinning the page to it makes a
-millimetre 11.81 pixels — so a 0.5 mm pencil lead is a six-pixel line, a 25 mm
-flat brush is a three-hundred-pixel band, and the default 3200 × 2000 sheet is
-271 × 169 mm, about a sketchbook spread. Type is measured in **points**, because
+**One dot of an iPhone's screen — 460 pixels to the inch**, which is what every
+phone in the current line measures, and every OLED iPhone back to the 12.
+
+It could have been a printing resolution, and it was: 300 dpi, on the reasoning
+that a page is a piece of paper. But this is not a page you print, it is a page
+you **draw on with a finger**, and the sheet it is really laid against is the
+glass under your hand. Calibrating to the screen makes the number on the size
+button a distance you can measure _on the device you are holding_: set the
+marker to 5 mm, hold the drawing at 1:1, and the band under your thumb is five
+millimetres wide. At 300 dpi the same band came out at three and a third — the
+app said one thing and the glass said another, and the glass is the one you can
+put a ruler on.
+
+So a millimetre is 18.11 pixels: a 0.5 mm pencil lead is a nine-pixel line, a
+25 mm flat brush a four-hundred-pixel band, and the default 3200 × 2000 sheet a
+postcard held landscape at 177 × 110 mm. The new-drawing dialog's **A4** is A4
+here too — it is written in millimetres rather than as some printer's pixel
+count, so it follows the page's scale. Type is measured in **points**, because
 type has been sold that way for four hundred years and a caption in millimetres
 is one nobody can compare against anything.
 

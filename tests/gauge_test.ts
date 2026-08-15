@@ -3,8 +3,8 @@
 //
 // Two claims are worth pinning down here, and both are arithmetic rather than
 // pixels. The first is that a document pixel is a **real distance**: one dot of
-// a 300 dpi print, which is what makes 0.5 mm of pencil lead a number the app
-// can print rather than a number somebody liked. The second is the shape of the
+// an iPhone's screen, which is what makes 0.5 mm of pencil lead a distance you
+// can hold a ruler against rather than a number somebody liked. The second is the shape of the
 // size slider — three geometric bands, most of the travel spent among widths
 // that exist, and an exact inverse so opening the panel lands the thumb on the
 // nib already in your hand.
@@ -27,6 +27,7 @@ import {
   stepNote,
   type SizeGauge,
 } from "../src/app/plugins/gauge.ts";
+import { canvasPresets } from "../src/app/canvasSize.ts";
 import { allPlugins, pluginById } from "../src/app/plugins/registry.ts";
 import {
   DPI,
@@ -57,22 +58,33 @@ const RACK: SizeGauge = {
 };
 
 describe("the page's scale", () => {
-  it("makes a document pixel one dot of a 300 dpi print", () => {
-    expect(DPI).toBe(300);
-    expect(PX_PER_MM).toBeCloseTo(11.811, 3);
+  it("makes a document pixel one dot of an iPhone's screen", () => {
+    // The calibration is the *screen*, not a printer: this is a page you draw
+    // on with a finger, so the sheet it is laid against is the glass. 460 ppi
+    // is the whole current iPhone line.
+    expect(DPI).toBe(460);
+    expect(PX_PER_MM).toBeCloseTo(18.11, 2);
     // The one page in the new-drawing dialog that is a piece of paper rather
-    // than a display: A4 at 300 dpi. It has to *measure* as A4, or the whole
-    // calibration is a fiction.
-    expect(Math.round(mm(210))).toBe(2480);
-    expect(Math.round(mm(297))).toBe(3508);
-    // …and the default sheet, which is a hair wider than A4 on its side.
-    expect(Math.round(toMm(3200))).toBe(271);
+    // than a display. It has to *measure* as A4, or the whole calibration is a
+    // fiction — which is why the preset is written in millimetres rather than
+    // as some printer's pixel count (see `canvasSize.ts`).
+    const a4 = canvasPresets({ width: 1000, height: 1000 }).find(
+      (p) => p.id === "print",
+    )!;
+    expect(a4.size).toEqual({
+      width: Math.round(mm(210)),
+      height: Math.round(mm(297)),
+    });
+    expect(Math.round(toMm(a4.size.width))).toBe(210);
+    expect(Math.round(toMm(a4.size.height))).toBe(297);
+    // …and the default sheet, which is a postcard held landscape.
+    expect(Math.round(toMm(3200))).toBe(177);
   });
 
   it("sets type in points and everything else in millimetres", () => {
-    // 72 points to the inch, so a 12 pt caption is 50 document pixels.
-    expect(pt(12)).toBeCloseTo(50, 6);
-    expect(toPt(50)).toBeCloseTo(12, 6);
+    // 72 points to the inch, so a 12 pt caption is 76.7 document pixels.
+    expect(pt(12)).toBeCloseTo(460 / 6, 6);
+    expect(toPt(pt(12))).toBeCloseTo(12, 6);
   });
 
   it("prints a width to about three figures and no further", () => {

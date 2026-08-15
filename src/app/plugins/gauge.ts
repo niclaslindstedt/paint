@@ -69,9 +69,9 @@ export type SizeGauge = {
   unit?: "mm" | "pt";
 };
 
-/** The finest mark the app will make: one document pixel, which at 300 dpi is
- *  a twelfth of a millimetre — a hairline, and already finer than any press
- *  will resolve. */
+/** The finest mark the app will make: one document pixel, which at 460 pixels
+ *  to the inch is a twentieth of a millimetre — a hairline, and already finer
+ *  than the screen it is drawn on can show. */
 export const MIN_SIZE = 1;
 
 /** The broadest: 210 mm, the short edge of a sheet of A4.

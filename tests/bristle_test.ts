@@ -235,14 +235,19 @@ describe("paintBrush", () => {
     // The paper's grain does not shrink with the brush: a head narrower than
     // the dips a wide one skips over rides the sheet instead of catching on
     // it. Applied flat, the same skip rate turns a liner into a dashed ghost.
-    // A millimetre of hair against a centimetre of it — a rigger against a
-    // half-inch flat.
-    expect(coverageShare(mm(1), 0.5)).toBeGreaterThan(
-      coverageShare(mm(10), 0.5),
+    //
+    // Measured across the range where the *paper* is what decides it — a
+    // spotter's third of a millimetre against a #2 round — because `grainShare`
+    // saturates at about three millimetres of head and past that it is the hair
+    // count (capped at `MAX_HAIRS`) that sets this ratio rather than the sheet.
+    // A one-inch flat therefore reads solid again, which is a property of the
+    // strand budget and not a claim about paper.
+    expect(coverageShare(mm(0.3), 0.5)).toBeGreaterThan(
+      coverageShare(mm(2), 0.5),
     );
     // A charged head that small is a line, near enough — it has no room for a
     // texture and should not pretend to.
-    expect(coverageShare(mm(1), 0.9)).toBeGreaterThan(0.9);
+    expect(coverageShare(mm(0.3), 0.9)).toBeGreaterThan(0.9);
   });
 
   it("spends a wide head's load over a wide head's distance", () => {

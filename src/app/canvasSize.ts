@@ -10,6 +10,7 @@
 // Pure by design. The picker (`NewDrawingModal.tsx`) reads the screen once and
 // hands it in, so every rule below can be driven from a test without a browser.
 
+import { mm } from "./units.ts";
 import { DEFAULT_CANVAS } from "./types.ts";
 
 /** A page size in document pixels. */
@@ -41,9 +42,14 @@ export type CanvasPreset = { id: CanvasPresetId; size: CanvasSize };
 const NAMED_PRESETS: readonly CanvasPreset[] = [
   { id: "hd", size: { width: 1920, height: 1080 } },
   { id: "uhd", size: { width: 3840, height: 2160 } },
-  // A4 at 300 dpi — the one preset that is a piece of paper rather than a
-  // display, and the only portrait one.
-  { id: "print", size: { width: 2480, height: 3508 } },
+  // A4 — the one preset that is a piece of paper rather than a display, and the
+  // only portrait one. Written in millimetres through `units.ts` rather than as
+  // the pixel count of some particular printer, so it stays A4 whatever the
+  // page's scale is: at 460 pixels to the inch it comes out 3803 × 5379.
+  {
+    id: "print",
+    size: { width: Math.round(mm(210)), height: Math.round(mm(297)) },
+  },
 ];
 
 /** Round a side to a whole pixel and hold it inside the supported range. */

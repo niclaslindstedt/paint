@@ -341,8 +341,9 @@ lives by: **nothing outside it may branch on a tool id.**
   three-band geometric mapping that spends the middle four tenths of the travel
   on the real rack (see `builtin/gauges.ts` for the rack itself). The physical
   scale it is all written against is `src/app/units.ts` — a document pixel is
-  one dot of a 300 dpi print, which is what makes A4 the 2480 × 3508 page the
-  new-drawing dialog already offered and a millimetre 11.81 pixels.
+  one dot of an iPhone's screen (460 to the inch), which makes a millimetre
+  18.11 pixels and a width something you can hold a ruler against on the device
+  you are drawing on.
 - `dials.ts` — what happens to those sliders' numbers: resolved for the panel,
   and pared back to just the ones moved off their default for the canvas and the
   stroke.

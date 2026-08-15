@@ -11,6 +11,7 @@ import { describe, expect, it } from "vitest";
 
 import { paintCrayon } from "../src/app/plugins/crayon.ts";
 import type { Point } from "../src/app/types.ts";
+import { mm } from "../src/app/units.ts";
 import { createFakeContext, type FakeContext } from "./support/fakeCanvas.ts";
 
 /** A gentle sampled curve, the shape a hand actually draws. */
@@ -119,8 +120,11 @@ describe("the crayon", () => {
     // Grain finer than a device pixel is arithmetic with nothing to show for
     // it, and a page full of it is the difference between panning and not.
     const points = curve();
-    expect(specks(paint(points, 24, 0.25)).length).toBeLessThan(
-      specks(paint(points, 24, 1)).length / 2,
+    // A standard wax stick, at 1:1 and pulled well back from it — far enough
+    // that the paper's fifth of a millimetre is finer than a device pixel and
+    // the lattice has to coarsen to match.
+    expect(specks(paint(points, mm(8), 0.1)).length).toBeLessThan(
+      specks(paint(points, mm(8), 1)).length / 2,
     );
   });
 

@@ -283,11 +283,11 @@ describe("widths in millimetres", () => {
     expect(formatMm(mm(140))).toBe("140");
   });
 
-  it("pins a document pixel to a 300 dpi dot", () => {
-    // The whole calibration: A4 at 300 dpi is the `print` page preset, so a
-    // sheet 2480 px wide is 210 mm of paper and a millimetre is 11.81 px.
-    expect(PX_PER_MM).toBeCloseTo(300 / 25.4, 6);
-    expect(Math.round(mm(210))).toBe(2480);
+  it("pins a document pixel to a dot of an iPhone's screen", () => {
+    // The whole calibration: 460 pixels to the inch, so a millimetre is
+    // 18.11 px and a width is a distance you can measure on the glass.
+    expect(PX_PER_MM).toBeCloseTo(460 / 25.4, 6);
+    expect(Math.round(mm(210))).toBe(3803);
   });
 
   it("stops at a nib as wide as the page", () => {

@@ -42,9 +42,10 @@
 //
 // **Every tool that has a width also declares the sizes it is really made in**
 // (`gauge`) — the five a shop sells, the range it stocks, and how far past
-// either end the slider still goes. A document pixel is one dot of a 300 dpi
-// print (see `units.ts`), so those are millimetres of paper rather than numbers
-// somebody liked: 0.5 mm of pencil lead, a #6 round, a 5 mm chisel. See
+// either end the slider still goes. A document pixel is one dot of an iPhone's
+// screen (see `units.ts`), so those are millimetres you can hold a ruler
+// against rather than numbers somebody liked: 0.5 mm of pencil lead, a #6
+// round, a 5 mm chisel. See
 // `./gauges.ts` for the rack and `../gauge.ts` for what the slider does with it.
 //
 // Adding a tool is: write its behaviour (or reuse a family factory), register
