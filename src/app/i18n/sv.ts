@@ -212,10 +212,22 @@ export const sv: Catalog = {
     colorKept: "Sparad",
     removeColor: "Glöm",
     sizeMm: "{size} mm",
-    customSize: "Egen tjocklek: {size} mm",
+    sizePt: "{size} pt",
+    sizeNamed: "{size} · {note}",
+    sizeReal: "som tillverkad",
+    sizeFiner: "finare än tillverkad",
+    sizeWider: "bredare än tillverkad",
+    customSize: "Tjocklek",
     keepSize: "Spara",
     sizeKept: "Sparad",
     removeSize: "Glöm",
+    presets: "Sparade",
+    savePreset: "Spara…",
+    savePresetName: "Namnge verktyget",
+    savePresetPlaceholder: "Min favoritpenna",
+    presetDefaultName: "Inställning",
+    presetSave: "Spara",
+    presetForget: "Glöm",
     tool: "Verktyg",
     toolbar: "Verktyg",
     selectionActions: "Markering",
@@ -247,8 +259,8 @@ export const sv: Catalog = {
       hint: "Åt vilket håll den platta spetsen är vänd.",
     },
     grade: {
-      name: "Blyerts: {value} %",
-      hint: "Hård och ljus som en H, eller mjuk och mörk som en B.",
+      name: "Blyerts: {value}",
+      hint: "Stiftets hårdhetsgrad. H är hård och ljus och går ovanpå papperet; B är mjuk och mörk och fyller kornet.",
     },
     hardness: {
       name: "Hårdhet: {value} %",
@@ -275,8 +287,20 @@ export const sv: Catalog = {
       hint: "Tryck hårdare för att fylla papprets korn; lätta för att låta det synas.",
     },
     feather: {
-      name: "Mjuk kant: {value} px",
+      name: "Mjuk kant: {value} mm",
       hint: "Tonar ut fyllningens kant i stället för att tvärt avsluta den.",
+    },
+    water: {
+      name: "Vatten: {value} %",
+      hint: "Hur laddad penseln är. Blött rinner ut förbi håret och späder ut; torrt behåller penselns form.",
+    },
+    pigment: {
+      name: "Pigment: {value} %",
+      hint: "Hur mycket färg som finns i vattnet — en ljus lasyr eller full styrka.",
+    },
+    granulation: {
+      name: "Granulering: {value} %",
+      hint: "Hur tungt pigmentet sjunker ner i papperets gropar. Grovt papper och jordfärger granulerar mest.",
     },
   },
   text: {
@@ -407,9 +431,19 @@ export const sv: Catalog = {
         "En bred genomskinlig kil — ett helt band tvärs över sidan, hårfint nedför den — som byggs upp där den korsas.",
     },
     paintbrush: {
-      name: "Målarpensel",
+      name: "Rundpensel",
       description:
         "En laddad pensel: draget sväller på mitten och tonar ut i båda ändar.",
+    },
+    flatbrush: {
+      name: "Flatpensel",
+      description:
+        "En pensel med rak kant: full bredd tvärs över draget, hårfin linje längs kanten.",
+    },
+    watercolor: {
+      name: "Akvarell",
+      description:
+        "En våt lavering på papper. Den rinner ut förbi håret, torkar mörkast i kanten och varje lager visar det som ligger under.",
     },
     airspray: {
       name: "Airbrush",

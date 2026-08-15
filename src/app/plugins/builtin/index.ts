@@ -32,13 +32,20 @@
 // — and both are below.
 //
 // **What a first run finds is the shape of Paint**: a pen, a pencil, a rubber,
-// an airbrush, a bucket, type, the shapes, the marquee, a dropper and the hand
-// — the toolbox anyone who has opened a paint program has already used, spray
-// can included, plus the one thing that toolbox always had and this one was
-// missing: something to sketch with. The rest of the media (the bristle brush,
-// the marker, the crayon, the highlighter, the broad nib) are the app's own
-// additions and are one tap away in Settings → Tools; they are not what an empty
-// page should open holding.
+// a watercolour brush, an airbrush, a bucket, type, the shapes, the marquee, a
+// dropper and the hand — the toolbox anyone who has opened a paint program has
+// already used, spray can included, plus the two things that toolbox never had:
+// something to sketch with, and something to *paint* with. The rest of the media
+// (the round and flat bristle brushes, the marker, the crayon, the highlighter,
+// the broad nib) are one tap away in Settings → Tools; they are not what an
+// empty page should open holding.
+//
+// **Every tool that has a width also declares the sizes it is really made in**
+// (`gauge`) — the five a shop sells, the range it stocks, and how far past
+// either end the slider still goes. A document pixel is one dot of a 300 dpi
+// print (see `units.ts`), so those are millimetres of paper rather than numbers
+// somebody liked: 0.5 mm of pencil lead, a #6 round, a 5 mm chisel. See
+// `./gauges.ts` for the rack and `../gauge.ts` for what the slider does with it.
 //
 // Adding a tool is: write its behaviour (or reuse a family factory), register
 // it here, and add its two catalog strings. Nothing else in the app changes.
@@ -66,6 +73,7 @@ import {
   DoubleArrowIcon,
   DropperIcon,
   EraserIcon,
+  FlatBrushIcon,
   HandIcon,
   HexagonIcon,
   HighlighterIcon,
@@ -87,7 +95,9 @@ import {
   TextIcon,
   TraceSelectIcon,
   TriangleIcon,
+  WashBrushIcon,
 } from "../../icons.tsx";
+import { mm } from "../../units.ts";
 import { graphiteInk } from "../graphite.ts";
 import { registerGroup, registerPlugin } from "../registry.ts";
 import type { PaintPlugin } from "../types.ts";
@@ -99,13 +109,31 @@ import {
   FEATHER,
   FLOW,
   GRADE,
+  GRANULATION,
   HAIR,
   HARDNESS,
   OPACITY,
+  PIGMENT,
   PRESSURE,
   SPLAY,
   STRENGTH,
+  WATER,
 } from "./dials.ts";
+import {
+  CRAYON_GAUGE,
+  ERASER_GAUGE,
+  FLAT_BRUSH_GAUGE,
+  HIGHLIGHTER_GAUGE,
+  MARKER_GAUGE,
+  NIB_GAUGE,
+  PEN_GAUGE,
+  PENCIL_GAUGE,
+  ROUND_BRUSH_GAUGE,
+  SPRAY_GAUGE,
+  STROKE_GAUGE,
+  TYPE_GAUGE,
+  WASH_GAUGE,
+} from "./gauges.ts";
 import { dropperBehaviour } from "./dropper.ts";
 import { fillBehaviour } from "./fill.ts";
 import { freehandBehaviour } from "./freehand.ts";
@@ -136,12 +164,7 @@ import {
   starBehaviour,
   triangleBehaviour,
 } from "./shapes.ts";
-import {
-  DEFAULT_TEXT_SIZE,
-  TEXT_SIZES,
-  TEXT_TOOL_ID,
-  textBehaviour,
-} from "./text.ts";
+import { DEFAULT_TEXT_SIZE, TEXT_TOOL_ID, textBehaviour } from "./text.ts";
 
 /** The shapes, in the order the picker lays them out: the four a paint program
  *  has always had first — rectangle, ellipse, line, arrow — then the ones a
@@ -150,98 +173,100 @@ import {
  *  Only those four carry a keyboard shortcut. A letter each for eleven shapes
  *  would eat most of the alphabet for marks that are one press apart in the
  *  picker anyway; the four that had one keep it. */
-const SHAPES: readonly Omit<PaintPlugin, "group" | "defaultSize" | "dials">[] =
-  [
-    {
-      id: "rectangle",
-      nameKey: "tools.rectangle.name",
-      descriptionKey: "tools.rectangle.description",
-      icon: SquareIcon,
-      shortcut: "r",
-      supportsFill: true,
-      behaviour: rectangleBehaviour,
-    },
-    {
-      id: "ellipse",
-      nameKey: "tools.ellipse.name",
-      descriptionKey: "tools.ellipse.description",
-      icon: CircleIcon,
-      shortcut: "o",
-      supportsFill: true,
-      behaviour: ellipseBehaviour,
-    },
-    {
-      id: "line",
-      nameKey: "tools.line.name",
-      descriptionKey: "tools.line.description",
-      icon: LineIcon,
-      shortcut: "l",
-      behaviour: lineBehaviour,
-    },
-    {
-      id: "arrow",
-      nameKey: "tools.arrow.name",
-      descriptionKey: "tools.arrow.description",
-      icon: ArrowIcon,
-      shortcut: "a",
-      behaviour: arrowBehaviour,
-    },
-    {
-      id: "roundrect",
-      nameKey: "tools.roundrect.name",
-      descriptionKey: "tools.roundrect.description",
-      icon: RoundSquareIcon,
-      supportsFill: true,
-      behaviour: roundRectBehaviour,
-    },
-    {
-      id: "triangle",
-      nameKey: "tools.triangle.name",
-      descriptionKey: "tools.triangle.description",
-      icon: TriangleIcon,
-      supportsFill: true,
-      behaviour: triangleBehaviour,
-    },
-    {
-      id: "diamond",
-      nameKey: "tools.diamond.name",
-      descriptionKey: "tools.diamond.description",
-      icon: DiamondIcon,
-      supportsFill: true,
-      behaviour: diamondBehaviour,
-    },
-    {
-      id: "pentagon",
-      nameKey: "tools.pentagon.name",
-      descriptionKey: "tools.pentagon.description",
-      icon: PentagonIcon,
-      supportsFill: true,
-      behaviour: pentagonBehaviour,
-    },
-    {
-      id: "hexagon",
-      nameKey: "tools.hexagon.name",
-      descriptionKey: "tools.hexagon.description",
-      icon: HexagonIcon,
-      supportsFill: true,
-      behaviour: hexagonBehaviour,
-    },
-    {
-      id: "star",
-      nameKey: "tools.star.name",
-      descriptionKey: "tools.star.description",
-      icon: StarShapeIcon,
-      supportsFill: true,
-      behaviour: starBehaviour,
-    },
-    {
-      id: "doublearrow",
-      nameKey: "tools.doublearrow.name",
-      descriptionKey: "tools.doublearrow.description",
-      icon: DoubleArrowIcon,
-      behaviour: doubleArrowBehaviour,
-    },
-  ];
+const SHAPES: readonly Omit<
+  PaintPlugin,
+  "group" | "defaultSize" | "gauge" | "dials"
+>[] = [
+  {
+    id: "rectangle",
+    nameKey: "tools.rectangle.name",
+    descriptionKey: "tools.rectangle.description",
+    icon: SquareIcon,
+    shortcut: "r",
+    supportsFill: true,
+    behaviour: rectangleBehaviour,
+  },
+  {
+    id: "ellipse",
+    nameKey: "tools.ellipse.name",
+    descriptionKey: "tools.ellipse.description",
+    icon: CircleIcon,
+    shortcut: "o",
+    supportsFill: true,
+    behaviour: ellipseBehaviour,
+  },
+  {
+    id: "line",
+    nameKey: "tools.line.name",
+    descriptionKey: "tools.line.description",
+    icon: LineIcon,
+    shortcut: "l",
+    behaviour: lineBehaviour,
+  },
+  {
+    id: "arrow",
+    nameKey: "tools.arrow.name",
+    descriptionKey: "tools.arrow.description",
+    icon: ArrowIcon,
+    shortcut: "a",
+    behaviour: arrowBehaviour,
+  },
+  {
+    id: "roundrect",
+    nameKey: "tools.roundrect.name",
+    descriptionKey: "tools.roundrect.description",
+    icon: RoundSquareIcon,
+    supportsFill: true,
+    behaviour: roundRectBehaviour,
+  },
+  {
+    id: "triangle",
+    nameKey: "tools.triangle.name",
+    descriptionKey: "tools.triangle.description",
+    icon: TriangleIcon,
+    supportsFill: true,
+    behaviour: triangleBehaviour,
+  },
+  {
+    id: "diamond",
+    nameKey: "tools.diamond.name",
+    descriptionKey: "tools.diamond.description",
+    icon: DiamondIcon,
+    supportsFill: true,
+    behaviour: diamondBehaviour,
+  },
+  {
+    id: "pentagon",
+    nameKey: "tools.pentagon.name",
+    descriptionKey: "tools.pentagon.description",
+    icon: PentagonIcon,
+    supportsFill: true,
+    behaviour: pentagonBehaviour,
+  },
+  {
+    id: "hexagon",
+    nameKey: "tools.hexagon.name",
+    descriptionKey: "tools.hexagon.description",
+    icon: HexagonIcon,
+    supportsFill: true,
+    behaviour: hexagonBehaviour,
+  },
+  {
+    id: "star",
+    nameKey: "tools.star.name",
+    descriptionKey: "tools.star.description",
+    icon: StarShapeIcon,
+    supportsFill: true,
+    behaviour: starBehaviour,
+  },
+  {
+    id: "doublearrow",
+    nameKey: "tools.doublearrow.name",
+    descriptionKey: "tools.doublearrow.description",
+    icon: DoubleArrowIcon,
+    behaviour: doubleArrowBehaviour,
+  },
+];
 
 /** The selection tools, in the order the picker lays them out: the box marquee
  *  every paint program opens with, the oval beside it, then the two that follow
@@ -252,7 +277,7 @@ const SHAPES: readonly Omit<PaintPlugin, "group" | "defaultSize" | "dials">[] =
  *  belongs to the one it has always meant. */
 const SELECTIONS: readonly Omit<
   PaintPlugin,
-  "group" | "selects" | "defaultSize" | "dials"
+  "group" | "selects" | "defaultSize" | "gauge" | "dials"
 >[] = [
   {
     id: SELECT_TOOL_ID,
@@ -305,9 +330,11 @@ export function registerBuiltinPlugins(): void {
     descriptionKey: "tools.pencil.description",
     icon: PenIcon,
     shortcut: "p",
-    // A pen draws at the width it says it does, so this is the mark itself:
-    // fine enough to write with, wide enough to see on a 4K page.
-    defaultSize: 3,
+    // The ISO ladder every technical pen is drawn to, opening at 0.35 mm —
+    // which is the one you write with (see `gauges.ts`). A pen draws at the
+    // width it says it does, so the number is the mark.
+    gauge: PEN_GAUGE,
+    defaultSize: mm(0.35),
     dials: [OPACITY],
     behaviour: freehandBehaviour(),
   });
@@ -319,9 +346,13 @@ export function registerBuiltinPlugins(): void {
     descriptionKey: "tools.eraser.description",
     icon: EraserIcon,
     shortcut: "e",
-    // 8 × 2.5 — a rubber you can actually rub something out with. An eraser the
-    // width of the pen takes as many passes as the drawing took.
-    defaultSize: 8,
+    // A block rubber, ten millimetres across the face — the one in a pencil
+    // case, and wide enough that taking a passage out is one pass rather than
+    // twenty. The scale is 1 because a rubber rubs out exactly as wide as it
+    // is; it used to be 2.5, from before the number on the button was a
+    // distance anyone could check.
+    gauge: ERASER_GAUGE,
+    defaultSize: mm(10),
     // Its width shows as a plain circle rather than as a press. Every other
     // tool previews the mark it leaves, but an eraser's mark is a *hole*: on
     // the bare page a preview is, it lifts nothing and shows nothing, and the
@@ -345,7 +376,7 @@ export function registerBuiltinPlugins(): void {
     // The stroke is still an ordinary mark in the document, so a rubbing out
     // undoes, syncs and re-renders exactly like the line it took off.
     erases: true,
-    behaviour: freehandBehaviour({ erases: true, sizeScale: 2.5 }),
+    behaviour: freehandBehaviour({ erases: true }),
   });
 
   // --- Then the media shelf ------------------------------------------------
@@ -358,8 +389,11 @@ export function registerBuiltinPlugins(): void {
     descriptionKey: "tools.graphite.description",
     icon: PencilIcon,
     shortcut: "g",
-    // A sharp lead, at the width it says it is.
-    defaultSize: 3,
+    // The four leads a mechanical pencil takes, plus the 2 mm clutch lead, and
+    // it opens on the 0.5 mm everybody sketches with. A sharp lead draws at the
+    // width it says it is.
+    gauge: PENCIL_GAUGE,
+    defaultSize: mm(0.5),
     // The one axis a pencil has — how soft the lead is — and the opacity every
     // marking tool offers, for laying a light guide line in.
     dials: [GRADE, OPACITY],
@@ -378,19 +412,77 @@ export function registerBuiltinPlugins(): void {
     descriptionKey: "tools.paintbrush.description",
     icon: BrushIcon,
     shortcut: "b",
-    // 6 × 2.5 — a loaded round brush about fifteen pixels across, which is the
-    // width a bristle head's streaks actually read at.
-    defaultSize: 6,
+    // The round, numbered the way the rack is — and it opens on a #6, which is
+    // the brush most people would pick up first (see `gauges.ts`). A head lays
+    // down exactly as wide a mark as it is, so there is no scale on it any
+    // more; it used to be multiplied by two and a half, from before the number
+    // on the button was a distance.
+    gauge: ROUND_BRUSH_GAUGE,
+    defaultSize: mm(4.8),
     // A head of hair, and the four things about one that change the mark: how
     // wet and gathered it is, what gauge the hair is, how far the bundle has
     // worn open, and whether the paper under it wicks. Plus the opacity every
     // marking tool offers.
     dials: [OPACITY, HARDNESS, HAIR, SPLAY, BLEED],
     behaviour: freehandBehaviour({
-      sizeScale: 2.5,
       style: "brush",
       useHardness: true,
     }),
+  });
+
+  // …and the other brush anyone owns. A flat is not a wide round: the ferrule
+  // squeezes the bundle into a blade, so it lays its whole width square across
+  // itself and closes to the thickness of the hair on its edge. That is one
+  // stroke that swells and thins as it goes round a curve without the hand
+  // doing anything, and it is why a sign-writer, a letterer and anyone laying a
+  // flat wash owns one. It is a *different brush* rather than a setting on the
+  // round, which is why it registers separately and carries the angle dial the
+  // round has no use for (see `BrushHead`).
+
+  registerPlugin({
+    id: "flatbrush",
+    nameKey: "tools.flatbrush.name",
+    descriptionKey: "tools.flatbrush.description",
+    icon: FlatBrushIcon,
+    // Sold in fractions of an inch, opening on the half-inch one-stroke.
+    gauge: FLAT_BRUSH_GAUGE,
+    defaultSize: mm(12.7),
+    // The round's dials, plus the one thing a blade has that a cone does not:
+    // which way it is turned. Held at −45° out of the box, the same tilt the
+    // broad nib rests at, because it is the same right-handed wrist.
+    dials: [OPACITY, HARDNESS, ANGLE, SPLAY, BLEED],
+    behaviour: freehandBehaviour({
+      style: "brush",
+      head: "flat",
+      useHardness: true,
+      angle: -45,
+    }),
+  });
+
+  // --- Watercolour ---------------------------------------------------------
+  // The one medium here where what you are painting with is *water*, and the
+  // colour only goes where the water took it. It is a round brush like the one
+  // above and nothing else about it is the same: the mark spreads past the hair
+  // that laid it, both its edges follow the sheet rather than the gesture, the
+  // rim dries darkest, the pigment settles into the paper's dips, and no layer
+  // covers what is under it. See `plugins/aquarelle.ts`.
+
+  registerPlugin({
+    id: "watercolor",
+    defaultOn: true,
+    nameKey: "tools.watercolor.name",
+    descriptionKey: "tools.watercolor.description",
+    icon: WashBrushIcon,
+    shortcut: "w",
+    // A watercolourist's rack: rounds from a rigger's #1 to a #12, and a mop
+    // for the sky. It opens on a #8, which is most of a painting.
+    gauge: WASH_GAUGE,
+    defaultSize: mm(6.3),
+    // Three things, and a watercolourist changes exactly these between one
+    // stroke and the next: how much water is on the brush, how much colour is
+    // in the water, and what the sheet does with what is left behind.
+    dials: [OPACITY, WATER, PIGMENT, GRANULATION],
+    behaviour: freehandBehaviour({ style: "wash" }),
   });
 
   registerPlugin({
@@ -404,16 +496,21 @@ export function registerBuiltinPlugins(): void {
     // used to take its number times three and then spread a cone over 1.6 times
     // *that*, so a spray set to 8 came out nearly five times as wide as a pen
     // set to 8 — the one tool in the box where the number on the button did not
-    // describe the mark. The scale below undoes exactly that: 0.35 × the
-    // painter's own 1.6 is a cone about as wide as the nib you asked for, only
-    // soft-edged instead of hard. Old marks are untouched — the painter's maths
+    // describe the mark. The scale below undoes exactly that: the painter
+    // throws a cone 3.2 times what it is handed, so it is handed a 3.2nd of the
+    // pattern being asked for. Old marks are untouched — the painter's maths
     // did not change, only how much of it a new stroke asks for.
-    defaultSize: 8,
+    //
+    // The number is now the *pattern width*, and it is measured the way a
+    // sprayed one is: a gun set to 8 mm throws an 8 mm cone at the distance an
+    // arm holds it, which is the general-purpose setting.
+    gauge: SPRAY_GAUGE,
+    defaultSize: mm(8),
     // A spray cone: how tight its core is, and how much paint the trigger lets
     // through per pass.
     dials: [HARDNESS, FLOW],
     behaviour: freehandBehaviour({
-      sizeScale: 0.35,
+      sizeScale: 1 / 3.2,
       style: "spray",
       useHardness: true,
     }),
@@ -430,15 +527,17 @@ export function registerBuiltinPlugins(): void {
     descriptionKey: "tools.marker.description",
     icon: MarkerIcon,
     shortcut: "m",
-    // 4 × 2 — a fineliner's tip, not a wall marker's. It used to open at
-    // eighteen document pixels, which is wider than most people ever want to
-    // write with.
-    defaultSize: 4,
+    // A felt tip, from a fineliner up to the king-size one that labels a
+    // packing crate — opening on a one-millimetre bullet, which is what most
+    // people mean by "a marker" and what most people want to write with. The
+    // nib painter lays a mark exactly as wide as it is told, so there is no
+    // scale on it any more (it used to be doubled).
+    gauge: MARKER_GAUGE,
+    defaultSize: mm(1),
     // Spirit ink: it soaks in rather than sitting on top, so a second pass over
     // the same line darkens it the way a real marker does.
     dials: [OPACITY, CHISEL],
     behaviour: freehandBehaviour({
-      sizeScale: 2,
       opacity: 0.88,
       style: "nib",
       // Mostly round out of the box, and it has to agree with `CHISEL.default`
@@ -454,11 +553,13 @@ export function registerBuiltinPlugins(): void {
     descriptionKey: "tools.highlighter.description",
     icon: HighlighterIcon,
     shortcut: "h",
-    // 4 × 6 — a band wide enough to cover a line of writing in one pass.
-    defaultSize: 4,
+    // Five millimetres of chisel — which is a line of type, and the whole job.
+    // It used to be four multiplied by six, which came to about two millimetres
+    // of page: a highlighter that could not cover the word it was over.
+    gauge: HIGHLIGHTER_GAUGE,
+    defaultSize: mm(5),
     dials: [OPACITY, CHISEL_FLAT],
     behaviour: freehandBehaviour({
-      sizeScale: 6,
       opacity: 0.35,
       style: "nib",
       // A wide flat wedge, held square across the page: an underline drawn left
@@ -476,11 +577,13 @@ export function registerBuiltinPlugins(): void {
     descriptionKey: "tools.crayon.description",
     icon: CrayonIcon,
     shortcut: "c",
-    // 6 × 2 — a wax stick's flat, and wide enough for the paper's tooth to
-    // show through the mark rather than swallow it.
-    defaultSize: 6,
+    // The flat of a standard wax stick, eight millimetres across — wide enough
+    // for the paper's tooth to show through the mark rather than swallow it,
+    // and the face a crayon actually presents once it has been used twice.
+    gauge: CRAYON_GAUGE,
+    defaultSize: mm(8),
     dials: [OPACITY, PRESSURE],
-    behaviour: freehandBehaviour({ sizeScale: 2, style: "crayon" }),
+    behaviour: freehandBehaviour({ style: "crayon" }),
   });
 
   registerPlugin({
@@ -489,16 +592,18 @@ export function registerBuiltinPlugins(): void {
     descriptionKey: "tools.calligraphy.description",
     icon: NibIcon,
     shortcut: "k",
-    // 8 × 1.5 — a broad nib. Below about ten pixels across, the difference
-    // between the flat and the edge is the difference the tool is *for*, and it
-    // disappears.
-    defaultSize: 8,
+    // A broad nib, sold by the width of its edge — from a Mitchell 6 up to the
+    // poster nibs, opening on the 2.5 mm most italic hands are written with.
+    // The painter draws a nib twice the number it is handed, so it is handed
+    // half: the width on the button is the edge you would measure with a rule.
+    gauge: NIB_GAUGE,
+    defaultSize: mm(2.5),
     // The one thing a writer actually changes about a broad nib is the angle
     // they hold it at — turn it towards flat and the stroke that swells is the
     // vertical instead of the diagonal.
     dials: [OPACITY, ANGLE],
     behaviour: freehandBehaviour({
-      sizeScale: 1.5,
+      sizeScale: 0.5,
       style: "calligraphy",
       // Agrees with `ANGLE.default`, which is what an untuned mark resolves to.
       angle: -45,
@@ -560,10 +665,11 @@ export function registerBuiltinPlugins(): void {
   for (const member of SHAPES) {
     registerPlugin({
       group: SHAPES_GROUP_ID,
-      // An outline you can see without zooming in, on a page that is bigger
-      // than the screen. The same for every shape — they draw at the width they
-      // are given, so the number is the line.
-      defaultSize: 4,
+      // A half-millimetre line: an outline you can see without zooming in, on
+      // a page that is bigger than the screen. The same for every shape — they
+      // draw at the width they are given, so the number is the line.
+      gauge: STROKE_GAUGE,
+      defaultSize: mm(0.5),
       dials: [OPACITY],
       ...member,
     });
@@ -613,10 +719,12 @@ export function registerBuiltinPlugins(): void {
     icon: TextIcon,
     shortcut: "t",
     entersText: true,
-    // The width *is* the type size here, so the tool brings its own scale: the
-    // three nib widths every other tool shares are all unreadable as type.
+    // The width *is* the type size here, so the tool brings its own scale —
+    // and its own *unit*: type is set in points everywhere outside this app,
+    // and a caption measured in millimetres of page is a caption nobody can
+    // compare against anything (see `TYPE_GAUGE`).
+    gauge: TYPE_GAUGE,
     defaultSize: DEFAULT_TEXT_SIZE,
-    sizes: TEXT_SIZES,
     dials: [OPACITY],
     behaviour: textBehaviour,
   });

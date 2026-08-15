@@ -31,6 +31,7 @@
 // sheet rather than as a pile of separately-textured decals.
 
 import type { Point } from "../types.ts";
+import { mm } from "../units.ts";
 import {
   HAIRLINE,
   PIXEL,
@@ -46,9 +47,10 @@ import { paintPath } from "./ink.ts";
  *
  *  The single most important number in this file, and the one that has to stay
  *  a *constant* rather than a fraction of the stroke's width: it is a property
- *  of the sheet. Cartridge paper's tooth is around a fifth of a millimetre, and
- *  at the size this app's page is drawn it lands at about two pixels. */
-const TOOTH = 1.7;
+ *  of the sheet. Cartridge paper's tooth is around a fifth of a millimetre —
+ *  which, now that a document pixel is a real distance, is simply what it says
+ *  (see `units.ts`) rather than the two-and-a-bit pixels it was guessed at. */
+const TOOTH = mm(0.2);
 
 /** The most grain cells one mark will lay down. A full-page scribble with a
  *  broad crayon would otherwise ask for hundreds of thousands of them; past

@@ -26,6 +26,7 @@
 // strokes agree about where the paper is low (see `grain.ts`).
 
 import type { Point } from "../types.ts";
+import { mm } from "../units.ts";
 import {
   HAIRLINE,
   PIXEL,
@@ -37,12 +38,13 @@ import {
 } from "./grain.ts";
 import { paintPath } from "./ink.ts";
 
-/** The pitch of the paper's grain as a pencil finds it, in document pixels.
+/** The pitch of the paper's grain as a pencil finds it.
  *
- *  Finer than the crayon's (1.7): a sharp lead reaches into tooth that a blunt
- *  wax face bridges over, and the difference between the two speckles is most
- *  of what tells a pencil line from a crayon one at the same width. */
-const TOOTH = 1.15;
+ *  Half the crayon's fifth of a millimetre: a sharp lead reaches into tooth
+ *  that a blunt wax face bridges over, and the difference between the two
+ *  speckles is most of what tells a pencil line from a crayon one at the same
+ *  width. */
+const TOOTH = mm(0.1);
 
 /** The most grain cells one mark will lay down. Past this the grain is
  *  coarsened rather than drawn (see `grainCell`) — a page-long sweep with a

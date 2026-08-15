@@ -374,7 +374,15 @@ lives by: **nothing outside it may branch on a tool id.**
 - `types.ts` — the `PaintPlugin` descriptor and the `ToolBehaviour` contract
   (`start` / `move` / `end` / `paint`), plus the `PaintDetail` a painter is
   handed to tell it how finely it is being rasterised, and the `ToolDial` a tool
-  declares to put a slider of its own in the size panel.
+  declares to put a slider — or a row of chips, for a dial with `choices` like
+  the pencil's lead grades — of its own in the size panel.
+- `gauge.ts` — the sizes a tool is really made in, and the slider that walks
+  them: the range a shop stocks, the five widths worth a button, and the
+  three-band geometric mapping that spends the middle four tenths of the travel
+  on the real rack (see `builtin/gauges.ts` for the rack itself). The physical
+  scale it is all written against is `src/app/units.ts` — a document pixel is
+  one dot of a 300 dpi print, which is what makes A4 the 2480 × 3508 page the
+  new-drawing dialog already offered and a millimetre 11.81 pixels.
 - `dials.ts` — what happens to those sliders' numbers: resolved for the panel,
   and pared back to just the ones moved off their default for the canvas and the
   stroke.
@@ -407,6 +415,11 @@ lives by: **nothing outside it may branch on a tool id.**
   spends it, that is wider than the wiggles you ask it to follow, that cannot
   turn inside its own width, and that leaves an opaque mark with the hairs'
   partings scratched through it.
+- `aquarelle.ts` — watercolour, which is the one medium here where what is
+  being painted with is _water_: the wash runs past the hair that laid it, its
+  two edges wander independently, the rim dries darkest as the pool evaporates,
+  the pigment granulates into the sheet, and every pass is thin because nothing
+  in the medium covers.
 - `crayon.ts` — the wax, which needs one for the opposite reason: it is the only
   painter modelling the _page_. A fixed lattice of paper tooth decides where wax
   sticks, anchored in document coordinates, so it is the same sheet under every
@@ -446,11 +459,19 @@ member you last held; pressing it again opens the family and the fill toggle.
 Grouping touched no stroke and needed no migration, which is the test any
 "merge these tools" change has to pass: a stroke's `tool` is persisted.
 
+`gauge` is the same pattern pointed at the width. A tool declares the range it
+is really manufactured in and the five sizes worth a button, and the panel
+renders a slider whose middle band _is_ that range — so a pencil offers
+0.3–2 mm of lead and a decorator's brush offers 25–150 mm, without the picker
+knowing which is which. What a tool has saved under a name (`src/app/presets.ts`)
+rides the same seam: a preset is a width plus every dial, addressed by tool id,
+and applying one is a single write to the settings blob.
+
 `dials` is that pattern carrying a whole surface. Width is the control most
 tools share; past it they stop agreeing, so a tool lists what _it_ has to tune
-(the paintbrush's hair gauge, the airbrush's flow, the bucket's feather) and the
-panel renders the list under an **Advanced** heading without learning a single
-dial's name. The numbers are fractions of the tool's own normal, kept per tool in
+(the paintbrush's hair gauge, the watercolour brush's water, the bucket's
+feather) and the panel renders the list under an **Advanced** heading without
+learning a single dial's name. The numbers are fractions of the tool's own normal, kept per tool in
 the settings blob, and **only the ones moved off their default** are handed to a
 behaviour or written onto a mark — so a painter can keep its rest value as an
 ordinary default argument, and a page drawn without touching one serialises

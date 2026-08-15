@@ -34,6 +34,7 @@ import type { ReactNode } from "react";
 
 import type { Point, Stroke } from "../types.ts";
 import type { TKey } from "../i18n/index.ts";
+import type { SizeGauge } from "./gauge.ts";
 
 /** A stroke that hasn't been committed to the document yet — the live gesture.
  *  It has no id until the store files it. */
@@ -91,13 +92,30 @@ export type ToolDial = {
   step: number;
   /** How the number reads. A fraction of the tool's normal shows as a
    *  percentage (the default); a dial that measures a real distance on the page
-   *  shows the document pixels it is; one that measures a *tilt* — the angle a
-   *  flat nib is held at — shows degrees. */
-  unit?: "percent" | "px" | "deg";
+   *  shows the millimetres it is; one that measures a *tilt* — the angle a flat
+   *  nib is held at — shows degrees. `px` is the raw document pixel, kept for a
+   *  dial that is about the raster rather than about the page. */
+  unit?: "percent" | "px" | "mm" | "deg";
   /** What the tool draws at untouched. 1 unless a dial's natural rest is
    *  somewhere else — and whatever it is, the painter's own default argument
    *  has to agree, because that is what an absent value resolves to. */
   default?: number;
+  /** The values this dial actually has, when it has a handful rather than a
+   *  range — and then the panel offers them as a row of chips instead of a
+   *  slider.
+   *
+   *  Some tunings are not continuous. A pencil is graded 8H to 9B and there is
+   *  nothing between a 2B and a 3B; a brush head is round or flat and there is
+   *  no such thing as 60% flat. Asking someone to find 4B by dragging a slider
+   *  until the readout says "4B" is asking them to hunt for a value they could
+   *  simply have pressed — so a dial with `choices` is pressed.
+   *
+   *  The stored value is still an ordinary number on `ToolContext.dials` and on
+   *  the stroke, so a painter reads a chipped dial exactly as it reads a
+   *  dragged one and nothing downstream knows the difference. `label` is a
+   *  designation rather than a word (`4B`, `#6`), which is why it is a plain
+   *  string and not a catalog key. */
+  choices?: readonly { value: number; label: string }[];
 };
 
 /** The ink the toolbar currently has selected, handed to a tool on every step
@@ -290,10 +308,17 @@ export type PaintPlugin = {
    *  6px is a fine pencil line, a starved airbrush and unreadable type. Absent
    *  falls back to the middle of `sizes` — see `toolSize` in `useAppSettings`. */
   defaultSize?: number;
-  /** The widths this tool's size panel offers as buttons, fine to broad. Absent
-   *  means the app's own three (`SIZES`), which is right for everything that
-   *  draws a line; the text tool overrides it with type sizes. */
-  sizes?: readonly number[];
+  /** The sizes this tool is really made in: the five widths its panel offers as
+   *  buttons, the range a shop actually stocks, and how far past either end the
+   *  slider still goes (see `plugins/gauge.ts`).
+   *
+   *  Declared per tool because a rack of implements is not one rack: a
+   *  technical pen comes in 0.13–2 mm and a decorator's brush in 25–150 mm, and
+   *  a slider spanning both spends nine tenths of its travel on widths the tool
+   *  in your hand does not come in. Absent falls back to `DEFAULT_GAUGE` — the
+   *  pen ladder, which is what "a line of some width" means when the tool says
+   *  nothing more about itself. */
+  gauge?: SizeGauge;
   /** True when a width means **nothing** to this tool's mark, so it is offered
    *  none at all.
    *

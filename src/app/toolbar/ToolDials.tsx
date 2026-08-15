@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 import { useT } from "../i18n/index.ts";
-import { dialReadout } from "../plugins/dials.ts";
+import { dialChoice, dialReadout } from "../plugins/dials.ts";
 import type { ToolDial } from "../plugins/types.ts";
 
 // A tool's own knobs, as a titled section of a panel.
@@ -79,25 +79,52 @@ export function ToolDials({
       {dials.map((dial) => {
         const rest = dial.default ?? 1;
         const value = values[dial.id] ?? rest;
+        // Back where it started is not a setting: forget it, so the blob only
+        // ever holds what differs from the tool as it ships.
+        const move = (next: number) =>
+          onChange(dial.id, next === rest ? null : next);
+        const chosen = dialChoice(dial, value);
         return (
           <label key={dial.id} className="flex flex-col gap-1">
             <span className="text-xs text-muted">
-              {t(dial.nameKey, { value: String(dialReadout(dial, value)) })}
+              {t(dial.nameKey, { value: dialReadout(dial, value) })}
             </span>
-            <input
-              type="range"
-              min={dial.min}
-              max={dial.max}
-              step={dial.step}
-              value={value}
-              onChange={(e) => {
-                const next = Number((e.target as HTMLInputElement).value);
-                // Back where it started is not a setting: forget it, so the
-                // blob only ever holds what differs from the tool as it ships.
-                onChange(dial.id, next === rest ? null : next);
-              }}
-              className="w-full cursor-pointer"
-            />
+            {/* A dial with a handful of values is *pressed*. There is nothing
+                between a 2B and a 3B, so dragging a slider until the readout
+                says "3B" is hunting for something you could have named — see
+                `ToolDial.choices`. Everything else is a slider, and the two
+                render from the same descriptor. */}
+            {dial.choices ? (
+              <span className="flex flex-wrap gap-1">
+                {dial.choices.map((choice) => (
+                  <button
+                    key={choice.label}
+                    type="button"
+                    onClick={() => move(choice.value)}
+                    aria-pressed={choice.value === chosen?.value}
+                    className={`min-w-7 cursor-pointer rounded border px-1.5 py-1 text-[11px] leading-none ${
+                      choice.value === chosen?.value
+                        ? "border-accent bg-accent/15 text-accent"
+                        : "border-line text-muted hover:bg-surface-2"
+                    }`}
+                  >
+                    {choice.label}
+                  </button>
+                ))}
+              </span>
+            ) : (
+              <input
+                type="range"
+                min={dial.min}
+                max={dial.max}
+                step={dial.step}
+                value={value}
+                onChange={(e) =>
+                  move(Number((e.target as HTMLInputElement).value))
+                }
+                className="w-full cursor-pointer"
+              />
+            )}
             <span className="text-[11px] text-muted">{t(dial.hintKey)}</span>
           </label>
         );

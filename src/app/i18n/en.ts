@@ -224,10 +224,28 @@ export const en = {
     // Widths read in millimetres of page (see `PX_PER_MM`) — a number with a
     // unit on it says what a nib is without a second one to compare it against.
     sizeMm: "{size} mm",
-    customSize: "Custom width: {size} mm",
+    // …and type, which is measured in points everywhere outside this app.
+    sizePt: "{size} pt",
+    // A width the trade has a name for: "4.8 mm · #6".
+    sizeNamed: "{size} · {note}",
+    // What the slider says about where you are on it. The middle band is the
+    // range the real implement is made in; either side of it is a width no
+    // shop sells, which is worth saying out loud and not worth forbidding.
+    sizeReal: "as made",
+    sizeFiner: "finer than made",
+    sizeWider: "wider than made",
+    customSize: "Width",
     keepSize: "Keep",
     sizeKept: "Kept",
     removeSize: "Forget",
+    // Saved tools — a width and every dial, under a name (see `presets.ts`).
+    presets: "Saved",
+    savePreset: "Save…",
+    savePresetName: "Name this tool",
+    savePresetPlaceholder: "My favourite pencil",
+    presetDefaultName: "Preset",
+    presetSave: "Save",
+    presetForget: "Forget",
     tool: "Tool",
     toolbar: "Tools",
     selectionActions: "Selection",
@@ -262,8 +280,8 @@ export const en = {
       hint: "Which way the flat of the nib is turned.",
     },
     grade: {
-      name: "Lead: {value}%",
-      hint: "Hard and pale like an H, or soft and dark like a B.",
+      name: "Lead: {value}",
+      hint: "The grade of the lead. H is hard and pale and rides the paper; B is soft and dark and fills its tooth in.",
     },
     hardness: {
       name: "Hardness: {value}%",
@@ -290,8 +308,20 @@ export const en = {
       hint: "Bear down to fill the paper's grain in; ease off to let it show.",
     },
     feather: {
-      name: "Feather: {value} px",
+      name: "Feather: {value} mm",
       hint: "Fades the fill's edge out instead of stopping it.",
+    },
+    water: {
+      name: "Water: {value}%",
+      hint: "How charged the brush is. Wet spreads past the hair and dilutes; dry keeps the shape of the head.",
+    },
+    pigment: {
+      name: "Pigment: {value}%",
+      hint: "How much colour is in the water — a pale tint, or a full-strength stain.",
+    },
+    granulation: {
+      name: "Granulation: {value}%",
+      hint: "How heavily the pigment settles into the paper's dips. Rough stock and mineral colours mottle most.",
     },
   },
   // The text tool's entry box and the bar of type controls over it. The
@@ -424,9 +454,19 @@ export const en = {
         "A broad translucent wedge — a full band across the page, a hairline down it — that builds up where it overlaps.",
     },
     paintbrush: {
-      name: "Paintbrush",
+      name: "Round brush",
       description:
         "A loaded bristle brush: the stroke swells in the middle and tapers off at both ends.",
+    },
+    flatbrush: {
+      name: "Flat brush",
+      description:
+        "A one-stroke brush with a chisel ferrule: full width pulled across itself, a hairline pulled along its edge.",
+    },
+    watercolor: {
+      name: "Watercolour",
+      description:
+        "A wet wash on paper. It spreads past the hair, dries darkest at the rim, and every layer shows what is under it.",
     },
     airspray: {
       name: "Airbrush",

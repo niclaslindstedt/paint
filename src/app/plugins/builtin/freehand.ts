@@ -8,7 +8,8 @@
 // the eraser are all one call to this with different arguments.
 
 import type { Point } from "../../types.ts";
-import { paintBrush } from "../bristle.ts";
+import { paintWash } from "../aquarelle.ts";
+import { paintBrush, ROUND_HEAD, type BrushHead } from "../bristle.ts";
 import {
   paintCalligraphy,
   paintNib,
@@ -41,7 +42,14 @@ function radians(degrees: number): number {
 /** Which painter lays the polyline down. The geometry is identical across all
  *  of them — a freehand tool's whole character is in this choice. */
 export type FreehandStyle =
-  "line" | "brush" | "spray" | "crayon" | "calligraphy" | "nib" | "graphite";
+  | "line"
+  | "brush"
+  | "spray"
+  | "crayon"
+  | "calligraphy"
+  | "nib"
+  | "graphite"
+  | "wash";
 
 type FreehandInk = {
   /** Lift ink rather than lay it down (the eraser). The mark carries no colour
@@ -75,6 +83,16 @@ type FreehandInk = {
    *  the same agreement as `chisel`. A tool that offers no angle dial simply
    *  draws at this one for ever. */
   angle?: number;
+  /** What is on the end of the handle, for the `brush` style: a cone of hair
+   *  that draws the same width whichever way you pull it, or a blade that lays
+   *  its full width square across itself and closes to nothing on its edge (see
+   *  `BrushHead`).
+   *
+   *  A property of the brush and not a dial, exactly like the marker's chisel:
+   *  you do not turn a round into a flat, you pick up a different brush — and
+   *  so a flat is a second registration of this same behaviour rather than a
+   *  setting on the first. */
+  head?: BrushHead["shape"];
 };
 
 /** Build a freehand tool behaviour with the given ink. */
@@ -147,6 +165,28 @@ export function freehandBehaviour(ink: FreehandInk = {}): ToolBehaviour {
             // does not wick is the ordinary case, so it has to be what a mark
             // carrying no `bleed` at all paints as.
             strokeDial(stroke, "bleed", 0),
+            ink.head === "flat"
+              ? {
+                  shape: "flat",
+                  // A flat is held at an angle the way a broad nib is, and the
+                  // same dial says which — so the two tools that have a flat on
+                  // them read the same number off the mark.
+                  angle: radians(strokeDial(stroke, "angle", ink.angle ?? 0)),
+                }
+              : ROUND_HEAD,
+          );
+          return;
+        case "wash":
+          paintWash(
+            ctx2d,
+            points,
+            stroke.size,
+            scale,
+            strokeDial(stroke, "water"),
+            strokeDial(stroke, "pigment"),
+            // The sheet's own doing, and the one of the three that rests
+            // somewhere other than 1 — see `GRANULATION`.
+            strokeDial(stroke, "granulation", 0.6),
           );
           return;
         case "spray":

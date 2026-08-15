@@ -45,10 +45,13 @@ import {
   toolPlugins,
   type ToolbarEntry,
 } from "../src/app/plugins/registry.ts";
+import { gaugeSizes, isRealSize } from "../src/app/plugins/gauge.ts";
 import { graphiteInk } from "../src/app/plugins/graphite.ts";
 import { polygonCorners, starCorners } from "../src/app/plugins/ink.ts";
 import type { ToolContext } from "../src/app/plugins/types.ts";
 import type { Point } from "../src/app/types.ts";
+import { toMm, toPt } from "../src/app/units.ts";
+import { gaugeFor } from "../src/app/useAppSettings.ts";
 
 // The plugin seam is the app's one extension point, so these tests pin the two
 // things the rest of the app relies on: what the registry offers for a given
@@ -81,6 +84,8 @@ describe("registry", () => {
       "eraser",
       "graphite",
       "paintbrush",
+      "flatbrush",
+      "watercolor",
       "airspray",
       "marker",
       "highlighter",
@@ -161,18 +166,19 @@ describe("registry", () => {
   });
 
   it("opens on a paint program's toolbox and nothing else", () => {
-    // What a first run finds: a pen, a rubber, a pencil, a spray can, a
-    // bucket, the shapes, the marquee, type, a dropper and the hand — the
-    // tools anyone who has opened a paint program already knows, and **nothing
-    // else**. This list is the whole default toolbar, families counted as the
-    // one button they are, so a tool added later has to be switched on before
-    // it is seen.
+    // What a first run finds: a pen, a rubber, a pencil, a watercolour brush,
+    // a spray can, a bucket, the shapes, the marquee, type, a dropper and the
+    // hand — the tools anyone who has opened a paint program already knows,
+    // plus the one medium this app is actually *for*. This list is the whole
+    // default toolbar, families counted as the one button they are, so a tool
+    // added later has to be switched on before it is seen.
     expect(
       toolbarEntries(defaultEnabledPlugins(), []).map((e) => e.id),
     ).toEqual([
       "pencil",
       "eraser",
       "graphite",
+      "watercolor",
       "airspray",
       "filler",
       "shapes",
@@ -185,6 +191,7 @@ describe("registry", () => {
     // additions, and they are one tap away in Settings → Tools.
     for (const id of [
       "paintbrush",
+      "flatbrush",
       "marker",
       "highlighter",
       "crayon",
@@ -213,18 +220,28 @@ describe("registry", () => {
   });
 
   it("gives every tool a width of its own to open at", () => {
-    // One number never suited all of them: 6 document pixels is a fine pen
-    // line, a starved airbrush and type too small to read. A tool without one
-    // falls back to the middle of the shared row, which is only right for the
-    // tools that have no nib at all.
+    // One number never suited all of them: a third of a millimetre is a fine
+    // pen line, a starved airbrush and type too small to read. A tool without
+    // one falls back to the middle of the default ladder, which is only right
+    // for the tools that have no nib at all.
     const sized = toolPlugins().filter((p) => p.defaultSize !== undefined);
     expect(sized.map((p) => p.id)).toContain("pencil");
-    expect(pluginById("text")!.defaultSize).toBe(32);
+    expect(Math.round(toPt(pluginById("text")!.defaultSize!))).toBe(12);
     expect(pluginById("pencil")!.defaultSize).not.toBe(
       pluginById("eraser")!.defaultSize,
     );
     for (const plugin of sized) {
       expect(plugin.defaultSize).toBeGreaterThan(0);
+    }
+  });
+
+  it("opens every tool on a width it is really made in", () => {
+    // The whole point of a gauge: the width a tool opens at is a size a shop
+    // sells, not a number somebody liked. A default off the rack is a tool
+    // whose first mark is one no implement makes.
+    for (const plugin of toolPlugins()) {
+      if (plugin.defaultSize === undefined) continue;
+      expect(isRealSize(gaugeFor(plugin), plugin.defaultSize)).toBe(true);
     }
   });
 
@@ -537,8 +554,12 @@ describe("the felt tips", () => {
     // It used to open eighteen document pixels wide, which is a wall marker.
     const marker = pluginById("marker")!;
     const draft = marker.behaviour.start({ x: 0, y: 0 }, ctx)!;
-    expect(marker.defaultSize).toBe(4);
-    expect(draft.size).toBe(ctx.size * 2);
+    // A one-millimetre bullet: what most people mean by "a marker", and what
+    // most people want to write with.
+    expect(toMm(marker.defaultSize!)).toBeCloseTo(1, 6);
+    // …and the nib painter lays a mark exactly as wide as it is told, so the
+    // number on the button is the mark.
+    expect(draft.size).toBe(ctx.size);
     // Spirit ink: a second pass over the same line darkens it.
     expect(draft.opacity).toBeLessThan(1);
   });
@@ -547,7 +568,10 @@ describe("the felt tips", () => {
     const angled = toolPlugins()
       .filter((p) => p.dials?.some((d) => d.id === "angle"))
       .map((p) => p.id);
-    expect(angled).toEqual(["calligraphy"]);
+    // The flat brush and the broad nib: the two tools in the box with a flat
+    // on them, and the only two for which "which way is it turned" is a
+    // question. A round has no flat to turn.
+    expect(angled).toEqual(["flatbrush", "calligraphy"]);
     const angle = pluginById("calligraphy")!.dials!.find(
       (d) => d.id === "angle",
     )!;
@@ -658,7 +682,7 @@ describe("hardness", () => {
       allPlugins()
         .filter((p) => p.dials?.some((d) => d.id === "hardness"))
         .map((p) => p.id),
-    ).toEqual(["paintbrush", "airspray"]);
+    ).toEqual(["paintbrush", "flatbrush", "airspray"]);
   });
 });
 
@@ -696,8 +720,13 @@ describe("text", () => {
 
   it("brings its own scale, because a nib width is not a type size", () => {
     const text = pluginById("text")!;
-    expect(text.sizes).toEqual([16, 24, 32, 48, 72]);
-    expect(text.defaultSize).toBe(32);
+    // …and its own *unit*: type is set in points everywhere outside this app,
+    // so the tool's gauge is the only one in the box that isn't millimetres.
+    expect(text.gauge?.unit).toBe("pt");
+    expect(gaugeSizes(text.gauge!).map((px) => Math.round(toPt(px)))).toEqual([
+      10, 12, 18, 24, 48,
+    ]);
+    expect(Math.round(toPt(text.defaultSize!))).toBe(12);
   });
 
   it("files the words as one mark, at the point they were typed", () => {
