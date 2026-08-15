@@ -1,7 +1,10 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 import { useEffect, useState } from "react";
 
-import { FloatingPanel } from "@niclaslindstedt/oss-framework/components";
+import {
+  FloatingPanel,
+  StarIcon,
+} from "@niclaslindstedt/oss-framework/components";
 
 import { useT } from "../i18n/index.ts";
 import {
@@ -14,8 +17,9 @@ import {
   stepNote,
   type SizeGauge,
 } from "../plugins/gauge.ts";
+import type { ToolPresetOption } from "../plugins/presets.ts";
 import type { PaintPlugin, ToolDial } from "../plugins/types.ts";
-import type { ToolPreset } from "../presets.ts";
+import type { PresetSettings, ToolPreset } from "../presets.ts";
 import { gaugeFor, sizesFor } from "../useAppSettings.ts";
 import { PressPreview } from "./PressPreview.tsx";
 import { PresetBar } from "./PresetBar.tsx";
@@ -26,9 +30,21 @@ import { ToolDials } from "./ToolDials.tsx";
 //
 // Three sections, top to bottom, in the order a hand reaches for them.
 //
-// **Saved** — the tools the user built (see `PresetBar.tsx`). First, because a
-// preset is the answer to the whole rest of the panel and pressing one should
-// not mean scrolling past the machinery that made it.
+// **Presets**, then **Saved** — whole tools, one press away (see
+// `PresetBar.tsx`). First, because a preset is the answer to the whole rest of
+// the panel and pressing one should not mean scrolling past the machinery that
+// made it.
+//
+// The first row is the settings the *tool* came with — the ways its medium is
+// actually used, each chip wearing the mark it makes — and it is what a
+// beginner has instead of five sliders and a guess. The second is the tools the
+// *user* built; it is not there at all until something has been saved, and the
+// way in is the **star** on the title row, which saves the tool as it is
+// currently set under a name and a mark.
+//
+// Nothing in this panel closes it. Picking a width, applying a saved tool and
+// turning a dial are all things you may want to do two of, and a panel that
+// shut after the first made the second a re-open.
 //
 // **Width** — five buttons and a slider, and both of them are now about a real
 // implement rather than about a number between 1 and 200.
@@ -47,9 +63,10 @@ import { ToolDials } from "./ToolDials.tsx";
 //     `plugins/gauge.ts`). The band is drawn on the track, so where you are is
 //     something you can see rather than something you have to know, and the
 //     readout says it in words as well.
-//   - **Keep** adds whatever the slider is on to this tool's row, and kept
-//     widths are per tool: a twenty-five-millimetre flat you kept while
-//     painting has no business in the pencil's row.
+//     There is no "keep this width" button. A width on its own was a worse
+//     version of a saved *tool*, which carries the dials with it and has a name
+//     and a mark on it — so the star in the title row is the only thing here
+//     that remembers anything.
 //
 // **The width belongs to the tool**, and so does everything else here. One
 // pencil width, one brush width, one type size, one set of dials each — so
@@ -86,14 +103,13 @@ type Props = {
   background: string;
   /** The fill toggle, so a fillable tool previews solid when it is set solid. */
   filled: boolean;
-  /** The widths the user kept **for this tool**. */
-  customSizes: readonly number[];
-  onAddSize: (size: number) => void;
-  onRemoveSize: (size: number) => void;
+  /** The presets the tool ships with, dials resolved (see
+   *  `plugins/presets.ts`) — the row above the saved one. */
+  builtinPresets: readonly ToolPresetOption[];
   /** The tools saved under a name for this tool (see `presets.ts`). */
   presets: readonly ToolPreset[];
-  onApplyPreset: (preset: ToolPreset) => void;
-  onSavePreset: (name: string) => void;
+  onApplyPreset: (preset: PresetSettings) => void;
+  onSavePreset: (name: string, glyph: string | null) => void;
   onDeletePreset: (id: string) => void;
   /** What the tool in hand offers past its width, in the order it declared
    *  them. Empty for a tool with nothing to tune (the eraser, the hand), and
@@ -135,9 +151,7 @@ export function SizePicker({
   color,
   background,
   filled,
-  customSizes,
-  onAddSize,
-  onRemoveSize,
+  builtinPresets,
   presets,
   onApplyPreset,
   onSavePreset,
@@ -150,8 +164,11 @@ export function SizePicker({
 }: Props) {
   const t = useT();
   const gauge = gaugeFor(plugin);
-  const sizes = sizesFor(plugin, customSizes);
+  const sizes = sizesFor(plugin);
   const label = useSizeLabel(gauge);
+  // Whether the save form is open. Owned here rather than in `PresetBar`,
+  // because the button that opens it is the star in the title row.
+  const [saving, setSaving] = useState(false);
   // The slider is held as a *position*, not as a width: dragging it has to move
   // smoothly through a scale that is geometric in three pieces, and rounding a
   // width back into a position every frame would make the thumb stick.
@@ -160,16 +177,24 @@ export function SizePicker({
   // Open the slider on the nib in use, so "a bit fatter than this" starts here.
   useEffect(() => {
     if (open) setAt(positionOf(gauge, size));
+    else setSaving(false);
     // Keyed on the panel opening: dragging the slider must not fight a pick.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
+
+  // …and the slider follows the width whenever something *else* moves it — a
+  // saved tool applied, or a width picked off the row. Without this the thumb
+  // stays where it was left, and the panel says two different things at once.
+  useEffect(() => {
+    if (open) setAt(positionOf(gauge, size));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [size]);
 
   const drafted = sizeAt(gauge, at);
   // What the row and the readout agree is being shown: the width the tool is
   // actually set to whenever the slider has not been touched since, so picking
   // a button and reading the number never disagree.
   const shown = Math.abs(drafted - size) < 0.05 ? size : drafted;
-  const kept = sizes.some((option) => Math.abs(option - shown) < 0.05);
 
   return (
     <FloatingPanel
@@ -185,26 +210,49 @@ export function SizePicker({
       className="p-2"
     >
       <div className="flex flex-col gap-2">
-        {/* Whose panel this is. Without a heading of its own the row of widths
-            read as an unlabelled preamble to the sections below it — worse on
-            a phone, where the panel opens over the drawing and the button that
-            opened it is under your thumb. */}
-        <span className="text-xs font-bold tracking-wide text-muted uppercase">
-          {plugin ? t(plugin.nameKey) : t("canvas.size")}
-        </span>
+        {/* Whose panel this is, and the one way *out* of it: the star that
+            saves the tool as it is now set.
+            
+            The star sits on the title row rather than over the saved chips
+            because it is about **this tool**, which is what the title names —
+            and because putting it there is what lets the saved section vanish
+            entirely when nothing has been saved yet. A heading over an empty
+            row is a promise of a feature; a star beside the tool's name is the
+            feature. */}
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-xs font-bold tracking-wide text-muted uppercase">
+            {plugin ? t(plugin.nameKey) : t("canvas.size")}
+          </span>
+          <button
+            type="button"
+            onClick={() => setSaving((open) => !open)}
+            aria-expanded={saving}
+            aria-label={t("canvas.savePreset")}
+            title={t("canvas.savePreset")}
+            className={`inline-flex h-6 w-6 shrink-0 cursor-pointer items-center justify-center rounded border ${
+              saving
+                ? "border-accent bg-accent/15 text-accent"
+                : "border-line text-muted hover:bg-surface-2 hover:text-fg-bright"
+            }`}
+          >
+            <StarIcon className="h-3.5 w-3.5" />
+          </button>
+        </div>
 
         <PresetBar
+          plugin={plugin}
+          builtin={builtinPresets}
           presets={presets}
           size={size}
           dials={values}
-          onApply={(preset) => {
-            onApplyPreset(preset);
-            // A saved tool is a finished decision, the way a width off the row
-            // is: take it and get out of the way.
-            onClose();
-          }}
+          color={color}
+          background={background}
+          filled={filled}
+          onApply={onApplyPreset}
           onSave={onSavePreset}
           onDelete={onDeletePreset}
+          saving={saving}
+          onDone={() => setSaving(false)}
         />
 
         <div className="flex flex-col gap-1.5 border-t border-line pt-2">
@@ -221,14 +269,14 @@ export function SizePicker({
               <span key={option} className="relative inline-flex">
                 <button
                   type="button"
-                  onClick={() => {
-                    // A width picked from the row is a finished decision, so
-                    // the panel gets out of the way. The slider below is not —
-                    // it is live, and closing on every frame of a drag would be
-                    // absurd.
-                    onPick(option);
-                    onClose();
-                  }}
+                  // Picking a width does **not** close the panel. It used to,
+                  // on the reasoning that a width off the row is a finished
+                  // decision — but it is finished only as a *width*, and the
+                  // panel is also where the tool gets saved and tuned. Closing
+                  // meant re-opening to star it, or to nudge a dial, or to try
+                  // the width beside it. The way out is the same as for every
+                  // other panel: press somewhere else.
+                  onClick={() => onPick(option)}
                   aria-pressed={option === size}
                   aria-label={label(option)}
                   title={label(option)}
@@ -249,17 +297,6 @@ export function SizePicker({
                     box={30}
                   />
                 </button>
-                {customSizes.includes(option) && (
-                  <button
-                    type="button"
-                    onClick={() => onRemoveSize(option)}
-                    aria-label={`${t("canvas.removeSize")} ${label(option)}`}
-                    title={t("canvas.removeSize")}
-                    className="absolute -top-1 -right-1 h-3.5 w-3.5 cursor-pointer rounded-full border border-line bg-surface text-[9px] leading-none text-muted hover:text-fg-bright"
-                  >
-                    ×
-                  </button>
-                )}
               </span>
             ))}
           </div>
@@ -279,22 +316,37 @@ export function SizePicker({
                     : t("canvas.sizeWider")}
               </span>
             </span>
-            {/* The rack, drawn on the track. The middle band is where the real
-                implements are; the tenth before it is finer than they are made
-                and the half after it runs off to a nib as wide as the page. */}
-            <span
-              aria-hidden="true"
-              className="relative block h-1 w-full overflow-hidden rounded bg-surface-2"
-            >
+            {/* The rack, drawn *under the thumb's own travel*. The middle band
+                is where the real implements are; the tenth before it is finer
+                than they are made and the half after it runs off to a nib as
+                wide as the page — so the band's right edge is exactly where the
+                readout stops saying "as made".
+                
+                It has to share the slider's coordinates to mean anything, and a
+                range input's thumb does not travel the full width: it is inset
+                by half a thumb at each end. So the two are stacked in one
+                positioned box and the band is laid out through the same inset
+                (`--gauge-thumb`, pinned in `styles.css` because a browser
+                default would be a different number in every browser). Drawn
+                above the row, as it was, the band was a claim about a track it
+                was not on — and it read a full ten percent wide of the truth. */}
+            <span className="relative block h-6 w-full [--gauge-thumb:16px]">
               <span
-                className="absolute inset-y-0 block bg-accent/45"
+                aria-hidden="true"
+                className="pointer-events-none absolute top-1/2 right-0 left-0 block h-1 -translate-y-1/2 overflow-hidden rounded bg-line"
                 style={{
-                  left: `${FINE_BAND * 100}%`,
-                  right: `${(1 - REAL_BAND) * 100}%`,
+                  marginLeft: "calc(var(--gauge-thumb) / 2)",
+                  marginRight: "calc(var(--gauge-thumb) / 2)",
                 }}
-              />
-            </span>
-            <div className="flex items-center gap-2">
+              >
+                <span
+                  className="absolute inset-y-0 block bg-accent/45"
+                  style={{
+                    left: `${FINE_BAND * 100}%`,
+                    right: `${(1 - REAL_BAND) * 100}%`,
+                  }}
+                />
+              </span>
               <input
                 type="range"
                 min={0}
@@ -311,17 +363,9 @@ export function SizePicker({
                   // choosing, and the next mark is the only real preview.
                   onPick(sizeAt(gauge, next));
                 }}
-                className="w-full cursor-pointer"
+                className="gauge-slider absolute inset-0 w-full cursor-pointer"
               />
-              <button
-                type="button"
-                disabled={kept}
-                onClick={() => onAddSize(shown)}
-                className="shrink-0 cursor-pointer rounded border border-accent bg-accent/15 px-2 py-1 text-xs text-accent disabled:cursor-default disabled:border-line disabled:bg-transparent disabled:text-muted"
-              >
-                {kept ? t("canvas.sizeKept") : t("canvas.keepSize")}
-              </button>
-            </div>
+            </span>
           </label>
         </div>
 

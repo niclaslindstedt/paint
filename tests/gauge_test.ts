@@ -64,21 +64,21 @@ describe("the page's scale", () => {
     // is the whole current iPhone line.
     expect(DPI).toBe(460);
     expect(PX_PER_MM).toBeCloseTo(18.11, 2);
-    // The one page in the new-drawing dialog that is a piece of paper rather
-    // than a display. It has to *measure* as A4, or the whole calibration is a
-    // fiction — which is why the preset is written in millimetres rather than
-    // as some printer's pixel count (see `canvasSize.ts`).
+    // …and the default sheet, which is a postcard held landscape.
+    expect(Math.round(toMm(3200))).toBe(177);
+  });
+
+  it("keeps the A4 preset at a printer's resolution, not the page's", () => {
+    // The two are different questions, and the preset answers the second: how
+    // many pixels a sheet of A4 needs to *print* sharply. Photo labs and
+    // consumer inkjets want 300 ppi of image data — the 1440 and 5760 dpi on
+    // the box are ink droplets — so A4 is 2480 × 3508 however the page itself
+    // is scaled (see `canvasSize.ts`).
     const a4 = canvasPresets({ width: 1000, height: 1000 }).find(
       (p) => p.id === "print",
     )!;
-    expect(a4.size).toEqual({
-      width: Math.round(mm(210)),
-      height: Math.round(mm(297)),
-    });
-    expect(Math.round(toMm(a4.size.width))).toBe(210);
-    expect(Math.round(toMm(a4.size.height))).toBe(297);
-    // …and the default sheet, which is a postcard held landscape.
-    expect(Math.round(toMm(3200))).toBe(177);
+    expect(a4.size).toEqual({ width: 2480, height: 3508 });
+    expect(Math.round(2480 / (210 / 25.4))).toBe(300);
   });
 
   it("sets type in points and everything else in millimetres", () => {
@@ -209,6 +209,38 @@ describe("the shipped racks", () => {
       const sizes = gaugeSizes(gauge);
       expect(sizes).toEqual([...sizes].sort((a, b) => a - b));
     }
+  });
+
+  it("opens every tool on one of its own five buttons", () => {
+    // A default off the five is a fresh install whose size row has nothing
+    // lit up in it — the panel opens saying "none of these", which is both
+    // untrue and the first thing a new user sees. It is also the check that
+    // catches a default chosen as a round number rather than as an implement:
+    // the airbrush opened at 8 mm for a while, which is a pattern no gun on
+    // its own rack throws.
+    for (const plugin of allPlugins()) {
+      if (plugin.defaultSize === undefined || !plugin.gauge) continue;
+      const steps = gaugeSizes(plugin.gauge);
+      expect(
+        steps.some((step) => Math.abs(step - plugin.defaultSize!) < 0.05),
+      ).toBe(true);
+    }
+  });
+
+  it("opens each tool at the size it is reached for most of the time", () => {
+    // Not the middle of the rack — the one a professional actually spends the
+    // day on. A spot check of the four that are least obvious.
+    const opensAt = (id: string) => toMm(pluginById(id)!.defaultSize!);
+    // The liner that outsells all the others put together.
+    expect(opensAt("pencil")).toBeCloseTo(0.5, 6);
+    // 0.5 is the lead a shop sells most of, but this is a tool for sketching,
+    // and a sketching hand wants the blunter point.
+    expect(opensAt("graphite")).toBeCloseTo(0.7, 6);
+    // The bullet on the marker in everybody's drawer.
+    expect(opensAt("marker")).toBeCloseTo(2, 6);
+    // A general-purpose gun at the distance an arm holds it — between the
+    // detail work below it and the backgrounds above.
+    expect(opensAt("airspray")).toBeCloseTo(12, 6);
   });
 
   it("measures each tool the way its trade measures it", () => {

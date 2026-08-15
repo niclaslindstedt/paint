@@ -63,6 +63,16 @@
 // crayon's pressure. They are declared here and rendered by a picker that knows
 // none of their names; see `./dials.ts` for the set and `../dials.ts` for what
 // happens to the numbers.
+//
+// And a tool's `presets` are the answer to the question those dials raise. Five
+// sliders is a tool a professional can build and a beginner cannot: nobody
+// arrives at dry-brush by dragging the splay up and the hardness down to see
+// what happens. So most tools also declare the handful of settings their medium
+// is actually used at — "wet-in-wet", "2H construction line", "hog bristle" —
+// and the panel offers them as chips above whatever the user has saved. A tool
+// whose must-haves come to a single setting ships **none**, and puts that
+// setting in its `defaultSize` and dial defaults instead; see `./presets.ts`
+// for the set, the rules, and which tools those are.
 
 import {
   ArrowIcon,
@@ -120,6 +130,20 @@ import {
   STRENGTH,
   WATER,
 } from "./dials.ts";
+import {
+  BRUSH_PRESETS,
+  CRAYON_PRESETS,
+  ERASER_PRESETS,
+  FILL_PRESETS,
+  FLAT_BRUSH_PRESETS,
+  HIGHLIGHTER_PRESETS,
+  MARKER_PRESETS,
+  NIB_PRESETS,
+  PEN_PRESETS,
+  PENCIL_PRESETS,
+  SPRAY_PRESETS,
+  WASH_PRESETS,
+} from "./presets.ts";
 import {
   CRAYON_GAUGE,
   ERASER_GAUGE,
@@ -331,17 +355,21 @@ export function registerBuiltinPlugins(): void {
     descriptionKey: "tools.pencil.description",
     icon: PenIcon,
     shortcut: "p",
-    // The ISO ladder every technical pen is drawn to, opening at 0.35 mm —
-    // which is the one you write with (see `gauges.ts`). A pen draws at the
-    // width it says it does, so the number is the mark.
+    // The ISO ladder every technical pen is drawn to, opening at 0.5 mm — the
+    // liner that outsells all the others put together, and the one most hands
+    // reach for without thinking (see `gauges.ts`). A pen draws at the width it
+    // says it does, so the number is the mark.
     gauge: PEN_GAUGE,
-    defaultSize: mm(0.35),
+    defaultSize: mm(0.5),
     // Liquid ink, but only just: a technical pen is dry the moment it leaves
     // the nib on any sized paper, and the one stock it feathers on is
     // newsprint — which is exactly what this number times an absorbency comes
     // out saying (see `PaintPlugin.wetness`).
     wetness: 0.18,
     dials: [OPACITY],
+    // The three lines a drawing pen is actually asked for — see `./presets.ts`
+    // for what a preset is and for why several tools below have none.
+    presets: PEN_PRESETS,
     behaviour: freehandBehaviour(),
   });
 
@@ -372,6 +400,8 @@ export function registerBuiltinPlugins(): void {
     // eraser you knock a highlight back with, rather than the one that takes
     // the page to white in a single drag.
     dials: [STRENGTH],
+    // A block, a corner, and the kneaded eraser you lift a highlight back with.
+    presets: ERASER_PRESETS,
     // It takes ink *off*: the mark is painted with `destination-out`, so what
     // it covers is removed from the picture and the sheet comes back through
     // the hole (see `render.ts`). It used to paint the page colour instead,
@@ -395,14 +425,18 @@ export function registerBuiltinPlugins(): void {
     descriptionKey: "tools.graphite.description",
     icon: PencilIcon,
     shortcut: "g",
-    // The four leads a mechanical pencil takes, plus the 2 mm clutch lead, and
-    // it opens on the 0.5 mm everybody sketches with. A sharp lead draws at the
-    // width it says it is.
+    // The four leads a mechanical pencil takes, plus the 2 mm clutch lead. It
+    // opens on 0.7 — 0.5 is the lead a shop sells most of, but this is a tool
+    // for *sketching*, and a sketching hand wants the blunter point and the
+    // lead that does not snap when it is leaned on.
     gauge: PENCIL_GAUGE,
-    defaultSize: mm(0.5),
+    defaultSize: mm(0.7),
     // The one axis a pencil has — how soft the lead is — and the opacity every
     // marking tool offers, for laying a light guide line in.
     dials: [GRADE, OPACITY],
+    // The four pencils in the tin: a grade and a width together *are* a pencil,
+    // which is the case this whole feature was built on.
+    presets: PENCIL_PRESETS,
     behaviour: freehandBehaviour({
       style: "graphite",
       // Graphite is a mineral, not an ink: the tool mixes its own grey and the
@@ -433,6 +467,9 @@ export function registerBuiltinPlugins(): void {
     // over on any paper, nowhere near as wet as a wash.
     wetness: 0.6,
     dials: [OPACITY, HARDNESS, HAIR, SPLAY, BLEED],
+    // Four heads rather than four widths — the hog, the dry brush and the
+    // glaze are what those five dials are *for*.
+    presets: BRUSH_PRESETS,
     behaviour: freehandBehaviour({
       style: "brush",
       useHardness: true,
@@ -461,6 +498,7 @@ export function registerBuiltinPlugins(): void {
     // broad nib rests at, because it is the same right-handed wrist.
     wetness: 0.6,
     dials: [OPACITY, HARDNESS, ANGLE, SPLAY, BLEED],
+    presets: FLAT_BRUSH_PRESETS,
     behaviour: freehandBehaviour({
       style: "brush",
       head: "flat",
@@ -498,6 +536,9 @@ export function registerBuiltinPlugins(): void {
     // paints exactly as it always has.
     wetness: 1,
     dials: [OPACITY, WATER, PIGMENT, GRANULATION],
+    // Wet-in-wet, glaze and dry brush: the techniques those three dials are the
+    // controls for, under the names a watercolourist already uses.
+    presets: WASH_PRESETS,
     behaviour: freehandBehaviour({ style: "wash" }),
   });
 
@@ -518,16 +559,19 @@ export function registerBuiltinPlugins(): void {
     // did not change, only how much of it a new stroke asks for.
     //
     // The number is now the *pattern width*, and it is measured the way a
-    // sprayed one is: a gun set to 8 mm throws an 8 mm cone at the distance an
-    // arm holds it, which is the general-purpose setting.
+    // sprayed one is: a gun set to 12 mm throws a 12 mm cone at the distance an
+    // arm holds it. That is the general-purpose setting — the one an airbrush
+    // spends most of its life on, between the detail work below it and the
+    // backgrounds above.
     gauge: SPRAY_GAUGE,
-    defaultSize: mm(8),
+    defaultSize: mm(12),
     // A spray cone: how tight its core is, and how much paint the trigger lets
     // through per pass.
     // Atomised: it has crossed a foot of air before it lands and most of the
     // solvent is gone by then, so it dries almost on contact.
     wetness: 0.15,
     dials: [HARDNESS, FLOW],
+    presets: SPRAY_PRESETS,
     behaviour: freehandBehaviour({
       sizeScale: 1 / 3.2,
       style: "spray",
@@ -547,18 +591,19 @@ export function registerBuiltinPlugins(): void {
     icon: MarkerIcon,
     shortcut: "m",
     // A felt tip, from a fineliner up to the king-size one that labels a
-    // packing crate — opening on a one-millimetre bullet, which is what most
-    // people mean by "a marker" and what most people want to write with. The
+    // packing crate — opening on the two-millimetre bullet, which is the tip on
+    // the marker in everybody's drawer and the one it spends its life on. The
     // nib painter lays a mark exactly as wide as it is told, so there is no
     // scale on it any more (it used to be doubled).
     gauge: MARKER_GAUGE,
-    defaultSize: mm(1),
+    defaultSize: mm(2),
     // Spirit ink: it soaks in rather than sitting on top, so a second pass over
     // the same line darkens it the way a real marker does.
     // Spirit ink, and the reason a marker on newsprint is a fat furry line and
     // a marker on layout paper is a crisp one.
     wetness: 0.5,
     dials: [OPACITY, CHISEL],
+    presets: MARKER_PRESETS,
     behaviour: freehandBehaviour({
       opacity: 0.88,
       style: "nib",
@@ -582,6 +627,7 @@ export function registerBuiltinPlugins(): void {
     defaultSize: mm(5),
     wetness: 0.45,
     dials: [OPACITY, CHISEL_FLAT],
+    presets: HIGHLIGHTER_PRESETS,
     behaviour: freehandBehaviour({
       opacity: 0.35,
       style: "nib",
@@ -610,6 +656,7 @@ export function registerBuiltinPlugins(): void {
     // one goes round it. (Resisting the water is what a wax resist *is* — see
     // `docs/features/surface.md`.)
     dials: [OPACITY, PRESSURE],
+    presets: CRAYON_PRESETS,
     behaviour: freehandBehaviour({ style: "crayon" }),
   });
 
@@ -632,6 +679,9 @@ export function registerBuiltinPlugins(): void {
     // once, which is why writing on the wrong paper feathers.
     wetness: 0.5,
     dials: [OPACITY, ANGLE],
+    // The three hands anyone is taught. A calligrapher changes the nib and the
+    // angle they hold it at, and that is the whole difference between them.
+    presets: NIB_PRESETS,
     behaviour: freehandBehaviour({
       sizeScale: 0.5,
       style: "calligraphy",
@@ -661,6 +711,8 @@ export function registerBuiltinPlugins(): void {
     // it floods over instead of hiding them.
     wetness: 0.3,
     dials: [OPACITY, FEATHER],
+    // The one set with no width in it, because the tool has none.
+    presets: FILL_PRESETS,
     behaviour: fillBehaviour,
   });
 
@@ -704,6 +756,10 @@ export function registerBuiltinPlugins(): void {
       gauge: STROKE_GAUGE,
       defaultSize: mm(0.5),
       dials: [OPACITY],
+      // …and no presets. A rectangle is a rectangle: what varies is the width
+      // of the line it is ruled with, and that is the width row already. The
+      // one setting worth handing anybody is the half-millimetre line above,
+      // which is where a setting that good belongs (see `./presets.ts`).
       ...member,
     });
   }
@@ -759,6 +815,10 @@ export function registerBuiltinPlugins(): void {
     gauge: TYPE_GAUGE,
     defaultSize: DEFAULT_TEXT_SIZE,
     dials: [OPACITY],
+    // No presets, for the shapes' reason with one of its own on top: the size
+    // row *is* the preset row for type, and the choices that would make a type
+    // preset worth having — the face, the weight, the slant — are not dials at
+    // all. They sit in the toolbar beside the caption you are typing.
     behaviour: textBehaviour,
   });
 

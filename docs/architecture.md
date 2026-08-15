@@ -467,6 +467,10 @@ lives by: **nothing outside it may branch on a tool id.**
 - `dials.ts` — what happens to those sliders' numbers: resolved for the panel,
   and pared back to just the ones moved off their default for the canvas and the
   stroke.
+- `presets.ts` — the settings a tool _ships_ with (`builtin/presets.ts` for the
+  set): a width and the dials that make its medium's must-haves, declared as
+  only what each one moves and resolved here into a whole tool, so applying one
+  puts the dials it says nothing about back where they rest.
 - `controls.ts` — which button the toolbar puts beside the ink for the tool in
   hand: its width, a cog holding just its dials (a `sizeless` tool — the
   bucket), or nothing at all (a tool with neither). One place, read entirely off
@@ -547,6 +551,15 @@ renders a slider whose middle band _is_ that range — so a pencil offers
 knowing which is which. What a tool has saved under a name (`src/app/presets.ts`)
 rides the same seam: a preset is a width plus every dial, addressed by tool id,
 and applying one is a single write to the settings blob.
+
+`presets` is that same object declared from the other end — by the _tool_ rather
+than by the user. A medium is used at a handful of settings ("wet-in-wet", "2H
+construction line", "hog bristle") and five sliders is a tool a beginner cannot
+build, so a plugin declares those and the panel offers them above the saved row.
+Both kinds meet at one type (`PresetSettings`), so matching a chip against the
+tool in hand and applying one are written once and never ask which they were
+handed. A tool whose must-haves come to a single setting declares none and puts
+that setting in its `defaultSize` and dial defaults instead.
 
 `dials` is that pattern carrying a whole surface. Width is the control most
 tools share; past it they stop agreeing, so a tool lists what _it_ has to tune

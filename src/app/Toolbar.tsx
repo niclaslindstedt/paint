@@ -6,6 +6,7 @@ import { CogIcon } from "@niclaslindstedt/oss-framework/components";
 import { useT } from "./i18n/index.ts";
 import { fieldHasKeyboard } from "./keys.ts";
 import { toolControl, usesInk } from "./plugins/controls.ts";
+import { toolPresets } from "./plugins/presets.ts";
 import {
   enabledPlugins,
   pluginById,
@@ -13,7 +14,7 @@ import {
   type ToolbarEntry,
 } from "./plugins/registry.ts";
 import type { PaintPlugin } from "./plugins/types.ts";
-import type { ToolPreset } from "./presets.ts";
+import type { PresetSettings, ToolPreset } from "./presets.ts";
 import {
   groupMemberFor,
   sizesFor,
@@ -95,14 +96,11 @@ type Props = {
   onRemoveColor: (color: string) => void;
   size: number;
   onSizeChange: (size: number) => void;
-  /** The widths kept for the tool in hand, and the tools saved under a name
-   *  for it. Both are per tool — see `useAppSettings`. */
-  customSizes: readonly number[];
-  onAddSize: (size: number) => void;
-  onRemoveSize: (size: number) => void;
+  /** The tools saved under a name for the one in hand — per tool, see
+   *  `useAppSettings`. */
   presets: readonly ToolPreset[];
-  onApplyPreset: (preset: ToolPreset) => void;
-  onSavePreset: (name: string) => void;
+  onApplyPreset: (preset: PresetSettings) => void;
+  onSavePreset: (name: string, glyph: string | null) => void;
   onDeletePreset: (id: string) => void;
   /** Where the active tool's dials sit, resolved — the size panel's Advanced
    *  section. Which dials those are comes off the plugin descriptor, so the
@@ -139,9 +137,6 @@ export function Toolbar({
   onRemoveColor,
   size,
   onSizeChange,
-  customSizes,
-  onAddSize,
-  onRemoveSize,
   presets,
   onApplyPreset,
   onSavePreset,
@@ -346,7 +341,7 @@ export function Toolbar({
             <PressPreview
               plugin={active}
               size={size}
-              of={sizesFor(active, customSizes).at(-1) ?? size}
+              of={sizesFor(active).at(-1) ?? size}
               color={color}
               background={background}
               dials={dialValues}
@@ -447,9 +442,9 @@ export function Toolbar({
           color={color}
           background={background}
           filled={filled}
-          customSizes={customSizes}
-          onAddSize={onAddSize}
-          onRemoveSize={onRemoveSize}
+          // The presets the tool itself ships with, resolved off the descriptor
+          // — nothing here knows a tool's settings, only that it has some.
+          builtinPresets={toolPresets(active)}
           presets={presets}
           onApplyPreset={onApplyPreset}
           onSavePreset={onSavePreset}
@@ -468,6 +463,10 @@ export function Toolbar({
           onClose={() => setPanel(null)}
           anchor={settingsAnchor}
           plugin={active}
+          builtinPresets={toolPresets(active)}
+          onApplyPreset={onApplyPreset}
+          color={color}
+          background={background}
           dials={active?.dials ?? []}
           values={dialValues}
           onDialChange={onDialChange}
