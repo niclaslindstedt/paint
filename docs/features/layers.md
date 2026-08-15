@@ -13,17 +13,20 @@ with it and leaves the drawing on transparency.
 
 ## Getting to the panel
 
-**On a wide screen the panel is simply there**, docked down the right-hand side
-beside the canvas: a panel you have to summon is one you forget you have, and
-there is width to spare. Above the stack it carries the **Image** actions —
-resize, flip, mirror — which act on the whole drawing (see
+**On a wide screen the panel starts out simply there**, docked down the
+right-hand side beside the canvas: a panel you have to summon is one you forget
+you have, and there is width to spare. Above the stack it carries the **Image**
+actions — resize, flip, mirror — which act on the whole drawing (see
 [the canvas](canvas.md)), and the **Filters** section under them, which changes
 how the whole page is seen (see [filters](filters.md)).
 
-**On a narrower screen it is the last button in the header**, at the far right
-end of the row and wearing the panel it opens, and the panel comes out over the
-page when you press it. **Swipe in from the right edge** does the same — the edge
-gesture that opens the sidebar, on the other side.
+**The last button in the header** — at the far right end of the row, wearing the
+panel it opens — is the switch, on every screen width. On a wide screen it folds
+the docked column away when you want the page to have the full width, and brings
+it back; on a narrower one, where the panel was never docked, it slides the panel
+out over the page. **Swipe in from the right edge** does the same as pressing it
+there — the edge gesture that opens the sidebar, on the other side — and a press
+on the page closes a floating panel again.
 
 A floating panel **goes away again when you press anywhere on the page**. It is
 something you visit between strokes, so it takes no width from the page and never

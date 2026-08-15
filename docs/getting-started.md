@@ -64,8 +64,9 @@ the ink nor the drawing.
   mark is one step.
 
 The **right-hand panel** is what you can do to the drawing rather than to a
-mark. On a wide screen it is docked beside the canvas; on a narrower one the
-layers button in the top right opens it over the page (so does a swipe in from
+mark. On a wide screen it is docked beside the canvas, and the panel button in
+the top right folds it away when you want the whole width for the drawing; on a
+narrower one that same button opens it over the page (so does a swipe in from
 the right edge), and a press on the page closes it again.
 
 At the top of it, **Image**: **Resize…**, **Flip** left or right — a quarter turn

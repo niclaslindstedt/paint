@@ -54,13 +54,14 @@ import type { PaintStore } from "./usePaintStore.ts";
 // the idea existed.
 //
 // **It docks where there is room and floats where there isn't.** On a wide
-// screen it is a column of its own beside the canvas, always there, because a
-// panel you have to summon is one you forget you have; on a phone it comes in on
-// a swipe from the right edge (or the header button), floats over the page, and
-// a press anywhere on the canvas closes it again — the scrim that does that
-// lives in `CanvasScreen`, which owns the space the panel floats in. The two
-// modes differ by one prop: there is no second component and no second set of
-// behaviour to keep in step.
+// screen it is a column of its own beside the canvas, there by default because a
+// panel you have to summon is one you forget you have — though the header's
+// panel button folds that column away for a drawing you want the full width for;
+// on a phone it comes in on a swipe from the right edge (or the same button),
+// floats over the page, and a press anywhere on the canvas closes it again — the
+// scrim that does that lives in `CanvasScreen`, which owns the space the panel
+// floats in. The two modes differ by one prop: there is no second component and
+// no second set of behaviour to keep in step.
 //
 // **There is no close button.** The panel has exactly one switch — the header's
 // side-panel button — and it is the same button whether the panel is showing or

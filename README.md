@@ -305,7 +305,9 @@ npm run preview
 - **Header** — the drawing's name (edit in place), the favourite star, the disk
   button (when a backend is connected), the download menu (PNG, JPG, SVG, the
   layered `.pct`, or copy to the clipboard), and — at the far right — the button
-  that opens the side panel. Undo and redo are at the end of the toolbar.
+  that shows and hides the side panel — folding the docked column away on a wide
+  screen, sliding the panel over the page on a narrow one. Undo and redo are at
+  the end of the toolbar.
 
 ## Configuration
 
