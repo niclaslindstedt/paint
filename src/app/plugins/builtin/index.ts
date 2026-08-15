@@ -3,13 +3,21 @@
 //
 // Importing this module is what puts them in the registry — `src/main.tsx`
 // does it once, before the app mounts. Registration order is the toolbar's
-// *default* order, and it is deliberate: it reads down Photoshop's tool column,
-// so a hand that already knows one toolbar finds this one where it expects to.
-// Sample, then paint, then erase, then fill, then type, then the shapes, then
-// the marquee, and the tool that moves the view last of all — that column with
-// the gaps closed up, since crop and pen paths are tools this app has no
-// business shipping. Anyone who disagrees can drag the rows into another order
-// in Settings → Tools, and the toolbar follows (see `orderEntries`).
+// *default* order, and it is deliberate — but it is no longer Photoshop's
+// column, because a phone toolbar is a **row** and a row wants the things you
+// reach for next to each other rather than in the order a 1990 tool palette
+// happened to stack them.
+//
+// So it reads: the pen you draw with, the rubber that undoes it, then the rest
+// of the media in a shelf of their own, then the bucket, then the two families
+// (shapes, then choosing marks), then type — which is what you usually reach for
+// right after picking something out — and last the two tools that touch neither
+// the ink nor the document: the dropper that reads a colour off the page, and
+// the hand that moves the page. Those two are a pair and they belong at the far
+// end together.
+//
+// Anyone who disagrees can drag the rows into another order in Settings → Tools,
+// and the toolbar follows (see `orderEntries`).
 //
 // Whether a tool is *in* the toolbar is a separate question from where it sits,
 // and it has three answers (see `plugins/types.ts`): `core` tools are always
@@ -23,12 +31,14 @@
 // Two families are the case — the eleven shapes, and the four ways of selecting
 // — and both are below.
 //
-// **What a first run finds is the shape of Paint**: a nib, an airbrush, a
-// rubber, a bucket, a dropper, type, the shapes and the marquee — the toolbox
-// anyone who has opened a paint program has already used, spray can included.
-// The rest of the media (the bristle brush, the marker, the crayon, the chalk
-// nib, the highlighter) are the app's own additions and are one tap away in
-// Settings → Tools; they are not what an empty page should open holding.
+// **What a first run finds is the shape of Paint**: a pen, a pencil, a rubber,
+// an airbrush, a bucket, type, the shapes, the marquee, a dropper and the hand
+// — the toolbox anyone who has opened a paint program has already used, spray
+// can included, plus the one thing that toolbox always had and this one was
+// missing: something to sketch with. The rest of the media (the bristle brush,
+// the marker, the crayon, the highlighter, the broad nib) are the app's own
+// additions and are one tap away in Settings → Tools; they are not what an empty
+// page should open holding.
 //
 // Adding a tool is: write its behaviour (or reuse a family factory), register
 // it here, and add its two catalog strings. Nothing else in the app changes.
@@ -47,11 +57,6 @@
 // happens to the numbers.
 
 import {
-  ImageUpIcon,
-  PencilIcon,
-} from "@niclaslindstedt/oss-framework/components";
-
-import {
   ArrowIcon,
   BrushIcon,
   BucketIcon,
@@ -64,10 +69,13 @@ import {
   HandIcon,
   HexagonIcon,
   HighlighterIcon,
+  ImageIcon,
   LassoIcon,
   LineIcon,
   MarkerIcon,
   NibIcon,
+  PenIcon,
+  PencilIcon,
   PentagonIcon,
   RoundSquareIcon,
   SelectIcon,
@@ -80,17 +88,23 @@ import {
   TraceSelectIcon,
   TriangleIcon,
 } from "../../icons.tsx";
+import { graphiteInk } from "../graphite.ts";
 import { registerGroup, registerPlugin } from "../registry.ts";
 import type { PaintPlugin } from "../types.ts";
 import {
+  ANGLE,
   BLEED,
+  CHISEL,
+  CHISEL_FLAT,
   FEATHER,
   FLOW,
+  GRADE,
   HAIR,
   HARDNESS,
   OPACITY,
   PRESSURE,
   SPLAY,
+  STRENGTH,
 } from "./dials.ts";
 import { dropperBehaviour } from "./dropper.ts";
 import { fillBehaviour } from "./fill.ts";
@@ -274,41 +288,88 @@ const SELECTIONS: readonly Omit<
 /** Register the built-in tools. Idempotent — re-registering an id replaces it
  *  in place, so calling this twice (a hot reload, a test) is harmless. */
 export function registerBuiltinPlugins(): void {
-  // --- Sample first --------------------------------------------------------
-  // Photoshop's eyedropper sits above the paint tools, on the reading that you
-  // choose the colour before you lay it down. Ours is the first button for the
-  // same reason — and being the leftmost tool costs nothing, because it draws
-  // nothing and `picksColor` keeps the canvas from ever falling back onto it.
-
-  registerPlugin({
-    id: "dropper",
-    defaultOn: true,
-    nameKey: "tools.dropper.name",
-    descriptionKey: "tools.dropper.description",
-    icon: DropperIcon,
-    shortcut: "i",
-    // Reads the page instead of marking it — the canvas samples the colour
-    // under the press and pins it as the ink (see `dropper.ts`).
-    picksColor: true,
-    behaviour: dropperBehaviour,
-  });
-
-  // --- Then the tools that lay ink down ------------------------------------
-  // Photoshop's brush block, in the same place in the column: the hard nib
-  // first, then the soft ones, then the media, then the effect.
+  // --- The pen, and the rubber that undoes it ------------------------------
+  // The two tools a blank page has to have, and the two the user asked to have
+  // beside each other: whatever else is switched off, these are what is left.
+  //
+  // The pen used to be called the pencil and is still `pencil` on every stroke
+  // ever drawn with it — an id is persisted and renaming one orphans marks, so
+  // the *name* moved and the id stayed. What it draws has not changed: a plain
+  // line at the width you set it to. The thing that actually looks like a
+  // pencil is `graphite`, below.
 
   registerPlugin({
     id: "pencil",
     core: true,
     nameKey: "tools.pencil.name",
     descriptionKey: "tools.pencil.description",
-    icon: PencilIcon,
+    icon: PenIcon,
     shortcut: "p",
-    // A pencil draws at the width it says it does, so this is the mark itself:
+    // A pen draws at the width it says it does, so this is the mark itself:
     // fine enough to write with, wide enough to see on a 4K page.
     defaultSize: 3,
     dials: [OPACITY],
     behaviour: freehandBehaviour(),
+  });
+
+  registerPlugin({
+    id: "eraser",
+    core: true,
+    nameKey: "tools.eraser.name",
+    descriptionKey: "tools.eraser.description",
+    icon: EraserIcon,
+    shortcut: "e",
+    // 8 × 2.5 — a rubber you can actually rub something out with. An eraser the
+    // width of the pen takes as many passes as the drawing took.
+    defaultSize: 8,
+    // Its width shows as a plain circle rather than as a press. Every other
+    // tool previews the mark it leaves, but an eraser's mark is a *hole*: on
+    // the bare page a preview is, it lifts nothing and shows nothing, and the
+    // only way to picture it was to fabricate a blot of ink underneath for the
+    // press to bite into — a mark nobody made, standing in for one you can't
+    // see. The nib is round and the number is the nib, so the circle is both
+    // the simpler drawing and the truer one.
+    sizePreview: "circle",
+    // How much one pass takes off. It is the ink's own alpha under
+    // `destination-out` — see `STRENGTH` — so turning it down gives the pencil
+    // eraser you knock a highlight back with, rather than the one that takes
+    // the page to white in a single drag.
+    dials: [STRENGTH],
+    // It takes ink *off*: the mark is painted with `destination-out`, so what
+    // it covers is removed from the picture and the sheet comes back through
+    // the hole (see `render.ts`). It used to paint the page colour instead,
+    // which read the same on an opaque sheet and was wrong everywhere else — a
+    // transparent export came out with page-coloured smears where the rubbing
+    // out had been, and hiding the background layer showed them too.
+    //
+    // The stroke is still an ordinary mark in the document, so a rubbing out
+    // undoes, syncs and re-renders exactly like the line it took off.
+    erases: true,
+    behaviour: freehandBehaviour({ erases: true, sizeScale: 2.5 }),
+  });
+
+  // --- Then the media shelf ------------------------------------------------
+  // Everything else that lays something down, sketching tool first.
+
+  registerPlugin({
+    id: "graphite",
+    defaultOn: true,
+    nameKey: "tools.graphite.name",
+    descriptionKey: "tools.graphite.description",
+    icon: PencilIcon,
+    shortcut: "g",
+    // A sharp lead, at the width it says it is.
+    defaultSize: 3,
+    // The one axis a pencil has — how soft the lead is — and the opacity every
+    // marking tool offers, for laying a light guide line in.
+    dials: [GRADE, OPACITY],
+    behaviour: freehandBehaviour({
+      style: "graphite",
+      // Graphite is a mineral, not an ink: the tool mixes its own grey and the
+      // toolbar's colour means nothing to it. Which grey depends on the sheet
+      // — dark paper gets the silverpoint sheen rather than an invisible mark.
+      ink: (ctx) => graphiteInk(ctx.background),
+    }),
   });
 
   registerPlugin({
@@ -339,18 +400,29 @@ export function registerBuiltinPlugins(): void {
     descriptionKey: "tools.airspray.description",
     icon: SprayIcon,
     shortcut: "s",
-    // 8 × 3 — a cone two dozen pixels wide. A spray narrower than that is a
-    // grainy pencil, which is not what anyone reaches for an airbrush to get.
+    // **A width means the same thing here as everywhere else.** The airbrush
+    // used to take its number times three and then spread a cone over 1.6 times
+    // *that*, so a spray set to 8 came out nearly five times as wide as a pen
+    // set to 8 — the one tool in the box where the number on the button did not
+    // describe the mark. The scale below undoes exactly that: 0.35 × the
+    // painter's own 1.6 is a cone about as wide as the nib you asked for, only
+    // soft-edged instead of hard. Old marks are untouched — the painter's maths
+    // did not change, only how much of it a new stroke asks for.
     defaultSize: 8,
     // A spray cone: how tight its core is, and how much paint the trigger lets
     // through per pass.
     dials: [HARDNESS, FLOW],
     behaviour: freehandBehaviour({
-      sizeScale: 3,
+      sizeScale: 0.35,
       style: "spray",
       useHardness: true,
     }),
   });
+
+  // The marker and the highlighter used to be one tool twice: the same round
+  // painter, told apart by a width and an opacity. They are two different pens
+  // in the hand and now they are two different pens here — a felt tip is a
+  // *shape*, and `paintNib` is what draws one (see `plugins/brushes.ts`).
 
   registerPlugin({
     id: "marker",
@@ -358,10 +430,22 @@ export function registerBuiltinPlugins(): void {
     descriptionKey: "tools.marker.description",
     icon: MarkerIcon,
     shortcut: "m",
-    // 6 × 3 — a chisel marker's broad edge.
-    defaultSize: 6,
-    dials: [OPACITY],
-    behaviour: freehandBehaviour({ sizeScale: 3 }),
+    // 4 × 2 — a fineliner's tip, not a wall marker's. It used to open at
+    // eighteen document pixels, which is wider than most people ever want to
+    // write with.
+    defaultSize: 4,
+    // Spirit ink: it soaks in rather than sitting on top, so a second pass over
+    // the same line darkens it the way a real marker does.
+    dials: [OPACITY, CHISEL],
+    behaviour: freehandBehaviour({
+      sizeScale: 2,
+      opacity: 0.88,
+      style: "nib",
+      // Mostly round out of the box, and it has to agree with `CHISEL.default`
+      // — that is what an untuned mark resolves to.
+      chisel: 0.35,
+      angle: -45,
+    }),
   });
 
   registerPlugin({
@@ -372,8 +456,18 @@ export function registerBuiltinPlugins(): void {
     shortcut: "h",
     // 4 × 6 — a band wide enough to cover a line of writing in one pass.
     defaultSize: 4,
-    dials: [OPACITY],
-    behaviour: freehandBehaviour({ sizeScale: 6, opacity: 0.35 }),
+    dials: [OPACITY, CHISEL_FLAT],
+    behaviour: freehandBehaviour({
+      sizeScale: 6,
+      opacity: 0.35,
+      style: "nib",
+      // A wide flat wedge, held square across the page: an underline drawn left
+      // to right gets the full band, a stroke drawn down the page gets the
+      // hairline. That asymmetry is what a highlighter *is*, and it is the one
+      // thing the old round painter could not say.
+      chisel: 0.85,
+      angle: 90,
+    }),
   });
 
   registerPlugin({
@@ -399,48 +493,20 @@ export function registerBuiltinPlugins(): void {
     // between the flat and the edge is the difference the tool is *for*, and it
     // disappears.
     defaultSize: 8,
-    dials: [OPACITY],
-    behaviour: freehandBehaviour({ sizeScale: 1.5, style: "calligraphy" }),
-  });
-
-  // --- Then taking ink off again -------------------------------------------
-  // Directly under the brushes, where Photoshop keeps it. It used to sit at the
-  // far right, opposite the hand; next to the tools whose marks it undoes is
-  // both the more familiar place and the shorter trip.
-
-  registerPlugin({
-    id: "eraser",
-    core: true,
-    nameKey: "tools.eraser.name",
-    descriptionKey: "tools.eraser.description",
-    icon: EraserIcon,
-    shortcut: "e",
-    // 8 × 2.5 — a rubber you can actually rub something out with. An eraser the
-    // width of the pencil takes as many passes as the drawing took.
-    defaultSize: 8,
-    // Its width shows as a plain circle rather than as a press. Every other
-    // tool previews the mark it leaves, but an eraser's mark is a *hole*: on
-    // the bare page a preview is, it lifts nothing and shows nothing, and the
-    // only way to picture it was to fabricate a blot of ink underneath for the
-    // press to bite into — a mark nobody made, standing in for one you can't
-    // see. The nib is round and the number is the nib, so the circle is both
-    // the simpler drawing and the truer one.
-    sizePreview: "circle",
-    // It takes ink *off*: the mark is painted with `destination-out`, so what
-    // it covers is removed from the picture and the sheet comes back through
-    // the hole (see `render.ts`). It used to paint the page colour instead,
-    // which read the same on an opaque sheet and was wrong everywhere else — a
-    // transparent export came out with page-coloured smears where the rubbing
-    // out had been, and hiding the background layer showed them too.
-    //
-    // The stroke is still an ordinary mark in the document, so a rubbing out
-    // undoes, syncs and re-renders exactly like the line it took off.
-    erases: true,
-    behaviour: freehandBehaviour({ erases: true, sizeScale: 2.5 }),
+    // The one thing a writer actually changes about a broad nib is the angle
+    // they hold it at — turn it towards flat and the stroke that swells is the
+    // vertical instead of the diagonal.
+    dials: [OPACITY, ANGLE],
+    behaviour: freehandBehaviour({
+      sizeScale: 1.5,
+      style: "calligraphy",
+      // Agrees with `ANGLE.default`, which is what an untuned mark resolves to.
+      angle: -45,
+    }),
   });
 
   // --- Then filling an area ------------------------------------------------
-  // Photoshop's gradient/bucket slot: below the eraser, above the vector tools.
+  // Below the media, above the vector tools.
 
   registerPlugin({
     id: "filler",
@@ -460,32 +526,9 @@ export function registerBuiltinPlugins(): void {
     behaviour: fillBehaviour,
   });
 
-  // --- Then typing ---------------------------------------------------------
-  // Photoshop's type tool sits between the fill tools and the shapes, and so
-  // does this one. It is the only tool whose mark is entered rather than drawn:
-  // `entersText` is what tells the canvas to open a caret instead of beginning a
-  // stroke (see `text.ts`).
-
-  registerPlugin({
-    id: TEXT_TOOL_ID,
-    defaultOn: true,
-    nameKey: "tools.text.name",
-    descriptionKey: "tools.text.description",
-    icon: TextIcon,
-    shortcut: "t",
-    entersText: true,
-    // The width *is* the type size here, so the tool brings its own scale: the
-    // three nib widths every other tool shares are all unreadable as type.
-    defaultSize: DEFAULT_TEXT_SIZE,
-    sizes: TEXT_SIZES,
-    dials: [OPACITY],
-    behaviour: textBehaviour,
-  });
-
   // --- Then the shapes, behind one button ----------------------------------
-  // Photoshop's shape slot, in its place near the bottom of the column — and,
-  // like Photoshop's, it is one button with the family behind it rather than a
-  // row of near-identical squares.
+  // One button with the family behind it rather than a row of near-identical
+  // squares.
   //
   // Eleven shapes as eleven buttons would be most of a phone's toolbar spent on
   // one idea, and eleven switches in Settings → Tools for a question nobody asks
@@ -527,9 +570,8 @@ export function registerBuiltinPlugins(): void {
   }
 
   // --- Then choosing marks rather than making them --------------------------
-  // Photoshop keeps its marquee at the very top; this one sits beside the hand,
-  // because the two are a pair here: you select with one and move what you
-  // selected with the other.
+  // The marquee sits near the hand, because the two are a pair here: you select
+  // with one and move what you selected with the other.
   //
   // Four ways of choosing, behind one button — the shapes' arrangement, for the
   // shapes' reason. Which *shape* you pick marks out with is a smaller question
@@ -557,11 +599,49 @@ export function registerBuiltinPlugins(): void {
     });
   }
 
-  // --- Last: the tool that moves the view ----------------------------------
-  // The hand is the bottom of Photoshop's column, under everything that touches
-  // the document, and it is the end of the row here for the same reason: the
-  // one tool that moves the page rather than marking it belongs out of the way
-  // of the ones that do.
+  // --- Then typing ---------------------------------------------------------
+  // Straight after the marquee, because that is the order a hand actually uses
+  // them in: pick something out, then label it. It is the only tool whose mark
+  // is entered rather than drawn — `entersText` is what tells the canvas to open
+  // a caret instead of beginning a stroke (see `text.ts`).
+
+  registerPlugin({
+    id: TEXT_TOOL_ID,
+    defaultOn: true,
+    nameKey: "tools.text.name",
+    descriptionKey: "tools.text.description",
+    icon: TextIcon,
+    shortcut: "t",
+    entersText: true,
+    // The width *is* the type size here, so the tool brings its own scale: the
+    // three nib widths every other tool shares are all unreadable as type.
+    defaultSize: DEFAULT_TEXT_SIZE,
+    sizes: TEXT_SIZES,
+    dials: [OPACITY],
+    behaviour: textBehaviour,
+  });
+
+  // --- Last: the two that touch neither the ink nor the document -----------
+  // The dropper reads a colour off the page and the hand moves the page, and
+  // neither leaves a mark. They are the same kind of thing, they are the two you
+  // reach for least, and they belong at the far end of the row together.
+  //
+  // The dropper used to open the toolbar, on Photoshop's reading that you choose
+  // a colour before you lay it down. On a phone that put the one tool that draws
+  // nothing under the thumb that reaches best.
+
+  registerPlugin({
+    id: "dropper",
+    defaultOn: true,
+    nameKey: "tools.dropper.name",
+    descriptionKey: "tools.dropper.description",
+    icon: DropperIcon,
+    shortcut: "i",
+    // Reads the page instead of marking it — the canvas samples the colour
+    // under the press and pins it as the ink (see `dropper.ts`).
+    picksColor: true,
+    behaviour: dropperBehaviour,
+  });
 
   registerPlugin({
     id: "hand",
@@ -586,7 +666,7 @@ export function registerBuiltinPlugins(): void {
     hidden: true,
     nameKey: "tools.image.name",
     descriptionKey: "tools.image.description",
-    icon: ImageUpIcon,
+    icon: ImageIcon,
     behaviour: imageBehaviour,
   });
 }

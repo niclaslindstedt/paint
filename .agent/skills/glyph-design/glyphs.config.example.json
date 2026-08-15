@@ -1,0 +1,100 @@
+{
+  "_": "Copy next to your work and edit. Paths are relative to this file.",
+  "source": "src/app/icons.tsx",
+  "out": ".glyphwork",
+  "chromium": "/opt/pw-browsers/chromium_headless_shell-1194/chrome-linux/headless_shell",
+
+  "_cell": "Crop box per glyph, and the size the svg is drawn at inside it.",
+  "_glyphPx": "Set glyphPx so your artwork lands the same size as the design's.",
+  "cell": 116,
+  "glyphPx": 84,
+  "cols": 8,
+  "sizes": [96, 18],
+
+  "_simple": "Glyphs whose geometry is unambiguous — used to calibrate scale.",
+  "simple": ["Text", "Rectangle", "Ellipse", "Line", "Arrow"],
+
+  "_sheets": "Omit entirely when there is no design to match.",
+  "sheets": {
+    "a": { "path": "design/tools-sheet.png", "cut": 116, "scale": 1.31 }
+  },
+
+  "glyphs": [
+    {
+      "label": "Pencil",
+      "export": "PencilIcon",
+      "ref": { "sheet": "a", "x": 155, "y": 125 }
+    },
+    {
+      "label": "Eraser",
+      "export": "EraserIcon",
+      "ref": { "sheet": "a", "x": 405, "y": 125 }
+    },
+    {
+      "label": "Hand",
+      "export": "HandIcon",
+      "ref": { "sheet": "a", "x": 655, "y": 125 }
+    },
+    {
+      "label": "Dropper",
+      "export": "DropperIcon",
+      "ref": { "sheet": "a", "x": 906, "y": 125 }
+    },
+    {
+      "label": "Paintbrush",
+      "export": "BrushIcon",
+      "ref": { "sheet": "a", "x": 1156, "y": 125 }
+    },
+    {
+      "label": "Airbrush",
+      "export": "SprayIcon",
+      "ref": { "sheet": "a", "x": 1406, "y": 125 }
+    },
+    {
+      "label": "Highlighter",
+      "export": "HighlighterIcon",
+      "ref": { "sheet": "a", "x": 155, "y": 425 }
+    },
+    {
+      "label": "Crayon",
+      "export": "CrayonIcon",
+      "ref": { "sheet": "a", "x": 405, "y": 425 }
+    },
+    {
+      "label": "Calligraphy",
+      "export": "NibIcon",
+      "ref": { "sheet": "a", "x": 655, "y": 425 }
+    },
+    {
+      "label": "Bucket",
+      "export": "BucketIcon",
+      "ref": { "sheet": "a", "x": 906, "y": 425 }
+    },
+    {
+      "label": "Text",
+      "export": "TextIcon",
+      "ref": { "sheet": "a", "x": 1156, "y": 425 }
+    },
+    {
+      "label": "Rectangle",
+      "export": "SquareIcon",
+      "ref": { "sheet": "a", "x": 1406, "y": 425 }
+    },
+    {
+      "label": "Ellipse",
+      "export": "CircleIcon",
+      "ref": { "sheet": "a", "x": 155, "y": 790 }
+    },
+    {
+      "label": "Line",
+      "export": "LineIcon",
+      "ref": { "sheet": "a", "x": 405, "y": 790 }
+    },
+    {
+      "label": "Arrow",
+      "export": "ArrowIcon",
+      "ref": { "sheet": "a", "x": 655, "y": 790 }
+    },
+    { "label": "Marker", "export": "MarkerIcon" }
+  ]
+}

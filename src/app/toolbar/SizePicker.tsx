@@ -5,7 +5,7 @@ import { FloatingPanel } from "@niclaslindstedt/oss-framework/components";
 
 import { useT } from "../i18n/index.ts";
 import type { PaintPlugin, ToolDial } from "../plugins/types.ts";
-import { MAX_SIZE, sizesFor } from "../useAppSettings.ts";
+import { MAX_SIZE, sizeInMm, sizesFor } from "../useAppSettings.ts";
 import { PressPreview } from "./PressPreview.tsx";
 import { ToolDials } from "./ToolDials.tsx";
 
@@ -127,6 +127,17 @@ export function SizePicker({
       className="p-2"
     >
       <div className="flex flex-col gap-2">
+        {/* Whose panel this is. The dials below already name their section
+            (**Advanced**), and without a heading of its own the row of widths
+            above them read as an unlabelled preamble to it — worse on a phone,
+            where the panel opens over the drawing and the button that opened it
+            is under your thumb. The house style for a section heading, the same
+            one `ToolDials` uses, so the panel reads as two named sections
+            rather than as a heading and a stack. */}
+        <span className="text-xs font-bold tracking-wide text-muted uppercase">
+          {plugin ? t(plugin.nameKey) : t("canvas.size")}
+        </span>
+
         <div
           className="flex flex-wrap items-center gap-1.5"
           role="group"
@@ -144,8 +155,8 @@ export function SizePicker({
                   onClose();
                 }}
                 aria-pressed={option === size}
-                aria-label={`${option}`}
-                title={`${option}`}
+                aria-label={t("canvas.sizeMm", { size: sizeInMm(option) })}
+                title={t("canvas.sizeMm", { size: sizeInMm(option) })}
                 className={`inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded border ${
                   option === size
                     ? "border-accent bg-accent/15"
@@ -167,7 +178,7 @@ export function SizePicker({
                 <button
                   type="button"
                   onClick={() => onRemoveSize(option)}
-                  aria-label={`${t("canvas.removeSize")} ${option}`}
+                  aria-label={`${t("canvas.removeSize")} ${sizeInMm(option)}`}
                   title={t("canvas.removeSize")}
                   className="absolute -top-1 -right-1 h-3.5 w-3.5 cursor-pointer rounded-full border border-line bg-surface text-[9px] leading-none text-muted hover:text-fg-bright"
                 >
@@ -180,7 +191,7 @@ export function SizePicker({
 
         <label className="flex flex-col gap-1">
           <span className="text-xs text-muted">
-            {t("canvas.customSize", { size: String(Math.round(draft)) })}
+            {t("canvas.customSize", { size: sizeInMm(Math.round(draft)) })}
           </span>
           <div className="flex items-center gap-2">
             <input

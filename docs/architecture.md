@@ -355,8 +355,8 @@ lives by: **nothing outside it may branch on a tool id.**
   shape) plus their ink configuration, and the three that begin no stroke of
   their own: the hand, the dropper, and the bucket (which files the area the
   probe traced for it).
-- `brushes.ts` — the characterful painters: spray cones, soft nibs, feathered
-  fills.
+- `brushes.ts` — the characterful painters: spray cones, soft nibs, chisel felt
+  tips, feathered fills.
 - `builtin/text.ts` — the one tool whose mark is typed rather than drawn. Its
   press opens a caret (`entersText`, read by the canvas) and `TextEntry.tsx`
   collects the words into a text stroke; the module also owns the typefaces, the
@@ -371,7 +371,12 @@ lives by: **nothing outside it may branch on a tool id.**
   painter modelling the _page_. A fixed lattice of paper tooth decides where wax
   sticks, anchored in document coordinates, so it is the same sheet under every
   mark and the texture is a property of the paper rather than of the stick.
-- `grain.ts` — the hashes all three scatter with, the even walk along a path
+- `graphite.ts` — the pencil, which is the crayon's near neighbour and
+  deliberately not the same painter: graphite chips off where it lands instead
+  of smearing, finds a finer tooth than a blunt wax face does, and is a _colour_
+  rather than an ink — the tool mixes its own grey against the page rather than
+  taking the one the toolbar is holding.
+- `grain.ts` — the hashes all four scatter with, the even walk along a path
   they lay texture down on, and the floor below which a detail is too small to
   draw.
 

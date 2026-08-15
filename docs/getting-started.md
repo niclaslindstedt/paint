@@ -14,22 +14,28 @@ drawing was made, this screen's own resolution unless you chose otherwise — so
 sketch looks the same on a laptop and a phone. On a page bigger than the window
 you just see less of it at once. [More](features/canvas.md).
 
-The toolbar runs left to right in the order Photoshop's runs top to bottom, so
-the reach is the one you already have:
+The toolbar runs left to right in the order a hand uses it: what you draw with,
+what undoes it, the rest of the media, and last the two tools that touch neither
+the ink nor the drawing.
 
-- **Colour dropper** (`I`), at the far left, makes the colour you tap the ink.
-- **Pencil** (`P`) draws freehand.
+- **Pen** (`P`) draws a freehand line at the width you set it to.
+- **Eraser** (`E`) rubs marks off the page. Turn its **strength** down and one
+  pass fades them instead of removing them.
+- **Pencil** (`G`) is for sketching: graphite on the paper's tooth, in grey
+  whatever colour the ink is set to, with a **lead** dial that runs from a hard
+  pale H to a soft dark B.
 - **Airbrush** (`S`) lays down a soft cloud of paint that builds up the longer
   you hold it over one spot.
-- **Eraser** (`E`) paints over marks with the page colour.
 - **Paint bucket** (`F`) fills the empty space you tap, up to the marks around
   it.
+- **Rectangle** (`R`), **Ellipse** (`O`) and **Line** (`L`) are dragged from one
+  corner (or end) to the other.
 - **Text** (`T`) drops a caret where you tap and you type into the drawing
   itself. A small bar over the caret offers four typefaces, bold and italic;
   Enter breaks the line, Escape throws it away, and a press anywhere else on the
-  page keeps it.
-- **Rectangle** (`R`), **Ellipse** (`O`) and **Line** (`L`) are dragged from one
-  corner (or end) to the other.
+  page keeps it. Drag the box by its edge — or by the grip at the head of that
+  bar — to put the caption somewhere else before you keep it.
+- **Colour dropper** (`I`) makes the colour you tap the ink.
 - **Hand** (`D`), at the far right, drags the page around instead of drawing on
   it — and double-tapping with it fits the whole page, again for 1:1.
 - `Ctrl/Cmd + Z` undoes the last mark, `Ctrl/Cmd + Shift + Z` redoes it. Every
@@ -60,8 +66,9 @@ for good.
 
 The **nib button** shows a **press with the tool in your hand** — the mark that
 width actually leaves, on your page, in your ink. An airbrush is a soft cone, a
-highlighter a translucent band, the pen its flat edge; the eraser, whose mark is
-a hole, shows a plain circle instead. Press it for the widths, a slider that adds
+highlighter a broad translucent band, the calligraphy pen its flat edge; the
+eraser, whose mark is a hole, shows a plain circle instead. The panel is headed
+with the name of the tool you are setting. Press it for the widths, a slider that adds
 your own, and — under **Advanced** — whatever the tool in your hand has of its
 own to tune. Every width in the panel is the same press at that width, so the row
 reads as marks rather than as numbers, and turning a dial redraws them under your
@@ -71,9 +78,13 @@ Tools with nothing to set by width say so: the **paint bucket** shows a **cog**
 in that slot, opening its wash and its feathered edge directly, and the hand, the
 dropper and the selection tools show nothing there at all.
 
-The width belongs to the tool: a pencil width, a paintbrush width, a type size,
+The width belongs to the tool: a pen width, a paintbrush width, a type size,
 each remembered separately. Every tool also opens at a width chosen for it, so
 nothing needs setting up before it draws the way it should.
+
+Widths are in **millimetres of page**, so the number says what the nib is
+without needing another one beside it to compare against: 0.5 is a technical
+pen, 5 a thin marker, and the slider goes to 200 — a decorator's brush.
 
 ## More tools
 

@@ -4,11 +4,14 @@ import { describe, expect, it } from "vitest";
 import { registerBuiltinPlugins } from "../src/app/plugins/builtin/index.ts";
 import { pluginById } from "../src/app/plugins/registry.ts";
 import {
+  MAX_SIZE,
+  PX_PER_MM,
   SETTINGS_VERSION,
   SIZES,
   defaultSettings,
   groupMemberFor,
   parseSettings,
+  sizeInMm,
   sizesFor,
   toolSize,
 } from "../src/app/useAppSettings.ts";
@@ -239,6 +242,39 @@ describe("parseSettings", () => {
         "pencil",
       ]);
     });
+  });
+});
+
+describe("widths in millimetres", () => {
+  it("prints a fine nib to a tenth and a broad one whole", () => {
+    // A tenth of a millimetre is the difference between two technical pens and
+    // nothing at all once the nib is wider than a pencil.
+    expect(sizeInMm(2)).toBe("2");
+    expect(sizeInMm(0.5)).toBe("0.5");
+    expect(sizeInMm(3.25)).toBe("3.3");
+    expect(sizeInMm(140)).toBe("140");
+    expect(sizeInMm(16.4)).toBe("16");
+  });
+
+  it("leaves what a stroke stores alone", () => {
+    // The unit is a *readout*: widths on strokes are still document pixels, so
+    // naming them did not move a single mark already drawn.
+    expect(PX_PER_MM).toBe(1);
+    expect(sizeInMm(SIZES[0])).toBe(String(SIZES[0]));
+  });
+
+  it("reaches a decorator's brush", () => {
+    // The old ceiling of 96 was right about a pen and wrong about a brush.
+    expect(MAX_SIZE).toBeGreaterThanOrEqual(140 * PX_PER_MM);
+  });
+
+  it("keeps a kept width inside the new ceiling", () => {
+    // The stored list is clamped against `MAX_SIZE`, so raising it must not
+    // let a blob through that the slider could not represent.
+    const settings = parseSettings(
+      JSON.stringify({ customSizes: [4, MAX_SIZE, MAX_SIZE + 1, -3] }),
+    );
+    expect(settings.customSizes).toEqual([4, MAX_SIZE]);
   });
 });
 

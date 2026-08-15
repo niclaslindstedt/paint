@@ -153,15 +153,46 @@ export const PALETTE = [
  *  row instead — see `PaintPlugin.sizes`. */
 export const SIZES = [2, 6, 16] as const;
 
+/** How many document pixels a millimetre of the page is.
+ *
+ *  **One.** A width used to be a bare number with no unit at all, which made
+ *  every one of them a comparison against the other widths and nothing else: is
+ *  6 a fine pen or a fat one? A number with a unit on it answers that from
+ *  memory — 0.5 is a technical pen, 5 is a thin marker, 140 is a decorator's
+ *  brush — and the page's own pixel turns out to already be about the right
+ *  size for a millimetre. A default drawing is a couple of thousand pixels
+ *  across, which reads as a sheet a couple of metres wide: a wall, which is
+ *  what a canvas you can zoom into for ever actually is.
+ *
+ *  It is a named constant rather than nothing at all because the *mapping* is
+ *  the decision, not the arithmetic: a build that wanted a finer page would
+ *  change this one number and every readout would follow. Widths on strokes
+ *  stay document pixels, so nothing already drawn moves. */
+export const PX_PER_MM = 1;
+
+/** A width as the pickers print it: millimetres, to one decimal below 10 and
+ *  whole numbers above, because a tenth of a millimetre stops meaning anything
+ *  once the nib is wider than a pencil. */
+export function sizeInMm(px: number): string {
+  const mm = px / PX_PER_MM;
+  return mm < 10 ? String(Math.round(mm * 10) / 10) : String(Math.round(mm));
+}
+
 /** How many colours and sizes a user can keep. Both pickers are meant to be hit
  *  by thumb without reading, so the lists stay short enough to stay scannable —
  *  adding past the cap drops the oldest rather than refusing. */
 export const MAX_CUSTOM_COLORS = 12;
 export const MAX_CUSTOM_SIZES = 6;
 
-/** The widest nib the size picker will take. Past this a stroke is a fill with
- *  extra steps, and the preview stops meaning anything. */
-export const MAX_SIZE = 96;
+/** The widest nib the size picker will take, in document pixels.
+ *
+ *  It used to be 96 on the reasoning that a stroke wider than that is a fill
+ *  with extra steps. That is true of a pen and wrong about a brush: a
+ *  decorator's brush is a hundred and forty millimetres across and painting a
+ *  wall with one is not "a fill with extra steps", it is the tool. So the
+ *  ceiling is a fifth of a metre, which reaches every real implement and still
+ *  stops well short of a nib nobody could aim. */
+export const MAX_SIZE = 200;
 
 /** The current shape of the shipped defaults (see `AppSettings.settingsVersion`).
  *
@@ -176,8 +207,11 @@ export const MAX_SIZE = 96;
  *  5 — the shapes behind one button: eleven of them under a single `shapes`
  *      group, and the selection tool on by default beside the hand. An install
  *      carrying the old per-shape ids keeps them — they simply no longer name
- *      anything switchable — and picks up the group and the marquee here. */
-export const SETTINGS_VERSION = 5;
+ *      anything switchable — and picks up the group and the marquee here.
+ *  6 — the graphite pencil joins the toolbox. A paint program has always had
+ *      something to sketch with, and this one only had a pen wearing a pencil's
+ *      name; the tool that actually behaves like a pencil ships switched on. */
+export const SETTINGS_VERSION = 6;
 
 /** Everything a fresh install starts from *except* which tools are switched on
  *  — that one comes from the registry, so it can't be a constant here (see
