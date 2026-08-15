@@ -12,7 +12,10 @@
 // was on screen — there is no second painting path to drift.
 
 import { clipToPage, drawingBounds, padBox, type Box } from "./bounds.ts";
+import { activeFilters, svgFilter } from "./filters.ts";
+import { paintFilters } from "./filterPaint.ts";
 import { preloadDrawingImages } from "./images.ts";
+import { backgroundHidden } from "./layers.ts";
 import { renderDrawing, type InkContext } from "./render.ts";
 import { asContext2D, SvgCanvas } from "./svg.ts";
 import type { Drawing } from "./types.ts";
@@ -128,9 +131,14 @@ export async function drawingToBlob(
     transparentPage: wantsTransparency(format, options),
   };
 
+  const filters = activeFilters(drawing);
+
   if (format === "svg") {
     const recorder = new SvgCanvas();
     renderDrawing(asContext2D(recorder), drawing, null, paint);
+    // A vector file has no pixels to composite, so the page's filters travel as
+    // SVG filter primitives and the reader applies them (see `filters.ts`).
+    recorder.setPageFilter(svgFilter(filters));
     return new Blob([recorder.toSvg(region)], { type: formatMime(format) });
   }
 
@@ -143,6 +151,20 @@ export async function drawingToBlob(
   // painting with its origin moved onto the crop.
   ctx.translate(-region.x, -region.y);
   renderDrawing(ctx, drawing, null, paint);
+  // …and the page's filters over the finished picture, through the same code
+  // the screen's last coat runs (see `filterPaint.ts`), at one canvas pixel per
+  // document pixel. A cropped export moves the page's corner with the origin.
+  paintFilters(ctx, filters, {
+    page: {
+      x: -region.x,
+      y: -region.y,
+      width: drawing.width,
+      height: drawing.height,
+    },
+    scale: 1,
+    pageColor: options.pageColor,
+    transparent: paint.transparentPage || backgroundHidden(drawing),
+  });
   const blob = await new Promise<Blob | null>((resolve) =>
     canvas.toBlob(resolve, formatMime(format), JPEG_QUALITY),
   );

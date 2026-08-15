@@ -17,7 +17,8 @@ with it and leaves the drawing on transparency.
 beside the canvas: a panel you have to summon is one you forget you have, and
 there is width to spare. Above the stack it carries the **Image** actions —
 resize, flip, mirror — which act on the whole drawing (see
-[the canvas](canvas.md)).
+[the canvas](canvas.md)), and the **Filters** section under them, which changes
+how the whole page is seen (see [filters](filters.md)).
 
 **On a narrower screen it is the last button in the header**, at the far right
 end of the row and wearing the panel it opens, and the panel comes out over the
@@ -28,8 +29,9 @@ A floating panel **goes away again when you press anywhere on the page**. It is
 something you visit between strokes, so it takes no width from the page and never
 stays in the way. The toolbar and the header stay live while it is open — picking
 a colour for the layer you just selected does not cost you the panel. Escape
-closes it too. (A docked panel has no close button: it is part of the screen
-rather than something you opened.)
+closes it too, and so does the header button that opened it — **the panel has no
+close cross of its own**, because that button is the one switch for it and is
+where your hand goes back to.
 
 If you have set the sidebar to open from the **right** edge (Settings → General),
 that edge is already spoken for: the swipe opens the sidebar and the header

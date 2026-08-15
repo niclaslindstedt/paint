@@ -108,6 +108,28 @@ export const sv: Catalog = {
     horizontal: "Vågrätt",
     vertical: "Lodrätt",
   },
+  filters: {
+    title: "Filter",
+    off: "Av",
+    open: "Inställningar för {name}",
+    hint: "Ett filter ändrar hur sidan ses — inget streck ritas om, och stänger du av det ligger teckningen kvar precis som den var.",
+    apply: "Använd",
+    remove: "Stäng av",
+    blur: {
+      name: "Oskärpa",
+      hint: "Gör hela sidan mjuk, som om teckningen vore ur fokus.",
+      radius: "Radie: {value} px",
+    },
+    noise: {
+      name: "Brus",
+      hint: "Strör fina korn över sidan, så som grynighet ligger på film.",
+      amount: "Styrka: {value} %",
+      grain: "Kornstorlek: {value} px",
+      color: "Färgade korn",
+      colorHint:
+        "Låt kornen färga och inte bara ljusa upp. Av ger det grå korn film ger.",
+    },
+  },
   resize: {
     title: "Ändra storlek",
     modeLabel: "Vad som ändras",
@@ -294,7 +316,6 @@ export const sv: Catalog = {
   layers: {
     title: "Lager",
     open: "Sidopanel",
-    close: "Stäng sidopanelen",
     add: "Nytt lager",
     base: "Lager 1",
     background: "Bakgrund",

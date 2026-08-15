@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DEFAULT_NAMESPACE_SLUG } from "@niclaslindstedt/oss-framework/namespaces";
 
 import { pageFitting, strokeBounds, unionBox, type Box } from "./bounds.ts";
+import { withFilter, withoutFilter, type FilterKind } from "./filters.ts";
 import {
   handOffDrawing,
   handOffFolder,
@@ -32,6 +33,7 @@ import {
   type AppData,
   type Drawing,
   type Folder,
+  type Filter,
   type Layer,
   type Stroke,
 } from "./types.ts";
@@ -459,8 +461,35 @@ export function usePaintStore(
       layers: undefined,
       activeLayerId: undefined,
       background: undefined,
+      filters: undefined,
     });
   }, [activeDrawing, patchActive]);
+
+  /** Put a page filter on the drawing, or move the one that is already there —
+   *  one of each kind, in the order `filters.ts` applies them.
+   *
+   *  An ordinary page edit: one undo step, one `updatedAt`, one push to the
+   *  cloud. Nothing is rasterised and no mark is touched — a filter is a number
+   *  saying how the page is looked at (see `types.ts`), which is why switching
+   *  one off is a delete rather than an unpicking. */
+  const setFilter = useCallback(
+    (filter: Filter) => {
+      const active = activeDrawing;
+      if (!active) return;
+      patchActive({ filters: withFilter(active.filters, filter) });
+    },
+    [activeDrawing, patchActive],
+  );
+
+  /** Take a filter off the drawing. */
+  const clearFilter = useCallback(
+    (kind: FilterKind) => {
+      const active = activeDrawing;
+      if (!active) return;
+      patchActive({ filters: withoutFilter(active.filters, kind) });
+    },
+    [activeDrawing, patchActive],
+  );
 
   /** Turn the whole page around — mirror it, turn it a quarter, scale it, or
    *  change the sheet under it (see `transform.ts`).
@@ -912,6 +941,8 @@ export function usePaintStore(
     deleteStrokes,
     moveStrokes,
     resetActive,
+    setFilter,
+    clearFilter,
     transformActive,
     renameActive,
     setBackground,

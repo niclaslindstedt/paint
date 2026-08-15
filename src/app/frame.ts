@@ -22,7 +22,13 @@
 //      something out. Coats 2 and 3 land on a finished picture rather than on
 //      bare canvas, so an erasing mark takes the page away with the ink; this
 //      puts it back (see `underlay`). Skipped entirely unless something erased.
-//   5. **the chrome** — the selection's marching ants and the sheet's edge.
+//   5. **the page's filters**, if it carries any — a composite over the
+//      finished picture rather than over any part of it, which is why they are
+//      applied here and not in the renderer (see `filterPaint.ts`). The
+//      context is handed back exactly as they found it.
+//   6. **the chrome** — the selection's marching ants and the sheet's edge.
+//      Above the filters on purpose: the outline of what you have selected is
+//      the one thing on screen that must stay sharp.
 //
 // The chrome is painted last and deliberately *after* the cache has taken its
 // copy of the screen, which is why it lives here rather than in `render.ts`: it
@@ -31,6 +37,9 @@
 
 import type { Box } from "./bounds.ts";
 import { createCache, paintCommitted, type MarkCache } from "./cache.ts";
+import { activeFilters } from "./filters.ts";
+import { paintFilters } from "./filterPaint.ts";
+import { backgroundHidden } from "./layers.ts";
 import { paintMarquee } from "./plugins/builtin/select.ts";
 import type { DraftStroke } from "./plugins/types.ts";
 import { anyErases, paintStrokes, underlay } from "./render.ts";
@@ -161,6 +170,27 @@ export function paintFrame(frame: Frame): void {
   // every frame of an eraser stroke, and no frame of anything else.
   if ((draft && anyErases([draft])) || (moving && anyErases(moving.strokes))) {
     underlay(ctx, drawing, options);
+  }
+
+  // The page's filters, over the finished picture and under the chrome. They
+  // are applied here rather than inside the renderer because they are a
+  // composite over *everything* — the committed marks the cache blitted, the
+  // gesture in flight, the sheet — and because the cache must go on holding the
+  // unfiltered picture: moving a slider then costs one composite instead of a
+  // repaint of the document (see `filterPaint.ts`).
+  const filters = activeFilters(drawing);
+  if (filters.length > 0) {
+    paintFilters(ctx, filters, {
+      page: {
+        x: snapped.tx * dpr,
+        y: snapped.ty * dpr,
+        width: drawing.width * snapped.scale * dpr,
+        height: drawing.height * snapped.scale * dpr,
+      },
+      scale: snapped.scale * dpr,
+      pageColor: frame.pageColor,
+      transparent: backgroundHidden(drawing),
+    });
   }
 
   // The selection's outline: the same marching ants the marquee was dragged

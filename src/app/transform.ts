@@ -26,6 +26,7 @@
 
 import { textBox } from "./plugins/builtin/text.ts";
 import { clampCanvasSize, type CanvasSize } from "./canvasSize.ts";
+import { scaleFilters } from "./filters.ts";
 import type { Drawing, Point, Shape, Stroke } from "./types.ts";
 
 /** Which way a mirror faces. `horizontal` swaps left and right (a mirror stood
@@ -240,6 +241,12 @@ export function scaleDrawing(
   return {
     width: to.width,
     height: to.height,
+    // A page filter set in document pixels — a blur's radius — is a distance on
+    // the page exactly as a nib width is, so it grows with the sheet. Leaving
+    // it alone would hand back a drawing scaled up and noticeably sharper.
+    ...(drawing.filters
+      ? { filters: scaleFilters(drawing.filters, scale) }
+      : {}),
     strokes: drawing.strokes.map((stroke) => {
       const next = mapStroke(stroke, at, scale);
       if (next.shape.kind !== "image") return next;

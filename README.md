@@ -96,6 +96,11 @@ the same [`oss-framework`](https://github.com/niclaslindstedt/oss-framework).
   top, hide or lock any of them. Hiding the background takes the page colour
   with it, and a transparent export leaves that layer out. A drawing nobody
   restacks is stored exactly as it was before layers existed.
+- **Filters that change nothing.** Blur the page or scatter grain over it from
+  the right-hand panel's **Filters** section. A filter is a couple of numbers on
+  the drawing rather than a picture in place of your marks, so it costs one undo
+  step, downloads with the page, and switches off leaving the sketch exactly as
+  it was. See [`docs/features/filters.md`](docs/features/filters.md).
 - **Vector, not pixels.** Undo is exact, the document is small enough for a
   phone, and a synced copy is readable JSON rather than a blob.
 - **A real file format.** `.pct` is a zip holding one transparent PNG per layer
@@ -234,7 +239,9 @@ npm run preview
   Background stays at the bottom of the stack: it is the page, so it does not
   move and nothing slides under it. The **Image** heading above the
   stack resizes, flips and mirrors the page, and its bin starts the drawing
-  over. A press on the page closes it again.
+  over; the **Filters** section under it blurs or grains the whole page. A press
+  on the page closes it again, as does the header button that opened it — there
+  is no close cross on the panel.
 - **Header** — the drawing's name (edit in place), the favourite star, the disk
   button (when a backend is connected), the download menu (PNG, JPG, SVG, the
   layered `.pct`, or copy to the clipboard), and — at the far right — the button

@@ -113,6 +113,30 @@ export const en = {
     horizontal: "Horizontal",
     vertical: "Vertical",
   },
+  // The page filters — what the drawing is seen *through*, rather than what is
+  // on it. One section of the right-hand panel and one dialog per filter.
+  filters: {
+    title: "Filters",
+    off: "Off",
+    open: "{name} options",
+    hint: "A filter changes how the page is seen — no mark is redrawn, and switching it off leaves the drawing exactly as it was.",
+    apply: "Apply",
+    remove: "Turn off",
+    blur: {
+      name: "Blur",
+      hint: "Softens the whole page, as though the drawing were out of focus.",
+      radius: "Radius: {value} px",
+    },
+    noise: {
+      name: "Noise",
+      hint: "Scatters fine specks across the page, the way grain sits on film.",
+      amount: "Strength: {value}%",
+      grain: "Speck size: {value} px",
+      color: "Coloured specks",
+      colorHint:
+        "Speckle the colours as well as the light. Off leaves the grey grain film does.",
+    },
+  },
   resize: {
     title: "Resize",
     modeLabel: "What to resize",
@@ -316,7 +340,6 @@ export const en = {
   layers: {
     title: "Layers",
     open: "Side panel",
-    close: "Close the side panel",
     add: "New layer",
     base: "Layer 1",
     background: "Background",

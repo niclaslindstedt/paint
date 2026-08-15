@@ -25,6 +25,7 @@ import {
   type PastePayload,
 } from "./clipboard.ts";
 import { DownloadMenu } from "./DownloadMenu.tsx";
+import { filterDescriptor, filterOf, type FilterKind } from "./filters.ts";
 import { DrawingTitle } from "./DrawingTitle.tsx";
 import type { MenuEdge } from "./gestures.ts";
 import { HeaderIconButton } from "./HeaderIconButton.tsx";
@@ -75,6 +76,11 @@ import * as output from "../output.ts";
 // other dialog in the app it loads when it is asked for.
 const ResizeModal = lazy(() =>
   import("./ResizeModal.tsx").then((m) => ({ default: m.ResizeModal })),
+);
+
+// …and the same for a filter's options, which most drawings never open at all.
+const FilterModal = lazy(() =>
+  import("./FilterModal.tsx").then((m) => ({ default: m.FilterModal })),
 );
 
 // The main screen: a header naming the open drawing (with the favourite star
@@ -224,6 +230,9 @@ export function CanvasScreen({
   const copied = useRef<DraftStroke[] | null>(null);
   // The resize dialog, which is the one page action that has a question to ask.
   const [resizing, setResizing] = useState(false);
+  // Which filter's options are open, if any — the panel names the kind, this
+  // screen owns the dialog, exactly as it owns the resize one.
+  const [filtering, setFiltering] = useState<FilterKind | null>(null);
   // Bumped when the page changes shape under the view, so the canvas can fit the
   // sheet again — see `PaintCanvas`'s `refitToken`.
   const [refitToken, setRefitToken] = useState(0);
@@ -275,8 +284,10 @@ export function CanvasScreen({
   useEffect(() => setPlacement(null), [openPage]);
   // A caption belongs to the page it was begun on, for the same reason.
   useEffect(() => setTyping(null), [openPage]);
-  // The panel is about the page it was opened over, so it closes with it.
+  // The panel is about the page it was opened over, so it closes with it — and
+  // so does a filter's options, which are settings on that page and no other.
   useEffect(() => setLayersOpen(false), [openPage]);
+  useEffect(() => setFiltering(null), [openPage]);
   // …and a selection names marks on *this* page, so it is dropped with the page
   // rather than carried onto one where those ids mean nothing.
   useEffect(() => {
@@ -828,6 +839,13 @@ export function CanvasScreen({
                   setLayersOpen(false);
                   setResizing(true);
                 }}
+                // The floating panel gets out of the way of its own dialog —
+                // on a phone the two would be stacked over the page it is
+                // about, and the panel is what you were leaving anyway.
+                onFilter={(kind) => {
+                  setLayersOpen(false);
+                  setFiltering(kind);
+                }}
                 onTransform={transformPage}
                 onClose={() => setLayersOpen(false)}
               />
@@ -879,6 +897,7 @@ export function CanvasScreen({
             defaultInk={ink}
             docked
             onResize={() => setResizing(true)}
+            onFilter={setFiltering}
             onTransform={transformPage}
             onClose={() => undefined}
           />
@@ -974,6 +993,32 @@ export function CanvasScreen({
             : []),
         ]}
       />
+
+      {/* A filter's options. Mounted only while they are open, so the sliders
+          always start from what the page is actually set to — and nothing lands
+          on the drawing until Apply (see `FilterModal`). */}
+      {filtering &&
+        (() => {
+          const descriptor = filterDescriptor(filtering);
+          if (!descriptor) return null;
+          return (
+            <Suspense fallback={null}>
+              <FilterModal
+                descriptor={descriptor}
+                filter={filterOf(drawing, filtering) ?? null}
+                onCancel={() => setFiltering(null)}
+                onApply={(filter) => {
+                  store.setFilter(filter);
+                  setFiltering(null);
+                }}
+                onRemove={() => {
+                  store.clearFilter(filtering);
+                  setFiltering(null);
+                }}
+              />
+            </Suspense>
+          );
+        })()}
 
       {/* Resizing — the one page action with a question to ask. Mounted only
           while it is open, so each answer starts from the page's own size. */}
