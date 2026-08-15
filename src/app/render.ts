@@ -24,13 +24,24 @@
 // a transparent export has nothing in it, where it used to have page-coloured
 // smears.
 
+import { filterReach, svgFilter } from "./filters.ts";
+import { paintFilters } from "./filterPaint.ts";
 import { strokeVisible, type Rect } from "./geometry.ts";
-import { backgroundHidden, visibleStrokes } from "./layers.ts";
+import {
+  anyLayerFiltered,
+  backgroundHidden,
+  drawingLayers,
+  layerFilters,
+  paintedLayers,
+  visibleStrokes,
+  type PaintScope,
+} from "./layers.ts";
 import { paintRegion } from "./plugins/brushes.ts";
 import { pluginById } from "./plugins/registry.ts";
 import { applyInk, paintPath, paintRect, paintSegment } from "./plugins/ink.ts";
 import { FULL_DETAIL, type PaintDetail } from "./plugins/types.ts";
-import type { Drawing, Stroke } from "./types.ts";
+import { createSurface } from "./surface.ts";
+import type { Drawing, Filter, Stroke } from "./types.ts";
 
 /** The colours a repaint resolves absent stroke ink against. */
 export type InkContext = {
@@ -164,6 +175,20 @@ export type RenderOptions = InkContext & {
    *  isn't given, which is right for every caller in the app — pass it only to
    *  paint at a scale the transform doesn't reflect. */
   scale?: number;
+  /** Paint the marks as they were *made*, not as the page is looked at: the
+   *  layers' own filters are skipped and the stack is folded flat.
+   *
+   *  One caller, and it is not a view — it is the page snapshot the paint bucket
+   *  and the colour dropper read (`probe.ts`). Those two tools answer questions
+   *  about the drawing, and a filter is not part of the drawing (see
+   *  `Layer.filters`): a dropper that sampled a blurred layer would hand back a
+   *  colour that is nowhere in the document, and a bucket flooding across a
+   *  softened edge has no edge to stop at and would spill over the page.
+   *
+   *  The page's own filters never reach the snapshot anyway — they are
+   *  composited outside the renderer — so this is what keeps a layer's filters
+   *  behaving like them rather than like ink. */
+  unfiltered?: boolean;
   /** Marks to leave off this repaint, by stroke id.
    *
    *  One caller: the canvas, while a selection is being dragged. The marks in
@@ -249,14 +274,248 @@ export function renderDrawing(
 
   // Hiding the sheet takes the colour but keeps what was drawn on it; a
   // transparent export takes both, which is what makes it transparent.
-  paintStrokes(
-    ctx,
-    visibleStrokes(drawing, { withoutBackground: options.transparentPage }),
-    options,
-  );
+  const scope = { withoutBackground: options.transparentPage };
+  if (anyLayerFiltered(drawing) && !options.unfiltered) {
+    paintStack(ctx, drawing, scope, options);
+  } else {
+    paintStrokes(ctx, visibleStrokes(drawing, scope), options);
+  }
   if (draft) paintStroke(ctx, draft, options, detailFor(ctx, options));
 
   underlay(ctx, drawing, options);
+}
+
+/** Paint the stack a sheet at a time, so a layer carrying filters of its own can
+ *  be composited as a unit (see `Layer.filters`).
+ *
+ *  Only reached when some layer *is* filtered. Every other drawing keeps the
+ *  flat fold above, which is not merely an optimisation: painting layer by layer
+ *  changes what an eraser reaches. In one pass a rubbing out on the top layer
+ *  takes ink off everything already painted, whatever layer it was drawn on,
+ *  and that is the behaviour this app has always had. Splitting a layer onto its
+ *  own surface necessarily scopes its erasing to that surface — which is exactly
+ *  what makes a filtered layer erasable *through* to the ones below, and exactly
+ *  what must not happen to a drawing nobody has filtered.
+ *
+ *  So the rule is: **a layer is only lifted onto a surface when it has filters
+ *  to apply.** Unfiltered layers paint straight onto the page, in order, and go
+ *  on erasing everything under them. */
+function paintStack(
+  ctx: CanvasRenderingContext2D,
+  drawing: Drawing,
+  scope: PaintScope,
+  options: RenderOptions,
+): void {
+  for (const { layer, strokes } of paintedLayers(drawing, scope)) {
+    const filters = layerFilters(layer);
+    if (filters.length === 0) {
+      paintStrokes(ctx, strokes, options);
+      continue;
+    }
+    paintFilteredLayer(ctx, drawing, strokes, filters, options);
+  }
+}
+
+/** One filtered layer: its marks onto a surface of their own, the filters over
+ *  that, and the result composited onto the page.
+ *
+ *  The surface matches the canvas being painted pixel for pixel and inherits its
+ *  transform, so the layer's marks land in exactly the places they would have
+ *  landed painting straight onto it — the compositing is the only difference.
+ *  Falling back to painting straight on is the right failure: a browser that
+ *  won't give us a second canvas should show an unfiltered layer rather than a
+ *  missing one, which is the same call the mark cache makes.
+ *
+ *  The window cull is **widened by the filters' reach** before the marks go
+ *  down. A blur moves ink, so a mark just off the edge of the window still fogs
+ *  its way into it, and culling it for being out of frame would leave the edge
+ *  of the layer lighter than its middle — a seam that moves as you pan. */
+function paintFilteredLayer(
+  ctx: CanvasRenderingContext2D,
+  drawing: Drawing,
+  strokes: readonly Stroke[],
+  filters: readonly Filter[],
+  options: RenderOptions,
+): void {
+  // A recorder rather than a canvas: an SVG has no pixels to composite, so the
+  // layer is recorded into a group of its own and the same two effects travel
+  // as SVG filter primitives (see `svg.ts`). Duck-typed for the same reason
+  // `renderScale` duck-types `getTransform` — the painters are written against
+  // the canvas API, and a recorder that answers more of it gets more.
+  const recorder = asFilterRecorder(ctx);
+  if (recorder) {
+    recorder.beginFilterGroup();
+    paintStrokes(ctx, strokes, options);
+    recorder.endFilterGroup(svgFilter(filters, `layer-filter-${filterId++}`));
+    return;
+  }
+
+  const canvas = ctx.canvas;
+  const surface =
+    canvas && canvas.width > 0 && canvas.height > 0
+      ? createSurface(canvas.width, canvas.height)
+      : null;
+  if (!surface) {
+    paintStrokes(ctx, strokes, options);
+    return;
+  }
+  const view = readTransform(ctx);
+  if (view) {
+    surface.ctx.setTransform(view.a, view.b, view.c, view.d, view.e, view.f);
+  }
+  const scale = options.scale ?? renderScale(ctx);
+  paintStrokes(surface.ctx, strokes, {
+    ...options,
+    scale,
+    clip: padRect(options.clip, filterReach(filters)),
+  });
+  // The layer's own filters, over the layer's own pixels. There is no sheet
+  // under them — that is the background layer's job and it is somewhere else in
+  // this stack — so the blur fades into nothing at the page's edge, which is
+  // what a filtered cut-out should do.
+  paintFilters(surface.ctx, filters, {
+    page: pageOn(view, drawing),
+    scale,
+    pageColor: options.pageColor,
+    transparent: true,
+  });
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.globalAlpha = 1;
+  ctx.globalCompositeOperation = "source-over";
+  ctx.drawImage(surface.canvas, 0, 0);
+  ctx.restore();
+}
+
+/** Paint marks that are not part of the cached page — the gesture in flight and
+ *  a selection being dragged — through the filters of the layers they sit on.
+ *
+ *  The canvas paints those on top of a blitted page rather than inside a
+ *  repaint (see `frame.ts`), so without this a line drawn on a blurred layer
+ *  would come out sharp under the finger and soften the instant it committed.
+ *  A mark that changes the moment you let go of it reads as a bug whichever way
+ *  round it happens.
+ *
+ *  Marks are grouped into **runs** rather than gathered per layer, so the order
+ *  they were handed over in survives — the caller has already put them in paint
+ *  order and this must not reshuffle them.
+ *
+ *  What it cannot do is make the preview identical to the committed result: a
+ *  blur of the mark alone is not a blur of the layer with the mark in it, so
+ *  where the new stroke overlaps existing ones the softening shifts slightly on
+ *  commit. It is the same picture a fraction differently blended, which is far
+ *  less than the alternative of watching the whole stroke change focus.
+ *
+ *  `landsOn` names the layer for marks that carry none — the draft, which is not
+ *  stamped with its layer until the store commits it. */
+export function paintDetached(
+  ctx: CanvasRenderingContext2D,
+  drawing: Drawing,
+  strokes: readonly Stroke[],
+  options: RenderOptions,
+  landsOn?: string,
+): void {
+  if (
+    !anyLayerFiltered(drawing) ||
+    options.unfiltered ||
+    strokes.length === 0
+  ) {
+    paintStrokes(ctx, strokes, options);
+    return;
+  }
+  // Resolved once for the stack rather than once per mark: a drag can carry
+  // hundreds of strokes and every one of them would otherwise re-walk it.
+  const byLayer = new Map<string, readonly Filter[]>();
+  for (const layer of drawingLayers(drawing)) {
+    byLayer.set(layer.id, layerFilters(layer));
+  }
+  const layerOf = (stroke: Stroke) => stroke.layer ?? landsOn ?? "";
+
+  let run: Stroke[] = [];
+  let runLayer = "";
+  const flush = () => {
+    if (run.length === 0) return;
+    const filters = byLayer.get(runLayer) ?? [];
+    if (filters.length === 0) paintStrokes(ctx, run, options);
+    else paintFilteredLayer(ctx, drawing, run, filters, options);
+    run = [];
+  };
+  for (const stroke of strokes) {
+    const layer = layerOf(stroke);
+    if (run.length > 0 && layer !== runLayer) flush();
+    runLayer = layer;
+    run.push(stroke);
+  }
+  flush();
+}
+
+/** Where the page's rectangle falls on a canvas under `view`, in canvas pixels
+ *  — what `paintFilters` works in. Without a readable transform the best guess
+ *  is the page at the origin, which is what an export paints at anyway. */
+function pageOn(
+  view: Transform | null,
+  drawing: Drawing,
+): { x: number; y: number; width: number; height: number } {
+  const scale = view ? Math.hypot(view.a, view.b) || 1 : 1;
+  return {
+    x: view?.e ?? 0,
+    y: view?.f ?? 0,
+    width: drawing.width * scale,
+    height: drawing.height * scale,
+  };
+}
+
+/** A context that can record a filtered group rather than composite one. */
+type FilterRecorder = {
+  beginFilterGroup: () => void;
+  endFilterGroup: (filter: { id: string; markup: string } | null) => void;
+};
+
+function asFilterRecorder(
+  ctx: CanvasRenderingContext2D,
+): FilterRecorder | null {
+  const candidate = ctx as unknown as Partial<FilterRecorder>;
+  return typeof candidate.beginFilterGroup === "function" &&
+    typeof candidate.endFilterGroup === "function"
+    ? (candidate as FilterRecorder)
+    : null;
+}
+
+/** Distinguishes one layer's `<filter>` from the next inside a file. Only ever
+ *  read while a single export is being written, and only ever has to be unique
+ *  within it — an id colliding across two files means nothing. */
+let filterId = 0;
+
+type Transform = {
+  a: number;
+  b: number;
+  c: number;
+  d: number;
+  e: number;
+  f: number;
+};
+
+/** The context's transform, or `null` where the context can't report one — the
+ *  recording context an SVG export paints onto, and the fakes in the tests. */
+function readTransform(ctx: CanvasRenderingContext2D): Transform | null {
+  const read = (
+    ctx as CanvasRenderingContext2D & { getTransform?: () => Transform }
+  ).getTransform;
+  if (typeof read !== "function") return null;
+  const m = read.call(ctx);
+  return Number.isFinite(m.a) ? m : null;
+}
+
+/** Grow a cull box by `by` on every side, in document pixels. An absent box
+ *  means "cull nothing" and stays that way. */
+function padRect(clip: Rect | undefined, by: number): Rect | undefined {
+  if (!clip || by <= 0) return clip;
+  return {
+    x: clip.x - by,
+    y: clip.y - by,
+    width: clip.width + by * 2,
+    height: clip.height + by * 2,
+  };
 }
 
 /** Lay the grid and the sheet *under* everything already painted.

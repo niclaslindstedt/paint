@@ -39,17 +39,40 @@ export type PaintedCall = {
   fillStyle: string;
 };
 
+/** One `drawImage`, with the size it was drawn at.
+ *
+ *  `blits` answers *whether* a picture was copied; this answers *how big it came
+ *  out*, which is the only trace a resampling blur leaves (see
+ *  `filterPaint.ts`). */
+export type FakeDraw = {
+  image: unknown;
+  width: number | undefined;
+  height: number | undefined;
+  /** The `filter` in force when it was drawn — the whole of how the fast blur
+   *  path differs from the fallback. */
+  filter: string;
+};
+
 /** A recording 2D context, plus the tallies the tests assert on. */
 export type FakeContext = CanvasRenderingContext2D & {
   calls: Record<string, number>;
   /** Images blitted onto it, in order — the layer's evidence that a frame was
    *  served from the cache. */
   blits: unknown[];
+  /** The same calls with their destination size. */
+  draws: FakeDraw[];
   /** Each `stroke()` since the context was made, in order. */
   strokes: FakeStroke[];
   /** Every call that painted, in order, with the compositing it painted with. */
   painted: PaintedCall[];
 };
+
+/** Whether a fake context's `filter` actually does anything.
+ *
+ *  Not a detail of the fake but the *subject* of one of these tests: Safari
+ *  accepts `ctx.filter`, reads the value back, and ignores it, so a painter that
+ *  trusts the property paints nothing at all there. "inert" is that browser. */
+export type FilterSupport = "honoured" | "inert";
 
 const METHODS = [
   "arc",
@@ -78,11 +101,15 @@ const SAVED = [
   "fillStyle",
   "strokeStyle",
   "font",
+  "filter",
 ] as const;
 
-export function createFakeContext(): FakeContext {
+export function createFakeContext(
+  filter: FilterSupport = "inert",
+): FakeContext {
   const calls: Record<string, number> = {};
   const blits: unknown[] = [];
+  const draws: FakeDraw[] = [];
   const strokes: FakeStroke[] = [];
   const painted: PaintedCall[] = [];
   let transform = { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 };
@@ -107,6 +134,7 @@ export function createFakeContext(): FakeContext {
   const ctx: Record<string, unknown> = {
     calls,
     blits,
+    draws,
     strokes,
     painted,
     globalAlpha: 1,
@@ -117,6 +145,23 @@ export function createFakeContext(): FakeContext {
     fillStyle: "#000",
     strokeStyle: "#000",
     font: "",
+    filter: "none",
+    imageSmoothingEnabled: true,
+    imageSmoothingQuality: "low",
+    /** What the blur's capability probe reads back (see `filterPaint.ts`).
+     *
+     *  It puts one opaque pixel down and asks whether ink landed beside it, so
+     *  that is the only question answered here: on an honoured filter the
+     *  neighbour is inked, on an inert one it is not — which is what a browser
+     *  ignoring the property really does produce. */
+    getImageData: (_x: number, _y: number, w = 1, h = 1) => {
+      tick("getImageData");
+      const spread =
+        filter === "honoured" && String(ctx.filter).startsWith("blur(");
+      const data = new Uint8ClampedArray(w * h * 4);
+      if (spread) data.fill(255);
+      return { width: w, height: h, data };
+    },
     setTransform(
       a: number,
       b: number,
@@ -129,9 +174,18 @@ export function createFakeContext(): FakeContext {
       transform = { a, b, c, d, e, f };
     },
     getTransform: () => ({ ...transform }),
-    drawImage(image: unknown) {
+    drawImage(image: unknown, ...rest: number[]) {
       tick("drawImage");
       blits.push(image);
+      // `drawImage` comes in three lengths; the destination size is the last
+      // pair in the two that carry one, and absent from the two-argument form.
+      const sized = rest.length >= 4;
+      draws.push({
+        image,
+        width: sized ? rest[rest.length - 2] : undefined,
+        height: sized ? rest[rest.length - 1] : undefined,
+        filter: String(ctx.filter),
+      });
     },
     createRadialGradient() {
       tick("createRadialGradient");
@@ -183,20 +237,28 @@ export function createFakeContext(): FakeContext {
 }
 
 /** A canvas element that hands out one recording context. */
-export function createFakeCanvas(width = 800, height = 600) {
-  const ctx = createFakeContext();
-  return {
+export function createFakeCanvas(
+  width = 800,
+  height = 600,
+  filter: FilterSupport = "inert",
+) {
+  const ctx = createFakeContext(filter);
+  const canvas = {
     width,
     height,
     getContext: () => ctx,
     ctx,
   };
+  // The back-reference the real thing has. `filterPaint.ts` reads the canvas
+  // off the context it was handed rather than being passed both.
+  (ctx as unknown as { canvas: unknown }).canvas = canvas;
+  return canvas;
 }
 
 /** Install a `document` that mints fake canvases, and return a handle that
  *  removes it again. Everything under test asks for a canvas exactly the way
  *  the browser code does, so nothing has to be injected. */
-export function withFakeDocument(): {
+export function withFakeDocument(filter: FilterSupport = "inert"): {
   created: ReturnType<typeof createFakeCanvas>[];
   restore: () => void;
 } {
@@ -205,7 +267,7 @@ export function withFakeDocument(): {
   (globalThis as { document?: unknown }).document = {
     createElement(tag: string) {
       if (tag !== "canvas") throw new Error(`unexpected element: ${tag}`);
-      const canvas = createFakeCanvas();
+      const canvas = createFakeCanvas(800, 600, filter);
       created.push(canvas);
       return canvas;
     },

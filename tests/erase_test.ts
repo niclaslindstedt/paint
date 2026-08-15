@@ -19,7 +19,12 @@ import {
   strokeErases,
 } from "../src/app/render.ts";
 import type { Drawing, Stroke } from "../src/app/types.ts";
-import { createFakeContext, type FakeContext } from "./support/fakeCanvas.ts";
+import {
+  createFakeCanvas,
+  createFakeContext,
+  withFakeDocument,
+  type FakeContext,
+} from "./support/fakeCanvas.ts";
 
 const ink = { pageColor: "#fffdf5", defaultInk: "#111827" };
 
@@ -214,5 +219,60 @@ describe("an erasing tool that isn't the eraser", () => {
     const ctx = createFakeContext();
     paintStroke(ctx, mark("scraper"), ink);
     expect(order(ctx)).toEqual(["stroke@destination-out"]);
+  });
+});
+
+// A layer's filters are applied *inside* the renderer (see `Layer.filters`),
+// which puts them in the path of the one caller that renders the page in order
+// to ask questions about it rather than to show it: the snapshot the paint
+// bucket and the colour dropper read (`probe.ts`).
+//
+// They must not reach it. A filter is not part of the drawing — the page's own
+// never could reach the snapshot, because they are composited outside the
+// renderer — and a layer's behaving like ink instead would give the dropper a
+// colour that is nowhere in the document and the bucket a softened edge with
+// nothing to stop at. Invisible in pixels and in the document, so this is the
+// only place it is pinned.
+
+describe("the snapshot the bucket and the dropper read", () => {
+  const softened = drawing([mark("pencil", "photo")], {
+    layers: [
+      { id: BASE_LAYER_ID, name: "" },
+      {
+        id: "photo",
+        name: "Photo",
+        filters: [{ kind: "blur", radius: 12 }],
+      },
+    ],
+  });
+
+  // A canvas-shaped fake rather than a bare context: lifting a layer onto a
+  // surface needs a canvas to size it from and a document to mint it in, and
+  // without both the renderer correctly falls back to painting flat — which
+  // would make this test pass for the wrong reason.
+  let dom: ReturnType<typeof withFakeDocument>;
+  beforeEach(() => {
+    dom = withFakeDocument();
+  });
+  afterEach(() => dom.restore());
+
+  const onCanvas = () => createFakeCanvas(400, 300).ctx;
+
+  it("lifts a filtered layer onto a surface when it is being shown", () => {
+    const ctx = onCanvas();
+    renderDrawing(ctx, softened, null, ink);
+    // The give-away of the layer being composited on its own: a working
+    // surface was made, and the finished layer blitted back off it.
+    expect(ctx.calls.drawImage ?? 0).toBeGreaterThan(0);
+  });
+
+  it("paints the marks flat when the caller asks for them unfiltered", () => {
+    const ctx = onCanvas();
+    renderDrawing(ctx, softened, null, { ...ink, unfiltered: true });
+    // No surface, no blit — the same flat fold a drawing with no filtered
+    // layer gets, so the pixels the tools read are the ones that were painted.
+    expect(ctx.calls.drawImage ?? 0).toBe(0);
+    // …and the mark itself still landed.
+    expect(order(ctx)).toContain("stroke@source-over");
   });
 });

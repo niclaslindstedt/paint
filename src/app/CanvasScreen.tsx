@@ -25,7 +25,12 @@ import {
   type PastePayload,
 } from "./clipboard.ts";
 import { DownloadMenu } from "./DownloadMenu.tsx";
-import { filterDescriptor, filterOf, type FilterKind } from "./filters.ts";
+import {
+  filterDescriptor,
+  filterOf,
+  layerFilterOf,
+  type FilterTarget,
+} from "./filters.ts";
 import { DrawingTitle } from "./DrawingTitle.tsx";
 import type { MenuEdge } from "./gestures.ts";
 import { HeaderIconButton } from "./HeaderIconButton.tsx";
@@ -230,9 +235,10 @@ export function CanvasScreen({
   const copied = useRef<DraftStroke[] | null>(null);
   // The resize dialog, which is the one page action that has a question to ask.
   const [resizing, setResizing] = useState(false);
-  // Which filter's options are open, if any — the panel names the kind, this
-  // screen owns the dialog, exactly as it owns the resize one.
-  const [filtering, setFiltering] = useState<FilterKind | null>(null);
+  // Which filter's options are open, if any — the panel names the filter and
+  // what it belongs to, this screen owns the dialog, exactly as it owns the
+  // resize one.
+  const [filtering, setFiltering] = useState<FilterTarget | null>(null);
   // Bumped when the page changes shape under the view, so the canvas can fit the
   // sheet again — see `PaintCanvas`'s `refitToken`.
   const [refitToken, setRefitToken] = useState(0);
@@ -842,9 +848,9 @@ export function CanvasScreen({
                 // The floating panel gets out of the way of its own dialog —
                 // on a phone the two would be stacked over the page it is
                 // about, and the panel is what you were leaving anyway.
-                onFilter={(kind) => {
+                onFilter={(target) => {
                   setLayersOpen(false);
-                  setFiltering(kind);
+                  setFiltering(target);
                 }}
                 onTransform={transformPage}
                 onClose={() => setLayersOpen(false)}
@@ -999,20 +1005,29 @@ export function CanvasScreen({
           on the drawing until Apply (see `FilterModal`). */}
       {filtering &&
         (() => {
-          const descriptor = filterDescriptor(filtering);
+          const descriptor = filterDescriptor(filtering.kind);
           if (!descriptor) return null;
+          // The same dialog either way; only who it reads from and writes to
+          // changes with the target it was opened for.
+          const on = filtering.layerId;
+          const held = on
+            ? layerFilterOf(drawing, on, filtering.kind)
+            : filterOf(drawing, filtering.kind);
           return (
             <Suspense fallback={null}>
               <FilterModal
                 descriptor={descriptor}
-                filter={filterOf(drawing, filtering) ?? null}
+                filter={held ?? null}
+                scope={on ? "layer" : "page"}
                 onCancel={() => setFiltering(null)}
                 onApply={(filter) => {
-                  store.setFilter(filter);
+                  if (on) store.setLayerFilter(on, filter);
+                  else store.setFilter(filter);
                   setFiltering(null);
                 }}
                 onRemove={() => {
-                  store.clearFilter(filtering);
+                  if (on) store.clearLayerFilter(on, filtering.kind);
+                  else store.clearFilter(filtering.kind);
                   setFiltering(null);
                 }}
               />

@@ -27,7 +27,8 @@
 // Pure and DOM-free, so the panel, the renderer and the store all read the same
 // answers and a node test can drive the lot.
 
-import type { Drawing, Layer, Stroke } from "./types.ts";
+import { orderedFilters } from "./filters.ts";
+import type { Drawing, Filter, Layer, Stroke } from "./types.ts";
 
 /** The id the implicit first layer takes when a drawing first grows a stack.
  *
@@ -167,6 +168,64 @@ export function visibleStrokes(
     painted.push(...buckets[index]!);
   });
   return painted;
+}
+
+/** One layer's turn in a repaint: the layer, and the marks that go down for it.
+ *
+ *  What `renderDrawing` folds over when the stack is painted sheet by sheet
+ *  rather than as one run of marks — which it has to be as soon as any layer
+ *  carries filters of its own, because a filtered layer is composited as a unit
+ *  (see `Layer.filters`). */
+export type PaintedLayer = {
+  layer: Layer;
+  strokes: readonly Stroke[];
+};
+
+/** The stack as a repaint walks it: bottom first, hidden layers left out, and
+ *  the background dropped when `withoutBackground` asks for it.
+ *
+ *  The same answer `visibleStrokes` gives, kept in its layers instead of
+ *  flattened — concatenating the `strokes` of every entry in order *is*
+ *  `visibleStrokes`, and a test pins that so the two can never drift into two
+ *  different paint orders.
+ *
+ *  A layer whose marks are all culled still appears here. It has to: a filtered
+ *  layer with nothing on it is a no-op, but the caller decides that, and a walk
+ *  that silently skipped empty layers would make "which layer is this" depend
+ *  on what happened to be drawn. */
+export function paintedLayers(
+  drawing: Drawing,
+  scope: PaintScope = {},
+): PaintedLayer[] {
+  const drop = scope.withoutBackground === true;
+  const layers = drawingLayers(drawing);
+  const buckets = bucketsOf(drawing, layers);
+  const walk: PaintedLayer[] = [];
+  layers.forEach((layer, index) => {
+    if (layer.hidden) return;
+    if (drop && layer.id === BACKGROUND_LAYER_ID) return;
+    walk.push({ layer, strokes: buckets[index]! });
+  });
+  return walk;
+}
+
+/** The filters on one layer, in the order they are applied — `filters.ts` owns
+ *  the order, and this is the layer-shaped door to it. */
+export function layerFilters(layer: Layer): readonly Filter[] {
+  return orderedFilters(layer.filters);
+}
+
+/** Whether any layer in the stack carries filters of its own.
+ *
+ *  Asked before anything expensive is decided, because the answer is *no* for
+ *  every drawing that has never used the feature and the paths it guards are
+ *  the ones that make a busy page fast: the renderer's flat fold, and the mark
+ *  cache's append and scroll (see `cache.ts`). A drawing with a filtered layer
+ *  gives those up; one without must not pay a thing for their existence. */
+export function anyLayerFiltered(drawing: Drawing): boolean {
+  const layers = drawing.layers;
+  if (!layers) return false;
+  return layers.some((layer) => (layer.filters?.length ?? 0) > 0);
 }
 
 /** A flat stroke list, with the background layer's marks dropped if they are

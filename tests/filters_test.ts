@@ -3,6 +3,10 @@ import { describe, expect, it } from "vitest";
 
 import {
   activeFilters,
+  BLUR_TAIL,
+  filterReach,
+  layerFilterOf,
+  orderedFilters,
   controlReadout,
   controlValue,
   filterDescriptor,
@@ -180,5 +184,77 @@ describe("svgFilter", () => {
     // Coloured specks keep the turbulence's own colours and take one coat.
     const colored = svgFilter([withSwitch(noise, "color", true)])!;
     expect(colored.markup.match(/feComposite/g)).toHaveLength(1);
+  });
+});
+
+// The layer half. A filter on a layer is the same value in a different place,
+// so the ordering and the reading-back are shared code — what is worth pinning
+// is that they *are* shared, and the one number the renderer needs that a
+// page-wide filter never did.
+
+describe("orderedFilters", () => {
+  it("puts a layer's filters in the same order a page's go in", () => {
+    const jumbled = [noise, blur];
+    expect(orderedFilters(jumbled).map((f) => f.kind)).toEqual([
+      "blur",
+      "noise",
+    ]);
+    // The declared order, whichever owner they came off — a page and a sheet
+    // of it must not soften and grain in opposite orders.
+    expect(orderedFilters(jumbled)).toEqual(
+      activeFilters(drawing([noise, blur])),
+    );
+  });
+
+  it("drops a kind this build has never heard of", () => {
+    const future = { kind: "kaleidoscope", turns: 3 } as unknown as Filter;
+    expect(orderedFilters([blur, future])).toEqual([blur]);
+    expect(orderedFilters(undefined)).toEqual([]);
+  });
+});
+
+describe("filterReach", () => {
+  it("is how far a blur can move ink, and nothing for the rest", () => {
+    // What a repaint pads its window cull by: a mark this far outside the
+    // window still fogs its way in, and culling it would leave the edge of a
+    // filtered layer lighter than its middle.
+    expect(filterReach([blur])).toBe(blur.radius * BLUR_TAIL);
+    // Grain lands on the pixel it is over, so it moves nothing.
+    expect(filterReach([noise])).toBe(0);
+    expect(filterReach([])).toBe(0);
+    // The widest wins rather than the sum — they are applied one after the
+    // other, not stacked into one kernel.
+    expect(filterReach([blur, noise])).toBe(filterReach([blur]));
+  });
+});
+
+describe("layerFilterOf", () => {
+  const layered: Drawing = {
+    id: "d1",
+    name: "sketch",
+    width: 800,
+    height: 600,
+    strokes: [],
+    layers: [
+      { id: "base", name: "" },
+      { id: "photo", name: "Photo", filters: [blur] },
+    ],
+  };
+
+  it("finds a layer's filter, and answers nothing for anything else", () => {
+    expect(layerFilterOf(layered, "photo", "blur")).toEqual(blur);
+    expect(layerFilterOf(layered, "photo", "noise")).toBeUndefined();
+    expect(layerFilterOf(layered, "base", "blur")).toBeUndefined();
+    // A row deleted out from under an open dialog is not a crash.
+    expect(layerFilterOf(layered, "gone", "blur")).toBeUndefined();
+  });
+});
+
+describe("svgFilter ids", () => {
+  it("takes an id, so one file can carry a filter per layer", () => {
+    expect(svgFilter([blur])?.id).toBe("page-filter");
+    const layer = svgFilter([blur], "layer-filter-2");
+    expect(layer?.id).toBe("layer-filter-2");
+    expect(layer?.markup).toContain('id="layer-filter-2"');
   });
 });

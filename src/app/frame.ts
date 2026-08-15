@@ -39,10 +39,10 @@ import type { Box } from "./bounds.ts";
 import { createCache, paintCommitted, type MarkCache } from "./cache.ts";
 import { activeFilters } from "./filters.ts";
 import { paintFilters } from "./filterPaint.ts";
-import { backgroundHidden } from "./layers.ts";
+import { activeLayerId, backgroundHidden } from "./layers.ts";
 import { paintMarquee } from "./plugins/builtin/select.ts";
 import type { DraftStroke } from "./plugins/types.ts";
-import { anyErases, paintStrokes, underlay } from "./render.ts";
+import { anyErases, paintDetached, underlay } from "./render.ts";
 import { translateStrokes } from "./selection.ts";
 import type { Drawing, Point, Stroke } from "./types.ts";
 import type { CanvasView } from "./viewport.ts";
@@ -154,14 +154,18 @@ export function paintFrame(frame: Frame): void {
   // what will land.
   if (moving) {
     const { x: dx, y: dy } = moving.offset;
-    paintStrokes(ctx, translateStrokes(moving.strokes, dx, dy), {
+    paintDetached(ctx, drawing, translateStrokes(moving.strokes, dx, dy), {
       ...options,
       omit: undefined,
     });
   }
 
   const draft = frame.draft ? { ...frame.draft, id: "draft" } : null;
-  if (draft) paintStrokes(ctx, [draft], options);
+  // The draft carries no layer of its own until the store commits it, so it is
+  // painted through the filters of the layer it is about to land on.
+  if (draft) {
+    paintDetached(ctx, drawing, [draft], options, activeLayerId(drawing));
+  }
 
   // Both coats above landed on pixels that already have the sheet in them — the
   // cache hands back a finished picture, page and all. A mark that rubs out

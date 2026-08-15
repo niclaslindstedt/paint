@@ -152,6 +152,21 @@ export const localDocBackend: DocBackend = {
   },
 };
 
+/** A layer carrying `filters`, or the same layer without the field at all when
+ *  nothing is left. `withoutFilter` already hands back `undefined` rather than
+ *  an empty array, and this is the other half of that promise on a layer: a
+ *  sheet that was filtered and then wasn't must serialise as the sheet it was,
+ *  or every drawing anyone ever experimented on carries a dead key for good. */
+function withoutLayerFilter(
+  layer: Layer,
+  filters: Filter[] | undefined,
+): Layer {
+  if (filters && filters.length > 0) return { ...layer, filters };
+  const next = { ...layer };
+  delete next.filters;
+  return next;
+}
+
 /** The constructors the hand-off module needs to mint arriving copies and to
  *  leave a page behind when the last live one is given away. */
 const MINT: Mint = { id: freshId, blankPage: () => blankDrawing("") };
@@ -487,6 +502,49 @@ export function usePaintStore(
       const active = activeDrawing;
       if (!active) return;
       patchActive({ filters: withoutFilter(active.filters, kind) });
+    },
+    [activeDrawing, patchActive],
+  );
+
+  /** Put a filter on one layer of the stack, or move the one already there.
+   *
+   *  The same edit `setFilter` makes, scoped to a sheet: one of each kind, in
+   *  the order `filters.ts` applies them, one undo step, nothing rasterised.
+   *  What differs is only *what it is seen through* — a layer's filters are
+   *  applied to that layer's own marks before they reach the page, which is
+   *  what lets the eraser cut through the softened result (see `Layer.filters`).
+   *
+   *  Setting one materialises the implicit stack, exactly as hiding or locking
+   *  a layer does: a drawing that has never had layers of its own is written
+   *  with `defaultLayers` the moment one of them is asked to carry something. */
+  const setLayerFilter = useCallback(
+    (id: string, filter: Filter) => {
+      const active = activeDrawing;
+      if (!active) return;
+      patchActive({
+        layers: drawingLayers(active).map((layer) =>
+          layer.id === id
+            ? { ...layer, filters: withFilter(layer.filters, filter) }
+            : layer,
+        ),
+      });
+    },
+    [activeDrawing, patchActive],
+  );
+
+  /** Take a filter off one layer. The field goes with the last one, so a layer
+   *  that has been filtered and unfiltered serialises as the layer it was. */
+  const clearLayerFilter = useCallback(
+    (id: string, kind: FilterKind) => {
+      const active = activeDrawing;
+      if (!active) return;
+      patchActive({
+        layers: drawingLayers(active).map((layer) =>
+          layer.id === id
+            ? withoutLayerFilter(layer, withoutFilter(layer.filters, kind))
+            : layer,
+        ),
+      });
     },
     [activeDrawing, patchActive],
   );
@@ -949,6 +1007,8 @@ export function usePaintStore(
     setAppearance,
     addLayer,
     selectLayer,
+    setLayerFilter,
+    clearLayerFilter,
     setLayerHidden,
     setLayerLocked,
     moveLayer,

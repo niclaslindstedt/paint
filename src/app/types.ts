@@ -150,21 +150,43 @@ export type Layer = {
    *  carries it out of the box, which is what stops a stray pencil line landing
    *  under everything you have drawn. */
   locked?: boolean;
+  /** Filters this layer alone is seen through (see `Filter`).
+   *
+   *  The same values the drawing carries, scoped to one sheet of the stack:
+   *  blur the layer a photo sits on and the marks above and below it stay
+   *  sharp. Absent — the usual case — means none, so a stack that has never
+   *  been filtered serialises exactly as it always did.
+   *
+   *  Where the page's filters are composited over the *finished* picture, these
+   *  are part of how the layer is painted: its marks go onto a surface of their
+   *  own, the filters are applied to that, and the result is composited into the
+   *  page (see `render.ts`). Two consequences worth knowing, both of them the
+   *  point rather than side effects:
+   *
+   *    - **The eraser cuts the filtered result.** A rubbing out on a blurred
+   *      layer takes the blurred pixels away and shows what is under them,
+   *      because it is one of that layer's own marks and lands inside its
+   *      surface. On an unfiltered layer the eraser goes on reaching the whole
+   *      page beneath it, exactly as it always has.
+   *    - **A filtered layer is composited as a unit.** Its marks blur together
+   *      rather than each blurring alone, which is what makes it read as a soft
+   *      photograph instead of a pile of soft strokes. */
+  filters?: Filter[];
 };
 
-/** One page-wide filter: something the finished picture is seen *through*,
- *  rather than a mark on it.
+/** One filter: something a picture is seen *through*, rather than a mark on it.
  *
- *  A filter is held on the drawing and applied when the page is painted (see
- *  `filters.ts` / `filterPaint.ts`), which is what keeps the document vector: a
- *  blurred drawing is still the same strokes, at the same coordinates, with a
- *  number saying how it is being looked at. Turning a filter off costs nothing
- *  and loses nothing, and the whole thing is two numbers on the wire.
+ *  A filter is held on the drawing — or on one layer of it (`Layer.filters`) —
+ *  and applied when the page is painted (see `filters.ts` / `filterPaint.ts`),
+ *  which is what keeps the document vector: a blurred drawing is still the same
+ *  strokes, at the same coordinates, with a number saying how it is being
+ *  looked at. Turning a filter off costs nothing and loses nothing, and the
+ *  whole thing is two numbers on the wire.
  *
- *  At most one filter of each kind is ever on a drawing — "blur" is a setting,
- *  not something you stack — and they are applied in the order `filters.ts`
- *  declares rather than the order they were switched on, so a page looks the
- *  same however it got there.
+ *  At most one filter of each kind is ever on a drawing (or on a layer) —
+ *  "blur" is a setting, not something you stack — and they are applied in the
+ *  order `filters.ts` declares rather than the order they were switched on, so
+ *  a page looks the same however it got there.
  *
  *  Every option is a plain number or a flag on the object itself: the panel and
  *  the dialog read and write them by id off the descriptors, and nothing in the

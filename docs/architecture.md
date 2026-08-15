@@ -259,6 +259,46 @@ share a factor push that agreement further than a page is wide. The tile is
 built at one speck per pixel and scaled when it is painted, so the field costs
 the same megabyte at every zoom and a zoom never rebuilds it.
 
+Filters come at **two scopes**, and the difference is where they are applied
+rather than what they are. The drawing's own (`Drawing.filters`) are composited
+over the finished picture, outside `renderDrawing`, exactly as described above.
+A layer's (`Layer.filters`) cannot be: they need that layer's pixels and nothing
+else's, so they are applied _inside_ the render — the layer's marks go onto a
+surface of their own, `paintFilters` runs over it, and the result is composited
+into the page.
+
+That inversion is the whole design, and it buys the thing a page-wide filter
+cannot give: **the eraser cuts the filtered result.** A rubbing out on a
+filtered layer is one of that layer's own marks and lands inside its surface, so
+it takes the softened pixels away and shows what is under them. On an unfiltered
+layer the eraser goes on reaching the whole page beneath it, which is why a
+layer is only ever lifted onto a surface when it actually carries filters —
+splitting every layer would change erasing for drawings nobody has filtered.
+
+It costs the cache, and knowingly. A filtered layer is composited as a unit, so
+a landed stroke cannot be painted on top of the pixels the cache is holding —
+the whole layer has to soften again with it inside — and `cache.ts` therefore
+gives up both its append and its scroll fast paths on any drawing with a
+filtered layer, guarded on `anyLayerFiltered` so that everything else pays
+nothing. The stack's filters also join the cache's staleness check: moving a
+slider repaints a layer without adding, removing or reordering a mark, which is
+the one other document edit (the sheet's eye being the first) that comparing
+strokes cannot see. In the SVG export the same split becomes a `<g filter=…>`
+per filtered layer, which is also what scopes that layer's erasing mask.
+
+The blur has **two painters**, and the reason is worth knowing before touching
+it. `ctx.filter` is the obvious way to blur a canvas and it is unavailable in
+Safari — not missing, which would be catchable, but _inert_: the property takes
+a value, reads it back, and changes nothing that gets drawn. A painter that sets
+it and blits therefore degrades to no blur at all on every iPhone, iPad and Mac,
+silently. So the capability is **probed by behaviour** once per session — put a
+pixel down under a blur, ask whether ink landed beside it — and a context that
+did not deliver gets a resampling blur instead: shrink the picture, draw it back
+up smoothed, twice. That is a handful of `drawImage` calls on an image that is
+getting smaller each time, which keeps it inside the same per-frame budget as
+the fast path, and it tracks a real Gaussian closely enough that the two agree to
+about four levels per channel across the whole radius slider.
+
 The SVG export is the one place the picture is generated twice, because a vector
 file has no pixels to composite: `svgFilter` emits the same two effects as SVG
 filter primitives and the recorder wraps the drawing in them. The blur is

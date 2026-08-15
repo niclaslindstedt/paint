@@ -119,7 +119,10 @@ export const en = {
     title: "Filters",
     off: "Off",
     open: "{name} options",
+    openOnLayer: "{name} options for {layer}",
     hint: "A filter changes how the page is seen — no mark is redrawn, and switching it off leaves the drawing exactly as it was.",
+    layerHint:
+      "This layer is seen through the filter; the rest of the stack is not. The eraser cuts through the result, so you can rub a hole in a softened layer and show what is under it.",
     apply: "Apply",
     remove: "Turn off",
     blur: {

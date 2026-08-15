@@ -50,6 +50,11 @@ type Props = {
   onApply: (filter: Filter) => void;
   /** Take the filter off the page. Offered only when it is on. */
   onRemove: () => void;
+  /** Whether these options belong to the whole page or to one layer of it. The
+   *  controls are the same either way — only the note under them changes, and
+   *  it has to: "the whole page" and "this layer alone" are the difference
+   *  between the two, and the sliders cannot say which one you opened. */
+  scope: "page" | "layer";
 };
 
 export function FilterModal({
@@ -58,6 +63,7 @@ export function FilterModal({
   onCancel,
   onApply,
   onRemove,
+  scope,
 }: Props) {
   const t = useT();
   const [draft, setDraft] = useState<Filter>(filter ?? descriptor.preset);
@@ -139,7 +145,7 @@ export function FilterModal({
         ))}
 
         <p className="border-t border-line pt-3 text-[11px] text-muted">
-          {t("filters.hint")}
+          {scope === "layer" ? t("filters.layerHint") : t("filters.hint")}
         </p>
       </div>
     </Modal>
