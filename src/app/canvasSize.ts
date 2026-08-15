@@ -10,7 +10,6 @@
 // Pure by design. The picker (`NewDrawingModal.tsx`) reads the screen once and
 // hands it in, so every rule below can be driven from a test without a browser.
 
-import { mm } from "./units.ts";
 import { DEFAULT_CANVAS } from "./types.ts";
 
 /** A page size in document pixels. */
@@ -43,13 +42,20 @@ const NAMED_PRESETS: readonly CanvasPreset[] = [
   { id: "hd", size: { width: 1920, height: 1080 } },
   { id: "uhd", size: { width: 3840, height: 2160 } },
   // A4 — the one preset that is a piece of paper rather than a display, and the
-  // only portrait one. Written in millimetres through `units.ts` rather than as
-  // the pixel count of some particular printer, so it stays A4 whatever the
-  // page's scale is: at 460 pixels to the inch it comes out 3803 × 5379.
-  {
-    id: "print",
-    size: { width: Math.round(mm(210)), height: Math.round(mm(297)) },
-  },
+  // only portrait one.
+  //
+  // **300 dpi, which is a photo printer's resolution rather than the page's
+  // own.** The two are different questions and this preset answers the second:
+  // how many pixels a sheet of A4 needs to *print* sharply. Every photo lab and
+  // every consumer inkjet wants image data at 300 ppi — the 1440 and 5760 dpi
+  // numbers on the box are ink droplets, not pixels — so 2480 × 3508 is the
+  // file that comes back as a full-bleed A4 print.
+  //
+  // The page's own scale is the screen's (see `units.ts`), so this rectangle
+  // measures 137 × 194 mm *in the app* and 210 × 297 mm *on the paper*. Both
+  // are true of the same pixels; which one you mean depends on whether you are
+  // looking at the glass or at the print.
+  { id: "print", size: { width: 2480, height: 3508 } },
 ];
 
 /** Round a side to a whole pixel and hold it inside the supported range. */

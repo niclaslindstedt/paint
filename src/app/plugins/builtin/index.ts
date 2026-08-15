@@ -331,11 +331,12 @@ export function registerBuiltinPlugins(): void {
     descriptionKey: "tools.pencil.description",
     icon: PenIcon,
     shortcut: "p",
-    // The ISO ladder every technical pen is drawn to, opening at 0.35 mm —
-    // which is the one you write with (see `gauges.ts`). A pen draws at the
-    // width it says it does, so the number is the mark.
+    // The ISO ladder every technical pen is drawn to, opening at 0.5 mm — the
+    // liner that outsells all the others put together, and the one most hands
+    // reach for without thinking (see `gauges.ts`). A pen draws at the width it
+    // says it does, so the number is the mark.
     gauge: PEN_GAUGE,
-    defaultSize: mm(0.35),
+    defaultSize: mm(0.5),
     dials: [OPACITY],
     behaviour: freehandBehaviour(),
   });
@@ -390,11 +391,12 @@ export function registerBuiltinPlugins(): void {
     descriptionKey: "tools.graphite.description",
     icon: PencilIcon,
     shortcut: "g",
-    // The four leads a mechanical pencil takes, plus the 2 mm clutch lead, and
-    // it opens on the 0.5 mm everybody sketches with. A sharp lead draws at the
-    // width it says it is.
+    // The four leads a mechanical pencil takes, plus the 2 mm clutch lead. It
+    // opens on 0.7 — 0.5 is the lead a shop sells most of, but this is a tool
+    // for *sketching*, and a sketching hand wants the blunter point and the
+    // lead that does not snap when it is leaned on.
     gauge: PENCIL_GAUGE,
-    defaultSize: mm(0.5),
+    defaultSize: mm(0.7),
     // The one axis a pencil has — how soft the lead is — and the opacity every
     // marking tool offers, for laying a light guide line in.
     dials: [GRADE, OPACITY],
@@ -503,10 +505,12 @@ export function registerBuiltinPlugins(): void {
     // did not change, only how much of it a new stroke asks for.
     //
     // The number is now the *pattern width*, and it is measured the way a
-    // sprayed one is: a gun set to 8 mm throws an 8 mm cone at the distance an
-    // arm holds it, which is the general-purpose setting.
+    // sprayed one is: a gun set to 12 mm throws a 12 mm cone at the distance an
+    // arm holds it. That is the general-purpose setting — the one an airbrush
+    // spends most of its life on, between the detail work below it and the
+    // backgrounds above.
     gauge: SPRAY_GAUGE,
-    defaultSize: mm(8),
+    defaultSize: mm(12),
     // A spray cone: how tight its core is, and how much paint the trigger lets
     // through per pass.
     dials: [HARDNESS, FLOW],
@@ -529,12 +533,12 @@ export function registerBuiltinPlugins(): void {
     icon: MarkerIcon,
     shortcut: "m",
     // A felt tip, from a fineliner up to the king-size one that labels a
-    // packing crate — opening on a one-millimetre bullet, which is what most
-    // people mean by "a marker" and what most people want to write with. The
+    // packing crate — opening on the two-millimetre bullet, which is the tip on
+    // the marker in everybody's drawer and the one it spends its life on. The
     // nib painter lays a mark exactly as wide as it is told, so there is no
     // scale on it any more (it used to be doubled).
     gauge: MARKER_GAUGE,
-    defaultSize: mm(1),
+    defaultSize: mm(2),
     // Spirit ink: it soaks in rather than sitting on top, so a second pass over
     // the same line darkens it the way a real marker does.
     dials: [OPACITY, CHISEL],

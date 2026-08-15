@@ -238,13 +238,14 @@ export const en = {
     sizeFiner: "finer than made",
     sizeWider: "wider than made",
     customSize: "Width",
-    keepSize: "Keep",
-    sizeKept: "Kept",
-    removeSize: "Forget",
-    // Saved tools — a width and every dial, under a name (see `presets.ts`).
+    // Saved tools — a width and every dial, under a name and a mark you pick
+    // (see `presets.ts`). The way in is the star on the panel's title row,
+    // which is what `savePreset` names.
     presets: "Saved",
-    savePreset: "Save…",
-    savePresetName: "Name this tool",
+    savePreset: "Save this tool",
+    savePresetName: "Name",
+    savePresetGlyph: "Mark",
+    presetNoGlyph: "No mark",
     savePresetPlaceholder: "My favourite pencil",
     presetDefaultName: "Preset",
     presetSave: "Save",

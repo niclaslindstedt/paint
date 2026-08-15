@@ -26,12 +26,24 @@
 // Pure, and kept out of the settings hook, so a whole save-apply-rename cycle
 // can be driven from a test with no browser.
 
-/** One saved tool: a name, a width, and where every dial was. */
+import { isGlyphName } from "@niclaslindstedt/oss-framework/glyphs";
+
+/** One saved tool: a name, a mark to know it by, a width, and where every dial
+ *  was. */
 export type ToolPreset = {
   /** Stable id, minted from the name (see `presetId`). Persisted, and used by
    *  the panel as a key and by rename / remove as the address. */
   id: string;
   name: string;
+  /** The glyph the chip wears, from the framework's catalogue (`GLYPH_NAMES`) —
+   *  the same vocabulary a drawing's own mark comes from.
+   *
+   *  A row of saved tools is read at a glance and mostly with a thumb, and four
+   *  chips of similar words are four chips you have to *read*. A mark is not:
+   *  the star is the one you always reach for, the leaf is the one you sketch
+   *  plants with. `null` for a preset saved without picking one, which shows
+   *  the name alone. */
+  glyph?: string | null;
   /** The width, in document pixels — the same number `toolSize` answers with. */
   size: number;
   /** Every dial the tool offered when the preset was saved, at the value it was
@@ -107,6 +119,7 @@ export function addPreset(
   name: string,
   size: number,
   dials: Readonly<Record<string, number>>,
+  glyph: string | null = null,
 ): ToolPreset[] {
   const at = list.findIndex((p) => p.name === name);
   const preset: ToolPreset = {
@@ -118,6 +131,7 @@ export function addPreset(
             list.map((p) => p.id),
           ),
     name,
+    ...(glyph ? { glyph } : {}),
     size,
     dials: { ...dials },
   };
@@ -223,5 +237,9 @@ function cleanPreset(
     typeof raw.id === "string" && raw.id && !taken.includes(raw.id)
       ? raw.id
       : presetId(name, taken);
-  return { id, name, size: raw.size, dials };
+  // A glyph this build's catalogue doesn't hold is dropped rather than kept:
+  // the chip renders it, and a name it cannot draw is an empty square.
+  const glyph =
+    typeof raw.glyph === "string" && isGlyphName(raw.glyph) ? raw.glyph : null;
+  return { id, name, ...(glyph ? { glyph } : {}), size: raw.size, dials };
 }
