@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { freehandBehaviour } from "../src/app/plugins/builtin/freehand.ts";
 import { registerBuiltinPlugins } from "../src/app/plugins/builtin/index.ts";
 import {
+  dialChoice,
   dialReadout,
   extraDials,
   hasTuning,
@@ -11,6 +12,7 @@ import {
   strokeDial,
   tunedDials,
 } from "../src/app/plugins/dials.ts";
+import { mm } from "../src/app/units.ts";
 import {
   allPlugins,
   pluginById,
@@ -181,18 +183,26 @@ describe("the shipped set", () => {
     // a settings screen — so the bar for one is that it changes what the mark
     // *is* rather than restyling what another dial already did.
     //
-    // The paintbrush is the exception and is named here rather than waved
-    // through by a raised limit: a head of hair is loaded or dry, milled fine
+    // The brushes are the exceptions and are named here rather than waved
+    // through by a raised limit. A head of hair is loaded or dry, milled fine
     // or coarse, new or worn open, and on paper that wicks or paper that does
-    // not, and no one of those four is any of the others. Nothing else in the
-    // set has four independent axes, and a second tool turning up on this list
-    // is a tool that has grown a settings screen.
+    // not, and no one of those four is any of the others; a wash is water,
+    // pigment and what the sheet does with what is left. Nothing else in the
+    // set has that many independent axes, and a tool turning up on this list
+    // that is not one of these three is a tool that has grown a settings
+    // screen.
     const over = allPlugins().filter((p) => (p.dials?.length ?? 0) > 2);
-    expect(over.map((p) => p.id)).toEqual(["paintbrush"]);
+    expect(over.map((p) => p.id)).toEqual([
+      "paintbrush",
+      "flatbrush",
+      "watercolor",
+    ]);
   });
 
-  it("keeps even that one inside a panel you can still use with a thumb", () => {
-    expect(pluginById("paintbrush")!.dials!.length).toBeLessThanOrEqual(5);
+  it("keeps even those inside a panel you can still use with a thumb", () => {
+    for (const id of ["paintbrush", "flatbrush", "watercolor"]) {
+      expect(pluginById(id)!.dials!.length).toBeLessThanOrEqual(5);
+    }
   });
 
   it("offers dials only on tools that leave a mark", () => {
@@ -216,14 +226,17 @@ describe("the shipped set", () => {
     }
   });
 
-  it("reads a fraction out as a percentage and a distance as pixels", () => {
+  it("reads a fraction out as a percentage and a distance in millimetres", () => {
     const brush = pluginById("paintbrush")!;
     const hair = brush.dials!.find((d) => d.id === "hair")!;
-    expect(dialReadout(hair, 1.35)).toBe(135);
+    expect(dialReadout(hair, 1.35)).toBe("135");
+    // The bucket's feather is the one dial that measures the page, and the
+    // page is measured in millimetres now — the number on the stroke is still
+    // document pixels, the readout is what changed.
     const feather = pluginById("filler")!.dials!.find(
       (d) => d.id === "feather",
     )!;
-    expect(dialReadout(feather, 12)).toBe(12);
+    expect(dialReadout(feather, mm(12))).toBe("12");
   });
 
   it("reads a tilt out as the degrees it is, sign and all", () => {
@@ -232,7 +245,24 @@ describe("the shipped set", () => {
     const angle = pluginById("calligraphy")!.dials!.find(
       (d) => d.id === "angle",
     )!;
-    expect(dialReadout(angle, -45)).toBe(-45);
-    expect(dialReadout(angle, 30)).toBe(30);
+    expect(dialReadout(angle, -45)).toBe("-45");
+    expect(dialReadout(angle, 30)).toBe("30");
+  });
+
+  it("reads a graded dial out by the trade's own name for the value", () => {
+    // A pencil is not 62% of an HB, it is a 3H — and there is nothing between
+    // a 2B and a 3B, so the panel offers the ladder as chips rather than as a
+    // slider to hunt along (see `ToolDial.choices`).
+    const grade = pluginById("graphite")!.dials!.find((d) => d.id === "grade")!;
+    expect(grade.choices?.map((c) => c.label)).toContain("HB");
+    expect(dialReadout(grade, 1)).toBe("HB");
+    expect(dialReadout(grade, 1.5)).toBe("4B");
+    // A value from another build lands on the nearest grade rather than
+    // between two of them.
+    expect(dialReadout(grade, 1.47)).toBe("4B");
+    // …and the stored number is still what it always was: how much darker than
+    // an HB this lead lays down. That is what keeps every pencil line already
+    // drawn drawing exactly as it did.
+    expect(dialChoice(grade, 1.25)?.value).toBe(1.25);
   });
 });

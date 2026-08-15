@@ -11,9 +11,17 @@ connect a storage backend yourself.
 
 ## What it does
 
-- Draw with a pen, a graphite pencil, an eraser, an airbrush, a paint bucket,
-  the shapes, a selection marquee, a text tool and a colour dropper, plus a hand
-  tool that drags the page around — the toolbar out of the box.
+- Draw with a pen, a graphite pencil, an eraser, a watercolour brush, an
+  airbrush, a paint bucket, the shapes, a selection marquee, a text tool and a
+  colour dropper, plus a hand tool that drags the page around — the toolbar out
+  of the box.
+- Set every tool in the sizes it is really made in. A page pixel is one dot of
+  a 300 dpi print, so widths are millimetres of paper: the pencil offers the
+  four leads a mechanical pencil takes, the round brush a #2 through a one-inch
+  flat, type is set in points, and each tool's slider spends its middle four
+  tenths on the range that tool is genuinely manufactured in.
+- Save a tool you have set up under a name — "my sketching pencil" — and get
+  its width and every dial back in one press.
 - Draw eleven shapes from one toolbar button: rectangle, ellipse, line, arrow,
   rounded rectangle, triangle, diamond, pentagon, hexagon, star and double
   arrow. Press the button a second time for the family and the fill toggle.
@@ -24,8 +32,8 @@ connect a storage backend yourself.
   keyboard, a right-click or a long press. Ctrl/Cmd+V pastes marks, a picture or words back
   into the drawing — words open the caption box so the typeface and size are
   yours to set first.
-- Switch more tools on in Settings → Tools (a bristle paintbrush, marker,
-  highlighter, crayon, calligraphy pen), and put the rows in the order you want
+- Switch more tools on in Settings → Tools (a round and a flat bristle brush,
+  marker, highlighter, crayon, calligraphy pen), and put the rows in the order you want
   the toolbar in. Every tool is a plugin behind one interface, so the list grows
   without the app changing shape.
 - Type on the page: the text tool opens a caret where you tap, in four

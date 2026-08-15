@@ -108,6 +108,9 @@ export function App() {
     setToolSize,
     addCustomSize,
     removeCustomSize,
+    savePreset,
+    applyPreset,
+    deletePreset,
     setToolDial,
     resetToolDials,
   } = useAppSettings();
@@ -328,6 +331,9 @@ export function App() {
               setSize: setToolSize,
               addSize: addCustomSize,
               removeSize: removeCustomSize,
+              savePreset,
+              applyPreset,
+              deletePreset,
               setDial: setToolDial,
               resetDials: resetToolDials,
             }}

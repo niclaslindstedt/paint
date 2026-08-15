@@ -31,6 +31,15 @@
 // whole set is measured against, and both run corner to corner — a glyph that
 // keeps to the middle of the square looks shrunken next to them.
 //
+// **About two tools per silhouette can be told apart by shape.** The third has
+// to differ in *weight*. Three brushes share the stick-and-ferrule outline now —
+// round, flat, watercolour — and a cone against a squared blade reads fine at
+// 18 pixels where a cone against a bellied one does not; what separates the
+// watercolour brush is the solid bead in its head, because ink survives at that
+// size and curvature does not. A distinguishing mark also belongs *inside* the
+// silhouette: hung off the tip of a glyph rotated 45° it stretches the box on
+// the diagonal, and the glyph measures as leaning rather than as bigger.
+//
 // **A pen is one silhouette with cross lines in it, never a stack of boxes.**
 // Barrel, collar and nib drawn as three closed rectangles look identical in the
 // editor and carry about 60% more ink on the screen, because every join is then
@@ -419,6 +428,52 @@ export function BrushIcon({ className }: IconProps) {
         <path d="M9.8 9.8h4.4v4.4H9.8z" />
         <path d="M12 10.9v2.2" />
         <path d="M9.2 15h5.6v1.6c0 2.8-1.5 4.2-2.8 5.6-1.3-1.4-2.8-2.8-2.8-5.6Z" />
+      </g>
+    </svg>
+  );
+}
+
+/** The flat — the one-stroke brush, and deliberately the *same brush* as the
+ *  one above from the ferrule down: same collar, same cross line, same handle
+ *  running out to the far corner. What tells the pair apart is the only thing
+ *  that differs on the rack, which is the head: a round is a cone and comes to
+ *  a point, a flat is a blade squeezed into a chisel ferrule and is cut square
+ *  across. So the head here is a parallel-sided blade with a straight end, and
+ *  it is wider than the round's for the reason the highlighter is wider than
+ *  the marker — the tool really is wider, and a truthful difference is worth
+ *  more than an invented one. */
+export function FlatBrushIcon({ className }: IconProps) {
+  return (
+    <svg {...toolBase} className={className} aria-hidden="true">
+      <g transform="rotate(45 12 12)">
+        <path d="M8.1 2.1h7.8v6.5H8.1Z" />
+        <path d="M9.8 9.8h4.4v4.4H9.8z" />
+        <path d="M12 10.9v2.2" />
+        <path d="M9.2 15h5.6v1.6c0 2.8-1.5 4.2-2.8 5.6-1.3-1.4-2.8-2.8-2.8-5.6Z" />
+      </g>
+    </svg>
+  );
+}
+
+/** The watercolour brush — a mop, and the third member of that family. Its head
+ *  is neither a cone nor a blade: a soft round bellies out below the ferrule
+ *  and draws back to a fine point, which is the whole reason one brush can lay
+ *  a sky and then sign the corner.
+ *
+ *  The bead hanging off the tip is what says *water* rather than paint, and it
+ *  is a satellite mark of the kind only the bucket otherwise carries — kept
+ *  tight to the point, because a drop flung out into the corner would stretch
+ *  the glyph's box and make the brush measure bigger than it is drawn. It is
+ *  filled, like every detail here under about two units across, because an
+ *  outlined one closes into a smudge at 18 pixels. */
+export function WashBrushIcon({ className }: IconProps) {
+  return (
+    <svg {...toolBase} className={className} aria-hidden="true">
+      <g transform="rotate(45 12 12)">
+        <path d="M12 2.2c2.5 3.2 3.5 5 3.5 6.9a3.5 3.5 0 0 1-7 0c0-1.9 1-3.7 3.5-6.9Z" />
+        <path d="M9.8 10.9h4.4v3.3H9.8z" />
+        <path d="M9.2 15h5.6v1.6c0 2.8-1.5 4.2-2.8 5.6-1.3-1.4-2.8-2.8-2.8-5.6Z" />
+        <circle cx="12" cy="8.5" r="1.05" fill="currentColor" stroke="none" />
       </g>
     </svg>
   );

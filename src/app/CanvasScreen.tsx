@@ -53,7 +53,13 @@ import { encodeStrokes } from "./strokeClipboard.ts";
 import { TextEntry } from "./TextEntry.tsx";
 import { Toolbar } from "./Toolbar.tsx";
 import { ToolFlash } from "./ToolFlash.tsx";
-import { toolSize, type AppSettings } from "./useAppSettings.ts";
+import {
+  keptSizesFor,
+  presetsFor,
+  toolSize,
+  type AppSettings,
+} from "./useAppSettings.ts";
+import type { ToolPreset } from "./presets.ts";
 import type { Point } from "./types.ts";
 import type { PaintStore } from "./usePaintStore.ts";
 import {
@@ -106,8 +112,20 @@ export type PaletteActions = {
   removeColor: (color: string) => void;
   /** Set the width of one tool — the widths are per tool (see `toolSize`). */
   setSize: (tool: string, size: number) => void;
-  addSize: (size: number) => void;
-  removeSize: (size: number) => void;
+  /** Keep a width for one tool, or forget it. Per tool for the same reason the
+   *  width itself is: a flat's twenty-five millimetres is not a pencil width. */
+  addSize: (tool: string, size: number) => void;
+  removeSize: (tool: string, size: number) => void;
+  /** Save the tool as it is set right now under a name, put a saved one back in
+   *  your hand, or forget one (see `presets.ts`). */
+  savePreset: (
+    tool: string,
+    name: string,
+    size: number,
+    dials: Readonly<Record<string, number>>,
+  ) => void;
+  applyPreset: (tool: string, preset: ToolPreset) => void;
+  deletePreset: (tool: string, id: string) => void;
   /** Move one of a tool's dials, or forget it with `null` (see
    *  `plugins/dials.ts`). */
   setDial: (tool: string, dial: string, value: number | null) => void;
@@ -890,9 +908,19 @@ export function CanvasScreen({
         onRemoveColor={palette.removeColor}
         size={size}
         onSizeChange={(next) => palette.setSize(tool, next)}
-        customSizes={settings.customSizes}
-        onAddSize={palette.addSize}
-        onRemoveSize={palette.removeSize}
+        customSizes={keptSizesFor(settings, tool)}
+        onAddSize={(next) => palette.addSize(tool, next)}
+        onRemoveSize={(next) => palette.removeSize(tool, next)}
+        presets={presetsFor(settings, tool)}
+        onApplyPreset={(preset) => palette.applyPreset(tool, preset)}
+        // A preset captures the tool as it is set *now*: the width the toolbar
+        // is holding and every dial resolved, which is the fuller of the two
+        // reads and the one that can put a dial back as well as away (see
+        // `ToolPreset.dials`).
+        onSavePreset={(name) =>
+          palette.savePreset(tool, name, size, dialValues)
+        }
+        onDeletePreset={(id) => palette.deletePreset(tool, id)}
         dialValues={dialValues}
         onDialChange={(dial, value) => palette.setDial(tool, dial, value)}
         onResetDials={() => palette.resetDials(tool)}

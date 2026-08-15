@@ -335,10 +335,23 @@ export function paintNib(
     paintPath(ctx, points, size);
     return;
   }
-  // Close enough together that consecutive stamps overlap even when the stroke
-  // is travelling square across the flat, and never finer than the screen can
-  // show.
-  const step = Math.max(0.5, Math.min(across * 0.8, half), PIXEL / scale);
+  // Close enough together that the *scallops* between consecutive stamps stay
+  // under half a pixel.
+  //
+  // Spacing the stamps at a fraction of the nib's thickness is not enough, and
+  // the highlighter is where that shows: its nib is a long thin ellipse, so a
+  // gap the eye would never see across the flat leaves a visible sawtooth along
+  // the *length* of the band — the envelope of the ellipse ends. How deep that
+  // sawtooth is comes out of the geometry (`half · step² / 8·across²` for a
+  // small step), so the spacing is solved from the depth rather than guessed:
+  // at 5 mm of chisel — the width a highlighter actually is — it is about a
+  // pixel and a half, and at a marker's bullet tip it is the thickness itself.
+  const smooth = across * Math.sqrt(Math.max(0.05, (8 * SCALLOP) / half));
+  const step = Math.max(
+    0.5,
+    Math.min(Math.min(smooth, across * 0.8), half),
+    PIXEL / scale,
+  );
   const along = resample(points, step);
   if (along.length === 0) return;
   const nx = Math.cos(angle) * half;
@@ -352,6 +365,11 @@ export function paintNib(
   }
   ctx.fill();
 }
+
+/** How deep a scallop between two nib stamps may be, in document pixels — see
+ *  the spacing in `paintNib`. Half a pixel is under what the eye resolves at
+ *  1:1 and well under what a printed page does. */
+const SCALLOP = 0.5;
 
 /** How many passes a feathered edge is built from. Three, like every other soft
  *  edge here: enough that the fade reads as a fade, few enough that a page of

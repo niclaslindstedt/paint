@@ -16,6 +16,7 @@
 // only moment they mean anything.
 
 import type { Point } from "../../types.ts";
+import { pt } from "../../units.ts";
 import { applyInk } from "../ink.ts";
 import type { DraftStroke, ToolBehaviour } from "../types.ts";
 
@@ -67,14 +68,13 @@ export const TEXT_FONTS: readonly TextFont[] = [
 /** The face a caption that names none is set in. */
 export const DEFAULT_TEXT_FONT = TEXT_FONTS[0]!.id;
 
-/** The type sizes the size panel offers for this tool, in document pixels — the
- *  tool's own `sizes`, because the three nib widths every other tool shares are
- *  a hairline, a line and a fat line, and none of them is readable type. */
-export const TEXT_SIZES = [16, 24, 32, 48, 72] as const;
-
-/** What the tool opens at: big enough to read on a page three thousand pixels
- *  wide, small enough to caption something. */
-export const DEFAULT_TEXT_SIZE = 32;
+/** What the tool opens at: twelve point, which is what a document is set in
+ *  and what a caption on a page this size wants to be. The sizes it offers
+ *  around it are `TYPE_GAUGE` (see `builtin/gauges.ts`) — the one gauge in the
+ *  toolbox measured in points rather than in millimetres, because type has been
+ *  sold that way for four hundred years and a caption measured in millimetres
+ *  of page is one nobody can compare against anything. */
+export const DEFAULT_TEXT_SIZE = pt(12);
 
 /** Line spacing, as a multiple of the type size. */
 export const TEXT_LINE_HEIGHT = 1.3;

@@ -14,21 +14,23 @@ There are three kinds, and the only difference is how they are switched on:
 | **Optional**   | everything else                  | Off until you switch it on          |
 
 Core is the irreducible three — pen, eraser, hand. On out of the box: the
-graphite pencil, the airbrush, the paint bucket, text, the shapes, the selection
-tools and the colour dropper — the toolbox anyone who has opened a paint program
-already knows how to use, spray can included. That is the _whole_ default
-toolbar: ten buttons, families counted as the one button they are, and
-everything else off until you ask for it. Waiting in Settings → Tools: the rest
-of the media this app adds to it (the bristle paintbrush, marker, highlighter,
-crayon, calligraphy pen).
+graphite pencil, the watercolour brush, the airbrush, the paint bucket, text,
+the shapes, the selection tools and the colour dropper — the toolbox anyone who
+has opened a paint program already knows how to use, spray can included, plus
+the one medium this app has of its own. That is the _whole_ default toolbar:
+eleven buttons, families counted as the one button they are, and everything else
+off until you ask for it. Waiting in Settings → Tools: the rest of the media
+(the round and flat bristle brushes, marker, highlighter, crayon, calligraphy
+pen).
 
 The row reads in the order a hand actually uses it. The pen you draw with, the
 rubber that undoes it, the rest of the media, the bucket, the two families, type
 — which is what you usually reach for right after picking something out — and
 last the two tools that touch neither the ink nor the document:
 
-**pen · eraser · pencil · paintbrush · airbrush · marker · highlighter · crayon
-· calligraphy pen · paint bucket · shapes · select · text · dropper · hand**
+**pen · eraser · pencil · round brush · flat brush · watercolour · airbrush ·
+marker · highlighter · crayon · calligraphy pen · paint bucket · shapes · select
+· text · dropper · hand**
 
 It used to read down Photoshop's tool column instead. That column is a column,
 and a phone's toolbar is a row: it put the one tool that draws nothing (the
@@ -147,6 +149,28 @@ painters in `src/app/plugins/brushes.ts`, `bristle.ts`, `crayon.ts` and
   the stick is, the face leans as you turn through a stroke so one side goes
   down solid and the other frays, and the ends fade in instead of starting
   square;
+- the **flat brush** is the same head of hair squeezed into a chisel ferrule,
+  and it is a second registration of the bristle painter rather than a setting
+  on the first — you do not turn a round into a flat, you pick up a different
+  brush. Pull it square across itself and it lays its whole width; pull it along
+  its own edge and it closes to the thickness of the bundle. That is one stroke
+  that swells and thins as it goes round a curve without the hand doing
+  anything, and it is why a sign-writer owns one. Which way the blade is turned
+  is the **nib angle** dial, the same one the broad nib carries;
+- the **watercolour brush** is the one medium here where what you are painting
+  with is _water_, and the pigment only goes where the water took it. Four
+  things happen while a wet stroke dries on a sheet and all four are in the
+  mark: the water runs on past the hair that laid it, so the wash is wider than
+  the head and its two sides wander **independently** — a wet edge follows the
+  paper, not the gesture; the rim dries **darkest**, because a pool evaporates
+  fastest at its edge and the pigment travels out to replace what left, which is
+  what makes a laid wash look laid rather than airbrushed; the pigment
+  **settles** into the sheet's dips, which is granulation; and nothing
+  **covers**, because the sheet is the white and every layer is a filter over
+  what is under it, so passing twice really is twice the colour. The three dials
+  are the three things a watercolourist changes between one stroke and the next
+  — how much water is on the brush, how much colour is in the water, and what
+  the paper does with what is left;
 - the **calligraphy pen** is a flat nib held at an angle: broad across the
   stroke, hairline along it. The angle is a dial, in degrees, because the tilt
   of the hand is the one thing a writer actually changes about a broad nib.
@@ -202,21 +226,63 @@ slides back inside the canvas, so its buttons are always reachable.
 
 Width is the control most tools share — and for a long time it was one
 _number_ shared by all of them, which meant reaching for a fat brush left you
-with a fat pen. It is now per tool: a pen width, a paintbrush width, a type
-size, each remembered separately, and each opening at a value the tool itself
-declares (`defaultSize`) rather than at one number applied to fifteen tools. A
-tool whose scale is its own says so too — the text tool offers type sizes
-(`sizes`) where everything else offers the three nib widths — and the size panel
-renders whatever it is handed without knowing which tool it is drawing for. The
-panel is headed with the name of the tool it is setting, so a picker opened over
-the drawing says whose widths these are.
+with a fat pen. It is now per tool: a pen width, a brush width, a type size,
+each remembered separately, and each opening at a value the tool itself declares
+(`defaultSize`) rather than at one number applied to fifteen tools. The panel is
+headed with the name of the tool it is setting, so a picker opened over the
+drawing says whose widths these are.
 
-Widths read in **millimetres of page**. A bare number is only a comparison
-against the other bare numbers — is 6 a fine pen or a fat one? — where a number
-with a unit on it answers from memory: 0.5 is a technical pen, 5 a thin marker,
-140 a decorator's brush. A document pixel is the millimetre, so nothing already
-drawn moved; what changed is that the ceiling went from 96 to 200, because a
-stroke wider than 96 is a fill with extra steps only if you are holding a pen.
+### A document pixel is a real distance
+
+**One dot of a 300 dpi print.** That is the resolution every scanner, inkjet and
+print shop assumes, and it is already the page the new-drawing dialog offers
+under "Print" (A4 at 300 dpi is 2480 × 3508). Pinning the page to it makes a
+millimetre 11.81 pixels — so a 0.5 mm pencil lead is a six-pixel line, a 25 mm
+flat brush is a three-hundred-pixel band, and the default 3200 × 2000 sheet is
+271 × 169 mm, about a sketchbook spread. Type is measured in **points**, because
+type has been sold that way for four hundred years and a caption in millimetres
+is one nobody can compare against anything.
+
+Widths on strokes are still document pixels, so nothing already drawn moved.
+What changed is what a number _means_.
+
+### Every tool comes in the sizes it is really made in
+
+A rack of implements is not one rack. A technical pen is drawn to the ISO ladder
+(0.13–2 mm), a mechanical pencil takes four leads, a round brush is numbered by
+its ferrule, a flat is sold in fractions of an inch, a chisel marker runs to
+15 mm and a decorator's brush starts where all of them stop. So each tool
+declares a **gauge**: the range the real thing is made in, the five sizes worth
+a button, and how far past either end you may still go.
+
+The five buttons are sizes a shop actually sells, and each carries the trade's
+own designation where there is one — the brush row reads **#2 · #6 · #10 · #16 ·
+1"**, the pencil row **0.3 · 0.5 · 0.7 · 0.9 · 2.0 mm**, the type row **10 · 12 ·
+18 · 24 · 48 pt**.
+
+The slider under them is **not linear and not one scale**. It has three bands:
+
+| Travel      | What is there                                                       |
+| ----------- | ------------------------------------------------------------------- |
+| **0–10%**   | finer than the tool is made, down to a hairline                     |
+| **10–50%**  | the rack — everything between the narrowest real one and the widest |
+| **50–100%** | past the rack, accelerating to a nib as wide as the page            |
+
+The band is drawn on the track, so where you are is something you can see, and
+the readout says it in words as well: **0.5 mm — as made**, or _finer than made_
+and _wider than made_ either side of it. Every band interpolates geometrically,
+because width is a ratio quantity — the step from 0.3 to 0.4 mm is the same
+_kind_ of step as the one from 3 to 4 mm, and a linear slider makes the first
+invisible and the second enormous.
+
+Nothing is forbidden. A drawing is not a photograph of a toolbox: a 0.05 mm line
+has no implement behind it and is still the right line sometimes, and a slider
+that refuses to draw a 200 mm pencil is a slider arguing with you. What the
+panel does instead is _tell you_ which of those you are doing.
+
+**Keep** adds whatever the slider is on to that tool's row, and kept widths are
+per tool — a 25 mm flat you kept while painting has no business in the pencil's
+picker.
 
 Not every tool has one. The paint bucket fills the area it traced whatever a nib
 might say, so it declares `sizeless` and is offered no width at all; the hand,
@@ -226,6 +292,25 @@ says. What the toolbar puts beside the ink follows from that in one place
 that has settings but no width, and nothing for a tool with neither. The dimmed
 size button those last two used to get was a promise that the control worked
 sometimes, and for them there was no sometimes.
+
+## Saved tools
+
+A width and five dials is a lot of decisions, and the ones worth making are
+worth making once. Finding the 4B at 0.7 mm with the opacity eased off that a
+drawing wants takes a minute of fiddling; wanting it again tomorrow takes the
+same minute. So the panel's first section is **Saved**: press **Save…**, give it
+a name — "my sketching pencil" — and it is a chip at the top of that tool's
+panel from then on.
+
+A chip is a **whole tool**: pressing one sets the width _and_ every dial at
+once, and it can put a dial back to its default as readily as away from it. They
+belong to one tool, because "my sketching pencil" applied to the airbrush is
+nonsense. And none of it is a mode — a chip lights up when the tool currently
+_is_ what it describes, which is an observation rather than a state: move a dial
+afterwards and the light goes out, and nothing has been entered or left.
+
+Eight per tool, and saving over a name you have used replaces it, which is what
+everyone means by saving.
 
 ## A width is shown as the mark it makes
 
@@ -283,19 +368,26 @@ one or two. The paintbrush is the exception and earns it — a head of hair is
 loaded or dry, milled fine or coarse, new or worn open, and on paper that wicks
 or paper that does not, and no one of those four is any of the others:
 
-| Tool                  | Advanced                              |
-| --------------------- | ------------------------------------- |
-| **Paintbrush**        | opacity, hardness, hair, splay, bleed |
-| **Airbrush**          | hardness, flow                        |
-| **Pencil**            | lead, opacity                         |
-| **Crayon**            | opacity, pressure                     |
-| **Marker**            | opacity, chisel                       |
-| **Highlighter**       | opacity, chisel                       |
-| **Calligraphy pen**   | opacity, nib angle                    |
-| **Eraser**            | strength                              |
-| **Paint bucket**      | opacity, feather — behind its cog     |
-| Pen, shapes, text     | opacity                               |
-| Hand, dropper, select | nothing — no section appears          |
+| Tool                  | Advanced                                   |
+| --------------------- | ------------------------------------------ |
+| **Round brush**       | opacity, hardness, hair, splay, bleed      |
+| **Flat brush**        | opacity, hardness, nib angle, splay, bleed |
+| **Watercolour**       | opacity, water, pigment, granulation       |
+| **Airbrush**          | hardness, flow                             |
+| **Pencil**            | lead, opacity                              |
+| **Crayon**            | opacity, pressure                          |
+| **Marker**            | opacity, chisel                            |
+| **Highlighter**       | opacity, chisel                            |
+| **Calligraphy pen**   | opacity, nib angle                         |
+| **Eraser**            | strength                                   |
+| **Paint bucket**      | opacity, feather — behind its cog          |
+| Pen, shapes, text     | opacity                                    |
+| Hand, dropper, select | nothing — no section appears               |
+
+Most of them are sliders. A dial with a handful of values is **pressed**
+instead: there is nothing between a 2B and a 3B, so the pencil's lead is a row
+of chips — 8H through 9B, the fifteen grades a shop sells — rather than a slider
+to hunt along until the readout says the right thing.
 
 Each one is wired to something the painter actually does. **Hardness** is how
 charged the head is, and it is the brush's main control: turned up it is a
@@ -314,14 +406,22 @@ is built from overlapping passes rather than one opaque dab, turning it down
 really does mean more passes. **Pressure** is how hard the crayon bears down:
 wax only sticks to the peaks it is pressed onto, so a light hand leaves the
 paper's speckle showing and a heavy one fills the valleys in. **Lead** is the
-pencil's grade — hard and pale like an H, soft and dark like a B — and like
-pressure it reaches the deposit rather than the width. **Chisel** is the shape
+pencil's grade, by name — 8H is hard and pale and rides the paper, 9B is soft
+and dark and fills its tooth in — and like pressure it reaches the deposit
+rather than the width. **Water** is how charged the watercolour brush is: turned
+up the mark spreads past the hair, both edges wander off the gesture and what is
+left in the middle is dilute; turned down it is nearly dry-brush. **Pigment** is
+how much colour is dissolved in that water, which is a different question from
+opacity — opacity turns the whole mark down, this changes the stain, and the
+dried rim follows the pigment. **Granulation** is the paper and the colour
+rather than the brush: ultramarine on rough stock mottles enough to see across a
+room, phthalo on hot-pressed does not mottle at all. **Chisel** is the shape
 of a felt tip, from a round bullet to a flat wedge, and **nib angle** is the
 tilt a broad nib is held at, in degrees. **Strength** is how much of a mark one
 pass of the eraser takes off: it is the ink's own alpha under `destination-out`,
 so turning it down gives you the pencil eraser you knock a highlight back with
 rather than the one that takes the page to white in a single drag. **Feather** fades
-the bucket's edge out over a few pixels instead of stopping it, which turns the
+the bucket's edge out over a few millimetres instead of stopping it, which turns the
 tool into a way of laying a soft wash behind a sketch — and it stays a vector
 fill, so the fade holds at eight hundred percent.
 
@@ -389,8 +489,10 @@ Three steps, none of which touch the canvas, the store, or the toolbar:
    doesn't lay down detail smaller than the screen can show.
 2. Register it in `registerBuiltinPlugins()` with an id, an icon, and its two
    catalog keys — plus `core` or `defaultOn` if it should be in the toolbar
-   without being asked for, `defaultSize` for the width it opens at, `dials` if
-   it has anything of its own to tune, and `group` if it belongs to a family
+   without being asked for, `defaultSize` for the width it opens at, `gauge`
+   for the sizes it is really made in (see `plugins/builtin/gauges.ts` — the
+   range, the five buttons, and the trade's name for each), `dials` if it has
+   anything of its own to tune, and `group` if it belongs to a family
    that already has a button (a twelfth shape is one line in the `SHAPES`
    table). A tool with no width says `sizeless` and gets the cog instead of the
    size button; one whose mark cannot picture itself says
