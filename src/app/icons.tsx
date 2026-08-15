@@ -27,6 +27,12 @@
 // whole set is measured against, and both run corner to corner — a glyph that
 // keeps to the middle of the square looks shrunken next to them.
 //
+// **A pen is one silhouette with cross lines in it, never a stack of boxes.**
+// Barrel, collar and nib drawn as three closed rectangles look identical in the
+// editor and carry about 60% more ink on the screen, because every join is then
+// two edges instead of one. That is most of what "too heavy" turns out to mean
+// when one of these is compared against the sheet it came from.
+//
 // The shape marks are the exception and the reason for the `filled` prop: they
 // are not implements, they *are* the mark, so they are drawn as the outline the
 // tool draws and asked for a solid version of it too.
@@ -48,6 +54,13 @@ const base = {
   strokeLinejoin: "round" as const,
 };
 
+/** The toolbox's weight. Measured off the design sheet rather than guessed: at
+ *  1.75 the drawn glyphs carry about two thirds more ink than the sheet's do,
+ *  and the pens close up into solids where the sheet keeps an open barrel. The
+ *  rest of this file stays on `base`, because those glyphs share a row with the
+ *  framework's icons and have to match *them*. */
+const toolBase = { ...base, strokeWidth: 1.3 };
+
 /** The pencil — the stick every drawing app opens with, and the glyph the whole
  *  toolbar is measured against: it runs corner to corner, tip at the near one.
  *  Three marks make it a pencil rather than a crayon — the sharpened cone cut
@@ -55,10 +68,10 @@ const base = {
  *  the barrel that says the barrel has edges. */
 export function PencilIcon({ className }: IconProps) {
   return (
-    <svg {...base} className={className} aria-hidden="true">
+    <svg {...toolBase} className={className} aria-hidden="true">
       <g transform="rotate(45 12 12)">
-        <path d="M9.4 5.2a2.2 2.2 0 0 1 2.2-2.2h.8a2.2 2.2 0 0 1 2.2 2.2v10.2L12 21.4l-2.6-6Z" />
-        <path d="M9.4 15.4h5.2" />
+        <path d="M8.9 5.4a2.6 2.6 0 0 1 2.6-2.6h1a2.6 2.6 0 0 1 2.6 2.6v10L12 21.4l-3.1-6Z" />
+        <path d="M8.9 15.4h6.2" />
         <path d="M12 6v2.6" />
       </g>
     </svg>
@@ -70,7 +83,7 @@ export function PencilIcon({ className }: IconProps) {
  *  of the page it is being rubbed along under it. */
 export function EraserIcon({ className }: IconProps) {
   return (
-    <svg {...base} className={className} aria-hidden="true">
+    <svg {...toolBase} className={className} aria-hidden="true">
       <g transform="rotate(-45 12 12)">
         <rect x="4.2" y="8.5" width="15.6" height="7" rx="1.9" />
         <path d="M9.8 8.5v7" />
@@ -86,7 +99,7 @@ export function EraserIcon({ className }: IconProps) {
  *  at 18 pixels the hole closes and they read as the dots they used to be. */
 export function LineIcon({ className }: IconProps) {
   return (
-    <svg {...base} className={className} aria-hidden="true">
+    <svg {...toolBase} className={className} aria-hidden="true">
       <path d="M6.8 17.2 17.2 6.8" />
       <circle cx="5" cy="19" r="1.95" />
       <circle cx="19" cy="5" r="1.95" />
@@ -99,7 +112,7 @@ export function LineIcon({ className }: IconProps) {
  *  the arrow weighs the same as the line it ends. */
 export function ArrowIcon({ className }: IconProps) {
   return (
-    <svg {...base} className={className} aria-hidden="true">
+    <svg {...toolBase} className={className} aria-hidden="true">
       <path d="M5.6 18.4 18.4 5.6" />
       <path d="M11.4 5.6h7v7" />
     </svg>
@@ -110,7 +123,7 @@ export function ArrowIcon({ className }: IconProps) {
  *  corners just taken off. */
 export function SquareIcon({ className, filled }: IconProps) {
   return (
-    <svg {...base} className={className} aria-hidden="true">
+    <svg {...toolBase} className={className} aria-hidden="true">
       <rect
         x="3.4"
         y="5.8"
@@ -128,7 +141,7 @@ export function SquareIcon({ className, filled }: IconProps) {
  *  lozenge. */
 export function CircleIcon({ className, filled }: IconProps) {
   return (
-    <svg {...base} className={className} aria-hidden="true">
+    <svg {...toolBase} className={className} aria-hidden="true">
       <circle cx="12" cy="12" r="8.4" fill={filled ? "currentColor" : "none"} />
     </svg>
   );
@@ -141,7 +154,7 @@ export function CircleIcon({ className, filled }: IconProps) {
  *  rather than at the modest curve the plain rectangle now has. */
 export function RoundSquareIcon({ className, filled }: IconProps) {
   return (
-    <svg {...base} className={className} aria-hidden="true">
+    <svg {...toolBase} className={className} aria-hidden="true">
       <rect
         x="3.4"
         y="5.8"
@@ -157,7 +170,7 @@ export function RoundSquareIcon({ className, filled }: IconProps) {
 /** A triangle, point up. */
 export function TriangleIcon({ className, filled }: IconProps) {
   return (
-    <svg {...base} className={className} aria-hidden="true">
+    <svg {...toolBase} className={className} aria-hidden="true">
       <path
         d="M12 3.6 21.4 20.4H2.6Z"
         fill={filled ? "currentColor" : "none"}
@@ -169,7 +182,7 @@ export function TriangleIcon({ className, filled }: IconProps) {
 /** A diamond — a square on its corner, the flowchart decision. */
 export function DiamondIcon({ className, filled }: IconProps) {
   return (
-    <svg {...base} className={className} aria-hidden="true">
+    <svg {...toolBase} className={className} aria-hidden="true">
       <path
         d="M12 2.6 21.4 12 12 21.4 2.6 12Z"
         fill={filled ? "currentColor" : "none"}
@@ -181,7 +194,7 @@ export function DiamondIcon({ className, filled }: IconProps) {
 /** A pentagon, point up. */
 export function PentagonIcon({ className, filled }: IconProps) {
   return (
-    <svg {...base} className={className} aria-hidden="true">
+    <svg {...toolBase} className={className} aria-hidden="true">
       <path
         d="M12 2.8 21.4 9.6 17.8 20.6H6.2L2.6 9.6Z"
         fill={filled ? "currentColor" : "none"}
@@ -194,7 +207,7 @@ export function PentagonIcon({ className, filled }: IconProps) {
  *  draws it (see `hexagonBehaviour`). */
 export function HexagonIcon({ className, filled }: IconProps) {
   return (
-    <svg {...base} className={className} aria-hidden="true">
+    <svg {...toolBase} className={className} aria-hidden="true">
       <path
         d="M7.2 3.6h9.6L21.6 12l-4.8 8.4H7.2L2.4 12Z"
         fill={filled ? "currentColor" : "none"}
@@ -207,7 +220,7 @@ export function HexagonIcon({ className, filled }: IconProps) {
  *  `starCorners`) so the glyph and the mark are the same star. */
 export function StarShapeIcon({ className, filled }: IconProps) {
   return (
-    <svg {...base} className={className} aria-hidden="true">
+    <svg {...toolBase} className={className} aria-hidden="true">
       <path
         d="M12 2.6 15 9.4l7.4.7-5.6 4.9 1.7 7.2L12 18.4l-6.5 3.8 1.7-7.2L1.6 10l7.4-.7Z"
         fill={filled ? "currentColor" : "none"}
@@ -220,7 +233,7 @@ export function StarShapeIcon({ className, filled }: IconProps) {
  *  of `ArrowIcon`'s chevrons, so the pair reads as one tool drawn twice. */
 export function DoubleArrowIcon({ className }: IconProps) {
   return (
-    <svg {...base} className={className} aria-hidden="true">
+    <svg {...toolBase} className={className} aria-hidden="true">
       <path d="M5.6 18.4 18.4 5.6" />
       <path d="M11.2 5.6h7.2v7.2" />
       <path d="M12.8 18.4H5.6v-7.2" />
@@ -233,7 +246,7 @@ export function DoubleArrowIcon({ className }: IconProps) {
  *  toolbar button never wears this: it wears the shape you are holding. */
 export function ShapesIcon({ className }: IconProps) {
   return (
-    <svg {...base} className={className} aria-hidden="true">
+    <svg {...toolBase} className={className} aria-hidden="true">
       <circle cx="8" cy="8" r="5.2" />
       <rect x="10.6" y="10.6" width="10.8" height="10.8" rx="1.2" />
     </svg>
@@ -244,7 +257,7 @@ export function ShapesIcon({ className }: IconProps) {
  *  tool leaves and the one thing that tells it from the rectangle. */
 export function SelectIcon({ className }: IconProps) {
   return (
-    <svg {...base} className={className} aria-hidden="true">
+    <svg {...toolBase} className={className} aria-hidden="true">
       <path
         d="M3.4 3.4h17.2v17.2H3.4Z"
         strokeDasharray="3.4 2.8"
@@ -258,7 +271,7 @@ export function SelectIcon({ className }: IconProps) {
  *  length as the box so the two read as one family at 18 pixels. */
 export function SelectOvalIcon({ className }: IconProps) {
   return (
-    <svg {...base} className={className} aria-hidden="true">
+    <svg {...toolBase} className={className} aria-hidden="true">
       <circle
         cx="12"
         cy="12"
@@ -275,7 +288,7 @@ export function SelectOvalIcon({ className }: IconProps) {
  *  family: what it leaves is a marquee, not a mark. */
 export function LassoIcon({ className }: IconProps) {
   return (
-    <svg {...base} className={className} aria-hidden="true">
+    <svg {...toolBase} className={className} aria-hidden="true">
       <path
         d="M12 3.6c4.9 0 8.4 2.9 8.4 6.5S16.9 16.6 12 16.6 3.6 13.7 3.6 10.1 7.1 3.6 12 3.6Z"
         strokeDasharray="3.4 2.8"
@@ -293,7 +306,7 @@ export function LassoIcon({ className }: IconProps) {
  *  keeps it from reading as the lasso: you press, you don't draw. */
 export function TraceSelectIcon({ className }: IconProps) {
   return (
-    <svg {...base} className={className} aria-hidden="true">
+    <svg {...toolBase} className={className} aria-hidden="true">
       <path
         d="M11.4 3.4c4.4 0 6.6 2 6.6 4.4s-1.4 3-1.4 4.6 2 2.6 2 4.2-2.4 3.6-6.6 3.6-8.6-3.2-8.6-8.2S7 3.4 11.4 3.4Z"
         strokeDasharray="3.2 2.6"
@@ -338,11 +351,11 @@ export function PasteIcon({ className }: IconProps) {
  *  the width of the body — where the highlighter folds back on itself. */
 export function MarkerIcon({ className }: IconProps) {
   return (
-    <svg {...base} className={className} aria-hidden="true">
+    <svg {...toolBase} className={className} aria-hidden="true">
       <g transform="rotate(45 12 12)">
-        <path d="M9.6 4a1.6 1.6 0 0 1 1.6-1.6h1.6A1.6 1.6 0 0 1 14.4 4v10H9.6Z" />
-        <path d="M10.4 14h3.2v2h-3.2z" />
-        <path d="M10.4 16h3.2l-.7 2.9-2.5 1.1z" />
+        <path d="M9 4.3a1.9 1.9 0 0 1 1.9-1.9h2.2A1.9 1.9 0 0 1 15 4.3V13.9h-.9V16l-1 3.1-3.2 1.2-.4-4.3V13.9H9Z" />
+        <path d="M9.5 13.9h4.6" />
+        <path d="M9.5 16h4.6" />
       </g>
     </svg>
   );
@@ -354,11 +367,11 @@ export function MarkerIcon({ className }: IconProps) {
  *  highlighter from the marker beside it. */
 export function HighlighterIcon({ className }: IconProps) {
   return (
-    <svg {...base} className={className} aria-hidden="true">
+    <svg {...toolBase} className={className} aria-hidden="true">
       <g transform="rotate(45 12 12)">
-        <path d="M9.2 4.6a2 2 0 0 1 2-2h1.6a2 2 0 0 1 2 2v9.4H9.2Z" />
-        <path d="M10.1 14h3.8v2h-3.8z" />
-        <path d="M10.1 16h3.8l-.9 3.2-2.9 1.2z" />
+        <path d="M8.7 4.8a2.2 2.2 0 0 1 2.2-2.2h2.2a2.2 2.2 0 0 1 2.2 2.2V14.2h-.8v2.1l-1.1 3.3-3.4 1.3-.4-4.6V14.2H8.7Z" />
+        <path d="M9.6 14.2h4.9" />
+        <path d="M9.6 16.3h4.9" />
       </g>
     </svg>
   );
@@ -371,12 +384,12 @@ export function HighlighterIcon({ className }: IconProps) {
  *  thumbprint at 18 pixels. */
 export function BrushIcon({ className }: IconProps) {
   return (
-    <svg {...base} className={className} aria-hidden="true">
+    <svg {...toolBase} className={className} aria-hidden="true">
       <g transform="rotate(45 12 12)">
-        <path d="M12 2.4 14.3 8.2H9.7Z" />
-        <path d="M9.7 9.5h4.6v4.2H9.7z" />
-        <path d="M12 10.6v2" />
-        <path d="M8.5 15h7v2.2a3.2 3.2 0 0 1-2.4 3.1L12 21.4l-1.1-1.1A3.2 3.2 0 0 1 8.5 17.2Z" />
+        <path d="M12 1.8 14.2 8.6H9.8Z" />
+        <path d="M9.8 9.8h4.4v4.4H9.8z" />
+        <path d="M12 10.9v2.2" />
+        <path d="M9.2 15h5.6v1.6c0 2.8-1.5 4.2-2.8 5.6-1.3-1.4-2.8-2.8-2.8-5.6Z" />
       </g>
     </svg>
   );
@@ -388,7 +401,7 @@ export function BrushIcon({ className }: IconProps) {
  *  is the one arrangement that still reads as spray once it does. */
 export function SprayIcon({ className }: IconProps) {
   return (
-    <svg {...base} className={className} aria-hidden="true">
+    <svg {...toolBase} className={className} aria-hidden="true">
       <rect x="6" y="8.8" width="3.4" height="3.4" rx="0.7" />
       <rect x="3.6" y="12.2" width="8.2" height="8.6" rx="1.9" />
       <g fill="currentColor" stroke="none">
@@ -417,7 +430,7 @@ export function SprayIcon({ className }: IconProps) {
  *  an empty one, and without the drop nothing is being poured. */
 export function BucketIcon({ className }: IconProps) {
   return (
-    <svg {...base} className={className} aria-hidden="true">
+    <svg {...toolBase} className={className} aria-hidden="true">
       <g transform="rotate(45 11 11)">
         <rect x="4.5" y="4.5" width="13" height="13" rx="2.3" />
       </g>
@@ -433,11 +446,11 @@ export function BucketIcon({ className }: IconProps) {
  *  diagonal stick. */
 export function DropperIcon({ className }: IconProps) {
   return (
-    <svg {...base} className={className} aria-hidden="true">
+    <svg {...toolBase} className={className} aria-hidden="true">
       <g transform="rotate(45 12 12)">
-        <path d="M8.9 7V4.9a3.1 3.1 0 0 1 6.2 0V7Z" />
-        <path d="M8.3 7h7.4v2.6H8.3z" />
-        <path d="M9.6 9.6h4.8v6L12 20.4l-2.4-4.8z" />
+        <path d="M8.9 7V4.9a3.1 3.1 0 0 1 6.2 0V7h.6v2.6h-1.3v6L12 20.4l-2.4-4.8v-6H8.3V7Z" />
+        <path d="M8.9 7h6.2" />
+        <path d="M9.6 9.6h4.8" />
       </g>
     </svg>
   );
@@ -449,10 +462,10 @@ export function DropperIcon({ className }: IconProps) {
  *  banded, and that difference survives being 18 pixels tall. */
 export function CrayonIcon({ className }: IconProps) {
   return (
-    <svg {...base} className={className} aria-hidden="true">
+    <svg {...toolBase} className={className} aria-hidden="true">
       <g transform="rotate(45 12 12)">
-        <path d="M9.7 5a2.1 2.1 0 0 1 2.1-2.1h.4A2.1 2.1 0 0 1 14.3 5v11H9.7Z" />
-        <path d="M10.5 16h3l-.6 4h-1.8z" />
+        <path d="M9.1 5.1A2.5 2.5 0 0 1 11.6 2.6h.8a2.5 2.5 0 0 1 2.5 2.5V16l-2.1 4.2h-1.5L9.1 16Z" />
+        <path d="M9.1 16h5.8" />
       </g>
     </svg>
   );
@@ -464,9 +477,9 @@ export function CrayonIcon({ className }: IconProps) {
  *  circle, i.e. a smudge on the toolbar and detail nobody needed. */
 export function NibIcon({ className }: IconProps) {
   return (
-    <svg {...base} className={className} aria-hidden="true">
+    <svg {...toolBase} className={className} aria-hidden="true">
       <g transform="rotate(45 12 12)">
-        <path d="M9.7 1.6h4.6v6H9.7z" />
+        <path d="M9.2 1.8h5.6v5.6H9.2z" />
         <path d="M12 21 8.4 11.8a3.6 3.6 0 0 1 7.2 0Z" />
         <circle cx="12" cy="12.6" r="1.2" />
         <path d="M12 13.8v7.2" />
@@ -480,7 +493,7 @@ export function NibIcon({ className }: IconProps) {
  *  that says it without also being the shape of a triangle tool. */
 export function TextIcon({ className }: IconProps) {
   return (
-    <svg {...base} className={className} aria-hidden="true">
+    <svg {...toolBase} className={className} aria-hidden="true">
       <path d="M4.6 7.8V4.8h14.8v3" />
       <path d="M12 4.8v14.6" />
       <path d="M8.2 19.4h7.6" />
@@ -526,13 +539,10 @@ export function CustomColorIcon({ className }: IconProps) {
  *  a brush short of a bristle does not. */
 export function HandIcon({ className }: IconProps) {
   return (
-    <svg {...base} className={className} aria-hidden="true">
-      <path d="M9 13.6V8.2a1.15 1.15 0 0 1 2.3 0v5.4" />
-      <path d="M11.5 13.2V7.4a1.15 1.15 0 0 1 2.3 0v5.8" />
-      <path d="M14 13.4V8a1.15 1.15 0 0 1 2.3 0v5.4" />
-      <path d="M16.5 14V9.6a1.15 1.15 0 0 1 2.3 0v5.2" />
-      <path d="M9 13.6v-2.2a1.15 1.15 0 0 0-2.3 0v4.6" />
-      <path d="M6.7 16a5.9 5.9 0 0 0 5.9 5.9h1.2a4.9 4.9 0 0 0 4.9-4.9v-2.2" />
+    <svg {...toolBase} className={className} aria-hidden="true">
+      <path d="M8.6 14V8a1.4 1.4 0 0 1 2.8 0V6.8a1.4 1.4 0 0 1 2.8 0v.8a1.4 1.4 0 0 1 2.8 0v2.2a1.4 1.4 0 0 1 2.8 0V16.3a6.1 6.1 0 0 1-6.1 6.1h-1.5a5.9 5.9 0 0 1-5.9-5.9" />
+      <path d="M8.6 11.8a1.4 1.4 0 0 0-2.8 0v4.7" />
+      <path d="M11.4 8v5M14.2 6.8v5.8M17 7.6v5.2" />
     </svg>
   );
 }
@@ -707,7 +717,7 @@ export function UnlockIcon({ className }: IconProps) {
  *  square-on rather than as an implement held at 45°: there is no implement. */
 export function ImageIcon({ className }: IconProps) {
   return (
-    <svg {...base} className={className} aria-hidden="true">
+    <svg {...toolBase} className={className} aria-hidden="true">
       <rect x="3" y="4.4" width="18" height="15.2" rx="2.4" />
       <circle cx="8.6" cy="9.6" r="1.6" />
       <path d="m3.4 17.6 4.6-4.6a2 2 0 0 1 2.8 0l3.2 3.2" />
