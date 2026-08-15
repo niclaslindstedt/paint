@@ -6,7 +6,13 @@ import { fillBehaviour } from "../src/app/plugins/builtin/fill.ts";
 import { freehandBehaviour } from "../src/app/plugins/builtin/freehand.ts";
 import { handBehaviour } from "../src/app/plugins/builtin/hand.ts";
 import { registerBuiltinPlugins } from "../src/app/plugins/builtin/index.ts";
-import { selectBehaviour } from "../src/app/plugins/builtin/select.ts";
+import {
+  selectBehaviour,
+  selectLassoBehaviour,
+  selectOvalBehaviour,
+  selectTraceBehaviour,
+  SELECT_GROUP_ID,
+} from "../src/app/plugins/builtin/select.ts";
 import {
   hexagonBehaviour,
   lineBehaviour,
@@ -93,7 +99,12 @@ describe("registry", () => {
       "hexagon",
       "star",
       "doublearrow",
+      // The selection family: the box marquee, then the oval, the lasso and
+      // the one that traces what is painted. They share a button too.
       "select",
+      "select-oval",
+      "select-lasso",
+      "select-trace",
       "hand",
       // Registered, but never in the toolbar: the painter behind a dropped
       // image (see `toolPlugins`).
@@ -144,7 +155,9 @@ describe("registry", () => {
   it("opens on a paint program's toolbox and nothing else", () => {
     // What a first run finds: a nib, a spray can, a rubber, a bucket, a
     // dropper, type, the shapes and the marquee — the tools anyone who has
-    // opened a paint program already knows.
+    // opened a paint program already knows, and **nothing else**. This list is
+    // the whole default toolbar, families counted as the one button they are,
+    // so a tool added later has to be switched on before it is seen.
     expect(
       toolbarEntries(defaultEnabledPlugins(), []).map((e) => e.id),
     ).toEqual([
@@ -168,6 +181,24 @@ describe("registry", () => {
       "calligraphy",
     ]) {
       expect(defaultEnabledPlugins()).not.toContain(id);
+    }
+  });
+
+  it("spends one toolbar button on a whole family", () => {
+    // Grouping is what keeps the toolbar the size it is: fifteen tools behind
+    // the two family buttons, and one switch each in Settings → Tools.
+    const entries = toolbarEntries(defaultEnabledPlugins(), []);
+    for (const id of [SHAPES_GROUP_ID, SELECT_GROUP_ID]) {
+      expect(entries.filter((e) => e.id === id)).toHaveLength(1);
+      const members = groupMembers(id);
+      expect(members.length).toBeGreaterThan(1);
+      for (const member of members) {
+        // The box marquee's plugin id *is* the family's id — that is what
+        // carries an old settings blob into the group — so it is the one
+        // member allowed to share the entry's name.
+        if (member.id === id) continue;
+        expect(entries.map((e) => e.id)).not.toContain(member.id);
+      }
     }
   });
 
@@ -810,9 +841,19 @@ describe("select behaviour", () => {
     registerBuiltinPlugins();
   });
 
-  it("is the only tool that chooses marks instead of making one", () => {
+  it("marks the whole selection family as choosing rather than making", () => {
     const selecting = allPlugins().filter((p) => p.selects);
-    expect(selecting.map((p) => p.id)).toEqual(["select"]);
+    expect(selecting.map((p) => p.id)).toEqual([
+      "select",
+      "select-oval",
+      "select-lasso",
+      "select-trace",
+    ]);
+    // …and they are exactly the family behind the one button, so no selection
+    // tool can ever be offered without the switch that turns them all on.
+    expect(groupMembers(SELECT_GROUP_ID).map((p) => p.id)).toEqual(
+      selecting.map((p) => p.id),
+    );
   });
 
   it("drags an ordinary two-corner box, so the whole gesture pipeline is reused", () => {
@@ -836,5 +877,135 @@ describe("select behaviour", () => {
     // selection hanging around after an obvious attempt to clear it.
     const draft = selectBehaviour.start({ x: 5, y: 5 }, ctx)!;
     expect(selectBehaviour.end!(draft, ctx)).toBe(draft);
+  });
+
+  it("hands the box over as the four corners it covers", () => {
+    // Whatever the gesture, what reaches the screen is closed contours in
+    // document coordinates — that is the one currency, and it is why a lasso
+    // and a traced area need nothing new of the screen (see `selection.ts`).
+    let draft = selectBehaviour.start({ x: 40, y: 30 }, ctx)!;
+    draft = selectBehaviour.move(draft, { x: 4, y: 4 }, ctx);
+    expect(selectBehaviour.selection!(draft)).toEqual([
+      [
+        { x: 4, y: 4 },
+        { x: 40, y: 4 },
+        { x: 40, y: 30 },
+        { x: 4, y: 30 },
+      ],
+    ]);
+  });
+
+  it("chooses nothing from a gesture that never went anywhere", () => {
+    for (const behaviour of [selectBehaviour, selectOvalBehaviour]) {
+      const tap = behaviour.start({ x: 5, y: 5 }, ctx)!;
+      expect(behaviour.selection!(tap)).toBeNull();
+      // A drag under the same two pixels a shape tool throws away is a tap too.
+      const nudged = behaviour.move(tap, { x: 6, y: 5 }, ctx);
+      expect(behaviour.selection!(nudged)).toBeNull();
+    }
+    const pressed = selectLassoBehaviour.start({ x: 5, y: 5 }, ctx)!;
+    expect(selectLassoBehaviour.selection!(pressed)).toBeNull();
+  });
+
+  it("reads the oval marquee's drag as the ellipse inside it", () => {
+    let draft = selectOvalBehaviour.start({ x: 0, y: 0 }, ctx)!;
+    draft = selectOvalBehaviour.move(draft, { x: 100, y: 50 }, ctx);
+    // The same two corners a box marquee records — the difference is only what
+    // they are read as.
+    expect(draft.shape).toEqual({
+      kind: "box",
+      from: { x: 0, y: 0 },
+      to: { x: 100, y: 50 },
+    });
+    const loop = selectOvalBehaviour.selection!(draft)![0]!;
+    expect(loop.length).toBeGreaterThan(16);
+    for (const p of loop) {
+      // Inside the drag, and on the ellipse it inscribes.
+      expect(p.x).toBeGreaterThanOrEqual(-0.001);
+      expect(p.x).toBeLessThanOrEqual(100.001);
+      expect(p.y).toBeGreaterThanOrEqual(-0.001);
+      expect(p.y).toBeLessThanOrEqual(50.001);
+      const dx = (p.x - 50) / 50;
+      const dy = (p.y - 25) / 25;
+      expect(Math.hypot(dx, dy)).toBeCloseTo(1);
+    }
+  });
+
+  it("closes a lasso's loop for it, and thins the samples on the way", () => {
+    let draft = selectLassoBehaviour.start({ x: 0, y: 0 }, ctx)!;
+    for (const p of [
+      { x: 0, y: 0.2 }, // under the step: the same point again, dropped
+      { x: 30, y: 0 },
+      { x: 30, y: 20 },
+      { x: 0, y: 20 },
+    ]) {
+      draft = selectLassoBehaviour.move(draft, p, ctx);
+    }
+    expect(draft.shape).toEqual({
+      kind: "path",
+      points: [
+        { x: 0, y: 0 },
+        { x: 30, y: 0 },
+        { x: 30, y: 20 },
+        { x: 0, y: 20 },
+      ],
+    });
+    // The loop the hand drew, closed — the screen joins the last point back to
+    // the first, so the gesture never has to end where it began.
+    expect(selectLassoBehaviour.selection!(draft)).toEqual([
+      (draft.shape as { points: Point[] }).points,
+    ]);
+  });
+
+  it("traces the area under the press rather than a shape drawn over it", () => {
+    // The bucket's machinery, borrowed: the same probe, the same contours —
+    // the only difference is that the outline goes to the screen instead of
+    // into the document.
+    const blob = [
+      [
+        { x: 2, y: 2 },
+        { x: 9, y: 3 },
+        { x: 7, y: 11 },
+      ],
+    ];
+    const probed: ToolContext = {
+      ...ctx,
+      probe: { colorAt: () => "#123456", regionAt: () => blob },
+    };
+    const draft = selectTraceBehaviour.start({ x: 5, y: 5 }, probed)!;
+    expect(draft.shape).toEqual({ kind: "region", contours: blob });
+    expect(selectTraceBehaviour.selection!(draft)).toEqual(blob);
+  });
+
+  it("chooses nothing from a press on the bare sheet", () => {
+    // The page colour floods to the shape of everything *around* the marks, and
+    // every mark borders it — so tracing it would hand back the whole drawing
+    // for the press that meant the least. A press on nothing means nothing.
+    const sheet: ToolContext = {
+      ...ctx,
+      probe: {
+        colorAt: () => ctx.background.toUpperCase(),
+        regionAt: () => [
+          [
+            { x: 0, y: 0 },
+            { x: 400, y: 0 },
+            { x: 400, y: 300 },
+            { x: 0, y: 300 },
+          ],
+        ],
+      },
+    };
+    const draft = selectTraceBehaviour.start({ x: 5, y: 5 }, sheet)!;
+    expect(draft.shape).toEqual({ kind: "region", contours: [] });
+    expect(selectTraceBehaviour.selection!(draft)).toBeNull();
+  });
+
+  it("still begins a gesture where there is nothing to trace, so a press can clear the selection", () => {
+    // No probe at all — a headless caller, or a browser that refused the
+    // pixels. The bucket refuses the press outright; this one must not, or
+    // pressing an empty page would leave the last selection standing.
+    const draft = selectTraceBehaviour.start({ x: 5, y: 5 }, ctx)!;
+    expect(draft.shape).toEqual({ kind: "region", contours: [] });
+    expect(selectTraceBehaviour.selection!(draft)).toBeNull();
   });
 });

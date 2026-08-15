@@ -14,6 +14,7 @@ import {
   activeLayer,
   activeLayerId,
   canDeleteLayer,
+  canMoveLayerTo,
   drawableLayer,
   drawingLayers,
   isLocked,
@@ -585,14 +586,16 @@ export function usePaintStore(
 
   /** Move a layer to `to` in the stack, counting from the bottom — what raises
    *  everything drawn on it over the layers it passes. A locked layer stays
-   *  where it is: the lock holds its place in the stack as well as its marks. */
+   *  where it is: the lock holds its place in the stack as well as its marks.
+   *  Where a layer may go at all is `canMoveLayerTo`'s to say — the sheet stays
+   *  at the bottom, and nothing slides under it. */
   const moveLayer = useCallback(
     (id: string, to: number) => {
       const active = activeDrawing;
       if (!active) return;
       const layers = drawingLayers(active);
       const from = layers.findIndex((layer) => layer.id === id);
-      if (from < 0 || to < 0 || to >= layers.length || from === to) return;
+      if (!canMoveLayerTo(active, id, to)) return;
       if (isLocked(layers[from]!)) return;
       patchActive({ layers: reorderLayers(layers, from, to) });
     },

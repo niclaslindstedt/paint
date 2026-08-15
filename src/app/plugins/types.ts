@@ -158,6 +158,21 @@ export type ToolBehaviour = {
   /** Finish the gesture. Returning `null` discards it — how the shape tools
    *  drop a zero-size click. Defaults to committing the draft as-is. */
   end?(draft: DraftStroke, ctx: ToolContext): DraftStroke | null;
+  /** What a finished gesture **chose**, as closed contours in document
+   *  coordinates — asked only of a tool whose descriptor carries `selects`, and
+   *  only of the draft that tool's own `end` returned.
+   *
+   *  It is the one question a selection tool answers past the ordinary three,
+   *  and it is what lets the family be more than a rectangle: a box hands back
+   *  its four corners, an oval the ellipse it inscribes, a lasso the loop you
+   *  drew, and the tracing tool the outline of whatever is painted under the
+   *  press. The screen takes contours and nothing else (see `selection.ts`), so
+   *  a tool can choose marks with any gesture it likes without the canvas, the
+   *  store or the screen learning a new shape.
+   *
+   *  `null` for a gesture that chose nothing — a press that never moved, a trace
+   *  that found no area — which is what clears the selection. */
+  selection?(draft: DraftStroke): Point[][] | null;
   /** Paint one stroke onto a 2D context, in document coordinates. Called for
    *  committed strokes and for the in-flight draft alike.
    *
@@ -239,14 +254,15 @@ export type PaintPlugin = {
   picksColor?: boolean;
   /** True when the tool honours the fill toggle. */
   supportsFill?: boolean;
-  /** True when the tool's drag *chooses marks* rather than leaving one — the
-   *  selection tool.
+  /** True when the tool's gesture *chooses marks* rather than leaving one — the
+   *  selection family.
    *
-   *  It draws an ordinary two-corner draft (so the whole drag pipeline and the
-   *  marquee painter are the ones every shape tool uses), but the box never
-   *  reaches the document: the canvas reads this flag and hands it to the screen
-   *  as a selection instead of committing it. Like `navigates`, `picksColor` and
-   *  `entersText`, it is a descriptor flag rather than a tool id anything
+   *  It draws an ordinary draft (so the whole drag pipeline is the one every
+   *  other tool uses), but that draft never reaches the document: the canvas
+   *  reads this flag, asks the behaviour what the gesture chose
+   *  (`ToolBehaviour.selection`), and hands the outlines to the screen as a
+   *  selection instead of committing anything. Like `navigates`, `picksColor`
+   *  and `entersText`, it is a descriptor flag rather than a tool id anything
    *  recognises. */
   selects?: boolean;
   /** True when the tool's mark is *typed* rather than drawn — the text tool.

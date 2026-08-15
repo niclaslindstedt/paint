@@ -20,7 +20,8 @@
 //
 // A fourth answer sits above those three: a tool may belong to a **group**, and
 // then the group carries the switch and the toolbar button for the whole family.
-// The eleven shapes are the case — see the shapes block below.
+// Two families are the case — the eleven shapes, and the four ways of selecting
+// — and both are below.
 //
 // **What a first run finds is the shape of Paint**: a nib, an airbrush, a
 // rubber, a bucket, a dropper, type, the shapes and the marquee — the toolbox
@@ -63,17 +64,20 @@ import {
   HandIcon,
   HexagonIcon,
   HighlighterIcon,
+  LassoIcon,
   LineIcon,
   MarkerIcon,
   NibIcon,
   PentagonIcon,
   RoundSquareIcon,
   SelectIcon,
+  SelectOvalIcon,
   ShapesIcon,
   SprayIcon,
   SquareIcon,
   StarShapeIcon,
   TextIcon,
+  TraceSelectIcon,
   TriangleIcon,
 } from "../../icons.tsx";
 import { registerGroup, registerPlugin } from "../registry.ts";
@@ -93,7 +97,17 @@ import { fillBehaviour } from "./fill.ts";
 import { freehandBehaviour } from "./freehand.ts";
 import { handBehaviour } from "./hand.ts";
 import { imageBehaviour, IMAGE_TOOL_ID } from "./image.ts";
-import { selectBehaviour, SELECT_TOOL_ID } from "./select.ts";
+import {
+  selectBehaviour,
+  selectLassoBehaviour,
+  selectOvalBehaviour,
+  selectTraceBehaviour,
+  SELECT_GROUP_ID,
+  SELECT_LASSO_TOOL_ID,
+  SELECT_OVAL_TOOL_ID,
+  SELECT_TOOL_ID,
+  SELECT_TRACE_TOOL_ID,
+} from "./select.ts";
 import {
   arrowBehaviour,
   SHAPES_GROUP_ID,
@@ -214,6 +228,48 @@ const SHAPES: readonly Omit<PaintPlugin, "group" | "defaultSize" | "dials">[] =
       behaviour: doubleArrowBehaviour,
     },
   ];
+
+/** The selection tools, in the order the picker lays them out: the box marquee
+ *  every paint program opens with, the oval beside it, then the two that follow
+ *  something — the loop your hand drew, and the contours the page itself has.
+ *
+ *  Only the box carries a shortcut, for the shapes' reason: the four are one
+ *  press apart in the picker, and the letter the marquee has always answered to
+ *  belongs to the one it has always meant. */
+const SELECTIONS: readonly Omit<
+  PaintPlugin,
+  "group" | "selects" | "defaultSize" | "dials"
+>[] = [
+  {
+    id: SELECT_TOOL_ID,
+    nameKey: "tools.select.name",
+    descriptionKey: "tools.select.description",
+    icon: SelectIcon,
+    shortcut: "v",
+    behaviour: selectBehaviour,
+  },
+  {
+    id: SELECT_OVAL_TOOL_ID,
+    nameKey: "tools.selectOval.name",
+    descriptionKey: "tools.selectOval.description",
+    icon: SelectOvalIcon,
+    behaviour: selectOvalBehaviour,
+  },
+  {
+    id: SELECT_LASSO_TOOL_ID,
+    nameKey: "tools.selectLasso.name",
+    descriptionKey: "tools.selectLasso.description",
+    icon: LassoIcon,
+    behaviour: selectLassoBehaviour,
+  },
+  {
+    id: SELECT_TRACE_TOOL_ID,
+    nameKey: "tools.selectTrace.name",
+    descriptionKey: "tools.selectTrace.description",
+    icon: TraceSelectIcon,
+    behaviour: selectTraceBehaviour,
+  },
+];
 
 /** Register the built-in tools. Idempotent — re-registering an id replaces it
  *  in place, so calling this twice (a hot reload, a test) is harmless. */
@@ -455,20 +511,32 @@ export function registerBuiltinPlugins(): void {
   // Photoshop keeps its marquee at the very top; this one sits beside the hand,
   // because the two are a pair here: you select with one and move what you
   // selected with the other.
+  //
+  // Four ways of choosing, behind one button — the shapes' arrangement, for the
+  // shapes' reason. Which *shape* you pick marks out with is a smaller question
+  // than which tool you are holding, and four buttons for it would be four
+  // slots of a phone's toolbar spent on one idea. The group keeps the id the
+  // lone marquee had, so an install that had the marquee switched on gets the
+  // family in the same slot (see `select.ts`).
 
-  registerPlugin({
-    id: SELECT_TOOL_ID,
+  registerGroup({
+    id: SELECT_GROUP_ID,
     defaultOn: true,
-    nameKey: "tools.select.name",
-    descriptionKey: "tools.select.description",
+    nameKey: "tools.selection.name",
+    descriptionKey: "tools.selection.description",
     icon: SelectIcon,
-    shortcut: "v",
-    // The drag chooses marks instead of leaving one: the canvas reads the flag
-    // and hands the box to the screen rather than the document (see
-    // `select.ts`).
-    selects: true,
-    behaviour: selectBehaviour,
   });
+
+  for (const member of SELECTIONS) {
+    registerPlugin({
+      group: SELECT_GROUP_ID,
+      // The gesture chooses marks instead of leaving one: the canvas reads the
+      // flag, asks the behaviour what was chosen, and hands the outline to the
+      // screen rather than the document (see `select.ts`).
+      selects: true,
+      ...member,
+    });
+  }
 
   // --- Last: the tool that moves the view ----------------------------------
   // The hand is the bottom of Photoshop's column, under everything that touches

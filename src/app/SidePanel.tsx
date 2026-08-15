@@ -25,6 +25,7 @@ import { useT } from "./i18n/index.ts";
 import {
   BACKGROUND_LAYER_ID,
   canDeleteLayer,
+  canMoveLayerTo,
   drawingLayers,
   groupByLayer,
   isLocked,
@@ -401,16 +402,20 @@ export function SidePanel({
               {/* What you can do to the layer you have picked. */}
               {active && (
                 <div className="flex items-center justify-end gap-0.5 px-1.5 pb-1">
+                  {/* Where a layer may go is `layers.ts`'s to say, and it says
+                      two things: not off the ends of the stack, and never
+                      under the sheet — which is also why the sheet's own row
+                      offers no arrows at all. */}
                   <PanelButton
                     label={t("layers.moveUp", { name })}
-                    disabled={at === layers.length - 1}
+                    disabled={!canMoveLayerTo(drawing, layer.id, at + 1)}
                     onClick={() => store.moveLayer(layer.id, at + 1)}
                   >
                     <ChevronUpIcon className="h-4 w-4" />
                   </PanelButton>
                   <PanelButton
                     label={t("layers.moveDown", { name })}
-                    disabled={at === 0}
+                    disabled={!canMoveLayerTo(drawing, layer.id, at - 1)}
                     onClick={() => store.moveLayer(layer.id, at - 1)}
                   >
                     <ChevronDownIcon className="h-4 w-4" />

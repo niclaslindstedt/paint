@@ -6,6 +6,7 @@ import {
   offsetTo,
   selectionBox,
   strokesInBox,
+  strokesInRegion,
   translateStroke,
 } from "../src/app/selection.ts";
 import type { Drawing, Stroke } from "../src/app/types.ts";
@@ -114,6 +115,90 @@ describe("strokesInBox", () => {
         (s) => s.id,
       ),
     ).toEqual(["a", "b"]);
+  });
+});
+
+describe("strokesInRegion", () => {
+  // Every selection tool hands over closed contours, whatever gesture made
+  // them, so one test answers for the box, the oval, the lasso and the traced
+  // outline alike (see `plugins/builtin/select.ts`).
+  const boxContour = (x: number, y: number, w: number, h: number) => [
+    { x, y },
+    { x: x + w, y },
+    { x: x + w, y: y + h },
+    { x, y: y + h },
+  ];
+
+  it("is the box case of itself when the outline is a rectangle", () => {
+    const drawing = page([line("a", 0, 0), line("b", 200, 200)]);
+    const box = { x: 5, y: 5, width: 2, height: 2 };
+    expect(strokesInRegion(drawing, [boxContour(5, 5, 2, 2)])).toEqual(
+      strokesInBox(drawing, box),
+    );
+  });
+
+  it("catches only what the loop actually covers", () => {
+    // The two marks share a bounding box the size of the page, so a marquee
+    // over one of them would catch both if the outline were only its box. A
+    // lasso down the left-hand side must not.
+    const drawing = page([line("left", 0, 0), line("right", 200, 200)]);
+    const lasso = [
+      { x: -5, y: -5 },
+      { x: 60, y: -5 },
+      { x: 60, y: 60 },
+      { x: 190, y: 190 },
+      { x: 190, y: 260 },
+      { x: -5, y: 260 },
+    ];
+    expect(strokesInRegion(drawing, [lasso]).map((s) => s.id)).toEqual([
+      "left",
+    ]);
+  });
+
+  it("catches a mark the outline swallows whole", () => {
+    // Nothing crosses the mark's box here — the loop is far bigger than it —
+    // so the containment half of the test is the one that has to answer.
+    const drawing = page([line("a", 100, 100)]);
+    const big = [
+      { x: 0, y: 0 },
+      { x: 300, y: 0 },
+      { x: 150, y: 250 },
+    ];
+    expect(strokesInRegion(drawing, [big]).map((s) => s.id)).toEqual(["a"]);
+  });
+
+  it("leaves a traced area's holes out of the selection", () => {
+    // Two contours: an outline and the island inside it, exactly as the bucket
+    // traces one. The even-odd rule puts the island outside the selection the
+    // same way it leaves it unpainted.
+    const drawing = page([line("in", 20, 20), line("hole", 100, 100)]);
+    const ring = [boxContour(0, 0, 300, 250), boxContour(90, 90, 120, 120)];
+    expect(strokesInRegion(drawing, ring).map((s) => s.id)).toEqual(["in"]);
+  });
+
+  it("holds the same locks a box marquee does", () => {
+    const drawing = page(
+      [line("free", 0, 0), line("held", 0, 0, "background")],
+      {
+        layers: [
+          { id: "background", name: "", locked: true },
+          { id: "base", name: "" },
+        ],
+      },
+    );
+    expect(
+      strokesInRegion(drawing, [boxContour(-10, -10, 200, 200)]).map(
+        (s) => s.id,
+      ),
+    ).toEqual(["free"]);
+  });
+
+  it("catches nothing from an outline that encloses nothing", () => {
+    const drawing = page([line("a", 0, 0)]);
+    expect(strokesInRegion(drawing, [])).toEqual([]);
+    expect(strokesInRegion(drawing, [boxContour(300, 200, 20, 20)])).toEqual(
+      [],
+    );
   });
 });
 

@@ -243,8 +243,8 @@ export const sv: Catalog = {
   },
   layers: {
     title: "Lager",
-    open: "Lager",
-    close: "Stäng lagerpanelen",
+    open: "Sidopanel",
+    close: "Stäng sidopanelen",
     add: "Nytt lager",
     base: "Lager 1",
     background: "Bakgrund",
@@ -320,10 +320,28 @@ export const sv: Catalog = {
       description:
         "En linje med spets i båda ändar — för att mäta ett avstånd.",
     },
-    select: {
+    selection: {
       name: "Markera",
       description:
-        "Dra en ruta för att välja ut streck. Flytta dem med handen; kopiera, klipp ut eller ta bort dem med tangentbordet, högerklick eller ett långt tryck.",
+        "Välj ut streck — med en ruta, en oval, ett lasso eller genom att följa konturerna av det som är målat under pekaren. Tryck igen för att välja vilket. Flytta det du valt med handen; kopiera, klipp ut eller ta bort det med tangentbordet, högerklick eller ett långt tryck.",
+    },
+    select: {
+      name: "Markera ruta",
+      description: "Dra en rektangel för att välja ut strecken den täcker.",
+    },
+    selectOval: {
+      name: "Markera oval",
+      description: "Samma drag, läst som ovalen inuti det.",
+    },
+    selectLasso: {
+      name: "Markera med lasso",
+      description:
+        "Rita runt strecken du vill ha på fri hand — slingan sluts av sig själv.",
+    },
+    selectTrace: {
+      name: "Markera kontur",
+      description:
+        "Tryck på ett område så följer markeringen konturerna av det som är ritat där, i stället för en form du ritat över det.",
     },
     marker: {
       name: "Tuschpenna",

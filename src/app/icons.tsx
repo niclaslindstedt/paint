@@ -217,6 +217,60 @@ export function SelectIcon({ className }: IconProps) {
   );
 }
 
+/** The oval marquee — the same dashed outline, round. Drawn at the same dash
+ *  length as the box so the two read as one family at 18 pixels. */
+export function SelectOvalIcon({ className }: IconProps) {
+  return (
+    <svg {...base} className={className} aria-hidden="true">
+      <circle
+        cx="12"
+        cy="12"
+        r="8.6"
+        strokeDasharray="3.4 2.8"
+        strokeLinecap="butt"
+      />
+    </svg>
+  );
+}
+
+/** The lasso — a loop with the tail you dragged it round by, which is the one
+ *  thing that tells it from a circle at this size. Dashed, like the rest of the
+ *  family: what it leaves is a marquee, not a mark. */
+export function LassoIcon({ className }: IconProps) {
+  return (
+    <svg {...base} className={className} aria-hidden="true">
+      <path
+        d="M12 3.6c4.9 0 8.4 2.9 8.4 6.5S16.9 16.6 12 16.6 3.6 13.7 3.6 10.1 7.1 3.6 12 3.6Z"
+        strokeDasharray="3.4 2.8"
+        strokeLinecap="butt"
+      />
+      <path d="M7.4 15.4c-.6 1.8-.2 3.4 1.2 4.8" />
+    </svg>
+  );
+}
+
+/** The tracing selection — a pointer inside an outline that isn't a shape
+ *  anybody drew. The dashes say marquee, like the rest of the family; the
+ *  irregular loop is the difference, because this is the one selection whose
+ *  edge comes off what is *painted* rather than off a drag. The pointer is what
+ *  keeps it from reading as the lasso: you press, you don't draw. */
+export function TraceSelectIcon({ className }: IconProps) {
+  return (
+    <svg {...base} className={className} aria-hidden="true">
+      <path
+        d="M11.4 3.4c4.4 0 6.6 2 6.6 4.4s-1.4 3-1.4 4.6 2 2.6 2 4.2-2.4 3.6-6.6 3.6-8.6-3.2-8.6-8.2S7 3.4 11.4 3.4Z"
+        strokeDasharray="3.2 2.6"
+        strokeLinecap="butt"
+      />
+      <path
+        d="m8.6 8.2 5.6 4.2-2.4.4 1.4 2.6-1.6.8-1.3-2.6-1.7 1.8Z"
+        fill="currentColor"
+        stroke="none"
+      />
+    </svg>
+  );
+}
+
 /** Cut — the scissors, for the selection menu's middle action. */
 export function ScissorsIcon({ className }: IconProps) {
   return (
@@ -451,13 +505,17 @@ export function ToolboxIcon({ className }: IconProps) {
   );
 }
 
-/** The layer stack — three sheets seen edge on. Opens the layers panel. */
-export function LayersIcon({ className }: IconProps) {
+/** The right-hand panel — the screen, with a column ruled off down its right
+ *  edge and two rows of something in it. It is drawn as the *place* rather than
+ *  as what is currently in it: the panel holds the page actions as well as the
+ *  layer stack, and a stack of sheets said only half of that. The button sits
+ *  at the right end of the header, on the side the panel comes in from. */
+export function SidePanelIcon({ className }: IconProps) {
   return (
     <svg {...base} className={className} aria-hidden="true">
-      <path d="m12 3 9 5-9 5-9-5Z" />
-      <path d="m3.5 12.5 8.5 4.7 8.5-4.7" />
-      <path d="m3.5 16.5 8.5 4.7 8.5-4.7" />
+      <rect x="2.8" y="4.4" width="18.4" height="15.2" rx="2" />
+      <path d="M13.8 4.4v15.2" />
+      <path d="M16.2 9.6h2.8M16.2 14.4h2.8" />
     </svg>
   );
 }

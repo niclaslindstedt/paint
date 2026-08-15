@@ -17,7 +17,6 @@ import {
   useFileDrop,
 } from "@niclaslindstedt/oss-framework/hooks";
 
-import type { Box } from "./bounds.ts";
 import { defaultInk, resolvePageColor } from "./canvas.ts";
 import {
   readPaste,
@@ -29,7 +28,7 @@ import { DownloadMenu } from "./DownloadMenu.tsx";
 import { DrawingTitle } from "./DrawingTitle.tsx";
 import type { MenuEdge } from "./gestures.ts";
 import { HeaderIconButton } from "./HeaderIconButton.tsx";
-import { LayersIcon, PasteIcon, ScissorsIcon } from "./icons.tsx";
+import { PasteIcon, ScissorsIcon, SidePanelIcon } from "./icons.tsx";
 import { useT } from "./i18n/index.ts";
 import { ImagePlacement } from "./ImagePlacement.tsx";
 import { importImageFile, type ImportedImage } from "./images.ts";
@@ -46,6 +45,7 @@ import {
   offsetTo,
   selectionBox,
   strokesInBox,
+  strokesInRegion,
   translateStrokes,
 } from "./selection.ts";
 import { encodeStrokes } from "./strokeClipboard.ts";
@@ -615,19 +615,6 @@ export function CanvasScreen({
           >
             <StarIcon className="h-[18px] w-[18px]" filled={drawing.favorite} />
           </HeaderIconButton>
-          {/* The right-hand panel's other door. The swipe from the right edge
-              is the phone gesture; this button is how it is *found*. Gone
-              entirely on a screen wide enough to dock the panel — a button that
-              opens something already open is a button that lies. */}
-          {!dockPanel && (
-            <HeaderIconButton
-              label={t("layers.open")}
-              pressed={layersOpen}
-              onClick={() => setLayersOpen((open) => !open)}
-            >
-              <LayersIcon className="h-[18px] w-[18px]" />
-            </HeaderIconButton>
-          )}
           {/* No undo / redo here. They are one tap away in the sidebar's
               button island and on the keyboard, and the header is the one row
               a phone has to fit a drawing's name into — two glyphs it can
@@ -642,6 +629,23 @@ export function CanvasScreen({
               transparent: settings.downloadTransparent,
             }}
           />
+          {/* The right-hand panel's other door, and the last thing in the
+              header — the button that opens a panel from the right edge sits at
+              that edge, next to the gesture that does the same job. The swipe
+              is the phone gesture; this button is how it is *found*, which is
+              also why it wears the panel rather than the layer stack: what
+              slides in holds the page actions too. Gone entirely on a screen
+              wide enough to dock the panel — a button that opens something
+              already open is a button that lies. */}
+          {!dockPanel && (
+            <HeaderIconButton
+              label={t("layers.open")}
+              pressed={layersOpen}
+              onClick={() => setLayersOpen((open) => !open)}
+            >
+              <SidePanelIcon className="h-[18px] w-[18px]" />
+            </HeaderIconButton>
+          )}
           {/* No bin either. Throwing a drawing away is an action on the
               document, so it sits at the head of the right-hand panel's Image
               section with resize and flip (see `SidePanel.tsx`). The header
@@ -689,14 +693,16 @@ export function CanvasScreen({
             }
             onPanelSwipe={() => setLayersOpen(true)}
             onCommit={store.addStroke}
-            // The marquee's drag: the marks it covered become the selection, and
-            // nothing reaches the document. A press that never moved sends
-            // `null` and clears it.
+            // The selection gesture: the marks its outline caught become the
+            // selection, and nothing reaches the document. What the outline *is*
+            // — a box, an oval, a lasso loop, an area traced off the page — is
+            // the tool's business; this end takes contours either way. A gesture
+            // that chose nothing sends `null` and clears it.
             selection={selection}
-            onSelectBox={(box: Box | null) =>
+            onSelectRegion={(region: Point[][] | null) =>
               setSelectedIds(
-                box && drawing
-                  ? strokesInBox(drawing, box).map((s) => s.id)
+                region && drawing
+                  ? strokesInRegion(drawing, region).map((s) => s.id)
                   : [],
               )
             }

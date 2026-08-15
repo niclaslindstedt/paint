@@ -377,13 +377,22 @@ identically.
 
 A tool that needs the app to treat it differently says so on its descriptor —
 `usesBackground` for the eraser, `navigates` for the hand, `picksColor` for the
-dropper, `selects` for the marquee — so the canvas and the toolbar read a
-property instead of learning a name.
+dropper, `selects` for the selection family — so the canvas and the
+toolbar read a property instead of learning a name.
+
+`selects` carries one extra obligation past the flag: the behaviour answers
+`selection(draft)` with the **closed contours** its gesture chose, in document
+coordinates. That is the only currency the screen deals in, which is what lets a
+box marquee, an oval, a freehand lasso and an outline traced off the page itself
+all be selections without the canvas, the store or the renderer learning a shape
+(see `selection.ts`'s `strokesInRegion`).
 
 `group` is the flag that changes how a tool is _offered_ rather than how it
 behaves. The eleven shapes each stay their own plugin — their own painter, their
 own remembered width, their own persisted id, so nothing already drawn is
-orphaned — and share one toolbar button and one switch. The button wears the
+orphaned — and share one toolbar button and one switch; the four selection tools
+are grouped the same way, under the id the lone marquee used to hold, so a
+settings blob written before the family existed still names their button. The button wears the
 member you last held; pressing it again opens the family and the fill toggle.
 Grouping touched no stroke and needed no migration, which is the test any
 "merge these tools" change has to pass: a stroke's `tool` is persisted.

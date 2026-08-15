@@ -7,7 +7,7 @@ import {
   useState,
 } from "react";
 
-import { boxFromCorners, type Box } from "./bounds.ts";
+import type { Box } from "./bounds.ts";
 import {
   classifyEdgeDrag,
   inEdgeZone,
@@ -19,7 +19,6 @@ import {
 import { paintFrame } from "./frame.ts";
 import { onImageDecoded } from "./images.ts";
 import type { MarkCache } from "./cache.ts";
-import { isMeaningfulDrag } from "./plugins/ink.ts";
 import { pluginById } from "./plugins/registry.ts";
 import type { CanvasProbe, DraftStroke, ToolContext } from "./plugins/types.ts";
 import { createProbe } from "./probe.ts";
@@ -102,11 +101,15 @@ type Props = {
    *  the document: the caption arrives later, as a finished mark (see
    *  `TextEntry.tsx`). */
   onEnterText?: (at: Point) => void;
-  /** Called with the box a tool that `selects` dragged, in document
-   *  coordinates — or `null` for a press that never moved, which means "select
-   *  nothing". The marks inside it are the screen's to work out (see
+  /** Called with the outlines a tool that `selects` chose, in document
+   *  coordinates — or `null` for a gesture that chose nothing (a press that
+   *  never moved, a trace that found no area), which means "select nothing".
+   *
+   *  Closed contours whatever the gesture was: a box marquee sends its four
+   *  corners, a lasso the loop it drew, the tracing tool the outline of what is
+   *  painted under it. The marks inside them are the screen's to work out (see
    *  `selection.ts`); nothing reaches the document. */
-  onSelectBox?: (box: Box | null) => void;
+  onSelectRegion?: (contours: Point[][] | null) => void;
   /** The marks currently selected, and the page they cover. The canvas outlines
    *  the box, and a drag on it under the hand moves them. */
   selection?: { ids: readonly string[]; box: Box } | null;
@@ -167,7 +170,7 @@ export function PaintCanvas({
   onCommit,
   onPickColor,
   onEnterText,
-  onSelectBox,
+  onSelectRegion,
   selection = null,
   onMoveSelection,
   onContextMenu,
@@ -855,17 +858,16 @@ export function PaintCanvas({
       committed = plugin.behaviour.end
         ? plugin.behaviour.end(current, context())
         : current;
-      // A marquee's box never reaches the document: the tool chooses marks
-      // rather than making one, so the box goes to the screen and the frame
-      // below clears the ants off the page. A press that never moved means
-      // "select nothing" — a drag that did means "select what this covers".
+      // A selection gesture never reaches the document: the tool chooses marks
+      // rather than making one, so what it chose goes to the screen and the
+      // frame below clears the ants off the page. *What* it chose is the
+      // behaviour's to say (`selection`) — a box, an oval, a lasso loop or a
+      // traced outline all arrive here as contours, and a gesture that chose
+      // nothing sends `null`, which clears the selection.
       if (plugin.selects) {
-        const box =
-          committed?.shape.kind === "box" &&
-          isMeaningfulDrag(committed.shape.from, committed.shape.to)
-            ? boxFromCorners(committed.shape.from, committed.shape.to)
-            : null;
-        onSelectBox?.(box);
+        onSelectRegion?.(
+          committed ? (plugin.behaviour.selection?.(committed) ?? null) : null,
+        );
         requestPaint();
         return;
       }

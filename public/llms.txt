@@ -17,9 +17,11 @@ connect a storage backend yourself.
 - Draw eleven shapes from one toolbar button: rectangle, ellipse, line, arrow,
   rounded rectangle, triangle, diamond, pentagon, hexagon, star and double
   arrow. Press the button a second time for the family and the fill toggle.
-- Pick marks up again with the selection tool: drag a box over what you drew,
-  move it with the hand, and copy, cut or delete it with the keyboard, a
-  right-click or a long press. Ctrl/Cmd+V pastes marks, a picture or words back
+- Pick marks up again with the selection tools: draw a box, an oval or a
+  freehand lasso over what you drew, or trace the contours of what is already
+  painted — four gestures behind one button, pressed a second time to choose.
+  Move what you caught with the hand, and copy, cut or delete it with the
+  keyboard, a right-click or a long press. Ctrl/Cmd+V pastes marks, a picture or words back
   into the drawing — words open the caption box so the typeface and size are
   yours to set first.
 - Switch more tools on in Settings → Tools (a bristle paintbrush, marker,
@@ -53,10 +55,11 @@ connect a storage backend yourself.
 - Stack a drawing into layers: swipe in from the right edge of the canvas (or
   use the header button) for a panel that adds, selects, shows, hides, locks,
   reorders and deletes them, each row previewing the marks on that layer. Every
-  drawing starts with a locked Background layer — which carries the page colour
-  — and one layer above it. New marks land on the selected layer; a hidden layer
-  leaves the screen and every export, and a transparent export leaves the
-  Background out entirely.
+  drawing starts with a locked Background layer — which carries the page colour,
+  stays at the bottom of the stack and takes nothing underneath it — and one
+  layer above it. New marks land on the selected layer; a hidden layer leaves the
+  screen and every export, and a transparent export leaves the Background out
+  entirely.
 - Keep several drawings, group them into folders, star the ones you return to,
   and archive the rest instead of deleting them.
 - Tidy the sidebar with the gesture at hand: on touch, swipe a row right to

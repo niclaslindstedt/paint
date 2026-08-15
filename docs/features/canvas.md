@@ -176,13 +176,16 @@ show, and its nib button is dimmed and back to a plain dot.
   `Esc` puts the old name back. Nothing takes the keyboard until you ask for
   it — opening a drawing leaves the title alone.
 - The star adds the drawing to Favorites (see [drawings](drawings.md)).
-- The layers button opens the stack (see [layers](layers.md)) — the same panel
-  an inward swipe from the right edge of the page brings out.
 - The download button opens a menu — PNG, JPG, SVG, or copy to the clipboard
   (see [export](export.md)).
+- The last button, at the far right end of the row, opens the side panel — the
+  page actions and the layer stack (see [layers](layers.md)). It wears the panel
+  it opens, and it is at that end of the header because that is the edge the
+  panel comes in from: an inward swipe from the right edge of the page brings
+  out the same thing.
 
 The buttons up here wear the same box the toolbar's do — a bordered square that
-tints accent while it is on — so a starred drawing and an open layers panel are
+tints accent while it is on — so a starred drawing and an open side panel are
 readable at a glance, and the header, the toolbar and the sibling `notes` and
 `contacts` apps all read as one set of chrome.
 

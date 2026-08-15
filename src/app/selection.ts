@@ -7,7 +7,10 @@
 // them, pasting copies of them. So the screen holds a set of stroke ids and this
 // module answers every question about them:
 //
-//   - which marks a dragged marquee caught (`strokesInBox`)
+//   - which marks a dragged marquee caught (`strokesInBox`), and which marks any
+//     other selection gesture caught — a lasso, an oval, an outline traced off
+//     the page itself — all of which arrive here as closed contours and go
+//     through one test (`strokesInRegion`)
 //   - how much of the page the caught ones cover (`selectionBox`)
 //   - what one of them looks like moved (`translateStroke`)
 //
@@ -61,6 +64,144 @@ export function strokesInBox(drawing: Drawing, box: Box): Stroke[] {
     if (locked(stroke)) return false;
     const bounds = strokeBounds(stroke);
     return bounds ? overlaps(bounds, box) : false;
+  });
+}
+
+/** What a selection gesture chose, as closed contours in document coordinates —
+ *  the one currency the selection tools deal in, whatever gesture made them (see
+ *  `plugins/builtin/select.ts`). A box marquee sends one rectangle, a lasso the
+ *  loop it drew, the tracing tool one contour per outline of the area it found —
+ *  including its holes, which the even-odd rule below leaves out of the
+ *  selection the same way the bucket leaves them unpainted. */
+export type SelectionRegion = readonly (readonly Point[])[];
+
+/** The smallest box holding every contour, or `null` when there is nothing
+ *  there. */
+function regionBox(region: SelectionRegion): Box | null {
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+  for (const loop of region) {
+    for (const p of loop) {
+      minX = Math.min(minX, p.x);
+      minY = Math.min(minY, p.y);
+      maxX = Math.max(maxX, p.x);
+      maxY = Math.max(maxY, p.y);
+    }
+  }
+  if (minX > maxX) return null;
+  return { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
+}
+
+/** Whether a region is just its own box — one axis-aligned rectangle.
+ *
+ *  The box marquee is exactly that, and it is the selection people make most,
+ *  so it is worth spotting: everything below can then be skipped and the answer
+ *  is the box overlap it always was. */
+function isBoxRegion(region: SelectionRegion, box: Box): boolean {
+  if (region.length !== 1) return false;
+  const loop = region[0]!;
+  if (loop.length !== 4) return false;
+  return loop.every(
+    (p) =>
+      (p.x === box.x || p.x === box.x + box.width) &&
+      (p.y === box.y || p.y === box.y + box.height),
+  );
+}
+
+/** Whether `p` is inside the region, by the even-odd rule — the same rule the
+ *  bucket's fill is painted with, so a traced area's holes are outside its
+ *  selection exactly as they are outside its paint. */
+function inRegion(region: SelectionRegion, p: Point): boolean {
+  let inside = false;
+  for (const loop of region) {
+    for (let i = 0, j = loop.length - 1; i < loop.length; j = i++) {
+      const a = loop[i]!;
+      const b = loop[j]!;
+      if (
+        a.y > p.y !== b.y > p.y &&
+        p.x < ((b.x - a.x) * (p.y - a.y)) / (b.y - a.y) + a.x
+      ) {
+        inside = !inside;
+      }
+    }
+  }
+  return inside;
+}
+
+/** Whether the segment `a`–`b` touches `box` at all. Liang–Barsky, which also
+ *  answers "yes" for a segment lying wholly inside the box. */
+function segmentMeetsBox(a: Point, b: Point, box: Box): boolean {
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  let t0 = 0;
+  let t1 = 1;
+  const edges: [number, number][] = [
+    [-dx, a.x - box.x],
+    [dx, box.x + box.width - a.x],
+    [-dy, a.y - box.y],
+    [dy, box.y + box.height - a.y],
+  ];
+  for (const [p, q] of edges) {
+    if (p === 0) {
+      if (q < 0) return false;
+      continue;
+    }
+    const r = q / p;
+    if (p < 0) {
+      if (r > t1) return false;
+      if (r > t0) t0 = r;
+    } else {
+      if (r < t0) return false;
+      if (r < t1) t1 = r;
+    }
+  }
+  return true;
+}
+
+/** Whether a mark's box and a selection region meet — the test a non-rectangular
+ *  marquee catches marks by.
+ *
+ *  Two ways they can, and both are needed: the outline crosses (or runs inside)
+ *  the box, or the box sits wholly inside the outline with nothing crossing it.
+ *  Measured against the mark's *box* rather than its geometry, which is the same
+ *  approximation `strokesInBox` has always made — a marquee that only caught the
+ *  ink itself would be one you had to draw twice. */
+function regionMeetsBox(region: SelectionRegion, box: Box): boolean {
+  for (const loop of region) {
+    for (let i = 0; i < loop.length; i++) {
+      const a = loop[i]!;
+      const b = loop[(i + 1) % loop.length]!;
+      if (segmentMeetsBox(a, b, box)) return true;
+    }
+  }
+  return inRegion(region, {
+    x: box.x + box.width / 2,
+    y: box.y + box.height / 2,
+  });
+}
+
+/** The marks a selection gesture caught: every **visible, unlocked** stroke
+ *  whose own box the chosen outline touches, in paint order.
+ *
+ *  The same rules `strokesInBox` holds — it is the box case of this one — plus
+ *  the shape of whatever was actually drawn: a lasso catches what its loop
+ *  crosses or encloses, and a traced area catches what lies within the contours
+ *  the page itself gave it. The region's box is used to reject the obvious
+ *  misses first, so a lasso on a busy page walks its outline only for the marks
+ *  that were in the running at all. */
+export function strokesInRegion(
+  drawing: Drawing,
+  region: SelectionRegion,
+): Stroke[] {
+  const box = regionBox(region);
+  if (!box) return [];
+  const near = strokesInBox(drawing, box);
+  if (isBoxRegion(region, box)) return near;
+  return near.filter((stroke) => {
+    const bounds = strokeBounds(stroke);
+    return bounds ? regionMeetsBox(region, bounds) : false;
   });
 }
 

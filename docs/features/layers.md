@@ -19,9 +19,10 @@ there is width to spare. Above the stack it carries the **Image** actions —
 resize, flip, mirror — which act on the whole drawing (see
 [the canvas](canvas.md)).
 
-**On a narrower screen it is a button in the top right**, and the panel comes out
-over the page when you press it. **Swipe in from the right edge** does the same —
-the edge gesture that opens the sidebar, on the other side.
+**On a narrower screen it is the last button in the header**, at the far right
+end of the row and wearing the panel it opens, and the panel comes out over the
+page when you press it. **Swipe in from the right edge** does the same — the edge
+gesture that opens the sidebar, on the other side.
 
 A floating panel **goes away again when you press anywhere on the page**. It is
 something you visit between strokes, so it takes no width from the page and never
@@ -60,7 +61,10 @@ preview can never disagree with the drawing.
   pick them up either (see [selections](selection.md)). The Background is locked
   out of the box; unlock it if you want to paint the sheet itself.
 - **Reorder** — the up and down arrows on the selected row. Raising a layer
-  lifts everything drawn on it over the layers it passes.
+  lifts everything drawn on it over the layers it passes. The **Background**
+  does not move and nothing goes under it: it is the page, and every mark in the
+  drawing is on top of it by definition. Its row offers no arrows, and the arrow
+  that would push another layer below it is dimmed.
 - **Delete** — the bin on the selected row. It takes the marks on that layer
   with it, so a layer with anything on it asks first. The last layer is never
   deleted, and neither is a locked one: a drawing always has somewhere to draw.

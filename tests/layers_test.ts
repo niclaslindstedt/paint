@@ -14,6 +14,7 @@ import {
   activeLayerId,
   backgroundHidden,
   canDeleteLayer,
+  canMoveLayerTo,
   drawableLayer,
   groupByLayer,
   defaultLayers,
@@ -327,6 +328,50 @@ describe("reordering", () => {
     ]) {
       expect(reorderLayers(stack, from!, to!)).toEqual(stack);
     }
+  });
+});
+
+describe("what may be moved", () => {
+  // The sheet doesn't move, and nothing goes under it. It is the page — every
+  // mark is on top of it by definition, and it carries the page colour — so a
+  // background shuffled into the middle of a stack would paint over half the
+  // drawing.
+  const stacked = drawing({ layers: [sheet, base, top] });
+
+  it("pins the sheet to the bottom of the stack", () => {
+    expect(canMoveLayerTo(stacked, BACKGROUND_LAYER_ID, 1)).toBe(false);
+    expect(canMoveLayerTo(stacked, BACKGROUND_LAYER_ID, 2)).toBe(false);
+  });
+
+  it("lets nothing slide under the sheet", () => {
+    expect(canMoveLayerTo(stacked, BASE_LAYER_ID, 0)).toBe(false);
+    expect(canMoveLayerTo(stacked, "top", 0)).toBe(false);
+    // …but everything above it still moves freely.
+    expect(canMoveLayerTo(stacked, BASE_LAYER_ID, 2)).toBe(true);
+    expect(canMoveLayerTo(stacked, "top", 1)).toBe(true);
+  });
+
+  it("refuses a move that goes nowhere or off the ends", () => {
+    expect(canMoveLayerTo(stacked, "top", 2)).toBe(false);
+    expect(canMoveLayerTo(stacked, "top", 3)).toBe(false);
+    expect(canMoveLayerTo(stacked, "top", -1)).toBe(false);
+    expect(canMoveLayerTo(stacked, "gone", 1)).toBe(false);
+  });
+
+  it("still moves a layer another build left under the sheet", () => {
+    // Only reachable from a document this app didn't write. It may come up out
+    // of there; it may just not go further down.
+    const upended = drawing({ layers: [base, sheet, top] });
+    expect(canMoveLayerTo(upended, BASE_LAYER_ID, 2)).toBe(true);
+    expect(canMoveLayerTo(upended, "top", 1)).toBe(false);
+  });
+
+  it("answers the same on a drawing with no stack of its own", () => {
+    // The implicit stack is the sheet with one layer over it, so the same two
+    // rules hold before anyone has touched the panel.
+    const implicit = drawing();
+    expect(canMoveLayerTo(implicit, BACKGROUND_LAYER_ID, 1)).toBe(false);
+    expect(canMoveLayerTo(implicit, BASE_LAYER_ID, 0)).toBe(false);
   });
 });
 
