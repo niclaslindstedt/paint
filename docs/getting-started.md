@@ -22,8 +22,14 @@ the ink nor the drawing.
 - **Eraser** (`E`) rubs marks off the page. Turn its **strength** down and one
   pass fades them instead of removing them.
 - **Pencil** (`G`) is for sketching: graphite on the paper's tooth, in grey
-  whatever colour the ink is set to, with a **lead** dial that runs from a hard
-  pale H to a soft dark B.
+  whatever colour the ink is set to. Pick the **lead** by name — 8H through 9B,
+  the grades a shop sells — and the widths are the ones a mechanical pencil
+  takes: 0.3, 0.5, 0.7, 0.9 and 2.0 mm.
+- **Watercolour** (`W`) is a wet wash on paper. It spreads past the brush that
+  laid it, dries darkest at the rim, granulates into the sheet, and never
+  covers what is under it — so a second pass over the first deepens it the way
+  a real glaze does. **Water**, **pigment** and **granulation** are the three
+  things to change between strokes.
 - **Airbrush** (`S`) lays down a soft cloud of paint that builds up the longer
   you hold it over one spot.
 - **Paint bucket** (`F`) fills the empty space you tap, up to the marks around
@@ -78,20 +84,34 @@ Tools with nothing to set by width say so: the **paint bucket** shows a **cog**
 in that slot, opening its wash and its feathered edge directly, and the hand, the
 dropper and the selection tools show nothing there at all.
 
-The width belongs to the tool: a pen width, a paintbrush width, a type size,
-each remembered separately. Every tool also opens at a width chosen for it, so
+The width belongs to the tool: a pen width, a brush width, a type size, each
+remembered separately. Every tool also opens at a width chosen for it, so
 nothing needs setting up before it draws the way it should.
 
-Widths are in **millimetres of page**, so the number says what the nib is
-without needing another one beside it to compare against: 0.5 is a technical
-pen, 5 a thin marker, and the slider goes to 200 — a decorator's brush.
+**The sizes are the ones the real thing comes in.** A page pixel is one dot of a
+300 dpi print, so a width is a distance you can measure: the pencil's five
+buttons are the four leads a mechanical pencil takes plus a 2 mm clutch lead,
+the round brush's are a #2 through a one-inch flat, and type is set in points.
+The slider under them spends its middle four tenths on the range that tool is
+genuinely made in — the band is drawn on the track, and the readout says **as
+made** while you are inside it, **finer than made** or **wider than made** when
+you are not. Nothing is forbidden: the top half of every slider runs off to a
+nib as wide as the page, because a 0.05 mm line and a 200 mm one are sometimes
+exactly what a drawing wants. **Keep** adds whatever the slider is on to that
+tool's own row.
+
+Above the widths is **Saved**. Once you have set a tool up the way you like it —
+a 4B at 0.7 mm with the opacity eased off — press **Save…**, name it "my
+sketching pencil", and it is one press away from then on. A saved tool carries
+its width and every one of its dials, and it belongs to the tool it came from.
 
 ## More tools
 
 Settings → **Tools** is the toolbar with its lid off: every tool the app has, in
 the order the buttons sit in, each with its glyph, an on/off switch, and a pair
-of arrows that move it along the row. Switch one on — a bristle paintbrush, a
-marker, a highlighter, a crayon, a calligraphy pen — and it joins the toolbar
+of arrows that move it along the row. Switch one on — a round or flat bristle
+brush, a marker, a highlighter, a crayon, a calligraphy pen — and it joins the
+toolbar
 immediately, in its own place in the row rather than at the end. Move a row and
 the toolbar moves with it. Switching a tool off later only hides it; marks you
 already drew stay put.

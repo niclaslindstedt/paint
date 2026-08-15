@@ -2,6 +2,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { registerBuiltinPlugins } from "../src/app/plugins/builtin/index.ts";
+import { toMm } from "../src/app/units.ts";
 import {
   hasDials,
   sizePreview,
@@ -121,6 +122,7 @@ describe("sizePreview", () => {
     const eraser = pluginById("eraser")!;
     expect(usesSize(eraser)).toBe(true);
     expect(toolControl(eraser)).toBe("size");
-    expect(eraser.defaultSize).toBe(8);
+    // A block rubber, ten millimetres across the face.
+    expect(toMm(eraser.defaultSize!)).toBeCloseTo(10, 6);
   });
 });

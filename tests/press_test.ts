@@ -49,11 +49,17 @@ describe("pressMarks", () => {
   });
 
   it("presses at the tool's own scale, not the toolbar's number", () => {
-    // A highlighter is six times the number on the button (see the builtin
-    // registrations) — which is the whole reason a dot the size of the number
-    // was the wrong preview.
-    expect(press("highlighter")[0]?.size).toBe(8 * 6);
-    expect(press("crayon")[0]?.size).toBe(8 * 2);
+    // Most tools now lay down exactly the width on the button — that is what
+    // it means for a width to be a real distance — but the ones whose painter
+    // works to a scale of its own still say so here, and the preview follows
+    // the mark rather than the number. A broad nib is drawn twice the number
+    // it is handed, so the tool asks for half of what you set; an airbrush
+    // throws a cone 3.2 times its own, so it asks for a 3.2nd.
+    expect(press("calligraphy")[0]?.size).toBe(8 * 0.5);
+    expect(press("airspray")[0]?.size).toBeCloseTo(8 / 3.2, 6);
+    // …and the ones that don't are the number itself.
+    expect(press("highlighter")[0]?.size).toBe(8);
+    expect(press("crayon")[0]?.size).toBe(8);
   });
 
   it("draws with the tool as it is tuned", () => {
@@ -133,9 +139,12 @@ describe("pressExtent", () => {
     // measures the painted mark rather than guessing here.
     expect(pressExtent(press("pencil", { size: 2 }))).toBe(2);
     expect(pressExtent(press("pencil", { size: 16 }))).toBe(16);
-    // …and a tool that draws at a scale of its own says so through the mark it
-    // makes, not through the number on the button.
-    expect(pressExtent(press("highlighter", { size: 2 }))).toBe(12);
+    // …and a tool that draws at a scale of its own carries that scale on the
+    // stroke rather than in the number on the button: the broad nib's painter
+    // draws a flat twice what it is handed, so the tool hands it half of the
+    // width you set. What that half comes out as on paper is the painter's
+    // business, and the preview measures the *painted* mark rather than this.
+    expect(pressExtent(press("calligraphy", { size: 12 }))).toBe(6);
   });
 
   it("is nothing at all when there is no mark", () => {

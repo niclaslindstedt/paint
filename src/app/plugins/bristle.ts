@@ -16,6 +16,7 @@
 // intended.
 
 import type { Point } from "../types.ts";
+import { mm } from "../units.ts";
 import {
   HAIRLINE,
   PIXEL,
@@ -26,6 +27,37 @@ import {
   type Trace,
 } from "./grain.ts";
 import { paintPath } from "./ink.ts";
+
+/** What is on the end of the handle.
+ *
+ *  A `round` is a cone of hair: it lays down the same width whichever way you
+ *  pull it, which is why it is the brush you draw with. A `flat` is a blade —
+ *  a bundle squeezed into a chisel ferrule — and it lays down its full width
+ *  only when you pull it square across itself. Turn it and the mark closes to
+ *  the thickness of the blade, which is the entire reason a sign-writer owns
+ *  one: a single stroke that swells and thins as it goes round a curve.
+ *
+ *  It is a property of the *brush*, not a dial: you do not turn a round into a
+ *  flat, you pick up a different brush. So it arrives here from the plugin
+ *  descriptor the way the marker's chisel does (see `builtin/index.ts`). */
+export type BrushHead = {
+  shape: "round" | "flat";
+  /** Which way the blade is turned, in radians off the horizontal. Meaningless
+   *  on a round, which has no flat to turn. */
+  angle: number;
+};
+
+/** The round head every brush is unless it says otherwise. */
+export const ROUND_HEAD: BrushHead = { shape: "round", angle: 0 };
+
+/** How thick a flat blade is, as a share of its width — what is left of the
+ *  mark when the brush is pulled along its own edge.
+ *
+ *  Not zero, and not close to it: a chisel ferrule squeezes the bundle flat but
+ *  a bundle of hair still has a body, and an edge-on flat leaves a line you can
+ *  letter with rather than nothing at all. About a seventh is what a
+ *  one-stroke brush actually measures. */
+const BLADE = 0.14;
 
 /** Stiffen a traced path to what a head that wide could actually have drawn.
  *
@@ -96,9 +128,14 @@ export function loadAt(at: number, capacity: number, hard: number): number {
  *  a dry one. The range is wide on purpose — a loaded two-inch flat covers most
  *  of a page before it opens up, a dry one is streaking within a head-width —
  *  because that range *is* the difference between the top and bottom of a
- *  pressure series. */
+ *  pressure series.
+ *
+ *  Mostly proportional to the head, with a floor under it so a rigger is not
+ *  spent in a centimetre. A charged #6 round — five millimetres of hair —
+ *  covers something like fifteen centimetres of paper here, which is about what
+ *  one dip does. */
 export function capacityOf(size: number, hard: number): number {
-  return (120 + size * 3.2) * (0.45 + hard * 1.9);
+  return (mm(10) + size * 10) * (0.45 + hard * 1.9);
 }
 
 /** How wide the pooled middle of the mark is, as a share of the head's
@@ -175,32 +212,38 @@ function widthProfile(
 // hairs**. Artists' filament is milled in a narrow band of thicknesses: a fine
 // sable is drawn at about 0.075 mm and the coarsest hog or house-brush bristle
 // at about 0.3 mm. Head widths span nothing like that range: a size 2 round is
-// 4 mm across the ferrule and a wide flat is 50 mm. So a head fifteen times the
-// width carries hair only some three times the thickness — and about five times
-// as many streaks per centimetre of edge.
+// 2 mm across the ferrule and a wide flat is 50 mm. So a head twenty-five times
+// the width carries hair only some four times the thickness — and about six
+// times as many streaks per centimetre of edge.
 //
-// That ratio is the whole of the rule below. `size` is a head width in document
-// pixels; the pitch between hairs grows as its fifth root or so, which over the
-// app's whole 2.5–240 px range moves a streak from about one pixel wide to
-// about four. A mark made with the fattest brush is a mark full of fine hair
-// lines, not four fat noodles — which is what a linear `size / count` gives and
-// what no brush has ever left on paper.
+// That ratio is the whole of the rule below, and now that a document pixel is a
+// real distance (see `units.ts`) every number in it is the millimetre it stands
+// for. The pitch between hairs grows as roughly the third root of the head,
+// which over the app's whole 1–150 mm range moves a streak from 0.13 mm to
+// 0.39 mm — the real filament band, near enough. A mark made with the fattest
+// brush is a mark full of fine hair lines, not four fat noodles, which is what
+// a linear `size / count` gives and what no brush has ever left on paper.
 
-/** The gap between hairs, in document pixels, on a head of `HAIR_HEAD`. */
-const HAIR_PITCH = 2.1;
+/** The gap between hairs on a head of `HAIR_HEAD` — a fine-to-middling sable,
+ *  a little under a fifth of a millimetre. */
+const HAIR_PITCH = mm(0.18);
 
-/** The head width, in document pixels, the pitch above is written for. */
-const HAIR_HEAD = 24;
+/** The head width the pitch above is written for: a half-inch brush, which is
+ *  the middle of the rack in every sense. */
+const HAIR_HEAD = mm(12);
 
 /** How fast hair coarsens as the head widens — the exponent on the ratio above.
  *  0 would be one hair gauge for every brush in the rack; 1 would be the
- *  noodles. Real filament ranges over ~4× while heads range over ~15×, and
- *  log(4)/log(15) lands here. */
+ *  noodles. Real filament ranges over ~4× while heads range over ~50×, and the
+ *  logs of those land here. */
 const HAIR_COARSENING = 0.38;
 
-/** The coarsest and finest a hair is allowed to get however extreme the head. */
-const HAIR_PITCH_MIN = 1.5;
-const HAIR_PITCH_MAX = 4.6;
+/** The coarsest and finest a hair is allowed to get however extreme the head —
+ *  the two ends of what is actually milled: fine sable, and hog. The fine end
+ *  stops a shade above the real 0.075 mm, because a strand thinner than a page
+ *  pixel is one the mark cannot show however carefully it is placed. */
+const HAIR_PITCH_MIN = mm(0.1);
+const HAIR_PITCH_MAX = mm(0.32);
 
 /** The paper's grain, in document pixels: how far you travel before the sheet
  *  is a different height under the head. Everything a mark does that belongs to
@@ -212,8 +255,11 @@ const HAIR_PITCH_MAX = 4.6;
  *  Short on purpose. A grain measured in half-stroke-lengths, as it was, cannot
  *  interrupt a stroke at all: every hair reads one value of it for its whole run
  *  and either draws or does not, which is a bundle of wires rather than a mark
- *  that is broken all over. */
-const TOOTH = 21;
+ *  that is broken all over.
+ *
+ *  Just under two millimetres, which is the pitch of the ridges on cold-pressed
+ *  stock — the paper a brush is usually being dragged over. */
+const TOOTH = mm(1.8);
 
 /** How much coarser the pooling is than the grain it pools in. A dip that holds
  *  paint is several grains across, so a wet mark is blotchy at a scale you can
@@ -317,6 +363,7 @@ export function paintBrush(
   gauge = 1,
   fray = 1,
   bleed = 0,
+  head: BrushHead = ROUND_HEAD,
 ): void {
   const alpha = ctx.globalAlpha;
   const hard = Math.max(0, Math.min(1, hardness));
@@ -350,12 +397,18 @@ export function paintBrush(
   const along = stiffen(trace(points, spacing), size * 0.3, spacing);
 
   if (along.length < 2) {
-    // A tap: a single dab of the head, not a perfect disc.
+    // A tap: a single dab of the head, not a perfect disc — and on a flat, the
+    // print of the blade, which is the one mark that shows what shape the
+    // ferrule is.
     const p = along[0] ?? points[0];
     if (!p) return;
     ctx.save();
     ctx.beginPath();
-    ctx.ellipse(p.x, p.y, half, half * 0.82, 0.6, 0, Math.PI * 2);
+    if (head.shape === "flat") {
+      ctx.ellipse(p.x, p.y, half, half * BLADE, head.angle, 0, Math.PI * 2);
+    } else {
+      ctx.ellipse(p.x, p.y, half, half * 0.82, 0.6, 0, Math.PI * 2);
+    }
     ctx.fill();
     ctx.restore();
     return;
@@ -385,6 +438,10 @@ export function paintBrush(
   const widths = new Float64Array(count);
   // The corner the path turns, measured over about a half-width of travel.
   const span = Math.max(1, Math.round(half / Math.max(1, spacing)));
+  // The blade, for a flat head: the direction the ferrule holds the hair in.
+  // A round has none, and every width below is then the head's own.
+  const bladeX = head.shape === "flat" ? Math.cos(head.angle) : 0;
+  const bladeY = head.shape === "flat" ? Math.sin(head.angle) : 0;
   for (let i = 0; i < count; i++) {
     // Stiffening rounds the path off to something a head this wide could
     // follow; what is left after it can still be a corner tighter than the head
@@ -395,9 +452,21 @@ export function paintBrush(
     // pivots: it rolls up on edge and lays down a narrower mark. So the width
     // gives way to the corner.
     const reach = turnRadius(along, i, span) / (half * splay);
+    // …and, on a flat, how much of the blade is actually across the stroke.
+    // A one-stroke brush pulled square across itself lays its whole width; the
+    // same brush pulled along its edge lays the thickness of the bundle and
+    // nothing more. That single projection is the whole of what a chisel
+    // ferrule does, and it is why one stroke of a flat swells and thins as it
+    // goes round a curve without the hand doing anything at all.
+    const { nx, ny } = normalAt(along, i);
+    const across =
+      head.shape === "flat"
+        ? Math.max(BLADE, Math.abs(bladeX * nx + bladeY * ny))
+        : 1;
     widths[i] =
       widthProfile(along, i, leadIn, runOut, 1) *
-      Math.min(1, Math.max(0.15, reach));
+      Math.min(1, Math.max(0.15, reach)) *
+      across;
   }
   // The hairs, at the medium's own pitch (see `hairLayout`) — many and fine on
   // a wide head, few and fine on a narrow one.

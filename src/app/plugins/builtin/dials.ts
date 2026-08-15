@@ -18,6 +18,7 @@
 // Each one is wired to something a painter actually does. A slider that scales
 // a number nobody can see is worse than no slider.
 
+import { mm } from "../../units.ts";
 import type { ToolDial } from "../types.ts";
 
 /** How much of the page shows through. The one dial nearly every marking tool
@@ -96,19 +97,48 @@ export const ANGLE: ToolDial = {
   unit: "deg",
 };
 
-/** The pencil's lead, as a fraction of an HB.
+/** The pencil's lead, by its grade.
  *
- *  A pencil has exactly one axis and this is it: below 1 is the H end — hard,
- *  pale, riding the peaks of the paper — and above it the B end, soft and dark
- *  and filling the tooth in. It reaches the *deposit* only, so a 6B is a blacker
- *  line and never a wider one (see `graphite.ts`). */
+ *  A pencil has exactly one axis and this is it: the H end is hard, pale and
+ *  rides the peaks of the paper, the B end is soft and dark and fills the tooth
+ *  in. It reaches the *deposit* only, so a 6B is a blacker line and never a
+ *  wider one (see `graphite.ts`).
+ *
+ *  **It is pressed, not dragged.** There is nothing between a 2B and a 3B —
+ *  they are two boxes on a shelf — and a slider that has to be hunted along
+ *  until the readout says "4B" is asking someone to search for a value they
+ *  could have named. So the dial carries `choices` and the panel renders the
+ *  ladder (see `ToolDial.choices`).
+ *
+ *  The stored number is still what it always was: how much darker than an HB
+ *  this lead lays down. That is what keeps every pencil line already drawn
+ *  drawing exactly as it did — the grade is a *label on a number*, not a new
+ *  number. The ladder below is the fifteen grades a shop actually sells, at the
+ *  darkness each of them measures against an HB. */
 export const GRADE: ToolDial = {
   id: "grade",
   nameKey: "dials.grade.name",
   hintKey: "dials.grade.hint",
-  min: 0.35,
-  max: 1.8,
-  step: 0.05,
+  min: 0.38,
+  max: 1.9,
+  step: 0.01,
+  choices: [
+    { value: 0.38, label: "8H" },
+    { value: 0.45, label: "6H" },
+    { value: 0.55, label: "4H" },
+    { value: 0.62, label: "3H" },
+    { value: 0.7, label: "2H" },
+    { value: 0.8, label: "H" },
+    { value: 0.9, label: "F" },
+    { value: 1, label: "HB" },
+    { value: 1.12, label: "B" },
+    { value: 1.25, label: "2B" },
+    { value: 1.38, label: "3B" },
+    { value: 1.5, label: "4B" },
+    { value: 1.68, label: "6B" },
+    { value: 1.8, label: "8B" },
+    { value: 1.9, label: "9B" },
+  ],
 };
 
 /** Edge crispness — the dial that used to live in the open under the width, and
@@ -196,20 +226,80 @@ export const PRESSURE: ToolDial = {
 };
 
 /** How far the paint bucket's edge fades out past the outline it traced, in
- *  document pixels.
+ *  millimetres of page.
  *
  *  The one dial that measures the *page* rather than a fraction of a tool, and
  *  the one whose rest is nothing: a bucket fills to a hard edge unless you ask
  *  it not to. It is what turns the tool from a flat-colour bucket into a way of
  *  laying a soft wash behind a sketch — and it stays a vector fill, so the fade
- *  survives a zoom to eight hundred percent. */
+ *  survives a zoom to eight hundred percent.
+ *
+ *  The number on the stroke is still document pixels, exactly as it was; what
+ *  changed is that the panel now reads it out in the millimetres it has always
+ *  been (see `units.ts`), and that the reach goes to two centimetres, which is
+ *  a soft edge you can see on a page a foot across rather than three pixels of
+ *  one. */
 export const FEATHER: ToolDial = {
   id: "feather",
   nameKey: "dials.feather.name",
   hintKey: "dials.feather.hint",
   min: 0,
-  max: 40,
-  step: 1,
+  max: mm(20),
+  step: mm(0.2),
   default: 0,
-  unit: "px",
+  unit: "mm",
+};
+
+// --- Watercolour --------------------------------------------------------------
+//
+// The three below belong to the wash tool, and they are three different things
+// rather than three ways of saying "more". A watercolourist changes exactly
+// these between one stroke and the next: how much water is on the brush, how
+// much colour is in the water, and what the paper does with what is left.
+
+/** How charged the brush is.
+ *
+ *  The first thing anyone touching watercolour learns: it is water you are
+ *  painting with, and the pigment goes where the water takes it. Turned up, the
+ *  mark spreads past the hair that laid it, both its edges wander off the
+ *  gesture, and what is left in the middle is dilute — a wet-in-wet wash.
+ *  Turned down it is nearly dry-brush, and the stroke keeps the shape of the
+ *  head. */
+export const WATER: ToolDial = {
+  id: "water",
+  nameKey: "dials.water.name",
+  hintKey: "dials.water.hint",
+  min: 0.2,
+  max: 2,
+  step: 0.05,
+};
+
+/** How much colour is in that water — a pale tint you can read a pencil line
+ *  through, or a full-strength stain. Separate from opacity on purpose: opacity
+ *  turns the whole mark down, this changes what is *dissolved in it*, and the
+ *  dried rim follows the pigment rather than the mark. */
+export const PIGMENT: ToolDial = {
+  id: "pigment",
+  nameKey: "dials.pigment.name",
+  hintKey: "dials.pigment.hint",
+  min: 0.2,
+  max: 2,
+  step: 0.05,
+};
+
+/** How heavily the pigment settles into the sheet.
+ *
+ *  The one dial here that is the *paper* and the colour rather than the brush —
+ *  ultramarine on rough stock mottles enough to see across a room, phthalo on
+ *  hot-pressed does not mottle at all. It rests part way up, because a wash
+ *  with no granulation in it whatsoever is the one thing that reads as printed
+ *  rather than painted. */
+export const GRANULATION: ToolDial = {
+  id: "granulation",
+  nameKey: "dials.granulation.name",
+  hintKey: "dials.granulation.hint",
+  min: 0,
+  max: 1.6,
+  step: 0.05,
+  default: 0.6,
 };

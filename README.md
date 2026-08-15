@@ -12,8 +12,8 @@
 
 Paint is a small installable web app for sketching a concept: boxes, arrows, a
 circled bit, a scribble. It opens on a page, a paint program's toolbox — pen,
-pencil, eraser, airbrush, paint bucket, text, the shapes, a selection marquee
-and the colour dropper — and nothing else in the way. Drawings are vector strokes kept in your browser; nothing leaves the device
+pencil, eraser, watercolour brush, airbrush, paint bucket, text, the shapes, a
+selection marquee and the colour dropper — and nothing else in the way. Drawings are vector strokes kept in your browser; nothing leaves the device
 unless you connect storage yourself.
 
 It is a sibling of the [`notes`](https://github.com/niclaslindstedt/notes) and
@@ -30,13 +30,23 @@ the same [`oss-framework`](https://github.com/niclaslindstedt/oss-framework).
   again exactly as you left it.
 - **Tools are plugins.** Every tool, the pen included, is registered through
   one interface. It opens on the toolbox you already know — pen, pencil,
-  eraser, airbrush, bucket, text, the shapes, a selection marquee and the
-  dropper — and the media it adds to that (a bristle brush, a marker, a crayon,
-  a calligraphy nib, a highlighter) wait in Settings → Tools, so the toolbar
-  stays as simple as you want it and grows when you need it. Rearrange the row
-  there too, and it rearranges here. Each tool remembers its own width — in
-  millimetres of page, from a technical pen's 0.5 to a decorator's brush — so a
-  fat brush never costs you a fine pen.
+  eraser, watercolour brush, airbrush, bucket, text, the shapes, a selection
+  marquee and the dropper — and the media it adds to that (a round and a flat
+  bristle brush, a marker, a crayon, a calligraphy nib, a highlighter) wait in
+  Settings → Tools, so the toolbar stays as simple as you want it and grows when
+  you need it. Rearrange the row there too, and it rearranges here. Each tool
+  remembers its own width, so a fat brush never costs you a fine pen.
+- **Sizes a shop actually sells.** A document pixel is one dot of a 300 dpi
+  print, so a width is a real distance: the pencil comes in 0.3 / 0.5 / 0.7 /
+  0.9 / 2.0 mm of lead, the round brush in a #2 through a one-inch flat, type in
+  points. Each tool's slider spends its middle four tenths on the range that
+  tool is genuinely made in — the band is drawn on the track and the readout
+  says **as made** when you are inside it — with a tenth below for finer than
+  anybody makes and the top half running off to a nib as wide as the page.
+- **Save the tool, not the setting.** Once you have found the 4B at 0.7 mm with
+  the opacity eased off, press **Save…**, call it "my sketching pencil", and it
+  is one press away from then on. A saved tool carries its width and every dial,
+  and it belongs to the tool it was saved from.
 - **Eleven shapes, one button.** Rectangle, ellipse, line, arrow, rounded
   rectangle, triangle, diamond, pentagon, hexagon, star and double arrow share a
   single toolbar button and a single switch: press it again for the family, and
@@ -47,9 +57,19 @@ the same [`oss-framework`](https://github.com/niclaslindstedt/oss-framework).
   right-click or a long press. Ctrl/⌘+V pastes back — marks from
   another tab, a screenshot from anywhere, or words, which open the caption box
   so you can set the typeface and size before they land.
-- **Brushes that are their medium.** The paintbrush is a head of hair: it lays
+- **Watercolour that behaves like watercolour.** What you paint with is
+  _water_, and the pigment only goes where the water took it: the wash spreads
+  past the hair that laid it, both its edges follow the paper rather than your
+  gesture, the rim dries darkest the way a real one does, the pigment granulates
+  into the sheet's dips, and nothing covers — every layer shows what is under
+  it, so glazing a second pass over the first really does deepen it. How much
+  water is on the brush, how much colour is in the water, and how heavily the
+  paper takes it are three dials.
+- **Brushes that are their medium.** The round brush is a head of hair: it lays
   down opaque paint with the hairs' partings scratched through it, frays at the
-  sides, and runs dry towards the end of a long drag. Turn it down and you get
+  sides, and runs dry towards the end of a long drag. The flat is the same head
+  in a chisel ferrule — full width pulled across itself, a hairline pulled along
+  its edge, so one stroke swells and thins round a curve on its own. Turn it down and you get
   the whole pressure series off a reference sheet — a loaded flat that covers
   edge to edge, a medium mark streaked through, a dry brush that is mostly
   paper — and it can be worn open until its side is a fringe, or set on paper
@@ -134,7 +154,8 @@ make install
 npm run dev          # http://localhost:5173
 ```
 
-Draw on the page. `P` the pen, `E` the eraser, `G` the pencil, `S` airbrush,
+Draw on the page. `P` the pen, `E` the eraser, `G` the pencil, `W` watercolour,
+`S` airbrush,
 `F` the paint bucket, `R` / `O` / `L` / `A` the rectangle, ellipse, line and
 arrow, `V` the selection marquee, `T` text, `I` the colour dropper, `D` the hand
 (drag the page around) — left to right in the order a hand uses them;
@@ -183,11 +204,14 @@ npm run preview
   opens the widths, a slider for new ones, and — under an **Advanced** heading,
   open rather than folded away — the knobs belonging to the tool in your hand:
   how charged the head is, its hair gauge, how far it has splayed and how far
-  the paper bleeds for the paintbrush, flow for the airbrush, pressure for the
-  crayon, the lead's grade for the pencil, the chisel of a felt tip for the
-  marker and the highlighter, the angle of the nib for the calligraphy pen,
-  strength for the eraser, a feathered edge for the paint bucket, and opacity
-  for most of the rest.
+  the paper bleeds for the bristle brushes, water, pigment and granulation for
+  the watercolour brush, flow for the airbrush, pressure for the crayon, the
+  lead's grade for the pencil — 8H through 9B, as a row of chips rather than a
+  slider, because there is nothing between a 2B and a 3B — the chisel of a felt
+  tip for the marker and the highlighter, the angle of the nib for the flat
+  brush and the calligraphy pen, strength for the eraser, a feathered edge for
+  the paint bucket, and opacity for most of the rest. Above the widths is
+  **Saved**: whole tools you named yourself, one press each.
   They are kept per tool, so a soft brush stays soft without softening anything
   else. A tool with no width to set shows a **cog** in that slot instead — the
   paint bucket fills the area it traced whatever a nib might say, so it opens

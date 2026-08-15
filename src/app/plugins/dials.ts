@@ -26,6 +26,7 @@
 // already made.
 
 import type { Stroke } from "../types.ts";
+import { formatMm } from "../units.ts";
 import type { PaintPlugin, ToolDial } from "./types.ts";
 
 /** Where a dial rests when nobody has touched it. Almost always 1 — see
@@ -34,13 +35,45 @@ export function dialDefault(dial: ToolDial): number {
   return dial.default ?? 1;
 }
 
-/** The number the panel prints beside a dial's name: a percentage of the tool's
- *  normal, or the number itself for the dials that measure something real — the
- *  page (pixels) or a tilt (degrees). The unit lives in the catalog string (see
- *  `ToolDial.nameKey`). */
-export function dialReadout(dial: ToolDial, value: number): number {
-  const plain = dial.unit === "px" || dial.unit === "deg";
-  return plain ? Math.round(value) : Math.round(value * 100);
+/** What the panel prints beside a dial's name: a percentage of the tool's
+ *  normal, the millimetres or degrees it is for the dials that measure
+ *  something real, or — for a dial with `choices` — the trade's own name for
+ *  the value it is on. The unit lives in the catalog string (see
+ *  `ToolDial.nameKey`), which is why this hands back the number alone.
+ *
+ *  A string rather than a number, because a millimetre is not printed the way a
+ *  percentage is (0.35 mm needs its decimals, 140 mm does not) and a grade is
+ *  not printed as a number at all. */
+export function dialReadout(dial: ToolDial, value: number): string {
+  const named = dialChoice(dial, value);
+  if (named) return named.label;
+  if (dial.unit === "mm") return formatMm(value);
+  if (dial.unit === "px" || dial.unit === "deg")
+    return String(Math.round(value));
+  return String(Math.round(value * 100));
+}
+
+/** Which of a dial's `choices` a value stands for — the nearest one, so a
+ *  tuning written by another build (or clamped into a narrower range by this
+ *  one) still lands on a chip rather than between two of them.
+ *
+ *  `undefined` for an ordinary dial, which is what the panel reads to decide
+ *  between a row of chips and a slider. */
+export function dialChoice(
+  dial: ToolDial,
+  value: number,
+): { value: number; label: string } | undefined {
+  if (!dial.choices?.length) return undefined;
+  let best = dial.choices[0]!;
+  let closest = Math.abs(best.value - value);
+  for (const choice of dial.choices) {
+    const gap = Math.abs(choice.value - value);
+    if (gap < closest) {
+      closest = gap;
+      best = choice;
+    }
+  }
+  return best;
 }
 
 /** A stored value pulled back into the dial's range. A blob written by another

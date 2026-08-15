@@ -2,16 +2,19 @@
 import { describe, expect, it } from "vitest";
 
 import { registerBuiltinPlugins } from "../src/app/plugins/builtin/index.ts";
-import { pluginById } from "../src/app/plugins/registry.ts";
+import { allPlugins, pluginById } from "../src/app/plugins/registry.ts";
+import { gaugeSizes } from "../src/app/plugins/gauge.ts";
+import { formatMm, mm, toMm, toPt } from "../src/app/units.ts";
 import {
   MAX_SIZE,
   PX_PER_MM,
   SETTINGS_VERSION,
-  SIZES,
   defaultSettings,
+  gaugeFor,
   groupMemberFor,
+  keptSizesFor,
   parseSettings,
-  sizeInMm,
+  presetsFor,
   sizesFor,
   toolSize,
 } from "../src/app/useAppSettings.ts";
@@ -72,34 +75,58 @@ describe("parseSettings", () => {
   describe("toolSize", () => {
     it("falls back to the width the tool's own plugin opens at", () => {
       const settings = defaultSettings();
-      expect(toolSize(settings, "pencil")).toBe(3);
-      expect(toolSize(settings, "text")).toBe(32);
-      expect(toolSize(settings, "eraser")).toBe(8);
+      // A 0.35 mm technical pen, a 12 pt caption and a 10 mm block rubber —
+      // three tools, three scales, and every one of them a real implement.
+      expect(toMm(toolSize(settings, "pencil"))).toBeCloseTo(0.35, 6);
+      expect(toPt(toolSize(settings, "text"))).toBeCloseTo(12, 6);
+      expect(toMm(toolSize(settings, "eraser"))).toBeCloseTo(10, 6);
     });
 
     it("answers with the width that tool was last set to", () => {
       const settings = { ...defaultSettings(), toolSizes: { pencil: 11 } };
       expect(toolSize(settings, "pencil")).toBe(11);
-      // …and only that tool: a fat pencil is not a fat brush.
-      expect(toolSize(settings, "paintbrush")).toBe(6);
+      // …and only that tool: a fat pencil is not a fat brush. The brush opens
+      // on a #6 round, which is 4.8 mm of ferrule.
+      expect(toMm(toolSize(settings, "paintbrush"))).toBeCloseTo(4.8, 3);
     });
 
-    it("falls back to the middle of the shared row for a tool it can't find", () => {
-      expect(toolSize(defaultSettings(), "quill")).toBe(SIZES[1]);
+    it("falls back to the middle of the default ladder for a tool it can't find", () => {
+      expect(toMm(toolSize(defaultSettings(), "quill"))).toBeCloseTo(1, 3);
     });
   });
 
   describe("sizesFor", () => {
-    it("offers the app's three widths for a tool with no scale of its own", () => {
-      expect(sizesFor(pluginById("pencil"), [])).toEqual([...SIZES]);
+    it("offers the five widths the tool is really made in", () => {
+      // The ISO ladder every technical pen is drawn to.
+      const rounded = sizesFor(pluginById("pencil"), []).map(
+        (px) => Math.round(toMm(px) * 100) / 100,
+      );
+      expect(rounded).toEqual([0.18, 0.25, 0.35, 0.5, 0.7]);
+      // Five, for every tool that has a width at all: it is what a thumb can
+      // hit without reading, and what a real rack of one implement holds
+      // between fine and broad.
+      for (const plugin of allPlugins()) {
+        if (!plugin.gauge) continue;
+        expect(plugin.gauge.steps).toHaveLength(5);
+      }
     });
 
     it("offers a tool's own scale where it declares one", () => {
-      expect(sizesFor(pluginById("text"), [])).toEqual([16, 24, 32, 48, 72]);
+      // Type, in points — the one gauge that isn't millimetres of page.
+      expect(sizesFor(pluginById("text"), [])).toEqual(
+        gaugeSizes(gaugeFor(pluginById("text"))),
+      );
     });
 
     it("folds the widths the user kept into the row, fine to broad", () => {
-      expect(sizesFor(pluginById("pencil"), [9, 4])).toEqual([2, 4, 6, 9, 16]);
+      const pen = pluginById("pencil");
+      const kept = [mm(0.9), mm(0.05)];
+      expect(sizesFor(pen, kept)).toEqual(
+        [...gaugeSizes(gaugeFor(pen)), ...kept].sort((a, b) => a - b),
+      );
+      // …and a kept width that is one the tool already offers is not offered
+      // twice.
+      expect(sizesFor(pen, [mm(0.35)])).toEqual(sizesFor(pen, []));
     });
   });
 
@@ -148,6 +175,7 @@ describe("parseSettings", () => {
       const parsed = parseSettings(JSON.stringify({ hardness: 0.25 }));
       expect(parsed.toolDials).toEqual({
         paintbrush: { hardness: 0.25 },
+        flatbrush: { hardness: 0.25 },
         airspray: { hardness: 0.25 },
       });
     });
@@ -246,35 +274,44 @@ describe("parseSettings", () => {
 });
 
 describe("widths in millimetres", () => {
-  it("prints a fine nib to a tenth and a broad one whole", () => {
-    // A tenth of a millimetre is the difference between two technical pens and
+  it("prints a fine nib to two decimals and a broad one whole", () => {
+    // A hundredth of a millimetre separates two technical pens and means
     // nothing at all once the nib is wider than a pencil.
-    expect(sizeInMm(2)).toBe("2");
-    expect(sizeInMm(0.5)).toBe("0.5");
-    expect(sizeInMm(3.25)).toBe("3.3");
-    expect(sizeInMm(140)).toBe("140");
-    expect(sizeInMm(16.4)).toBe("16");
+    expect(formatMm(mm(0.18))).toBe("0.18");
+    expect(formatMm(mm(4.8))).toBe("4.8");
+    expect(formatMm(mm(5))).toBe("5");
+    expect(formatMm(mm(140))).toBe("140");
   });
 
-  it("leaves what a stroke stores alone", () => {
-    // The unit is a *readout*: widths on strokes are still document pixels, so
-    // naming them did not move a single mark already drawn.
-    expect(PX_PER_MM).toBe(1);
-    expect(sizeInMm(SIZES[0])).toBe(String(SIZES[0]));
+  it("pins a document pixel to a 300 dpi dot", () => {
+    // The whole calibration: A4 at 300 dpi is the `print` page preset, so a
+    // sheet 2480 px wide is 210 mm of paper and a millimetre is 11.81 px.
+    expect(PX_PER_MM).toBeCloseTo(300 / 25.4, 6);
+    expect(Math.round(mm(210))).toBe(2480);
   });
 
-  it("reaches a decorator's brush", () => {
-    // The old ceiling of 96 was right about a pen and wrong about a brush.
-    expect(MAX_SIZE).toBeGreaterThanOrEqual(140 * PX_PER_MM);
+  it("stops at a nib as wide as the page", () => {
+    // A4's short edge: the widest mark that is still a nib rather than a fill.
+    expect(toMm(MAX_SIZE)).toBeCloseTo(210, 6);
   });
 
-  it("keeps a kept width inside the new ceiling", () => {
-    // The stored list is clamped against `MAX_SIZE`, so raising it must not
-    // let a blob through that the slider could not represent.
+  it("keeps kept widths per tool, inside the ceiling", () => {
     const settings = parseSettings(
-      JSON.stringify({ customSizes: [4, MAX_SIZE, MAX_SIZE + 1, -3] }),
+      JSON.stringify({
+        customSizes: { pencil: [4, MAX_SIZE, MAX_SIZE + 1, -3] },
+      }),
     );
-    expect(settings.customSizes).toEqual([4, MAX_SIZE]);
+    expect(keptSizesFor(settings, "pencil")).toEqual([4, MAX_SIZE]);
+    expect(keptSizesFor(settings, "paintbrush")).toEqual([]);
+  });
+
+  it("drops the one shared list of widths an older blob carries", () => {
+    // They were widths on a scale where a document pixel meant nothing in
+    // particular. Seeding them into fifteen rows would put a nib as wide as a
+    // finger in the pencil's picker, so the five real ones win instead.
+    const settings = parseSettings(JSON.stringify({ customSizes: [4, 96] }));
+    expect(settings.customSizes).toEqual({});
+    expect(presetsFor(settings, "pencil")).toEqual([]);
   });
 });
 

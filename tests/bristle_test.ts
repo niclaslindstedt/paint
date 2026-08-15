@@ -1,12 +1,15 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 import { describe, expect, it } from "vitest";
 
+import { mm } from "../src/app/units.ts";
+
 import {
   capacityOf,
   coreShare,
   hairLayout,
   loadAt,
   paintBrush,
+  type BrushHead,
 } from "../src/app/plugins/bristle.ts";
 import type { Point } from "../src/app/types.ts";
 
@@ -78,6 +81,25 @@ function coverageOf(size: number, hardness: number, length = 600): number {
  *  two different sizes can be compared without the hair count deciding it. */
 function coverageShare(size: number, hardness: number): number {
   return coverageOf(size, hardness) / coverageOf(size, 1);
+}
+
+/** How far across the drag a head of a given shape actually reaches — the
+ *  width of the mark, read off the hairs it laid rather than off any number the
+ *  painter was handed. */
+function spreadOf(head: BrushHead, size = mm(12)): number {
+  const ctx = createFakeContext();
+  const points = drag(600);
+  const ys: number[] = [];
+  const to = ctx.quadraticCurveTo.bind(ctx);
+  ctx.quadraticCurveTo = (cx: number, cy: number, x: number, y: number) => {
+    ys.push(y);
+    to(cx, cy, x, y);
+  };
+  paintBrush(ctx, points, size, 0.8, 1, 1, 1, 0, head);
+  // Against the path's own middle, so the drag's own wave doesn't count as
+  // width.
+  const mid = (Math.max(...ys) + Math.min(...ys)) / 2;
+  return Math.max(...ys.map((y) => Math.abs(y - mid)));
 }
 
 describe("hairLayout", () => {
@@ -210,15 +232,17 @@ describe("paintBrush", () => {
   });
 
   it("keeps the small heads people actually draw with solid", () => {
-    // The app's default paintbrush is fifteen document pixels, which is most of
-    // the marks in most drawings. The paper's grain does not shrink with the
-    // brush: a head narrower than the dips a wide one skips over rides the
-    // sheet instead of catching on it. Applied flat, the same skip rate turns
-    // the default brush into a dashed ghost.
-    expect(coverageShare(15, 0.5)).toBeGreaterThan(coverageShare(100, 0.5));
+    // The paper's grain does not shrink with the brush: a head narrower than
+    // the dips a wide one skips over rides the sheet instead of catching on
+    // it. Applied flat, the same skip rate turns a liner into a dashed ghost.
+    // A millimetre of hair against a centimetre of it — a rigger against a
+    // half-inch flat.
+    expect(coverageShare(mm(1), 0.5)).toBeGreaterThan(
+      coverageShare(mm(10), 0.5),
+    );
     // A charged head that small is a line, near enough — it has no room for a
     // texture and should not pretend to.
-    expect(coverageShare(15, 0.9)).toBeGreaterThan(0.9);
+    expect(coverageShare(mm(1), 0.9)).toBeGreaterThan(0.9);
   });
 
   it("spends a wide head's load over a wide head's distance", () => {
@@ -280,6 +304,28 @@ describe("paintBrush", () => {
     expect(halo.length).toBeGreaterThan(0);
     for (const pass of halo) expect(pass.alpha).toBeLessThan(0.35);
     expect(dry.strokes.every((s) => s.alpha === 1)).toBe(true);
+  });
+
+  it("closes a flat down to its edge, and holds a round's width", () => {
+    // A chisel ferrule squeezes the bundle into a blade: pull it square across
+    // itself and it lays its whole width, pull it along its own edge and it
+    // lays the thickness of the hair. That single projection is the entire
+    // reason a sign-writer owns one, and it is what a round — a cone of hair —
+    // cannot do.
+    //
+    // The drag below runs left to right, so a blade held *across* it (90°) is
+    // at full width and one held *along* it (0°) is on its edge.
+    const across = spreadOf({ shape: "flat", angle: Math.PI / 2 });
+    const along = spreadOf({ shape: "flat", angle: 0 });
+    expect(along).toBeLessThan(across * 0.4);
+    // Not to nothing, though: a bundle of hair still has a body, and an
+    // edge-on flat leaves a line you can letter with.
+    expect(along).toBeGreaterThan(across * 0.05);
+    // A round is the same mark whichever way it is turned.
+    expect(spreadOf({ shape: "round", angle: 0 })).toBeCloseTo(
+      spreadOf({ shape: "round", angle: Math.PI / 2 }),
+      6,
+    );
   });
 
   it("paints at the stroke's own opacity", () => {

@@ -13,6 +13,7 @@ import {
   type ToolbarEntry,
 } from "./plugins/registry.ts";
 import type { PaintPlugin } from "./plugins/types.ts";
+import type { ToolPreset } from "./presets.ts";
 import {
   groupMemberFor,
   sizesFor,
@@ -94,9 +95,15 @@ type Props = {
   onRemoveColor: (color: string) => void;
   size: number;
   onSizeChange: (size: number) => void;
+  /** The widths kept for the tool in hand, and the tools saved under a name
+   *  for it. Both are per tool — see `useAppSettings`. */
   customSizes: readonly number[];
   onAddSize: (size: number) => void;
   onRemoveSize: (size: number) => void;
+  presets: readonly ToolPreset[];
+  onApplyPreset: (preset: ToolPreset) => void;
+  onSavePreset: (name: string) => void;
+  onDeletePreset: (id: string) => void;
   /** Where the active tool's dials sit, resolved — the size panel's Advanced
    *  section. Which dials those are comes off the plugin descriptor, so the
    *  toolbar never learns one by name (see `plugins/dials.ts`). */
@@ -135,6 +142,10 @@ export function Toolbar({
   customSizes,
   onAddSize,
   onRemoveSize,
+  presets,
+  onApplyPreset,
+  onSavePreset,
+  onDeletePreset,
   dialValues,
   onDialChange,
   onResetDials,
@@ -441,6 +452,10 @@ export function Toolbar({
           customSizes={customSizes}
           onAddSize={onAddSize}
           onRemoveSize={onRemoveSize}
+          presets={presets}
+          onApplyPreset={onApplyPreset}
+          onSavePreset={onSavePreset}
+          onDeletePreset={onDeletePreset}
           dials={active?.dials ?? []}
           values={dialValues}
           onDialChange={onDialChange}

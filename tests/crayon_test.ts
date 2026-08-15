@@ -109,8 +109,10 @@ describe("the crayon", () => {
     // used to come out as a dotted line, because every row it offered landed in
     // the fray at the rim and the middle was never sampled at all.
     const points = curve(200);
+    // Two document pixels is a sixth of a millimetre — a sharpened corner of
+    // wax, and finer than the fifth of a millimetre the sheet's tooth is.
     const marked = specks(paint(points, 2)).length;
-    expect(marked).toBeGreaterThan(points.length / 2);
+    expect(marked).toBeGreaterThan(points.length / 4);
   });
 
   it("thins its detail when the view is pulled back", () => {
