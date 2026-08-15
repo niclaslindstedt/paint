@@ -39,6 +39,27 @@ export function usesSize(plugin: PaintPlugin | undefined): boolean {
   return !(plugin.navigates || plugin.picksColor || plugin.selects);
 }
 
+/** Whether the colour in the toolbar means anything with this tool in hand.
+ *
+ *  Three ways to have no use for it, and all three are already on the
+ *  descriptor: lift ink instead of laying it (`erases`), move the view
+ *  (`navigates`), or choose marks (`selects`). The toolbar dims the swatch for
+ *  those, which is the honest thing to say about a control that changes nothing
+ *  until you pick up something that paints.
+ *
+ *  **A colour-sampling tool is the exception, and it is the interesting one.**
+ *  The dropper never paints with the ink either — but it is the tool that
+ *  *sets* it, so while it is in your hand the swatch is not an unreachable
+ *  control: it is the read-out, the one place the colour you just picked is
+ *  shown. Dimming it made every sampled colour look like a darker, weaker
+ *  version of itself, which reads as the dropper having missed the colour it
+ *  was aimed at. */
+export function usesInk(plugin: PaintPlugin | undefined): boolean {
+  if (!plugin) return true;
+  if (plugin.picksColor) return true;
+  return !(plugin.erases || plugin.navigates || plugin.selects);
+}
+
 /** How this tool's width is drawn — the mark it leaves, or a plain disc. See
  *  `PaintPlugin.sizePreview`. */
 export function sizePreview(

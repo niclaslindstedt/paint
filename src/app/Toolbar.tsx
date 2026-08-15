@@ -5,7 +5,7 @@ import { CogIcon } from "@niclaslindstedt/oss-framework/components";
 
 import { useT } from "./i18n/index.ts";
 import { fieldHasKeyboard } from "./keys.ts";
-import { toolControl } from "./plugins/controls.ts";
+import { toolControl, usesInk } from "./plugins/controls.ts";
 import {
   enabledPlugins,
   pluginById,
@@ -172,14 +172,12 @@ export function Toolbar({
   // rendered — so they share the anchor their panel opens over.
   const settingsAnchor = useRef<HTMLButtonElement | null>(null);
 
-  // A tool that lifts ink (the eraser) or moves the view (the hand) has no use
-  // for the colour, so its swatch is dimmed. Read off descriptor flags —
+  // A tool that lifts ink (the eraser), moves the view (the hand) or chooses
+  // marks (the marquee) has no use for the colour, so its swatch is dimmed —
+  // but the dropper's swatch is where a sampled colour *lands*, so it stays
+  // full strength. Read off descriptor flags (see `plugins/controls.ts`);
   // nothing here knows a tool by name.
-  const inkIrrelevant =
-    active?.erases ||
-    active?.navigates ||
-    active?.picksColor ||
-    active?.selects;
+  const inkIrrelevant = !usesInk(active);
   // What the button beside the ink is for this tool: its width, its own
   // settings, or nothing (see `plugins/controls.ts`).
   const control = toolControl(active);

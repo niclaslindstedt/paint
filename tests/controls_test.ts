@@ -6,6 +6,7 @@ import {
   hasDials,
   sizePreview,
   toolControl,
+  usesInk,
   usesSize,
 } from "../src/app/plugins/controls.ts";
 import {
@@ -94,6 +95,40 @@ describe("toolControl", () => {
     });
     // Nothing declared: a tool that marks the page has a width by default.
     expect(toolControl(pluginById("smudger"))).toBe("size");
+  });
+});
+
+describe("usesInk", () => {
+  beforeEach(() => {
+    resetPlugins();
+    registerBuiltinPlugins();
+  });
+
+  it("dims the swatch for the tools the colour means nothing to", () => {
+    // Lifting ink, moving the view, choosing marks: none of the three paints,
+    // and none of them writes the colour either.
+    for (const id of ["eraser", "hand", "select"]) {
+      expect(usesInk(pluginById(id))).toBe(false);
+    }
+  });
+
+  it("keeps the dropper's swatch at full strength", () => {
+    // The dropper paints nothing, so by the rule above it would be dimmed —
+    // but the swatch is where the colour it samples lands, and a sampled
+    // colour shown at 40% reads as the dropper having picked a darker one.
+    const dropper = pluginById("dropper")!;
+    expect(dropper.picksColor).toBe(true);
+    expect(toolControl(dropper)).toBe("none");
+    expect(usesInk(dropper)).toBe(true);
+  });
+
+  it("gives the ink to everything that lays it down", () => {
+    for (const id of ["pencil", "paintbrush", "marker", "filler", "text"]) {
+      expect(usesInk(pluginById(id))).toBe(true);
+    }
+    // …and to a tool this build doesn't ship: a swatch that works is the safer
+    // guess about a tool nothing here can ask.
+    expect(usesInk(undefined)).toBe(true);
   });
 });
 
