@@ -1,7 +1,11 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 import { useEffect, useRef, useState } from "react";
 
-import { CogIcon } from "@niclaslindstedt/oss-framework/components";
+import {
+  CogIcon,
+  RedoIcon,
+  UndoIcon,
+} from "@niclaslindstedt/oss-framework/components";
 
 import { useT } from "./i18n/index.ts";
 import { fieldHasKeyboard } from "./keys.ts";
@@ -27,8 +31,20 @@ import { GroupPicker } from "./toolbar/GroupPicker.tsx";
 import { PressPreview } from "./toolbar/PressPreview.tsx";
 import { SizePicker } from "./toolbar/SizePicker.tsx";
 
-// The toolbar: the enabled tools, then two buttons for everything about the
-// ink.
+// The toolbar: the enabled tools on the left, and everything that is not a tool
+// in a block on the right.
+//
+// **Two bands, and the seam between them never moves.** The row used to be one
+// wrapping flow — tools, then the ink, then the history, each landing wherever
+// the one before it left off — so switching a tool on in Settings could push
+// the colour button onto the next line and the width button to the far side of
+// the row. The two controls a drawing hand uses most were the two that moved
+// most, and the toolbar read as a bag of buttons rather than as anything with
+// an order. Now the tools wrap over as many rows as they need on the left, and
+// the four that are not tools — the ink and the width above, undo and redo
+// below — sit in a fixed two-by-two block against the right edge, divided off
+// by a rule. The toolbar is two rows tall at least, three when the tools ask
+// for it, and the right-hand corner holds the same four buttons every time.
 //
 // It renders whatever `toolbarEntries` hands back — the core tools plus
 // whatever is switched on in Settings → Tools, in whatever order that page has
@@ -71,6 +87,15 @@ import { SizePicker } from "./toolbar/SizePicker.tsx";
 // the family: the shape you have picked, drawn hollow and drawn solid. Which
 // tools offer it is the descriptor's `supportsFill`, so nothing here knows what
 // a rectangle is.
+//
+// **Undo and redo are the block's second row.** They used to live only in the
+// sidebar's button island and on the keyboard, which is a long reach for the
+// action a drawing hand asks for more often than any other: on a phone, taking
+// back the stroke you just made meant opening a drawer over the page you were
+// looking at. They sit under the ink instead, one tap from the tool that made
+// the mark. They are the only buttons here that act on the *document* rather
+// than on the next mark, which is the other half of why the right band is
+// divided off rather than trailing the tools.
 //
 // Wiping the page used to ride on that same gesture, hung off the eraser. It
 // doesn't any more: throwing a drawing away is not erasing at a larger scale,
@@ -120,6 +145,13 @@ type Props = {
   dialsTuned: boolean;
   filled: boolean;
   onFilledChange: (filled: boolean) => void;
+  /** The document's history, as the pair of buttons that end the row. The
+   *  toolbar drives the same store the keyboard shortcuts do — it holds no
+   *  history of its own. */
+  canUndo: boolean;
+  canRedo: boolean;
+  onUndo: () => void;
+  onRedo: () => void;
 };
 
 /** Whether an entry's button does a second job once it is the one in your hand.
@@ -155,6 +187,10 @@ export function Toolbar({
   dialsTuned,
   filled,
   onFilledChange,
+  canUndo,
+  canRedo,
+  onUndo,
+  onRedo,
 }: Props) {
   const t = useT();
   const entries = toolbarEntries(settings.enabledPlugins, settings.toolOrder);
@@ -236,17 +272,24 @@ export function Toolbar({
     // empty surface as tall as a toolbar row, taken off the page for a home
     // indicator that floats over chrome perfectly happily.
     <div
-      className="flex flex-wrap items-center gap-0.5 border-t border-line bg-surface px-2 pt-2 pb-[10px]"
+      className="flex items-stretch gap-1.5 border-t border-line bg-surface px-2 pt-2 pb-[10px]"
       role="toolbar"
       aria-label={t("canvas.toolbar")}
     >
-      {/* The tools are their own group for a screen reader, but not their own
-          box for the layout: `contents` drops the wrapper's box so each button
-          wraps in the toolbar's own flow. Nested, the group filled a line of
-          its own and pushed the ink buttons onto a third row of their own —
-          two rows of dead width on a phone. Flat, the ink follows the last
-          tool onto the row it was already sharing. */}
-      <div className="contents" role="group">
+      {/* The left band: the tools, wrapping over as many rows as they need and
+          filling the width the right band leaves. They are their own box on
+          purpose — they used to be `contents`, so every button wrapped in the
+          toolbar's own flow and the ink and the history landed wherever the
+          last tool happened to leave off. Which meant the two controls a hand
+          reaches for constantly moved every time a tool was switched on.
+          Centred rather than top-aligned, because the right band is two rows
+          tall whatever happens: on a desktop, where every tool fits on one
+          line, a top-aligned row would hang off the ceiling of a toolbar twice
+          its height. */}
+      <div
+        className="flex min-w-0 flex-1 flex-wrap content-center items-center gap-0.5"
+        role="group"
+      >
         {entries.map((entry) => {
           const shown = shownFor(entry);
           if (!shown) return null;
@@ -309,10 +352,19 @@ export function Toolbar({
         })}
       </div>
 
-      {/* The ink pair stays one box: it wraps as a unit rather than splitting
-          the colour from the nib, and the extra left margin is the seam between
-          the tools and the ink the flattened gap no longer draws. */}
-      <div className="ml-1.5 flex items-center gap-1">
+      {/* The right band: everything that is not a tool, in a two-by-two block
+          pinned to the right edge — the ink and the width above, undo and redo
+          below. It never moves. Whatever the tools do on the left, whatever a
+          user switches on, whichever tool is in hand, these four are at that
+          corner of the screen, which is what makes them findable at a glance
+          and reachable without looking.
+          The rule the split draws: **the left band chooses what the next mark
+          is made with, the right band is everything else.** The rule is also
+          why the width slot is *held* rather than dropped for a tool that has
+          no width — see the spacer below. `content-end` seats the block on the
+          last row, so on a toolbar three rows of tools tall it stays under the
+          thumb rather than floating up beside the first row. */}
+      <div className="grid shrink-0 grid-cols-2 content-end gap-1 self-stretch border-l border-line pl-1.5">
         {/* The ink button: the colour you are drawing with, whole. It used to
             be split corner to corner with the page colour below the diagonal,
             back when painting *with* the page was how you rubbed something out.
@@ -453,6 +505,36 @@ export function Toolbar({
             )}
           </button>
         )}
+
+        {/* The slot is *held* when the tool in hand has neither a width nor a
+            dial — the hand, the marquee. A cell that comes and goes would slide
+            undo and redo up into the top row every time you picked one of them
+            up, and a control that moves is a control you have to hunt for. So
+            the block keeps its shape and the cell is simply empty. */}
+        {control === "none" && <span aria-hidden="true" className="h-9 w-9" />}
+
+        {/* …and the history, under the ink. Disabled rather than hidden at the
+            ends of the history, for the spacer's reason. */}
+        <button
+          type="button"
+          disabled={!canUndo}
+          onClick={onUndo}
+          aria-label={t("canvas.undo")}
+          title={t("canvas.undo")}
+          className="inline-flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded border border-line text-fg hover:border-accent disabled:cursor-default disabled:opacity-30 disabled:hover:border-line"
+        >
+          <UndoIcon className="h-[18px] w-[18px]" />
+        </button>
+        <button
+          type="button"
+          disabled={!canRedo}
+          onClick={onRedo}
+          aria-label={t("canvas.redo")}
+          title={t("canvas.redo")}
+          className="inline-flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded border border-line text-fg hover:border-accent disabled:cursor-default disabled:opacity-30 disabled:hover:border-line"
+        >
+          <RedoIcon className="h-[18px] w-[18px]" />
+        </button>
       </div>
 
       {/* The panels themselves. All of them open upward: the toolbar is the

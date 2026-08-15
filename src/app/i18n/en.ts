@@ -42,8 +42,6 @@ export const en = {
     archive: "Archive",
     drawingName: "Drawing name",
     untitled: "Untitled drawing",
-    undo: "Undo",
-    redo: "Redo",
     search: "Search",
     settings: "Settings",
     donate: "Donate",

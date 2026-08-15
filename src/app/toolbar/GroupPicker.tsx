@@ -22,9 +22,29 @@ import type { PaintPlugin } from "../plugins/types.ts";
 // Nothing here knows what a rectangle is. The members, their glyphs and their
 // `supportsFill` all come off the descriptors the group hands over.
 
-/** How many shapes sit on a row. Four across is about as wide as a picker can
- *  be on a phone before it stops fitting over the button that opened it. */
-const COLUMNS = 4;
+/** The widest a row of the grid gets. Four across is about as wide as a picker
+ *  can be on a phone before it stops fitting over the button that opened it. */
+const MAX_COLUMNS = 4;
+
+/** …and how wide one cell is, button plus the gap beside it. The panel's own
+ *  width is this times the columns it actually uses, so it is measured rather
+ *  than guessed. */
+const CELL = 44;
+
+/** How many columns a family of this size wants.
+ *
+ *  **A panel is only as wide as the family behind it.** Eleven shapes fill four
+ *  columns and three rows; the two fills and the two erasers filled *four*
+ *  columns too and left half the panel empty — a floating box twice the width
+ *  of its own contents, hanging over the canvas for no reason. Now a family of
+ *  two is two buttons wide.
+ *
+ *  The floor of two is the fill row's: the hollow/solid pair under the grid is
+ *  two buttons wide whatever the grid above it is, and a one-column panel would
+ *  squeeze them to half a button each. */
+function columnsFor(members: number, hasFillRow: boolean): number {
+  return Math.min(MAX_COLUMNS, Math.max(members, hasFillRow ? 2 : 1));
+}
 
 export function GroupPicker({
   open,
@@ -55,6 +75,7 @@ export function GroupPicker({
     { value: true, label: t("canvas.fillFilled") },
   ];
   const ActiveIcon = active?.icon;
+  const columns = columnsFor(members.length, Boolean(active?.supportsFill));
 
   return (
     <FloatingPanel
@@ -62,7 +83,7 @@ export function GroupPicker({
       onClose={onClose}
       triggerRef={anchor}
       placement={{
-        width: { kind: "max", maxPx: COLUMNS * 44 + 10 },
+        width: { kind: "max", maxPx: columns * CELL + 10 },
         anchor: "left",
         // Enough to clear the toolbar's own top border, so the panel reads as
         // floating over the page rather than growing out of the row.
@@ -73,7 +94,7 @@ export function GroupPicker({
     >
       <div
         className="grid gap-1"
-        style={{ gridTemplateColumns: `repeat(${COLUMNS}, minmax(0, 1fr))` }}
+        style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}
         role="group"
         aria-label={name}
       >

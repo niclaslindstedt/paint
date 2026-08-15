@@ -685,9 +685,9 @@ export function CanvasScreen({
               ink={{ pageColor, defaultInk: ink }}
             />
           )}
-          {/* No undo / redo here. They are one tap away in the sidebar's
-              button island and on the keyboard, and the header is the one row
-              a phone has to fit a drawing's name into — two glyphs it can
+          {/* No undo / redo here. They end the toolbar, beside the ink — the
+              row your hand is already on — and the header is the one row a
+              phone has to fit a drawing's name into, so two glyphs it can
               spend elsewhere buy back the width to read the title. */}
           <DownloadMenu
             drawing={drawing}
@@ -974,6 +974,12 @@ export function CanvasScreen({
         }
         filled={settings.filled}
         onFilledChange={(filled) => update("filled", filled)}
+        // The history, driven straight off the store the keyboard shortcuts
+        // drive: the toolbar shows it, it doesn't keep it.
+        canUndo={store.canUndo}
+        canRedo={store.canRedo}
+        onUndo={store.undo}
+        onRedo={store.redo}
       />
 
       {/* The selection's menu — what a right-click opens on a desktop and a long

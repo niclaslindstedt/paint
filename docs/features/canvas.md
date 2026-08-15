@@ -175,7 +175,15 @@ a readable JSON file rather than a blob of pixels.
 
 ## Colour and size
 
-Both live behind a single button, at the right-hand end of the toolbar.
+The toolbar is two bands. The **tools** fill the left of it, wrapping over two
+rows — three on a narrow phone — as you switch more of them on. Everything that
+is not a tool sits in a small block against the **right edge**, divided off by a
+rule: the ink and the width on its top row, undo and redo on its bottom one.
+That block never moves. Whichever tool is in your hand and however many of them
+are switched on, those four buttons are in the same corner of the screen, which
+is what lets you reach them without looking for them.
+
+Colour and size are the top half of it, one button each.
 
 The **ink button** is the colour you are drawing with. Press it for the palette
 and whatever colours you have mixed. **Mix a colour…** opens a hue strip and a
@@ -209,7 +217,19 @@ fills the area it traced whatever a nib might say — so it gets a **cog** in th
 slot instead, opening the settings it does have: how much of the page shows
 through the wash, and how far its edge fades out. A dot on the cog means the
 bucket is set away from how it ships. A tool that marks nothing at all — the
-hand, the dropper, the selection tools — gets no button there at all.
+hand, the selection tools — gets no button there at all, and the slot stays
+empty rather than closing up: undo and redo keep their places under it.
+
+## Undo and redo
+
+They are the bottom row of that block, under the ink and the nib: the pair that
+acts on the drawing rather than on the next mark. They used to live only in the
+sidebar's button island, which meant opening a drawer over the page to take back
+the stroke you had just made. `Ctrl/Cmd + Z` and `Ctrl/Cmd + Shift + Z` (or
+`Ctrl + Y`) still do the same thing, and both buttons dim at the ends of the
+history rather than disappearing — as does the width slot above them, which
+stays empty for a tool that has no settings rather than letting the pair slide
+up a row.
 
 ## The header
 
@@ -236,9 +256,10 @@ scale, so it moved to where erasing lives — the eraser's own button, one press
 away from the hand already reaching for it — and the width it took now goes to
 the drawing's name.
 
-Undo and redo are not here either. They live in the sidebar's button island and
-on the keyboard, and the header is the one row a phone has to fit a drawing's
-name into — the width those two glyphs took is worth more spent on the title.
+Undo and redo are not here either. They end the toolbar, beside the ink, and
+answer to the keyboard as well; the header is the one row a phone has to fit a
+drawing's name into, so the width those two glyphs took is worth more spent on
+the title.
 
 The sync glyph is not here: there is one cloud affordance for the whole app, and
 it lives in the sidebar's button island (see [cloud sync](cloud-sync.md)).

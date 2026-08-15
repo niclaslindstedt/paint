@@ -39,8 +39,6 @@ export const sv: Catalog = {
     archive: "Arkiv",
     drawingName: "Teckningens namn",
     untitled: "Namnlös teckning",
-    undo: "Ångra",
-    redo: "Gör om",
     search: "Sök",
     settings: "Inställningar",
     donate: "Donera",

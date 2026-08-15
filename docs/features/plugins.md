@@ -26,21 +26,25 @@ pen). The **rubber** is not one of them: it ships with the eraser, behind the
 eraser's own button — see below.
 
 The row reads in the order a hand actually uses it. The pen you draw with, the
-rubbing out that undoes it, the rest of the media, the fills, the two other
-families, type — which is what you usually reach for
-right after picking something out — and last the two tools that touch neither
-the ink nor the document:
+rest of the media, then the three tools that work on an _area_ rather than on a
+line — rubbing one out, and filling one — then the two other families, type —
+which is what you usually reach for right after picking something out — and last
+the two tools that touch neither the ink nor the document:
 
-**pen · erasers · pencil · round brush · flat brush · watercolour · airbrush ·
-marker · highlighter · crayon · calligraphy pen · fills · shapes · select ·
+**pen · pencil · round brush · flat brush · watercolour · airbrush · marker ·
+highlighter · crayon · calligraphy pen · erasers · fills · shapes · select ·
 text · dropper · hand**
+
+The erasers sit at the end of the media shelf, one button left of the bucket,
+rather than second in the row beside the pen: taking a passage off and flooding
+one are the same kind of act, and a hand picking along the marking tools should
+not have to step over the one that takes marks away.
 
 It used to read down Photoshop's tool column instead. That column is a column,
 and a phone's toolbar is a row: it put the one tool that draws nothing (the
-dropper) under the thumb that reaches best, and the eraser at the far end from
-the pen it undoes. Switching a tool on in Settings → Tools slots it into its
-place in this row rather than appending it, so the toolbar never reads in the
-order you happened to discover it in.
+dropper) under the thumb that reaches best. Switching a tool on in Settings →
+Tools slots it into its place in this row rather than appending it, so the
+toolbar never reads in the order you happened to discover it in.
 
 That is the _default_ order. Settings → Tools lists the whole toolbar in the
 order the buttons sit in, and the up / down arrow beside each row moves it —
@@ -73,6 +77,10 @@ rectangle, triangle, diamond, pentagon, hexagon, star, double arrow — with the
 fill toggle under them, showing the shape you have picked drawn hollow and drawn
 solid. It is the same "press it twice" gesture the eraser's wipe uses, and the
 same folded corner marks it.
+
+The panel is only as wide as the family behind it: eleven shapes fill four
+columns and three rows, while the two fills and the two erasers open a panel two
+buttons wide rather than a four-wide box with half of it empty.
 
 Grouping is only about how they are _offered_. Each shape is still its own
 plugin with its own painter, its own remembered width and its own persisted id,

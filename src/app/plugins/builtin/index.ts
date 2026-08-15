@@ -8,13 +8,19 @@
 // reach for next to each other rather than in the order a 1990 tool palette
 // happened to stack them.
 //
-// So it reads: the pen you draw with, the eraser that undoes it, then the rest
-// of the media in a shelf of their own, then the fills, then the two other
-// families (shapes, then choosing marks), then type — which is what you reach for
-// right after picking something out — and last the two tools that touch neither
-// the ink nor the document: the dropper that reads a colour off the page, and
-// the hand that moves the page. Those two are a pair and they belong at the far
-// end together.
+// So it reads: the pen you draw with, then the rest of the media in a shelf of
+// their own, then the three things you do to an *area* rather than to a line —
+// take it off (the erasers), and fill it (the bucket and the gradient) — then
+// the two other families (shapes, then choosing marks), then type — which is
+// what you reach for right after picking something out — and last the two tools
+// that touch neither the ink nor the document: the dropper that reads a colour
+// off the page, and the hand that moves the page. Those two are a pair and they
+// belong at the far end together.
+//
+// The eraser used to sit second, beside the pen it undoes. It sits at the far
+// end of the media instead, next to the bucket: it is not something you draw
+// *with*, and a hand picking along the marking tools should not have to step
+// over the one that takes marks away.
 //
 // Anyone who disagrees can drag the rows into another order in Settings → Tools,
 // and the toolbar follows (see `orderEntries`).
@@ -363,9 +369,10 @@ export const ERASER_GROUP_ID = "eraser";
 /** Register the built-in tools. Idempotent — re-registering an id replaces it
  *  in place, so calling this twice (a hot reload, a test) is harmless. */
 export function registerBuiltinPlugins(): void {
-  // --- The pen, and the two things that undo it ----------------------------
-  // The two tools a blank page has to have, and the two the user asked to have
-  // beside each other: whatever else is switched off, these are what is left.
+  // --- The pen -------------------------------------------------------------
+  // The tool a blank page has to have, and the one every other row here is
+  // measured against: whatever else is switched off, this is what is left (with
+  // the erasers and the hand, which are core for reasons of their own).
   //
   // The pen used to be called the pencil and is still `pencil` on every stroke
   // ever drawn with it — an id is persisted and renaming one orphans marks, so
@@ -396,118 +403,6 @@ export function registerBuiltinPlugins(): void {
     // for what a preset is and for why several tools below have none.
     presets: PEN_PRESETS,
     behaviour: freehandBehaviour(),
-  });
-
-  // The two rubbing-out tools share one button, the way the fills and the
-  // shapes do. They are not two tools you choose between so much as one
-  // question — *how much of this should go* — with two honest answers, and a
-  // toolbar that spent a second permanent button on the second one would be
-  // charging every user for a tool most of them will reach for twice a year.
-  //
-  // A second press on the eraser is exactly where the rubber belongs, and it is
-  // what makes it findable at all: nobody goes looking in Settings → Tools for
-  // an eraser they do not know exists.
-
-  registerGroup({
-    id: ERASER_GROUP_ID,
-    // Core, because the eraser was: a canvas with no way to take a mark off is
-    // not a canvas, and the family inherits the switch its first member had.
-    core: true,
-    nameKey: "tools.erasers.name",
-    descriptionKey: "tools.erasers.description",
-    icon: EraserIcon,
-  });
-
-  registerPlugin({
-    id: "eraser",
-    group: ERASER_GROUP_ID,
-    nameKey: "tools.eraser.name",
-    descriptionKey: "tools.eraser.description",
-    icon: EraserIcon,
-    shortcut: "e",
-    // A block rubber, ten millimetres across the face — the one in a pencil
-    // case, and wide enough that taking a passage out is one pass rather than
-    // twenty. The scale is 1 because a rubber rubs out exactly as wide as it
-    // is; it used to be 2.5, from before the number on the button was a
-    // distance anyone could check.
-    gauge: ERASER_GAUGE,
-    defaultSize: mm(10),
-    // Its width shows as a plain circle rather than as a press. Every other
-    // tool previews the mark it leaves, but an eraser's mark is a *hole*: on
-    // the bare page a preview is, it lifts nothing and shows nothing, and the
-    // only way to picture it was to fabricate a blot of ink underneath for the
-    // press to bite into — a mark nobody made, standing in for one you can't
-    // see. The nib is round and the number is the nib, so the circle is both
-    // the simpler drawing and the truer one.
-    sizePreview: "circle",
-    // How much one pass takes off. It is the ink's own alpha under
-    // `destination-out` — see `STRENGTH` — so turning it down gives the pencil
-    // eraser you knock a highlight back with, rather than the one that takes
-    // the page to white in a single drag.
-    dials: [STRENGTH],
-    // A block, a corner, and the kneaded eraser you lift a highlight back with.
-    presets: ERASER_PRESETS,
-    // It takes ink *off*: the mark is painted with `destination-out`, so what
-    // it covers is removed from the picture and the sheet comes back through
-    // the hole (see `render.ts`). It used to paint the page colour instead,
-    // which read the same on an opaque sheet and was wrong everywhere else — a
-    // transparent export came out with page-coloured smears where the rubbing
-    // out had been, and hiding the background layer showed them too.
-    //
-    // The stroke is still an ordinary mark in the document, so a rubbing out
-    // undoes, syncs and re-renders exactly like the line it took off.
-    erases: true,
-    behaviour: freehandBehaviour({ erases: true }),
-  });
-
-  // …and the **rubber**, which is the other one of those and is a *medium*
-  // rather than a hole. The two are named apart the way a stationer names them:
-  // the eraser is the thing that removes a mistake, the rubber is the thing you
-  // work a pencil drawing back with.
-  //
-  // The eraser above is indifferent to what is under it, because a hole is
-  // indifferent: it goes through a pencil line and a marker line at the same
-  // rate, and at full strength it takes the page back to white in one drag.
-  // That is the tool you want for a mistake and it is not what a rubber does to
-  // a drawing. Rub at a pencil passage with one and the passage does not go — it
-  // goes paler, unevenly, with the sheet's tooth showing through what is left,
-  // and paler again next time. Meanwhile the ink you drew *over* that pencil is
-  // exactly where it was, because it soaked into the paper and no amount of
-  // rubbing lifts it.
-  //
-  // Both halves are declared rather than coded anywhere: `lifts` says this
-  // rubbing out only takes what a rubber could take, `liftable` on the pencil
-  // and the crayon says what that is, and the renderer lays everything else back
-  // over the hole (see `relayFixed` in `render.ts`). Which means the tool that
-  // finally makes "sketch it, ink it, rub the sketch out" work is two flags, a
-  // painter, and nothing else in the app.
-
-  registerPlugin({
-    id: "rubber",
-    group: ERASER_GROUP_ID,
-    nameKey: "tools.rubber.name",
-    descriptionKey: "tools.rubber.description",
-    icon: RubberIcon,
-    // No shortcut. The letters near it are spoken for — **e** is the eraser it
-    // shares a button with and **r** the rectangle — and the family is one press
-    // away from a key that already works, which is the arrangement every other
-    // grouped tool here has.
-    //
-    // The same rack the eraser is sold on, opening two steps down it: a rubber
-    // you work a passage back with is held like a pencil rather than swept like
-    // a board eraser, and 5 mm is the pocket one in a pencil case.
-    gauge: ERASER_GAUGE,
-    defaultSize: mm(5),
-    // Its width shows as a circle, for the eraser's reason: a preview of a
-    // rubbing out on a bare page has nothing to lift and nothing to show.
-    sizePreview: "circle",
-    // One dial, and it is the hand rather than the ink: how hard you lean on it,
-    // which is how deep into the sheet the face reaches. See `RUB`.
-    dials: [RUB],
-    presets: RUBBER_PRESETS,
-    erases: true,
-    lifts: true,
-    behaviour: freehandBehaviour({ erases: true, style: "rubber" }),
   });
 
   // --- Then the media shelf ------------------------------------------------
@@ -793,8 +688,124 @@ export function registerBuiltinPlugins(): void {
     }),
   });
 
-  // --- Then filling an area ------------------------------------------------
-  // Below the media, above the vector tools.
+  // --- Then taking a mark off ----------------------------------------------
+  // The end of the media shelf, and the first of the three tools that work on
+  // an *area* rather than on a line: rub one out, then fill what is left.
+  //
+  // The two rubbing-out tools share one button, the way the fills and the
+  // shapes do. They are not two tools you choose between so much as one
+  // question — *how much of this should go* — with two honest answers, and a
+  // toolbar that spent a second permanent button on the second one would be
+  // charging every user for a tool most of them will reach for twice a year.
+  //
+  // A second press on the eraser is exactly where the rubber belongs, and it is
+  // what makes it findable at all: nobody goes looking in Settings → Tools for
+  // an eraser they do not know exists.
+
+  registerGroup({
+    id: ERASER_GROUP_ID,
+    // Core, because the eraser was: a canvas with no way to take a mark off is
+    // not a canvas, and the family inherits the switch its first member had.
+    core: true,
+    nameKey: "tools.erasers.name",
+    descriptionKey: "tools.erasers.description",
+    icon: EraserIcon,
+  });
+
+  registerPlugin({
+    id: "eraser",
+    group: ERASER_GROUP_ID,
+    nameKey: "tools.eraser.name",
+    descriptionKey: "tools.eraser.description",
+    icon: EraserIcon,
+    shortcut: "e",
+    // A block rubber, ten millimetres across the face — the one in a pencil
+    // case, and wide enough that taking a passage out is one pass rather than
+    // twenty. The scale is 1 because a rubber rubs out exactly as wide as it
+    // is; it used to be 2.5, from before the number on the button was a
+    // distance anyone could check.
+    gauge: ERASER_GAUGE,
+    defaultSize: mm(10),
+    // Its width shows as a plain circle rather than as a press. Every other
+    // tool previews the mark it leaves, but an eraser's mark is a *hole*: on
+    // the bare page a preview is, it lifts nothing and shows nothing, and the
+    // only way to picture it was to fabricate a blot of ink underneath for the
+    // press to bite into — a mark nobody made, standing in for one you can't
+    // see. The nib is round and the number is the nib, so the circle is both
+    // the simpler drawing and the truer one.
+    sizePreview: "circle",
+    // How much one pass takes off. It is the ink's own alpha under
+    // `destination-out` — see `STRENGTH` — so turning it down gives the pencil
+    // eraser you knock a highlight back with, rather than the one that takes
+    // the page to white in a single drag.
+    dials: [STRENGTH],
+    // A block, a corner, and the kneaded eraser you lift a highlight back with.
+    presets: ERASER_PRESETS,
+    // It takes ink *off*: the mark is painted with `destination-out`, so what
+    // it covers is removed from the picture and the sheet comes back through
+    // the hole (see `render.ts`). It used to paint the page colour instead,
+    // which read the same on an opaque sheet and was wrong everywhere else — a
+    // transparent export came out with page-coloured smears where the rubbing
+    // out had been, and hiding the background layer showed them too.
+    //
+    // The stroke is still an ordinary mark in the document, so a rubbing out
+    // undoes, syncs and re-renders exactly like the line it took off.
+    erases: true,
+    behaviour: freehandBehaviour({ erases: true }),
+  });
+
+  // …and the **rubber**, which is the other one of those and is a *medium*
+  // rather than a hole. The two are named apart the way a stationer names them:
+  // the eraser is the thing that removes a mistake, the rubber is the thing you
+  // work a pencil drawing back with.
+  //
+  // The eraser above is indifferent to what is under it, because a hole is
+  // indifferent: it goes through a pencil line and a marker line at the same
+  // rate, and at full strength it takes the page back to white in one drag.
+  // That is the tool you want for a mistake and it is not what a rubber does to
+  // a drawing. Rub at a pencil passage with one and the passage does not go — it
+  // goes paler, unevenly, with the sheet's tooth showing through what is left,
+  // and paler again next time. Meanwhile the ink you drew *over* that pencil is
+  // exactly where it was, because it soaked into the paper and no amount of
+  // rubbing lifts it.
+  //
+  // Both halves are declared rather than coded anywhere: `lifts` says this
+  // rubbing out only takes what a rubber could take, `liftable` on the pencil
+  // and the crayon says what that is, and the renderer lays everything else back
+  // over the hole (see `relayFixed` in `render.ts`). Which means the tool that
+  // finally makes "sketch it, ink it, rub the sketch out" work is two flags, a
+  // painter, and nothing else in the app.
+
+  registerPlugin({
+    id: "rubber",
+    group: ERASER_GROUP_ID,
+    nameKey: "tools.rubber.name",
+    descriptionKey: "tools.rubber.description",
+    icon: RubberIcon,
+    // No shortcut. The letters near it are spoken for — **e** is the eraser it
+    // shares a button with and **r** the rectangle — and the family is one press
+    // away from a key that already works, which is the arrangement every other
+    // grouped tool here has.
+    //
+    // The same rack the eraser is sold on, opening two steps down it: a rubber
+    // you work a passage back with is held like a pencil rather than swept like
+    // a board eraser, and 5 mm is the pocket one in a pencil case.
+    gauge: ERASER_GAUGE,
+    defaultSize: mm(5),
+    // Its width shows as a circle, for the eraser's reason: a preview of a
+    // rubbing out on a bare page has nothing to lift and nothing to show.
+    sizePreview: "circle",
+    // One dial, and it is the hand rather than the ink: how hard you lean on it,
+    // which is how deep into the sheet the face reaches. See `RUB`.
+    dials: [RUB],
+    presets: RUBBER_PRESETS,
+    erases: true,
+    lifts: true,
+    behaviour: freehandBehaviour({ erases: true, style: "rubber" }),
+  });
+
+  // --- …and then filling one ------------------------------------------------
+  // Beside the erasers, above the vector tools.
   //
   // Two ways of filling one, behind one button — the shapes' arrangement, for a
   // reason of its own: the gradient is not a second tool so much as the bucket's

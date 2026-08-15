@@ -51,17 +51,20 @@ a drag latching a row open is nobody's intention.
 
 ## The button island
 
-The block of buttons pinned above the sidebar's footer is where drawings are
-created and history is undone, kept under your thumb no matter how long the
-list above it grows:
+The row of buttons pinned above the sidebar's footer is where drawings are
+created and filed, kept under your thumb no matter how long the list above it
+grows:
 
 | Button          | What it does                                                    |
 | --------------- | --------------------------------------------------------------- |
 | **New drawing** | Asks how big the page is, then opens the blank sheet.           |
 | **New folder**  | Drops an inline name field into the list; naming it commits it. |
 | **Archive**     | Opens the archive. The corner badge counts what's shelved.      |
-| **Undo / Redo** | Steps the current sketchbook's history, drawer still open.      |
 | **Cloud**       | The sync glyph — tap it for the sync command centre.            |
+
+Undo and redo used to take a second row here. They are on the canvas toolbar
+now, beside the ink, where the hand that made the mark already is — so the
+island is one row and the drawing list keeps the height.
 
 The cloud is the app's only sync affordance: it shows the state at a glance
 (synced, saving, unsaved, offline, needs reconnecting) and opens the details

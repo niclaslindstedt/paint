@@ -79,13 +79,12 @@ describe("registry", () => {
   });
 
   it("keeps registration order", () => {
-    // The row a hand actually uses: the pen, the two rubbers that undo it, the
-    // rest of the media, the fills, the two other families, type — and last the
-    // two tools that touch neither the ink nor the document.
+    // The row a hand actually uses: the pen, the rest of the media, then the
+    // three tools that work on an area rather than on a line — the two rubbers
+    // and the two fills — then the two other families, type, and last the two
+    // tools that touch neither the ink nor the document.
     expect(allPlugins().map((p) => p.id)).toEqual([
       "pencil",
-      "eraser",
-      "rubber",
       "graphite",
       "paintbrush",
       "flatbrush",
@@ -95,6 +94,8 @@ describe("registry", () => {
       "highlighter",
       "crayon",
       "calligraphy",
+      "eraser",
+      "rubber",
       "filler",
       // …and its variant, which shares the bucket's button: same area, poured
       // from a ramp instead of one flat colour.
@@ -134,9 +135,15 @@ describe("registry", () => {
     expect(ids.slice(-2)).toEqual(["dropper", "hand"]);
   });
 
-  it("keeps the eraser next to the pen it undoes", () => {
+  it("keeps the eraser beside the bucket rather than in the media", () => {
+    // Taking a passage off and flooding one are the same kind of act — both
+    // work on an *area* — so the erasers sit at the end of the media shelf,
+    // one button left of the fills, and a hand picking through the marking
+    // tools runs along them without stepping over the one that takes marks
+    // away.
     const ids = toolPlugins().map((p) => p.id);
-    expect(ids[ids.indexOf("eraser") - 1]).toBe("pencil");
+    expect(ids[ids.indexOf("eraser") - 1]).toBe("calligraphy");
+    expect(ids[ids.indexOf("rubber") + 1]).toBe("filler");
   });
 
   it("puts type straight after the marquee", () => {
@@ -186,10 +193,10 @@ describe("registry", () => {
       toolbarEntries(defaultEnabledPlugins(), []).map((e) => e.id),
     ).toEqual([
       "pencil",
-      "eraser",
       "graphite",
       "watercolor",
       "airspray",
+      "eraser",
       "filler",
       "shapes",
       "select",
@@ -267,8 +274,8 @@ describe("registry", () => {
     // must not order the toolbar by when the user switched them on.
     expect(toolbarEntries(["select", "marker"], []).map((e) => e.id)).toEqual([
       "pencil",
-      "eraser",
       "marker",
+      "eraser",
       "select",
       "hand",
     ]);
