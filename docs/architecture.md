@@ -262,10 +262,26 @@ the same megabyte at every zoom and a zoom never rebuilds it.
 ### The sheet is a material, not a backdrop
 
 A drawing carries a **ground** — which stock the page is cut from, and how much
-of its grain shows (`Ground` in `types.ts`). Like a pinned page colour it is
-document state: it travels with the drawing, syncs with it, and is one undo
-step. Absent means the plain solid sheet, which is the page every drawing was
-already on, so no migration step and no rewritten bytes (see `migrations.ts`).
+of its grain shows (`Ground` in `types.ts`). It is document state: it travels
+with the drawing and syncs with it. Absent means the plain solid sheet, which is
+the page every drawing was already on, so no migration step and no rewritten
+bytes (see `migrations.ts`).
+
+The **stock is chosen once**, in the dialog that makes the drawing
+(`NewDrawingModal`), and is not editable afterwards — the same treatment the page
+size gets, and for a stronger reason: a wet mark is composited _into_ the sheet
+it was made on, so restocking a finished page would repaint every mark on it as
+something the hand that drew them never saw. What Settings → Canvas still edits
+is the grain weight (`Ground.texture`), which scales what shows and never what
+the sheet does, and so is an ordinary page edit like pinning a colour.
+
+The catalog is deliberately short — six stocks, comparable in one glance,
+because the shelf is read once under a Create button. Stocks that have been
+retired from it are aliased to the survivor nearest them in absorbency
+(`RETIRED_GROUNDS`) rather than dropped: a stock id is persisted, so a page made
+on one this build no longer offers has to keep painting on a sheet rather than
+falling back to glass. The alias is read-only — the document keeps the id it was
+written with, and nothing writes a retired one.
 
 The split is the one `filters.ts` / `filterPaint.ts` uses. `ground.ts` is pure:
 the catalog of stocks, the three numbers each carries (how much it drinks, the

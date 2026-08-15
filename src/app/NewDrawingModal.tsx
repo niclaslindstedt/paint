@@ -27,6 +27,7 @@ import {
   type CanvasPreset,
   type CanvasSize,
 } from "./canvasSize.ts";
+import { resolvePageColor } from "./canvas.ts";
 import {
   canLookAtClipboard,
   clipboardCanBeRead,
@@ -42,6 +43,7 @@ import {
   tabShown,
   type ClipboardSource,
 } from "./clipboardSource.ts";
+import { GroundPicker } from "./GroundPicker.tsx";
 import { useT } from "./i18n/index.ts";
 import {
   imageFileStem,
@@ -49,18 +51,28 @@ import {
   type ImportedImage,
 } from "./images.ts";
 import { PCT_EXTENSION } from "./pct.ts";
-import type { Drawing } from "./types.ts";
+import type { Drawing, Ground } from "./types.ts";
 import * as output from "../output.ts";
 
 // Where a drawing comes from — the one dialog between pressing New and having a
 // page in front of you.
 //
-// It asks two questions, in that order. **What is this drawing made of**: an
-// empty page, a picture from disk, or whatever is on the clipboard. And, for an
-// empty one, **how big is it** — asked once, here, because a page never reflows
-// (see `types.ts`), so the size is part of creating the thing rather than a
-// setting to find afterwards. A drawing made *from a picture* asks neither: it
-// is the size of the picture, which is the only answer that isn't a crop.
+// It asks three questions, in that order. **What is this drawing made of**: an
+// empty page, a picture from disk, or whatever is on the clipboard. For an empty
+// one, **how big is it** — asked once, here, because a page never reflows (see
+// `types.ts`), so the size is part of creating the thing rather than a setting
+// to find afterwards. A drawing made *from a picture* skips that one: it is the
+// size of the picture, which is the only answer that isn't a crop. And, for
+// every drawing that starts here, **what is the sheet made of**.
+//
+// **The sheet is asked here, and only here.** A stock is not a filter over the
+// page — a wet mark is painted *into* the sheet it was made on, mixing with what
+// it is over and dragging the marks it crosses out into its water (see
+// `ground.ts`) — so moving a finished painting onto rough paper would repaint
+// every mark on it as something the hand that drew them never saw. It is the
+// same class of answer as the size: what the page **is**, fixed when the page is
+// made. What can still be changed afterwards, in Settings → Canvas, is how far
+// the sheet's grain shows, which is a matter of looking rather than of paint.
 //
 // The three sources are a segmented control rather than three buttons because
 // they are the same act — start a drawing — from three places, and only one of
@@ -95,12 +107,20 @@ type Props = {
   /** The folder the drawing will be filed into, named for the title — so
    *  "New drawing in Diagrams" says where it is about to land. */
   folderName?: string;
+  /** Whether the page will be a dark sheet, so the surface swatches are painted
+   *  on the page the drawing is about to open on. */
+  dark: boolean;
   onCancel: () => void;
-  /** Make an empty page of this size. */
-  onCreate: (size: CanvasSize) => void;
+  /** Make an empty page of this size, on this sheet — `undefined` for the plain
+   *  solid page, which is how a drawing with no ground at all is stored. */
+  onCreate: (size: CanvasSize, ground: Ground | undefined) => void;
   /** Make a page from a picture: cut to its size, named for where it came
-   *  from. */
-  onCreateFromImage: (image: ImportedImage, name: string) => void;
+   *  from, on the chosen sheet. */
+  onCreateFromImage: (
+    image: ImportedImage,
+    name: string,
+    ground: Ground | undefined,
+  ) => void;
   /** Open a `.pct` — a whole drawing, layers and marks and all, rather than a
    *  picture to start one from (see `pct.ts`). It arrives with its own page
    *  size and stack, so nothing here chooses either. */
@@ -139,6 +159,7 @@ const PREVIEW_BOX = { width: 104, height: 74 };
 
 export function NewDrawingModal({
   folderName,
+  dark,
   onCancel,
   onCreate,
   onCreateFromImage,
@@ -160,6 +181,10 @@ export function NewDrawingModal({
     height: String(CUSTOM_CANVAS.height),
   });
   const [typedSize, setTypedSize] = useState(false);
+  // The sheet, by stock id — `undefined` is the plain solid page, and a page on
+  // it carries no ground at all (see `ground.ts`), which is what every drawing
+  // made before surfaces existed is.
+  const [stock, setStock] = useState<string | undefined>(undefined);
   // What was chosen from disk, waiting for Create.
   const [picked, setPicked] = useState<Picked | null>(null);
   // What we know about the clipboard, which is a state rather than a picture
@@ -279,14 +304,20 @@ export function NewDrawingModal({
     (source === "file" && picked) ||
     (source === "clipboard" && pasted);
 
+  // A container brings its own page — its size, its stack, and the sheet it was
+  // painted on — so the surface shelf is not offered for one. Everything else
+  // that starts here is a page this dialog is building.
+  const openingPct = source === "file" && picked?.kind === "pct";
+  const ground: Ground | undefined = stock ? { stock } : undefined;
+
   const create = () => {
     if (source === "blank") {
-      if (blankSize) onCreate(blankSize);
+      if (blankSize) onCreate(blankSize, ground);
     } else if (source === "file" && picked) {
       if (picked.kind === "pct") onOpenPct(picked.drawing, picked.name);
-      else onCreateFromImage(picked.image, picked.name);
+      else onCreateFromImage(picked.image, picked.name, ground);
     } else if (source === "clipboard" && pasted) {
-      onCreateFromImage(pasted, t("newDrawing.clipboardName"));
+      onCreateFromImage(pasted, t("newDrawing.clipboardName"), ground);
     }
   };
 
@@ -302,7 +333,7 @@ export function NewDrawingModal({
       onClose={onCancel}
       labelledBy="new-drawing-title"
       centered
-      size="max-w-lg"
+      size="max-w-xl"
       closeLabel={t("common.cancel")}
       footer={
         <footer className="flex shrink-0 items-center justify-end gap-2 border-t border-line bg-surface-3 px-4 py-3">
@@ -470,6 +501,27 @@ export function NewDrawingModal({
                     ? t("newDrawing.clipboardEmpty")
                     : t("newDrawing.clipboardAsk")}
             </p>
+          </div>
+        )}
+
+        {/* What the sheet is made of. Under the source panels because it is the
+            last question either path asks, and left out for a `.pct`, which
+            arrives on a sheet of its own. */}
+        {!openingPct && (
+          <div className="flex flex-col gap-2 border-t border-line pt-4">
+            <span className="text-sm text-fg-bright">
+              {t("newDrawing.surfaceLabel")}
+            </span>
+            <GroundPicker
+              value={stock}
+              onChange={(next) =>
+                setStock(next.family === "solid" ? undefined : next.id)
+              }
+              pageColor={resolvePageColor(undefined, dark)}
+              dark={dark}
+              label={t("newDrawing.surfaceLabel")}
+            />
+            <p className="text-xs text-muted">{t("newDrawing.surfaceHint")}</p>
           </div>
         )}
 

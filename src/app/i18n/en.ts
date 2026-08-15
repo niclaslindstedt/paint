@@ -78,6 +78,9 @@ export const en = {
     width: "Width",
     height: "Height",
     sizeHint: "Pixels, {min}–{max} on each side.",
+    surfaceLabel: "What the page is made of",
+    surfaceHint:
+      "Picked once, here — the sheet travels with the drawing and can't be changed afterwards. Its grain is painted under the marks, and on a sheet that drinks, a wet tool mixes with what it is over instead of covering it.",
     chooseImage: "Choose an image or a paint file…",
     chooseImageHint:
       "Or drop one here. A picture cuts the page to its own size; a .pct opens with its layers and marks intact.",
@@ -489,25 +492,9 @@ export const en = {
       name: "Cartridge",
       hint: "Sketchbook paper. A fine grain, and sized enough that ink stays where you put it.",
     },
-    laid: {
-      name: "Laid",
-      hint: "Ribbed writing paper, with a chain line across it. Holds ink on its face rather than drinking it.",
-    },
-    newsprint: {
-      name: "Newsprint",
-      hint: "Thirsty and unsized: everything wet spreads on it, and a marker goes furry.",
-    },
-    kraft: {
-      name: "Kraft",
-      hint: "Brown wrapping stock — a fibrous sheet that takes a wash. Pin a brown page to go with it.",
-    },
     cotton: {
       name: "Cotton duck",
       hint: "Primed canvas: a coarse weave that shows through everything, and a ground that holds paint on its face.",
-    },
-    linen: {
-      name: "Linen",
-      hint: "A finer, slubbier weave than cotton, and thirstier than neither — primed cloth barely drinks at all.",
     },
   },
   tools: {
@@ -738,12 +725,9 @@ export const en = {
       pageColorHint:
         "Pin a colour for this drawing only — it overrides the canvas theme and travels with the drawing when it syncs.",
       surfaceTitle: "Surface",
-      surfaceLabel: "What the page is made of",
-      surfaceHint:
-        "The sheet is part of the picture, so it travels with this drawing: its grain is painted under the marks, and a wet tool on a thirsty sheet mixes with what it is painted over instead of covering it. Watercolour is the one to try it with.",
-      surfaceSolid: "Solid",
-      surfacePaper: "Paper",
-      surfaceCanvas: "Canvas",
+      surfaceLabel: "What this page is made of",
+      surfaceFixed:
+        "The sheet is chosen when a drawing is made and stays with it. A wet mark is painted into the sheet it was made on, so swapping the stock under a finished picture would repaint every mark on it — start a new drawing to work on another one.",
       surfaceTexture: "Grain: {value}%",
       surfaceTextureHint:
         "How strongly the sheet's grain shows. It changes what you see, never how much the sheet drinks — that is what the stock is.",

@@ -163,8 +163,9 @@ page, so flipping the theme re-inks the whole sketch instead of hiding it.
 [More](features/canvas-theme.md).
 
 The same tab has the on-screen grid, the **tool-name** label that names each
-tool over the middle of the page as you pick it, and can pin a specific page
-colour to the drawing you have open.
+tool over the middle of the page as you pick it, can pin a specific page colour
+to the drawing you have open, and shows which sheet that drawing was made on
+with a **Grain** slider for how strongly its tooth shows.
 
 ## Drawings, folders, and sketchbooks
 
@@ -191,6 +192,14 @@ is, and the sizes are drawn rather than listed: this screen, Full HD, 4K, A4 and
 one you type, all at one shared scale, so you can see how much bigger 4K is
 before you pick it. The page can still be resized afterwards, from the
 right-hand panel.
+
+Every drawing that starts here is also asked **what the page is made of** — a
+solid digital sheet, one of four papers, or primed canvas — and those are drawn
+too, each swatch a real page with a wash laid across an ink line on it. That one
+does not change afterwards: a wet mark is painted _into_ the sheet it was made
+on, so the stock is part of building the page rather than a setting to find
+later. Settings → Canvas says which sheet the open drawing is on and turns its
+grain up or down. [More](features/surface.md).
 
 Star a drawing with the star in the canvas header and it appears under
 **Favorites** at the top of the sidebar, wherever it happens to be filed.

@@ -1,25 +1,37 @@
 # The surface you draw on
 
 A page has a colour and it has a **material**, and until now this app only had
-the colour. Settings → Canvas now asks what the page is made of: a solid digital
-sheet, one of seven papers, or primed canvas. The choice belongs to the drawing
-— it travels with it, syncs with it, and undoes like any other page edit — and
-it is set with the page colour rather than beside it, because a cream sheet and
-a rough sheet are two unrelated questions and every combination of them is a
-real page.
+the colour. The New drawing dialog now asks what the page is made of: a solid
+digital sheet, one of four papers, or primed cotton duck. The choice belongs to
+the drawing — it travels with it and syncs with it — and it is made in the same
+breath as the page size, because it is the same kind of answer.
+
+**It is asked there, and only there.** A stock is not a filter laid over the
+picture: a wet mark is painted _into_ the sheet it was made on, mixing with what
+it is over and pulling the marks it crosses out into its water. Moving a finished
+painting onto rough paper would therefore repaint every mark on it as something
+you never actually made, so the sheet is fixed once the page exists — like its
+size, and unlike its colour, which is only ever a backdrop. To work on a
+different stock, start a drawing on one.
+
+The shelf is short on purpose. Six sheets fit in a row you can compare at a
+glance, and they are the ones an artist reaches for and nothing else: the three
+surfaces watercolour paper is actually sold in, the sketchbook sheet, canvas, and
+the plain page.
 
 It matters because the sheet is not a backdrop. **Watercolour on paper is a
-different mark from watercolour on glass**, and so is a marker on newsprint. So
-the surface does three things, and only the first is decoration.
+different mark from watercolour on glass**, and so is a marker on rough. So the
+surface does three things, and only the first is decoration.
 
 **It has a grain.** Each stock carries its own, at the size it would measure
 under a rule at 1:1: the fine dip of hot-pressed paper, the deep tooth of rough,
-the ribs of a laid sheet, the over-and-under of cotton duck. The grain is
-painted under the marks, which is why it shows _through_ a wash in proportion to
-how transparent the wash is and not at all through an opaque line — the thing
-that makes paper look like paper. Pull the page away far enough and it fades out
-rather than turning into static. **Grain** turns how much of it shows up or
-down; it changes what you see and never how the sheet behaves.
+the over-and-under of cotton duck. The grain is painted under the marks, which is
+why it shows _through_ a wash in proportion to how transparent the wash is and
+not at all through an opaque line — the thing that makes paper look like paper.
+Pull the page away far enough and it fades out rather than turning into static.
+**Grain**, in Settings → Canvas, turns how much of it shows up or down. It is the
+one thing about the sheet you can still change after the fact, because it changes
+what you see and never how the sheet behaves.
 
 **It decides whether paint sits on top or soaks in.** A sealed sheet holds paint
 on its face, so a second pass covers the first. Paper takes the water into its
@@ -48,8 +60,8 @@ nothing, and a loaded brush on a sealed page behaves exactly as it always has.
 | ---------------------------------- | ----------------------------------------------------- |
 | **Watercolour**                    | The wettest thing in the box — mixes, bleeds, spreads |
 | **Round and flat brush**           | Mixes into what it is over; its edges wick            |
-| **Marker, highlighter, broad nib** | Soak in; on newsprint they go furry                   |
-| **Pen**                            | Dry on any sized paper, feathers on newsprint         |
+| **Marker, highlighter, broad nib** | Soak in; on rough they go furry                       |
+| **Pen**                            | Dry on any sized paper, feathers on rough             |
 | **Paint bucket**                   | Lays a wash: mixes with the marks it floods over      |
 | **Airbrush**                       | Nearly dry by the time it lands                       |
 | **Pencil, crayon, eraser**         | Dry — a wash laid over wax goes round it              |
@@ -95,10 +107,10 @@ shows the layers below rather than cutting through to the sheet.
 
 ## What it costs, and what it doesn't
 
-A drawing with no surface set — every drawing until you pick one — is on the
-solid sheet, and the solid sheet is byte-for-byte and pixel-for-pixel the page
-this app always had. Nothing about existing work changes, and putting a page
-back on **Solid** puts it back exactly.
+A drawing with no surface set — every drawing made before this existed, and
+every new one you leave on **Solid colour** — is on the solid sheet, and the
+solid sheet is byte-for-byte and pixel-for-pixel the page this app always had.
+Nothing about existing work changes.
 
 On a sheet that soaks, finishing a wet stroke repaints the page rather than
 stacking one more mark onto the cached picture, because a mark that mixes has to

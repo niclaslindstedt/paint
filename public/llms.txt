@@ -33,13 +33,14 @@ connect a storage backend yourself.
   whatever dries — blooms, backruns, a frayed wet edge, granulation that rolls
   into the paper's valleys. Both read the same dials and the same paper; a
   browser that cannot run the simulation paints with the first one instead.
-- Choose what the page is made of: a solid digital sheet, seven papers
-  (hot-pressed, cold-pressed, rough, cartridge, laid, newsprint, kraft) or
-  primed cotton or linen. The sheet's grain is painted under the marks, and how
-  wet a tool is times how thirsty the sheet is decides whether a mark covers
-  what it is over or mixes into it, how far its water runs past the nib, and
-  how much of an ink line it crosses it drags out into the wash. Wet mixing is
-  scoped to one layer.
+- Choose what the page is made of when the drawing is made, alongside its size:
+  a solid digital sheet, four papers (hot-pressed, cold-pressed, rough,
+  cartridge) or primed cotton duck. The sheet stays with the drawing and cannot
+  be swapped afterwards, because a mark is painted into the sheet it was made
+  on. Its grain is painted under the marks, and how wet a tool is times how
+  thirsty the sheet is decides whether a mark covers what it is over or mixes
+  into it, how far its water runs past the nib, and how much of an ink line it
+  crosses it drags out into the wash. Wet mixing is scoped to one layer.
 - Save a tool you have set up under a name — "my sketching pencil" — and get
   its width and every dial back in one press.
 - Draw eleven shapes from one toolbar button: rectangle, ellipse, line, arrow,

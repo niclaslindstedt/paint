@@ -147,7 +147,6 @@ function buildTile(
   if (!surface) return null;
   const ctx = surface.ctx;
   if (pattern === "cloth") weave(ctx, cell, cells);
-  else if (pattern === "ribs") ribs(ctx, cell, cells);
   else tooth(ctx, cell, cells);
   return surface.canvas;
 }
@@ -196,32 +195,6 @@ function tooth(
         (dark ? SHADOW : HIGHLIGHT) * depth,
       );
     }
-  }
-}
-
-/** Laid paper: the ribs of the wires the sheet was couched on — close lines
- *  down the page, with a chain line every inch or so across them — over a faint
- *  fibre. It is the one grain here with a *direction*, which is why a pen line
- *  drawn along the ribs and one drawn across them look different on it. */
-function ribs(
-  ctx: CanvasRenderingContext2D,
-  cell: number,
-  cells: number,
-): void {
-  const span = cell * cells;
-  const line = Math.max(1, Math.round(cell * 0.34));
-  for (let i = 0; i < cells; i++) {
-    const x = i * cell;
-    ctx.fillStyle = `rgba(0,0,0,${(SHADOW * 0.5).toFixed(3)})`;
-    ctx.fillRect(x, 0, line, span);
-    ctx.fillStyle = `rgba(255,255,255,${(HIGHLIGHT * 0.55).toFixed(3)})`;
-    ctx.fillRect(x + line, 0, Math.max(1, line), span);
-  }
-  // The chain lines: heavier, and far enough apart that a tile carries one.
-  const chain = Math.max(1, Math.round(cells / 3));
-  for (let i = 0; i < cells; i += chain) {
-    ctx.fillStyle = `rgba(255,255,255,${HIGHLIGHT.toFixed(3)})`;
-    ctx.fillRect(0, i * cell, span, Math.max(1, Math.round(cell * 0.5)));
   }
 }
 

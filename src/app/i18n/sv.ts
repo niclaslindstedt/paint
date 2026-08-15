@@ -75,6 +75,9 @@ export const sv: Catalog = {
     width: "Bredd",
     height: "Höjd",
     sizeHint: "Bildpunkter, {min}–{max} på varje sida.",
+    surfaceLabel: "Vad sidan är gjord av",
+    surfaceHint:
+      "Väljs en gång, här — arket följer med teckningen och kan inte ändras efteråt. Strukturen målas under strecken, och på ett ark som suger blandar sig ett vått verktyg med det det ligger över i stället för att täcka det.",
     chooseImage: "Välj en bild eller en paint-fil…",
     chooseImageHint:
       "Eller släpp en här. En bild gör sidan lika stor som bilden; en .pct öppnas med sina lager och streck kvar.",
@@ -442,25 +445,9 @@ export const sv: Catalog = {
       name: "Ritpapper",
       hint: "Skissblockets papper. Fin struktur, och limmat nog att bläcket stannar där du satte det.",
     },
-    laid: {
-      name: "Randat",
-      hint: "Räfflat skrivpapper med en kedjelinje tvärsöver. Håller bläcket på ytan i stället för att dricka det.",
-    },
-    newsprint: {
-      name: "Tidningspapper",
-      hint: "Törstigt och olimmat: allt vått flyter ut på det, och en tuschpenna blir luddig.",
-    },
-    kraft: {
-      name: "Kraftpapper",
-      hint: "Brunt omslagspapper — ett fibrigt ark som tål en lavering. Lås en brun sidfärg till det.",
-    },
     cotton: {
       name: "Bomullsduk",
       hint: "Grundad duk: en grov väv som syns genom allt, och en grund som håller färgen på ytan.",
-    },
-    linen: {
-      name: "Linne",
-      hint: "En finare och knottrigare väv än bomull, och lika lite törstig — grundad duk suger knappt alls.",
     },
   },
   tools: {
@@ -691,12 +678,9 @@ export const sv: Catalog = {
       pageColorHint:
         "Lås en färg för just den här teckningen — den åsidosätter ritytans tema och följer med teckningen när den synkas.",
       surfaceTitle: "Underlag",
-      surfaceLabel: "Vad sidan är gjord av",
-      surfaceHint:
-        "Arket är en del av bilden och följer med teckningen: strukturen målas under strecken, och ett vått verktyg på ett törstigt ark blandar sig med det det målas över i stället för att täcka det. Akvarell är verktyget att prova det med.",
-      surfaceSolid: "Enfärgat",
-      surfacePaper: "Papper",
-      surfaceCanvas: "Duk",
+      surfaceLabel: "Vad den här sidan är gjord av",
+      surfaceFixed:
+        "Arket väljs när teckningen skapas och följer med den. Ett vått streck målas in i arket det gjordes på, så att byta sort under en färdig bild skulle måla om varenda streck på den — börja en ny teckning för att arbeta på ett annat ark.",
       surfaceTexture: "Struktur: {value}%",
       surfaceTextureHint:
         "Hur tydligt arkets struktur syns. Det ändrar vad du ser, aldrig hur mycket arket suger — det är vad sorten är.",
