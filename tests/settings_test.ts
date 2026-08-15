@@ -12,7 +12,6 @@ import {
   defaultSettings,
   gaugeFor,
   groupMemberFor,
-  keptSizesFor,
   parseSettings,
   presetsFor,
   sizesFor,
@@ -75,9 +74,10 @@ describe("parseSettings", () => {
   describe("toolSize", () => {
     it("falls back to the width the tool's own plugin opens at", () => {
       const settings = defaultSettings();
-      // A 0.35 mm technical pen, a 12 pt caption and a 10 mm block rubber —
-      // three tools, three scales, and every one of them a real implement.
-      expect(toMm(toolSize(settings, "pencil"))).toBeCloseTo(0.35, 6);
+      // A 0.5 mm liner, a 12 pt caption and a 10 mm block rubber — three
+      // tools, three scales, and every one of them the size that tool is
+      // reached for at most of the time.
+      expect(toMm(toolSize(settings, "pencil"))).toBeCloseTo(0.5, 6);
       expect(toPt(toolSize(settings, "text"))).toBeCloseTo(12, 6);
       expect(toMm(toolSize(settings, "eraser"))).toBeCloseTo(10, 6);
     });
@@ -98,7 +98,7 @@ describe("parseSettings", () => {
   describe("sizesFor", () => {
     it("offers the five widths the tool is really made in", () => {
       // The ISO ladder every technical pen is drawn to.
-      const rounded = sizesFor(pluginById("pencil"), []).map(
+      const rounded = sizesFor(pluginById("pencil")).map(
         (px) => Math.round(toMm(px) * 100) / 100,
       );
       expect(rounded).toEqual([0.18, 0.25, 0.35, 0.5, 0.7]);
@@ -113,20 +113,18 @@ describe("parseSettings", () => {
 
     it("offers a tool's own scale where it declares one", () => {
       // Type, in points — the one gauge that isn't millimetres of page.
-      expect(sizesFor(pluginById("text"), [])).toEqual(
+      expect(sizesFor(pluginById("text"))).toEqual(
         gaugeSizes(gaugeFor(pluginById("text"))),
       );
     });
 
-    it("folds the widths the user kept into the row, fine to broad", () => {
-      const pen = pluginById("pencil");
-      const kept = [mm(0.9), mm(0.05)];
-      expect(sizesFor(pen, kept)).toEqual(
-        [...gaugeSizes(gaugeFor(pen)), ...kept].sort((a, b) => a - b),
-      );
-      // …and a kept width that is one the tool already offers is not offered
-      // twice.
-      expect(sizesFor(pen, [mm(0.35)])).toEqual(sizesFor(pen, []));
+    it("offers the gauge's five and nothing else", () => {
+      // There used to be a sixth kind — widths the user "kept" beside them.
+      // A bare width was a worse version of a saved *tool*, which carries the
+      // dials with it and has a name and a mark on it (see `presets.ts`).
+      for (const id of ["pencil", "graphite", "paintbrush", "text"]) {
+        expect(sizesFor(pluginById(id))).toHaveLength(5);
+      }
     });
   });
 
@@ -322,23 +320,18 @@ describe("widths in millimetres", () => {
     expect(toMm(MAX_SIZE)).toBeCloseTo(210, 6);
   });
 
-  it("keeps kept widths per tool, inside the ceiling", () => {
-    const settings = parseSettings(
-      JSON.stringify({
-        customSizes: { pencil: [4, MAX_SIZE, MAX_SIZE + 1, -3] },
-      }),
-    );
-    expect(keptSizesFor(settings, "pencil")).toEqual([4, MAX_SIZE]);
-    expect(keptSizesFor(settings, "paintbrush")).toEqual([]);
-  });
-
-  it("drops the one shared list of widths an older blob carries", () => {
-    // They were widths on a scale where a document pixel meant nothing in
-    // particular. Seeding them into fifteen rows would put a nib as wide as a
-    // finger in the pencil's picker, so the five real ones win instead.
-    const settings = parseSettings(JSON.stringify({ customSizes: [4, 96] }));
-    expect(settings.customSizes).toEqual({});
-    expect(presetsFor(settings, "pencil")).toEqual([]);
+  it("drops the widths an older blob let the user keep", () => {
+    // They are gone entirely: a bare width was a worse version of a saved
+    // *tool*, and there is nothing in a number to build one out of — no name
+    // to give it. Both shapes the field ever had read as absent.
+    for (const blob of [
+      { customSizes: [4, 96] },
+      { customSizes: { p: [4] } },
+    ]) {
+      const settings = parseSettings(JSON.stringify(blob));
+      expect("customSizes" in settings).toBe(false);
+      expect(presetsFor(settings, "pencil")).toEqual([]);
+    }
   });
 });
 

@@ -3,13 +3,13 @@
 The page you draw on is a fixed pixel size, and you choose it when the drawing
 is made: **New drawing** asks how big the page should be before it opens one.
 
-| Size            | What it is                                                       |
-| --------------- | ---------------------------------------------------------------- |
-| **This screen** | Your display's own resolution — the default, and usually right   |
-| **Full HD**     | 1920 × 1080                                                      |
-| **4K**          | 3840 × 2160                                                      |
-| **A4**          | 210 × 297 mm, portrait — the one preset that is a piece of paper |
-| **Custom**      | Type a width and a height, 64–8192 px on each side               |
+| Size            | What it is                                                        |
+| --------------- | ----------------------------------------------------------------- |
+| **This screen** | Your display's own resolution — the default, and usually right    |
+| **Full HD**     | 1920 × 1080                                                       |
+| **4K**          | 3840 × 2160                                                       |
+| **A4**          | 2480 × 3508 — A4 at 300 dpi, the resolution a photo printer wants |
+| **Custom**      | Type a width and a height, 64–8192 px on each side                |
 
 They are **drawn rather than listed**: five rectangles at one shared scale, so
 "how much bigger is 4K than Full HD" and "is A4 taller than my screen" are
@@ -150,7 +150,8 @@ a readable JSON file rather than a blob of pixels.
   of a flat colour: press where the first colour should start, drag the way you
   want it to run, and let go where the last one should land. Its colours are its
   own — from, to, and a middle one if you want three — so the toolbar's ink is
-  dimmed while it is in your hand.
+  struck through while it is in your hand — a control that changes nothing is
+  not offered.
 - The **dropper** takes the colour you tap and makes it the ink — including a
   colour that only exists where two translucent passes overlap. Its cog sets how
   much page one tap reads: the single pixel under the pointer, or the average of

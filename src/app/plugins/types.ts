@@ -135,9 +135,10 @@ export type ToolDial = {
  *
  *  Declaring any of them says something else as well, and it is the reason they
  *  exist: **this tool does not draw with the toolbar's ink.** A gradient is
- *  poured from its own two or three colours, so the ink button is dimmed while
- *  it is in hand — the same honesty the toolbar already shows for a tool that
- *  lifts ink or moves the view (see `plugins/controls.ts`). */
+ *  poured from its own two or three colours, so the ink button is struck
+ *  through and disabled while it is in hand — the same honesty the toolbar
+ *  already shows for a tool that lifts ink or moves the view (see
+ *  `plugins/controls.ts`). */
 export type ToolSwatch = {
   /** Stable id. It is persisted — in the settings blob, and on every mark the
    *  tool pours — so renaming one forgets that colour. */
@@ -151,6 +152,54 @@ export type ToolSwatch = {
   /** True when "none" is one of this swatch's answers — the panel then offers a
    *  way back to it, and the tool reads the colour as absent. */
   optional?: boolean;
+};
+
+/** One of the settings a tool **ships with** — a whole way of holding it, under
+ *  a name its maker chose.
+ *
+ *  A width and five dials is a lot of decisions, and a beginner has no way of
+ *  knowing which of them are a *tool* and which are noise. "Dry brush" is a
+ *  tool: a splayed head, the hardness right down, the opacity eased off. Nobody
+ *  arrives at it by dragging five sliders and seeing what happens — they arrive
+ *  at it by being handed it. So a plugin declares the handful of settings its
+ *  medium is actually used at, and the panel offers them as chips above the
+ *  ones the user saved for themselves (see `plugins/presets.ts`).
+ *
+ *  Three rules hold the set together, and the first is the one that keeps this
+ *  from becoming a second dial:
+ *
+ *    - **One preset is a tool, not a number.** It has to differ from its
+ *      neighbours in what the mark *is* — a wet wash against a dry-brush
+ *      scumble — and not in one slider being a notch along. A tool whose
+ *      must-haves come to a single setting ships **no presets at all**: that
+ *      setting is its `defaultSize` and its dial defaults instead, which is
+ *      what a default is *for*. That is why the shapes and the text tool have
+ *      none.
+ *    - **One of them is the tool as it comes.** Every tool that ships presets
+ *      ships one that is exactly its own defaults, first in the row — so the
+ *      panel opens with a chip already lit, which is how anyone learns what the
+ *      row is, and so "put it back" is one press.
+ *    - **Only what it moves.** A preset names the dials it has an opinion
+ *      about; the rest resolve to their defaults when it is applied, so adding
+ *      a dial to a tool later does not mean editing every preset it has.
+ *
+ *  Unlike a saved tool, this is not persisted anywhere: it is a *reading* of
+ *  the plugin, so a build that retunes one retunes it for everybody, and a chip
+ *  applied yesterday leaves no trace beyond the width and dials it set. */
+export type BuiltinPreset = {
+  /** Stable id, unique within the tool. Not persisted — the chip is a button,
+   *  not a state — but it is the panel's key and the tests' address. */
+  id: string;
+  /** Catalog key for the name on the chip. A catalog key rather than a string
+   *  because "Dry brush" is a word, and a tool's presets are read by whoever
+   *  the app is in the language of. */
+  nameKey: TKey;
+  /** The width it sets, in document pixels. Absent only for a tool that has no
+   *  width (see `PresetSettings`). */
+  size?: number;
+  /** The dials it has an opinion about, by dial id. Everything the tool offers
+   *  and this does not name comes back to that dial's default. */
+  dials?: Readonly<Record<string, number>>;
 };
 
 /** The ink the toolbar currently has selected, handed to a tool on every step
@@ -327,7 +376,7 @@ export type PaintPlugin = {
   erases?: boolean;
   /** True when the tool moves the *view* instead of leaving a mark — the hand.
    *  A one-finger drag then pans the page and a double-tap fits it, no stroke is
-   *  ever begun, and the toolbar dims the ink it would not use. This is the flag
+   *  ever begun, and the toolbar strikes out the ink it would not use. This is the flag
    *  the canvas reads; nothing branches on the tool's id. */
   navigates?: boolean;
   /** True when the tool reads a colour off the page instead of leaving a mark —
@@ -413,6 +462,15 @@ export type PaintPlugin = {
    *  the tool's settings panel and dims the toolbar's ink button, because a tool
    *  that carries its own colours does not draw with that one. */
   swatches?: readonly ToolSwatch[];
+  /** The settings this tool is actually used at — the "must haves" of the
+   *  medium, offered as chips above the ones the user saved (see
+   *  `BuiltinPreset` for the rules, and `plugins/builtin/presets.ts` for the
+   *  shipped set).
+   *
+   *  Absent is a real answer, not an omission: a tool whose must-haves come to
+   *  one setting puts that setting in its `defaultSize` and dial defaults
+   *  instead of shipping a row of one chip. */
+  presets?: readonly BuiltinPreset[];
   /** True when the plugin exists only to *paint* — it is never offered in the
    *  toolbar or listed in Settings → Tools, and its `start` returns nothing.
    *

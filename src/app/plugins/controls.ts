@@ -45,9 +45,11 @@ export function usesSize(plugin: PaintPlugin | undefined): boolean {
  *
  *  Three ways to have no use for it, and all three are already on the
  *  descriptor: lift ink instead of laying it (`erases`), move the view
- *  (`navigates`), or choose marks (`selects`). The toolbar dims the swatch for
- *  those, which is the honest thing to say about a control that changes nothing
- *  until you pick up something that paints.
+ *  (`navigates`), or choose marks (`selects`). The toolbar **strikes the swatch
+ *  through and disables it** for those, which is the honest thing to do with a
+ *  control that changes nothing until you pick up something that paints — it
+ *  used to be dimmed and still open its picker, which is a control saying "not
+ *  now" and then working anyway.
  *
  *  **A colour-sampling tool is the exception, and it is the interesting one.**
  *  The dropper never paints with the ink either — but it is the tool that
@@ -60,8 +62,8 @@ export function usesSize(plugin: PaintPlugin | undefined): boolean {
  *  **A tool that mixes its own inks is the fourth way**, and the newest: the
  *  gradient pours from the two or three colours on its own panel, so the
  *  toolbar's swatch is a control that changes nothing while it is in hand —
- *  which is exactly what dimming says. Read off `swatches`, so no id is
- *  recognised here either. */
+ *  which is exactly what a strike through it says. Read off `swatches`, so no
+ *  id is recognised here either. */
 export function usesInk(plugin: PaintPlugin | undefined): boolean {
   if (!plugin) return true;
   if (plugin.picksColor) return true;

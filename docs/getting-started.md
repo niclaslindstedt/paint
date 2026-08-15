@@ -44,7 +44,8 @@ the ink nor the drawing.
   through it: press where the first colour should start, drag the way you want
   it to run, and let go where the last one should land. Its colours are its own
   (**From**, **To**, and a **Middle** one if you want three), set on its cog
-  beside the ink — which is why the ink button dims while it is in your hand.
+  beside the ink — which is why the ink button is struck out while it is in your
+  hand.
 - **Rectangle** (`R`), **Ellipse** (`O`) and **Line** (`L`) are dragged from one
   corner (or end) to the other.
 - **Text** (`T`) drops a caret where you tap and you type into the drawing
@@ -106,7 +107,8 @@ nothing needs setting up before it draws the way it should.
 **The sizes are the ones the real thing comes in.** A page pixel is one dot of
 an iPhone's screen, so a width is a distance you can measure on the glass — set
 the marker to 5 mm, hold the drawing at 1:1, and the band under your thumb is
-five millimetres wide. The pencil's five
+five millimetres wide. Every tool opens on the size it is reached for most of
+the time. The pencil's five
 buttons are the four leads a mechanical pencil takes plus a 2 mm clutch lead,
 the round brush's are a #2 through a one-inch flat, and type is set in points.
 The slider under them spends its middle four tenths on the range that tool is
@@ -114,13 +116,17 @@ genuinely made in — the band is drawn on the track, and the readout says **as
 made** while you are inside it, **finer than made** or **wider than made** when
 you are not. Nothing is forbidden: the top half of every slider runs off to a
 nib as wide as the page, because a 0.05 mm line and a 200 mm one are sometimes
-exactly what a drawing wants. **Keep** adds whatever the slider is on to that
-tool's own row.
+exactly what a drawing wants.
 
-Above the widths is **Saved**. Once you have set a tool up the way you like it —
-a 4B at 0.7 mm with the opacity eased off — press **Save…**, name it "my
-sketching pencil", and it is one press away from then on. A saved tool carries
-its width and every one of its dials, and it belongs to the tool it came from.
+Picking a width does not close the panel — it is also where the tool is saved
+and tuned, so it stays put until you press somewhere else.
+
+The **star** beside the tool's name is how you keep one. Once you have set a
+tool up the way you like it — a 4B at 0.7 mm with the opacity eased off — press
+the star, give it a name ("my sketching pencil") and a mark to know it by, and
+it is one press away from then on, as a chip under **Saved** at the top of that
+tool's panel. A saved tool carries its width and every one of its dials, and it
+belongs to the tool it came from.
 
 ## More tools
 

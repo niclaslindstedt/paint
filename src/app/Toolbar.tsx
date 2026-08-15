@@ -6,6 +6,7 @@ import { CogIcon } from "@niclaslindstedt/oss-framework/components";
 import { useT } from "./i18n/index.ts";
 import { fieldHasKeyboard } from "./keys.ts";
 import { toolControl, usesInk } from "./plugins/controls.ts";
+import { toolPresets } from "./plugins/presets.ts";
 import {
   enabledPlugins,
   pluginById,
@@ -13,7 +14,7 @@ import {
   type ToolbarEntry,
 } from "./plugins/registry.ts";
 import type { PaintPlugin } from "./plugins/types.ts";
-import type { ToolPreset } from "./presets.ts";
+import type { PresetSettings, ToolPreset } from "./presets.ts";
 import {
   groupMemberFor,
   sizesFor,
@@ -95,14 +96,11 @@ type Props = {
   onRemoveColor: (color: string) => void;
   size: number;
   onSizeChange: (size: number) => void;
-  /** The widths kept for the tool in hand, and the tools saved under a name
-   *  for it. Both are per tool — see `useAppSettings`. */
-  customSizes: readonly number[];
-  onAddSize: (size: number) => void;
-  onRemoveSize: (size: number) => void;
+  /** The tools saved under a name for the one in hand — per tool, see
+   *  `useAppSettings`. */
   presets: readonly ToolPreset[];
-  onApplyPreset: (preset: ToolPreset) => void;
-  onSavePreset: (name: string) => void;
+  onApplyPreset: (preset: PresetSettings) => void;
+  onSavePreset: (name: string, glyph: string | null) => void;
   onDeletePreset: (id: string) => void;
   /** Where the active tool's dials sit, resolved — the size panel's Advanced
    *  section. Which dials those are comes off the plugin descriptor, so the
@@ -145,9 +143,6 @@ export function Toolbar({
   onRemoveColor,
   size,
   onSizeChange,
-  customSizes,
-  onAddSize,
-  onRemoveSize,
   presets,
   onApplyPreset,
   onSavePreset,
@@ -201,6 +196,15 @@ export function Toolbar({
   // What the button beside the ink is for this tool: its width, its own
   // settings, or nothing (see `plugins/controls.ts`).
   const control = toolControl(active);
+
+  // A picker open over a button that has just gone dead closes itself: picking
+  // up the eraser while the palette is out must not leave a live palette hanging
+  // off a control that no longer does anything.
+  useEffect(() => {
+    if (inkIrrelevant) {
+      setPanel((prev) => (prev?.kind === "color" ? null : prev));
+    }
+  }, [inkIrrelevant]);
 
   // Single-key tool shortcuts, read straight off the plugin descriptors. Held
   // back while a text field or a dialog owns the keyboard so typing a drawing's
@@ -312,24 +316,79 @@ export function Toolbar({
             back when painting *with* the page was how you rubbed something out.
             The eraser lifts ink now (see `render.ts`) and the sheet's colour
             belongs to the background layer, so the second half stood for
-            nothing. */}
+            nothing.
+
+            **With a tool the ink means nothing to, it is struck through and
+            genuinely dead.** It used to be dimmed and still open its picker,
+            which is a control saying "not now" and then working anyway: you
+            could mix a colour with the eraser in hand, watch the swatch change,
+            and get exactly the rubbing out you would have got. The rule stays
+            the descriptor's (`usesInk`) — the eraser lifts ink, the hand moves
+            the view, the marquee chooses marks, and the gradient pours colours
+            of its own — so a tool that lands next year is struck through
+            without this file learning its name. The dropper is the one tool
+            that paints nothing and keeps the button, because this is where the
+            colour it samples lands. */}
         <button
           ref={colorAnchor}
           type="button"
+          disabled={inkIrrelevant}
           onClick={() =>
             setPanel((prev) =>
               prev?.kind === "color" ? null : { kind: "color" },
             )
           }
-          aria-haspopup="menu"
-          aria-expanded={panel?.kind === "color"}
+          aria-haspopup={inkIrrelevant ? undefined : "menu"}
+          aria-expanded={inkIrrelevant ? undefined : panel?.kind === "color"}
           aria-label={t("canvas.color")}
-          title={t("canvas.color")}
-          className={`h-9 w-9 shrink-0 cursor-pointer rounded border border-line hover:border-accent ${
-            inkIrrelevant ? "opacity-40" : ""
+          title={inkIrrelevant ? t("canvas.colorUnused") : t("canvas.color")}
+          className={`relative h-9 w-9 shrink-0 rounded border border-line ${
+            inkIrrelevant
+              ? "cursor-default"
+              : "cursor-pointer hover:border-accent"
           }`}
-          style={{ backgroundColor: color }}
-        />
+        >
+          {/* The colour itself, dimmed rather than the whole button — the line
+              over it has to stay at full strength to read as a line. */}
+          <span
+            aria-hidden="true"
+            className={`absolute inset-0 rounded-[3px] ${
+              inkIrrelevant ? "opacity-40" : ""
+            }`}
+            style={{ backgroundColor: color }}
+          />
+          {/* The strike: corner to corner the way every prohibition sign is
+              drawn, in red, over a white line a shade wider — the marquee's
+              two-tone trick, because a red line on a red swatch is no line at
+              all. */}
+          {inkIrrelevant && (
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 36 36"
+              className="pointer-events-none absolute inset-0 h-full w-full"
+            >
+              <line
+                x1="7"
+                y1="7"
+                x2="29"
+                y2="29"
+                stroke="#ffffff"
+                strokeWidth="4.5"
+                strokeLinecap="round"
+                opacity="0.7"
+              />
+              <line
+                x1="7"
+                y1="7"
+                x2="29"
+                y2="29"
+                stroke="#ef4444"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+              />
+            </svg>
+          )}
+        </button>
 
         {/* The nib button — a press with the tool in your hand, on your page,
             in your ink. Not a dot the width of the nib: what a width *is* is
@@ -355,7 +414,7 @@ export function Toolbar({
             <PressPreview
               plugin={active}
               size={size}
-              of={sizesFor(active, customSizes).at(-1) ?? size}
+              of={sizesFor(active).at(-1) ?? size}
               color={color}
               background={background}
               dials={dialValues}
@@ -456,9 +515,9 @@ export function Toolbar({
           color={color}
           background={background}
           filled={filled}
-          customSizes={customSizes}
-          onAddSize={onAddSize}
-          onRemoveSize={onRemoveSize}
+          // The presets the tool itself ships with, resolved off the descriptor
+          // — nothing here knows a tool's settings, only that it has some.
+          builtinPresets={toolPresets(active)}
           presets={presets}
           onApplyPreset={onApplyPreset}
           onSavePreset={onSavePreset}
@@ -481,6 +540,10 @@ export function Toolbar({
           onClose={() => setPanel(null)}
           anchor={settingsAnchor}
           plugin={active}
+          builtinPresets={toolPresets(active)}
+          onApplyPreset={onApplyPreset}
+          color={color}
+          background={background}
           dials={active?.dials ?? []}
           values={dialValues}
           onDialChange={onDialChange}
@@ -488,7 +551,6 @@ export function Toolbar({
           colors={colorValues}
           onColorChange={onToolColorChange}
           customColors={customColors}
-          background={background}
           onResetDials={onResetDials}
           tuned={dialsTuned}
         />

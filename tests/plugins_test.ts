@@ -557,9 +557,9 @@ describe("the felt tips", () => {
     // It used to open eighteen document pixels wide, which is a wall marker.
     const marker = pluginById("marker")!;
     const draft = marker.behaviour.start({ x: 0, y: 0 }, ctx)!;
-    // A one-millimetre bullet: what most people mean by "a marker", and what
-    // most people want to write with.
-    expect(toMm(marker.defaultSize!)).toBeCloseTo(1, 6);
+    // The two-millimetre bullet: the tip on the marker in everybody's drawer,
+    // and the one it spends its life on.
+    expect(toMm(marker.defaultSize!)).toBeCloseTo(2, 6);
     // …and the nib painter lays a mark exactly as wide as it is told, so the
     // number on the button is the mark.
     expect(draft.size).toBe(ctx.size);

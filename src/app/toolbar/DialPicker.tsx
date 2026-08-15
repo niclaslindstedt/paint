@@ -2,8 +2,11 @@
 import { FloatingPanel } from "@niclaslindstedt/oss-framework/components";
 
 import { useT } from "../i18n/index.ts";
+import type { ToolPresetOption } from "../plugins/presets.ts";
 import type { PaintPlugin, ToolDial, ToolSwatch } from "../plugins/types.ts";
+import type { PresetSettings } from "../presets.ts";
 import { PressPreview } from "./PressPreview.tsx";
+import { ShippedPresets } from "./PresetBar.tsx";
 import { ToolDials } from "./ToolDials.tsx";
 import { ToolSwatches } from "./ToolSwatches.tsx";
 
@@ -27,22 +30,33 @@ import { ToolSwatches } from "./ToolSwatches.tsx";
 // panel opened from an unlabelled cog most needs to say is whose settings
 // these are.
 //
-// **A tool that mixes its own inks puts them at the top, under a press.** The
-// gradient is the case: while it is in hand the toolbar's ink button is dimmed,
-// because the ramp is poured from the colours on this panel and from nothing
-// else — so this panel is the only place those colours are shown, and showing
-// them as swatches alone would say what they are without saying what they make.
-// The press above them is the ordinary one every size button draws (see
-// `press.ts`): the mark this tool leaves, as it is currently set. It is offered
-// only to the tools that carry their own inks, because for everything else the
-// ink button is already the read-out.
+// Above them sits the same row of shipped presets the size panel opens with
+// (see `PresetBar`), for the same reason and with the width simply taken away:
+// a flat fill, one with a soft edge and a pale wash are three different tools
+// to anybody using them, and the bucket having no nib is no reason for it to be
+// the one tool you have to build by hand.
+//
+// **And a tool that mixes its own inks puts them at the very top, under a
+// press.** The gradient is the case: while it is in hand the toolbar's ink
+// button is crossed out, because the ramp is poured from the colours on this
+// panel and from nothing else — so this panel is the only place those colours
+// are shown, and showing them as swatches alone would say what they are without
+// saying what they make. The press over them is the ordinary one every size
+// button draws (see `press.ts`): the mark this tool leaves, as it is set now.
 
 type Props = {
   open: boolean;
   onClose: () => void;
   anchor: React.RefObject<HTMLButtonElement | null>;
-  /** The tool whose settings these are — it names the section. */
+  /** The tool whose settings these are — it names the section, and it paints
+   *  the presets' previews. */
   plugin: PaintPlugin | undefined;
+  /** The presets it ships with, dials resolved (see `plugins/presets.ts`). */
+  builtinPresets: readonly ToolPresetOption[];
+  onApplyPreset: (preset: PresetSettings) => void;
+  /** The ink and the page those previews are painted in. */
+  color: string;
+  background: string;
   dials: readonly ToolDial[];
   values: Readonly<Record<string, number>>;
   onDialChange: (id: string, value: number | null) => void;
@@ -55,9 +69,6 @@ type Props = {
   onColorChange: (id: string, color: string | null) => void;
   /** The colours the user has mixed, offered beside the built-in palette. */
   customColors: readonly string[];
-  /** The page the preview is painted on — a ramp ending in white has to read on
-   *  a white sheet the way it will on the page. */
-  background: string;
   onResetDials: () => void;
   tuned: boolean;
 };
@@ -72,6 +83,10 @@ export function DialPicker({
   onClose,
   anchor,
   plugin,
+  builtinPresets,
+  onApplyPreset,
+  color,
+  background,
   dials,
   values,
   onDialChange,
@@ -79,7 +94,6 @@ export function DialPicker({
   colors,
   onColorChange,
   customColors,
-  background,
   onResetDials,
   tuned,
 }: Props) {
@@ -106,7 +120,7 @@ export function DialPicker({
                 plugin={plugin}
                 size={PREVIEW_SIZE}
                 of={PREVIEW_SIZE}
-                color={background}
+                color={color}
                 background={background}
                 dials={values}
                 colors={colors}
@@ -124,14 +138,32 @@ export function DialPicker({
           </>
         )}
 
-        <ToolDials
-          title={plugin ? t(plugin.nameKey) : t("dials.advanced")}
-          dials={dials}
-          values={values}
-          onChange={onDialChange}
-          onReset={onResetDials}
-          tuned={tuned}
+        <ShippedPresets
+          plugin={plugin}
+          presets={builtinPresets}
+          // A tool with no width is matched on its dials alone, so the number
+          // here reaches nothing (see `presetMatches`).
+          size={0}
+          dials={values}
+          color={color}
+          background={background}
+          filled={false}
+          onApply={onApplyPreset}
         />
+        <div
+          className={
+            builtinPresets.length > 0 ? "border-t border-line pt-2" : ""
+          }
+        >
+          <ToolDials
+            title={plugin ? t(plugin.nameKey) : t("dials.advanced")}
+            dials={dials}
+            values={values}
+            onChange={onDialChange}
+            onReset={onResetDials}
+            tuned={tuned}
+          />
+        </div>
       </div>
     </FloatingPanel>
   );

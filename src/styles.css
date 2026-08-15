@@ -258,3 +258,50 @@ select,
     }
   }
 }
+
+/* The size panel's gauge slider.
+ *
+ * Styled at all for one reason: the "as made" band drawn behind it has to line
+ * up with where the thumb actually travels, and a range input's thumb does not
+ * travel the full width — it is inset by half a thumb at each end. Left to the
+ * browser that inset is a different number in every browser, so the band was a
+ * claim about a track it was not on. Pinning the thumb's size makes the inset a
+ * number the layout can subtract (`--gauge-thumb` in `SizePicker.tsx`).
+ *
+ * The track itself is transparent: what shows through is the band underneath,
+ * which is the whole point of the control. */
+.gauge-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+}
+
+.gauge-slider::-webkit-slider-runnable-track {
+  height: 100%;
+  background: transparent;
+}
+
+.gauge-slider::-moz-range-track {
+  height: 100%;
+  background: transparent;
+}
+
+.gauge-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 9999px;
+  border: 2px solid var(--color-surface);
+  background: var(--color-accent);
+  cursor: pointer;
+}
+
+.gauge-slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 9999px;
+  border: 2px solid var(--color-surface);
+  background: var(--color-accent);
+  cursor: pointer;
+}

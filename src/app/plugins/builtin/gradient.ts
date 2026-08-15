@@ -23,8 +23,8 @@
 //
 // **It pours its own inks, not the toolbar's.** Two colours (or three) are what
 // a gradient *is*, and one of them could never be the ink button's — so the tool
-// declares them as `swatches`, they live on its own panel, and the toolbar dims
-// the ink while it is in hand (see `plugins/swatches.ts` and
+// declares them as `swatches`, they live on its own panel, and the toolbar
+// strikes out the ink while it is in hand (see `plugins/swatches.ts` and
 // `plugins/controls.ts`). Nothing outside this file knows they are called "from"
 // and "to".
 

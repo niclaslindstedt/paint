@@ -101,8 +101,9 @@ the way it declares dials — an id, a name, the colour it rests at, and whether
 - the tool's settings panel grows a **swatch row** at its head, over a press of
   the mark those colours make, and a palette for whichever swatch you are
   setting;
-- the toolbar's ink button is **dimmed** while the tool is in hand, because that
-  colour genuinely changes nothing;
+- the toolbar's ink button is **struck through and disabled** while the tool is
+  in hand, because that colour genuinely changes nothing — the same treatment
+  the eraser, the hand and the marquee get, and for the same reason;
 - the values are kept per tool per swatch in the settings blob, sparsely — only
   what differs from the colours the tool ships with;
 - and a poured mark **records the ramp it was poured with**, so re-mixing the
@@ -224,7 +225,7 @@ produce identical grain instead of a mark that shimmers when you pan.
 
 The **hand** draws nothing. Its descriptor carries `navigates: true`, and that
 flag — not its id — is what tells the canvas a press should pan the page rather
-than start a stroke, and what dims the ink it would never use. The **dropper**
+than start a stroke, and what strikes out the ink it would never use. The **dropper**
 works the same way through `picksColor` — and answers `pick` with the colour a
 press read, because _how much page_ one press covers is the dropper's own
 setting and the canvas has no business knowing what that dial is called. That is
@@ -292,11 +293,18 @@ put a ruler on.
 
 So a millimetre is 18.11 pixels: a 0.5 mm pencil lead is a nine-pixel line, a
 25 mm flat brush a four-hundred-pixel band, and the default 3200 × 2000 sheet a
-postcard held landscape at 177 × 110 mm. The new-drawing dialog's **A4** is A4
-here too — it is written in millimetres rather than as some printer's pixel
-count, so it follows the page's scale. Type is measured in **points**, because
+postcard held landscape at 177 × 110 mm. Type is measured in **points**, because
 type has been sold that way for four hundred years and a caption in millimetres
 is one nobody can compare against anything.
+
+The new-drawing dialog's **A4** preset is the one number here that is _not_ on
+this scale, and deliberately: it answers a different question — how many pixels
+a sheet needs to **print** sharply. Photo labs and consumer inkjets want image
+data at 300 ppi (the 1440 and 5760 dpi on the box are ink droplets, not pixels),
+so A4 is 2480 × 3508 whatever the page's own scale is. That rectangle measures
+137 × 194 mm in the app and 210 × 297 mm on the paper; both are true of the same
+pixels, and which you mean depends on whether you are looking at the glass or at
+the print.
 
 Widths on strokes are still document pixels, so nothing already drawn moved.
 What changed is what a number _means_.
@@ -314,6 +322,14 @@ The five buttons are sizes a shop actually sells, and each carries the trade's
 own designation where there is one — the brush row reads **#2 · #6 · #10 · #16 ·
 1"**, the pencil row **0.3 · 0.5 · 0.7 · 0.9 · 2.0 mm**, the type row **10 · 12 ·
 18 · 24 · 48 pt**.
+
+Each tool **opens on one of its own five**, and on the one it is reached for
+most of the time rather than on the middle of the rack: the pen at 0.5 mm (the
+liner that outsells the rest put together), the pencil at 0.7 (0.5 is the lead a
+shop sells most of, but a sketching hand wants the blunter point), the marker at
+its 2 mm bullet, the round brush at a #6, the airbrush at a general-purpose
+12 mm pattern. A default that is not one of the five is a fresh install whose
+size row has nothing lit up in it.
 
 The slider under them is **not linear and not one scale**. It has three bands:
 
@@ -335,9 +351,15 @@ has no implement behind it and is still the right line sometimes, and a slider
 that refuses to draw a 200 mm pencil is a slider arguing with you. What the
 panel does instead is _tell you_ which of those you are doing.
 
-**Keep** adds whatever the slider is on to that tool's row, and kept widths are
-per tool — a 25 mm flat you kept while painting has no business in the pencil's
-picker.
+There is no "keep this width" button. A width on its own was a worse version of
+a saved **tool**, which carries the dials with it and has a name and a mark on
+it — so the star in the title row is the only thing in the panel that remembers
+anything.
+
+Nothing in the panel closes it, either. Picking a width, applying a saved tool
+and turning a dial are all things you may want to do two of — and the panel is
+where a tool gets saved, so shutting it the moment a width was picked put the
+star one re-open away from the decision that earned it.
 
 Not every tool has one. The paint bucket and the gradient fill the area they
 traced whatever a nib might say, so they declare `sizeless` and are offered no
@@ -348,21 +370,87 @@ that has settings but no width, and nothing for a tool with neither. The dimmed
 size button those last two used to get was a promise that the control worked
 sometimes, and for them there was no sometimes.
 
+## Presets: the tool as it is actually held
+
+Five sliders is a tool a professional can build and a beginner cannot. Nobody
+arrives at dry-brush by dragging the splay up, the hardness down and the opacity
+off to see what happens — they arrive at it by being handed it and told what it
+is called. So most tools **ship with the handful of settings their medium is
+actually used at**, and the panel offers them as a row of chips above everything
+else in it.
+
+A preset is a **whole tool**: a width _and_ every dial. Pressing one sets the
+lot, including the dials it has no opinion about, which go back to their
+defaults — so a dry brush applied over a wet-in-wet is a dry brush and not some
+third thing. What is on offer is the vocabulary of the medium rather than of the
+app:
+
+| Tool            | Ships with                               |
+| --------------- | ---------------------------------------- |
+| Pen             | Liner · Fineliner · Guide line           |
+| Pencil          | Sketch · Construction · Shading · Detail |
+| Eraser          | Block · Detail · Kneaded                 |
+| Round brush     | Round · Hog bristle · Dry brush · Glaze  |
+| Flat brush      | One-stroke · Lettering · Flat wash       |
+| Watercolour     | Wash · Wet-in-wet · Glaze · Dry brush    |
+| Airbrush        | General · Detail · Background            |
+| Marker          | Marker · Chisel · Fineliner              |
+| Highlighter     | Line of text · Broad                     |
+| Crayon          | Colouring · Shading · Solid              |
+| Calligraphy pen | Italic · Foundational · Uncial           |
+| Paint bucket    | Flat fill · Soft edge · Wash             |
+
+Each chip wears **the mark it makes** — a press with the tool as that preset
+sets it, painted by the painter that would paint it, exactly as the widths below
+are (see below). That is what makes a word you may not know yet worth putting on
+a button: "wet-in-wet" reads a great deal more clearly when the chip beside it
+is visibly wetter than the one next to it.
+
+**Every row opens with the tool as it comes.** The first chip of each is
+precisely the tool's own defaults, so opening the panel on a tool nobody has
+touched shows a chip already lit — which is how the row explains itself without a
+word of help text, and which makes "put it back the way it was" one press.
+
+**A tool whose must-haves come to a single setting ships none at all**, and puts
+that setting in its defaults instead — which is what a default is _for_. A row of
+one chip is a worse default than a default. That is why the eleven shapes have
+none (a rectangle is a rectangle; what varies is the width of the line it is
+ruled with, and the width row is already five buttons of exactly that, opening on
+the half-millimetre line you would draw a box with) and why the text tool has
+none either (the size row is the preset row for type, and the face, the weight
+and the slant are not dials — they sit beside the caption you are typing). The
+hand, the dropper and the selection tools have no dials and leave no mark, so
+there is nothing to preset.
+
+The paint bucket is the one whose presets carry **no width**, because the tool
+has none: they are three dial settings, offered from the same cog that holds its
+dials. A fill with a hard edge, one that fades out behind a sketch, and a pale
+wash you can read the drawing through are three different tools to anyone using
+them, and the bucket having no nib is no reason for it to be the one tool you
+have to build by hand.
+
 ## Saved tools
 
 A width and five dials is a lot of decisions, and the ones worth making are
 worth making once. Finding the 4B at 0.7 mm with the opacity eased off that a
 drawing wants takes a minute of fiddling; wanting it again tomorrow takes the
-same minute. So the panel's first section is **Saved**: press **Save…**, give it
-a name — "my sketching pencil" — and it is a chip at the top of that tool's
-panel from then on.
+same minute. So the panel's title row carries a **star**. Press it, give the tool a name —
+"my sketching pencil" — and a **mark** from the same catalogue a drawing's own
+glyph comes from, and it is a chip at the top of that tool's panel from then on.
 
 A chip is a **whole tool**: pressing one sets the width _and_ every dial at
 once, and it can put a dial back to its default as readily as away from it. They
 belong to one tool, because "my sketching pencil" applied to the airbrush is
-nonsense. And none of it is a mode — a chip lights up when the tool currently
-_is_ what it describes, which is an observation rather than a state: move a dial
-afterwards and the light goes out, and nothing has been entered or left.
+nonsense. The mark is what makes the row readable at a glance — four chips of
+similar words are four chips you have to read, where the star is the one you
+always reach for and the leaf is the one you sketch plants with.
+
+The **Saved** section is not there at all until something has been saved: an
+empty heading over an empty row is a promise of a feature rather than a feature,
+and the star beside the tool's name is the way in. And none of it is a mode — a
+chip lights up when the tool currently _is_ what it describes, which is an
+observation rather than a state: move a dial afterwards and the light goes out,
+and nothing has been entered or left.
 
 Eight per tool, and saving over a name you have used replaces it, which is what
 everyone means by saving.
@@ -557,12 +645,15 @@ Three steps, none of which touch the canvas, the store, or the toolbar:
    for the sizes it is really made in (see `plugins/builtin/gauges.ts` — the
    range, the five buttons, and the trade's name for each), `dials` if it has
    anything of its own to tune, `swatches` if it mixes inks of its own rather
-   than drawing with the toolbar's, and `group` if it belongs to a family
+   than drawing with the toolbar's, `presets` if its medium has more than one
+   way of being held (and if it has exactly one, make that its defaults instead
+   of a row of one chip), and `group` if it belongs to a family
    that already has a button (a twelfth shape is one line in the `SHAPES`
    table). A tool with no width says `sizeless` and gets the cog instead of the
    size button; one whose mark cannot picture itself says
    `sizePreview: "circle"`.
-3. Add those two strings to `src/app/i18n/en.ts` (and `sv.ts`).
+3. Add those two strings to `src/app/i18n/en.ts` (and `sv.ts`) — plus one per
+   preset, under `presets.<tool id>`.
 
 Externally-loaded plugins are not implemented yet. When they land they register
 through this same interface rather than a second, parallel one — which is the

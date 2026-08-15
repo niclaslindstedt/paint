@@ -44,11 +44,24 @@ the same [`oss-framework`](https://github.com/niclaslindstedt/oss-framework).
   points. Each tool's slider spends its middle four tenths on the range that
   tool is genuinely made in — the band is drawn on the track and the readout
   says **as made** when you are inside it — with a tenth below for finer than
-  anybody makes and the top half running off to a nib as wide as the page.
+  anybody makes and the top half running off to a nib as wide as the page. Each
+  tool opens on the size it is reached for most of the time.
+- **Every tool arrives knowing how it is held.** A watercolour brush is not a
+  slider labelled Water — it is a wash, a wet-in-wet flood, a glaze and a dry
+  brush, and each of those is a width and three dials at once. So the tools ship
+  with those: a row of **presets** at the top of the tool's panel, each chip
+  showing the mark it actually makes. The pencil comes as Sketch, Construction,
+  Shading and Detail (a grade and a width together _are_ a pencil); the round
+  brush as a hog bristle, a dry brush and a glaze; the calligraphy pen as the
+  three hands anyone is taught; the bucket as a flat fill, a soft edge and a
+  pale wash. Every row opens with the tool exactly as it comes, so one press
+  puts back whatever you have done to it. Tools with only one setting worth
+  handing anybody — the shapes, type — skip the row and simply open on it.
 - **Save the tool, not the setting.** Once you have found the 4B at 0.7 mm with
-  the opacity eased off, press **Save…**, call it "my sketching pencil", and it
-  is one press away from then on. A saved tool carries its width and every dial,
-  and it belongs to the tool it was saved from.
+  the opacity eased off, press the **star** beside the tool's name, call it "my
+  sketching pencil" and give it a mark to know it by, and it is one press away
+  from then on. A saved tool carries its width and every dial, and it belongs to
+  the tool it was saved from.
 - **Eleven shapes, one button.** Rectangle, ellipse, line, arrow, rounded
   rectangle, triangle, diamond, pentagon, hexagon, star and double arrow share a
   single toolbar button and a single switch: press it again for the family, and
@@ -221,15 +234,17 @@ npm run preview
   tip for the marker and the highlighter, the angle of the nib for the flat
   brush and the calligraphy pen, strength for the eraser, a feathered edge for
   the paint bucket and the gradient, how much page one press of the dropper
-  reads, and opacity for most of the rest. Above the widths is
-  **Saved**: whole tools you named yourself, one press each.
+  reads, and opacity for most of the rest. Above the widths are two rows of
+  whole tools, one press each: **Presets**, the ways the tool's own medium is
+  used, shipped with it and each showing the mark it makes, and **Saved**, the
+  ones you named yourself.
   They are kept per tool, so a soft brush stays soft without softening anything
   else. A tool with no width to set shows a **cog** in that slot instead — the
   paint bucket fills the area it traced whatever a nib might say, so it opens
   its own settings directly — and one that marks nothing at all shows no button
   there. A tool that mixes **its own inks** puts them at the head of that panel,
-  under a press of the mark they make, and the ink button dims while it is in
-  hand: the gradient is poured from its own two colours (or three) and never
+  under a press of the mark they make, and the ink button is crossed out while it
+  is in hand: the gradient is poured from its own two colours (or three) and never
   from the toolbar's. Most tools have a single-key shortcut, and a button with a
   family behind it — the shapes, the fills — opens the rest of it when you press
   it a second time.
