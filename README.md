@@ -231,13 +231,17 @@ npm run preview
   Delete), drag (onto a folder, the top level, another sketchbook, or the
   archive) and, on a desktop, right-click for the full menu. The button island
   at its foot holds new
-  drawing (which asks for the page size first), new folder, the archive, undo,
-  redo, and the cloud sync glyph; the
+  drawing (which asks for the page size first), new folder, the archive, and the
+  cloud sync glyph, in one row; the
   footer below it (foldable behind a chevron) holds Donate, About — What's new,
   the source, the privacy policy — check for updates, and Settings.
-- **Toolbar** — the enabled tools, then one button for colour and one for the
-  tool in your hand. The ink button is the colour you draw with, and opens the
-  palette, your own mixed colours, and a free colour mixer; the second button is
+- **Toolbar** — two bands: the enabled tools fill the left, wrapping over two
+  rows (three on a narrow phone), and everything that is not a tool sits in a
+  fixed block against the right edge, divided off by a rule — colour and the
+  tool's own button on its top row, undo and redo on its bottom one, in the same
+  corner whatever you are holding. The ink button is the colour you draw with,
+  and opens the palette, your own mixed colours, and a free colour mixer; the
+  second button is
   the **nib**, and it shows a **press with the tool in your hand** — the mark
   that width actually leaves, painted by the painter that paints the page (bar
   the two rubbers, whose mark is a hole, so their width shows as a plain
@@ -265,7 +269,10 @@ npm run preview
   is in hand: the gradient is poured from its own two colours (or three) and never
   from the toolbar's. Most tools have a single-key shortcut, and a button with a
   family behind it — the shapes, the fills, the two rubbers — opens the rest of
-  it when you press it a second time.
+  it when you press it a second time; that panel is only as wide as the family
+  behind it, so two tools open two buttons wide. **Undo and redo** are the
+  bottom of the right-hand block — the one pair here that acts on the drawing
+  rather than on the next mark.
 - **Fills** — one button, two ways to fill an area: the **paint bucket**, flat
   in the ink you have picked, and the **gradient**, which floods the same area
   and pours a ramp of its own colours through it — press where the first colour
@@ -298,7 +305,7 @@ npm run preview
 - **Header** — the drawing's name (edit in place), the favourite star, the disk
   button (when a backend is connected), the download menu (PNG, JPG, SVG, the
   layered `.pct`, or copy to the clipboard), and — at the far right — the button
-  that opens the side panel. Undo and redo are in the sidebar's button island.
+  that opens the side panel. Undo and redo are at the end of the toolbar.
 
 ## Configuration
 

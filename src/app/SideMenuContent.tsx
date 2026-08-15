@@ -16,14 +16,12 @@ import {
   ImageUpIcon,
   PencilIcon,
   PlusIcon,
-  RedoIcon,
   RowActionMenu,
   ShieldIcon,
   SparklesIcon,
   StarIcon,
   SwipeableRow,
   TrashIcon,
-  UndoIcon,
   type FloatingPlacement,
   type FloatingPoint,
   type RowAction,
@@ -153,7 +151,7 @@ type Props = {
   onShowCanvas: () => void;
   /** The framework's `SyncStatus` glyph, rendered as the island's last cell.
    *  Absent on the on-device backend, which has no remote to sync against — the
-   *  bottom row then holds two cells instead of three. */
+   *  island then holds three cells instead of four. */
   syncSlot?: ReactNode;
   checkingUpdate: boolean;
   updateAvailable: boolean;
@@ -605,13 +603,20 @@ export function SideMenuContent({
         {rootZone.isOver && <DropCue label={t("menu.dropToTopLevel")} />}
       </div>
 
-      {/* The button island: New drawing / New folder / Archive over Undo /
-          Redo / the cloud glyph, sharing one bordered block pinned above the
-          footer so it falls under the thumb no matter how long the list is.
-          Each cell splits its row's width evenly; the block owns the border,
-          the rounding, and the dividers. */}
+      {/* The button island: New drawing / New folder / Archive / the cloud
+          glyph, sharing one bordered block pinned above the footer so it falls
+          under the thumb no matter how long the list is. Each cell splits the
+          row's width evenly; the block owns the border, the rounding, and the
+          dividers.
+          It is **one row**, not two. Undo and redo used to take the second one,
+          and they have gone where they belong — the canvas toolbar, beside the
+          ink (see `Toolbar.tsx`) — which leaves the cloud glyph as the only
+          thing that was down there. A whole row of the island for one cell was
+          a row of empty surface, so the cloud moved up beside the archive and
+          the second row went away: the sidebar gives the height back to the
+          drawing list, which is what a sidebar is for. */}
       <div className="shrink-0 px-3 pt-2 pb-3">
-        <div className="divide-y divide-line overflow-hidden rounded-md border border-line">
+        <div className="overflow-hidden rounded-md border border-line">
           <div className="flex divide-x divide-line">
             <BarButton
               label={t("menu.newDrawing")}
@@ -641,22 +646,6 @@ export function SideMenuContent({
               }}
             >
               <ArchiveIcon className="h-5 w-5" />
-            </BarButton>
-          </div>
-          <div className="flex divide-x divide-line">
-            <BarButton
-              label={t("menu.undo")}
-              disabled={!store.canUndo}
-              onClick={store.undo}
-            >
-              <UndoIcon className="h-5 w-5" />
-            </BarButton>
-            <BarButton
-              label={t("menu.redo")}
-              disabled={!store.canRedo}
-              onClick={store.redo}
-            >
-              <RedoIcon className="h-5 w-5" />
             </BarButton>
             {/* The cloud glyph is a cell of the island, not a button seated
                 inside one — the framework's `SyncStatus` is styled as a bordered
