@@ -84,6 +84,42 @@ export function shouldAutoSave(gate: AutoSaveGate): boolean {
   );
 }
 
+/** The state the *layer* save gate reads — the disk button in the canvas
+ *  header, which files a drawing's rendered layers out as a `.pct` tree beside
+ *  the document (see `layerStore.ts`).
+ *
+ *  Deliberately not the same decision as {@link shouldAutoSave}. The vector
+ *  document is kilobytes and pushes itself; the layers are megabytes and go up
+ *  only when asked. So `dirty` is absent — a save is allowed on an unchanged
+ *  document, because the backend may hold no layers for it yet — and two
+ *  conditions appear that the document push has no equivalent of. */
+export type LayerSaveGate = Omit<AutoSaveGate, "dirty"> & {
+  /** A layer save is already in flight. */
+  saving: boolean;
+  /** The cloud copy is an encrypted envelope.
+   *
+   *  This *forbids* a layer save rather than merely delaying it. Filing a
+   *  drawing's layers out as plaintext PNGs beside an AES-GCM envelope would
+   *  hand over the very picture the envelope exists to hide — a padlock on the
+   *  door and the photographs in the front garden. Dropped bitmaps are held
+   *  back on the same grounds (see `imageStore.ts`), and the two must agree. */
+  encrypted: boolean;
+};
+
+/** Whether the disk button may file the layers out right now. */
+export function canSaveLayers(gate: LayerSaveGate): boolean {
+  return (
+    gate.isRemote &&
+    gate.connected &&
+    gate.baselineReady &&
+    !gate.saving &&
+    !gate.encrypted &&
+    !gate.blocked &&
+    !gate.locked &&
+    !gate.pendingSetup
+  );
+}
+
 /** The parsed remote document when a freshly-connected backend holds drawings
  *  that differ from this device's copy — the signal to raise the
  *  replace-or-adopt prompt. `null` means proceed silently: the remote is empty,

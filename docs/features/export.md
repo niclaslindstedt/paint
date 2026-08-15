@@ -12,6 +12,11 @@ SVG into a slide that will be resized afterwards, a JPG when an upload form
 refuses everything else. So the menu asks rather than guessing, and every row
 downloads `<drawing-name>.<type>` straight away.
 
+**Paint file, with layers** saves the drawing itself rather than a picture of
+it: a `.pct` holding every layer and every mark, which opens again exactly as
+you left it. It is always on the menu — see
+[the paint file](file-format.md).
+
 **Copy to clipboard** puts the drawing on the system clipboard as a PNG — the
 exit with no file to find afterwards. It is always on the menu, whichever file
 types you have switched off, because PNG is the one image type every clipboard

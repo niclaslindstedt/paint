@@ -669,3 +669,21 @@ export function CanvasIcon({ className }: IconProps) {
     </svg>
   );
 }
+
+/** Save — a 3.5" floppy disk: the clipped corner, the shutter at the top, the
+ *  label at the bottom.
+ *
+ *  A dead format for thirty years and still the only glyph everyone reads as
+ *  "write this down". The three shapes are the ceiling this set allows (see the
+ *  note at the top), and they are the three that make it a floppy rather than a
+ *  box: take the shutter away and it is a document, take the clipped corner
+ *  away and it is a picture frame. */
+export function SaveIcon({ className }: IconProps) {
+  return (
+    <svg {...base} className={className} aria-hidden="true">
+      <path d="M4.5 3.5h11.2L20.5 8.3V19a1.5 1.5 0 0 1-1.5 1.5H5A1.5 1.5 0 0 1 3.5 19V5a1.5 1.5 0 0 1 1-1.5Z" />
+      <path d="M8 3.5v5h7v-5" />
+      <path d="M7 20.5v-6h10v6" />
+    </svg>
+  );
+}

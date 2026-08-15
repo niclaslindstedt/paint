@@ -48,6 +48,8 @@ import {
   importImageFile,
   type ImportedImage,
 } from "./images.ts";
+import { PCT_EXTENSION } from "./pct.ts";
+import type { Drawing } from "./types.ts";
 import * as output from "../output.ts";
 
 // Where a drawing comes from — the one dialog between pressing New and having a
@@ -99,7 +101,37 @@ type Props = {
   /** Make a page from a picture: cut to its size, named for where it came
    *  from. */
   onCreateFromImage: (image: ImportedImage, name: string) => void;
+  /** Open a `.pct` — a whole drawing, layers and marks and all, rather than a
+   *  picture to start one from (see `pct.ts`). It arrives with its own page
+   *  size and stack, so nothing here chooses either. */
+  onOpenPct: (drawing: Drawing, name: string) => void;
 };
+
+/** What the File tab is holding, once something has been picked.
+ *
+ *  Two kinds, because a picked file is one of two quite different things: a
+ *  *picture* that a new page will be cut to the size of, or a *drawing* that
+ *  already knows its own size, stack and marks. Both preview through the same
+ *  thumbnail — for the container that is the `preview.png` it carries, which is
+ *  why the reader hands one back. */
+type Picked =
+  | { kind: "image"; image: ImportedImage; name: string }
+  | { kind: "pct"; drawing: Drawing; thumb: ImportedImage; name: string };
+
+/** Whether a picked file is a paint container. Matched on the extension: the
+ *  OS has no MIME type registered for `.pct`, so a browser hands one over as an
+ *  empty type or `application/zip` depending on its mood. */
+function isPctFile(file: File): boolean {
+  return file.name.toLowerCase().endsWith(`.${PCT_EXTENSION}`);
+}
+
+/** Whether a drag carries a file at all. A drag exposes its items' *types*, not
+ *  their names, and a container has no type to match on — so the most a
+ *  dragover can honestly say is "there is a file here", and the drop itself
+ *  decides. Getting this wrong costs a highlight, not a file. */
+function dragHasPct(dt: DataTransfer | null): boolean {
+  return Array.from(dt?.items ?? []).some((item) => item.kind === "file");
+}
 
 /** The box each preset is drawn inside, in CSS pixels. One scale is shared
  *  across the shelf, so this is the room the *largest* of them gets. */
@@ -110,6 +142,7 @@ export function NewDrawingModal({
   onCancel,
   onCreate,
   onCreateFromImage,
+  onOpenPct,
 }: Props) {
   const t = useT();
   // The screen is read once, when the dialog opens: it is the default answer,
@@ -127,11 +160,8 @@ export function NewDrawingModal({
     height: String(CUSTOM_CANVAS.height),
   });
   const [typedSize, setTypedSize] = useState(false);
-  // A picture chosen from disk, waiting for Create.
-  const [picked, setPicked] = useState<{
-    image: ImportedImage;
-    name: string;
-  } | null>(null);
+  // What was chosen from disk, waiting for Create.
+  const [picked, setPicked] = useState<Picked | null>(null);
   // What we know about the clipboard, which is a state rather than a picture
   // (see `clipboardSource.ts`).
   const [clip, setClip] = useState<ClipboardSource>({ kind: "looking" });
@@ -176,9 +206,13 @@ export function NewDrawingModal({
 
   const take = (file: File | null | undefined) => {
     if (!file) return;
+    if (isPctFile(file)) {
+      void takePct(file);
+      return;
+    }
     void importImageFile(file)
       .then((image) => {
-        setPicked({ image, name: imageFileStem(file.name) });
+        setPicked({ kind: "image", image, name: imageFileStem(file.name) });
         setSource("file");
       })
       .catch((err: unknown) =>
@@ -188,13 +222,44 @@ export function NewDrawingModal({
       );
   };
 
+  /** Read a picked container. The reader is loaded on demand — a zip codec is
+   *  not something a dialog should cost until someone opens a file with it. */
+  const takePct = async (file: File) => {
+    try {
+      const { readPct } = await import("./pctFile.ts");
+      const opened = await readPct(file);
+      setPicked({
+        kind: "pct",
+        drawing: opened.drawing,
+        name: opened.drawing.name.trim() || imageFileStem(file.name),
+        thumb: {
+          // A container written by another tool may carry no preview; the tile
+          // then shows the placeholder glyph, which is honest rather than a
+          // blank box.
+          src: opened.preview ?? "",
+          width: opened.drawing.width,
+          height: opened.drawing.height,
+        },
+      });
+      setSource("file");
+    } catch (err) {
+      output.error(
+        `Couldn't open that paint file — ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+  };
+
   // A picture dropped on the dialog is a picture chosen — the same gesture the
-  // canvas and the drawer already take, landing in the same place.
+  // canvas and the drawer already take, landing in the same place. A `.pct`
+  // dropped here is taken too, and `take` sorts out which it got: the drag is
+  // matched on the file *name* rather than its type, because a container has no
+  // registered MIME type to advertise (see `isPctFile`).
   const { active: dragging } = useFileDrop({
     targetRef: bodyRef,
-    accepts: (dt) => dragHasFilesOfType(dt, "image/"),
+    accepts: (dt) => dragHasFilesOfType(dt, "image/") || dragHasPct(dt),
     claim: true,
-    onDrop: (files) => take(firstFileOfType(files, "image/")),
+    onDrop: (files) =>
+      take(files.find(isPctFile) ?? firstFileOfType(files, "image/")),
   });
 
   const customSize = parseCanvasSize(custom.width, custom.height);
@@ -202,7 +267,12 @@ export function NewDrawingModal({
   // cell in hand, otherwise whichever rectangle is lit.
   const blankSize = typedSize ? customSize : size;
 
-  const chosen = source === "file" ? picked?.image : undefined;
+  const chosen =
+    source === "file"
+      ? picked?.kind === "pct"
+        ? picked.thumb
+        : picked?.image
+      : undefined;
   const pasted = pastedImage(clip);
   const ready =
     (source === "blank" && blankSize) ||
@@ -213,7 +283,8 @@ export function NewDrawingModal({
     if (source === "blank") {
       if (blankSize) onCreate(blankSize);
     } else if (source === "file" && picked) {
-      onCreateFromImage(picked.image, picked.name);
+      if (picked.kind === "pct") onOpenPct(picked.drawing, picked.name);
+      else onCreateFromImage(picked.image, picked.name);
     } else if (source === "clipboard" && pasted) {
       onCreateFromImage(pasted, t("newDrawing.clipboardName"));
     }
@@ -326,7 +397,7 @@ export function NewDrawingModal({
               onClick={() => fileRef.current?.click()}
               className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-line px-4 py-6 text-sm text-muted hover:border-accent hover:text-fg-bright"
             >
-              {chosen ? (
+              {chosen?.src ? (
                 // The picture itself is the confirmation that the right file
                 // was picked — a file name is not.
                 <img
@@ -340,12 +411,19 @@ export function NewDrawingModal({
               <span>{chosen ? picked?.name : t("newDrawing.chooseImage")}</span>
             </button>
             <p className="text-xs text-muted tabular-nums">
-              {chosen ? dimensions(chosen) : t("newDrawing.chooseImageHint")}
+              {picked?.kind === "pct"
+                ? t("newDrawing.pctChosen", {
+                    layers: String(picked.drawing.layers?.length ?? 1),
+                    dimensions: dimensions(picked.thumb),
+                  })
+                : chosen
+                  ? dimensions(chosen)
+                  : t("newDrawing.chooseImageHint")}
             </p>
             <input
               ref={fileRef}
               type="file"
-              accept="image/*"
+              accept={`image/*,.${PCT_EXTENSION}`}
               className="hidden"
               onChange={(e) => {
                 take(e.currentTarget.files?.[0]);

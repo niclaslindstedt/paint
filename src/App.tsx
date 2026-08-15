@@ -34,6 +34,7 @@ import { useT } from "./app/i18n/index.ts";
 import { APP_LOOK } from "./app/look.ts";
 import { descendingLogStore, logStore } from "./app/log.ts";
 import { cacheIdForBase } from "./app/pwa.ts";
+import { adoptDrawing } from "./app/pct.ts";
 import { imageStroke } from "./app/plugins/builtin/image.ts";
 import { resolveActiveTool } from "./app/plugins/registry.ts";
 import { applyBackdropVars, useAppSettings } from "./app/useAppSettings.ts";
@@ -335,6 +336,19 @@ export function App() {
             onToggleMenu={toggleMenu}
             menuOpen={menuShowing}
             dockPanel={dockPanel}
+            // The disk button, and only on a backend that can take a layer
+            // tree — the on-device sketchbook and an encrypted cloud copy both
+            // hand back `canSaveLayers: false`, which takes the button out of
+            // the header rather than parking a dead one in it.
+            layerSave={
+              sync.canSaveLayers
+                ? {
+                    dirty: sync.layersDirty,
+                    status: sync.layerStatus,
+                    save: sync.saveLayers,
+                  }
+                : null
+            }
             // The edge the drawer's open-swipe is watching, so the canvas can
             // hold that swipe back instead of drawing it. `null` whenever
             // nothing is listening — a docked sidebar, the floating button, or
@@ -379,6 +393,20 @@ export function App() {
                   },
                 ],
               });
+              setPendingDrawing(null);
+              setView("canvas");
+            }}
+            // A `.pct` arrives as a whole drawing — its own page size, its own
+            // stack, its own marks — so it is filed as it is rather than cut to
+            // anything. Only the ids are re-minted, by the store, so opening
+            // the same file twice gives two drawings rather than one drawing
+            // arguing with itself.
+            onOpenPct={(opened, name) => {
+              store.addDrawing(
+                name,
+                pendingDrawing.folderId,
+                adoptDrawing(opened, () => freshId("stroke")),
+              );
               setPendingDrawing(null);
               setView("canvas");
             }}

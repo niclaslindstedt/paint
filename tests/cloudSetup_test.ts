@@ -2,6 +2,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  canSaveLayers,
   evaluateCloudSetup,
   isEmptyDoc,
   needsSetupPrompt,
@@ -68,6 +69,48 @@ describe("shouldAutoSave", () => {
     for (const on of ["blocked", "locked", "pendingSetup"] as const) {
       expect(shouldAutoSave({ ...gate, [on]: true })).toBe(false);
     }
+  });
+});
+
+// The other save — the disk button, which files the rendered layers out. It is
+// gated differently on purpose, and the two differences are the interesting
+// part: it does not need the document to be dirty, and it is refused outright
+// on an encrypted backend.
+const layerGate = {
+  isRemote: true,
+  connected: true,
+  blocked: false,
+  locked: false,
+  pendingSetup: false,
+  baselineReady: true,
+  saving: false,
+  encrypted: false,
+};
+
+describe("canSaveLayers", () => {
+  it("allows a save on a connected plaintext backend", () => {
+    expect(canSaveLayers(layerGate)).toBe(true);
+  });
+
+  // Unlike the document push: the backend may hold no layers for a document
+  // that hasn't been touched since it was opened, and the button has to work.
+  it("allows a save even when the document is unchanged", () => {
+    expect(canSaveLayers({ ...layerGate })).toBe(true);
+  });
+
+  it("holds while anything stands in the way", () => {
+    for (const off of ["isRemote", "connected", "baselineReady"] as const) {
+      expect(canSaveLayers({ ...layerGate, [off]: false })).toBe(false);
+    }
+    for (const on of ["blocked", "locked", "pendingSetup", "saving"] as const) {
+      expect(canSaveLayers({ ...layerGate, [on]: true })).toBe(false);
+    }
+  });
+
+  // Not a delay but a refusal: plaintext layer PNGs beside an AES-GCM envelope
+  // would hand over the picture the envelope exists to hide.
+  it("refuses outright on an encrypted backend", () => {
+    expect(canSaveLayers({ ...layerGate, encrypted: true })).toBe(false);
   });
 });
 

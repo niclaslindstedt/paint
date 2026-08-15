@@ -506,7 +506,8 @@ upgrades wherever it comes back from.
 `useSyncEngine` is the state machine the framework's `SyncStatus` glyph and
 `SyncDetailsModal` paint over. The local copy is always the working copy; a
 connected backend gets a debounced push of the serialized document, and can be
-pulled back down explicitly.
+pulled back down explicitly. The drawings' _rendered layers_ are a second,
+hand-driven save on top of that — see [Two saves, on two clocks](#two-saves-on-two-clocks).
 
 The engine's shape is deliberately conservative:
 
@@ -543,6 +544,67 @@ document only _after_ its file write succeeds, and an orphaned file is deleted
 only after the document save commits _and_ only when every image in that save was
 accounted for. An encrypted copy skips the layer entirely and keeps its bitmaps
 inside the envelope.
+
+### Two saves, on two clocks
+
+The document push above is automatic and stays that way: strokes are cheap, and
+work you can lose is work you will lose. The **rendered layers** are the other
+half — a `.pct` tree of transparent PNGs beside the document — and those move
+only when the user presses the header's disk button.
+
+That split is the whole design. A page of layers is megabytes of PNG; pushing it
+on every settled edit would be slow, expensive, and mostly wasted. So
+`useSyncEngine` exposes a second verb, `saveLayers`, gated by `canSaveLayers`
+([`cloudSetup.ts`](../src/app/cloudSetup.ts)) rather than by `shouldAutoSave`.
+The two gates differ in exactly two places, and both are deliberate: a layer
+save does **not** require a dirty document (the backend may hold no layers for a
+document nobody has touched), and it is **refused outright** when the copy is
+encrypted, because plaintext layer PNGs beside an AES-GCM envelope would hand
+over the picture the envelope exists to hide.
+
+Even an explicit save is usually nearly free, because **a layer's file name
+carries a hash of its content** — the marks on it plus everything else that
+decides its pixels, the page size and the resolved ink included, so a canvas
+theme flip counts as a change. The bytes at a path therefore never change, which
+turns the save into a set difference: the paths the drawings want against the
+paths the backend has ([`layerStore.ts`](../src/app/layerStore.ts)). An
+untouched layer is already filed under the name it would be written as, so it is
+neither rendered nor uploaded. It is the rule the sibling `notes` app's
+attachment store follows, arrived at from the same direction.
+
+Two ordering rules mirror the image externaliser's. Pixels are written before the
+manifest, so an index never names a file that isn't there. And orphans are pruned
+only after every manifest commits _and_ only when nothing failed — "no drawing
+wants this file" is a sound judgement only when every drawing was actually filed.
+
+### The container is one format, written two ways
+
+[`pct.ts`](../src/app/pct.ts) owns the `.pct` layout and is pure: the manifest
+shape, the file naming, the hashing, and the parse back. The pixels are
+[`pctFile.ts`](../src/app/pctFile.ts)'s, which renders a layer by handing the
+drawing to the ordinary renderer with every _other_ layer's eye switched off —
+so a layer's PNG is the pixels that layer contributes to the page by
+construction, with no second painting path to drift.
+
+The download zips those pieces up; the backend writes the same pieces unpacked.
+A zip is the wrong shape for a backend (one changed layer rewrites the archive)
+and an unpacked tree is the wrong shape for a download, but building both from
+the same functions is what stops the two drifting.
+
+The container carries the vectors as well as the pixels — `vectors.json`, an
+ordinary one-page document, so it rides the existing migration chain rather than
+needing one of its own. That is what makes reopening a `.pct` lossless instead of
+a flatten; a container without one (another tool's) still opens, as one image
+stroke per layer. The backend tree writes neither `vectors.json` nor a preview:
+the strokes already travel in the document beside it, and a full-page thumbnail
+on every save is precisely the upload this layout exists to avoid.
+
+The zip itself is [`zip.ts`](../src/app/zip.ts) — a reader and writer over the
+platform's `CompressionStream("deflate-raw")`, about two hundred lines and no
+dependency. A library would have bought the same two functions for a couple of
+hundred kilobytes on the entry path. Nothing in this section is on the boot path
+at all: the container, the codec and the layer renderer are all reached through
+`import()` from the actions that need them.
 
 ## The PWA
 

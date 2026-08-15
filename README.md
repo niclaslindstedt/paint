@@ -25,7 +25,9 @@ the same [`oss-framework`](https://github.com/niclaslindstedt/oss-framework).
 - **For explaining things.** The tool you reach for mid-conversation to show a
   colleague what you mean — quick to open, quick to export, quick to throw away.
   Drop a screenshot on the page and annotate it; download the result as a PNG, a
-  JPG or a vector SVG, or copy it straight to the clipboard.
+  JPG or a vector SVG, or copy it straight to the clipboard. Keep the whole
+  thing as a `.pct` — every layer, and the marks that made them — and open it
+  again exactly as you left it.
 - **Tools are plugins.** Every tool, the pencil included, is registered through
   one interface. It opens on the toolbox you already know — pencil, airbrush,
   eraser, bucket, dropper, text, the shapes and a selection marquee — and the
@@ -70,6 +72,12 @@ the same [`oss-framework`](https://github.com/niclaslindstedt/oss-framework).
   restacks is stored exactly as it was before layers existed.
 - **Vector, not pixels.** Undo is exact, the document is small enough for a
   phone, and a synced copy is readable JSON rather than a blob.
+- **A real file format.** `.pct` is a zip holding one transparent PNG per layer
+  plus a readable manifest — so any other tool can pull your layers out — and
+  the vector marks alongside, so reopening it in this app is lossless rather
+  than a flatten. The same layers are written to your cloud backend as browsable
+  files when you press the disk button. See
+  [`docs/features/file-format.md`](docs/features/file-format.md).
 - **Local-first.** No account, no server, works offline. Sync to a folder,
   Dropbox, or Google Drive only if you ask for it — optionally encrypted. A
   picture you drop on the page is filed beside the document as a real image
@@ -194,10 +202,10 @@ npm run preview
   move and nothing slides under it. The **Image** heading above the
   stack resizes, flips and mirrors the page, and its bin starts the drawing
   over. A press on the page closes it again.
-- **Header** — the drawing's name (edit in place), the favourite star, the
-  download menu (PNG, JPG, SVG, or copy to the clipboard), and — at the far
-  right — the button that opens the side panel. Undo and redo are in the
-  sidebar's button island.
+- **Header** — the drawing's name (edit in place), the favourite star, the disk
+  button (when a backend is connected), the download menu (PNG, JPG, SVG, the
+  layered `.pct`, or copy to the clipboard), and — at the far right — the button
+  that opens the side panel. Undo and redo are in the sidebar's button island.
 
 ## Configuration
 

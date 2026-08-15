@@ -33,6 +33,7 @@ import { useT } from "./i18n/index.ts";
 import { ImagePlacement } from "./ImagePlacement.tsx";
 import { importImageFile, type ImportedImage } from "./images.ts";
 import { fieldHasKeyboard } from "./keys.ts";
+import { SaveButton, type LayerSaveControl } from "./SaveButton.tsx";
 import { SidePanel } from "./SidePanel.tsx";
 import { PaintCanvas } from "./PaintCanvas.tsx";
 import { initialPlacement, type Placement } from "./placement.ts";
@@ -144,6 +145,14 @@ type Props = {
    *  rather than floating over it. Resolved by `App`, which owns the media
    *  query, so the screen and the canvas can't disagree about it. */
   dockPanel: boolean;
+  /** Filing the drawing's rendered layers out to the backend — the header's
+   *  disk button (see `layerStore.ts`). Absent on a backend that can't take
+   *  them, which is what hides the button rather than dimming it.
+   *
+   *  The screen owns this rather than `App` because a layer's pixels depend on
+   *  the canvas theme, and this is where the page colour and the default ink
+   *  are resolved. */
+  layerSave?: LayerSaveControl | null;
 };
 
 export function CanvasScreen({
@@ -157,6 +166,7 @@ export function CanvasScreen({
   onToggleMenu,
   menuOpen,
   dockPanel,
+  layerSave = null,
 }: Props) {
   const t = useT();
   // Bumped to ask the canvas to re-fit its view; the live zoom comes back the
@@ -615,6 +625,16 @@ export function CanvasScreen({
           >
             <StarIcon className="h-[18px] w-[18px]" filled={drawing.favorite} />
           </HeaderIconButton>
+          {/* The disk — the layers' save. Gone entirely without a backend
+              that can take one, rather than dimmed: on the on-device
+              sketchbook there is nowhere to file layers to, and a permanently
+              dead button is worse than no button. */}
+          {layerSave && (
+            <SaveButton
+              layerSave={layerSave}
+              ink={{ pageColor, defaultInk: ink }}
+            />
+          )}
           {/* No undo / redo here. They are one tap away in the sidebar's
               button island and on the keyboard, and the header is the one row
               a phone has to fit a drawing's name into — two glyphs it can
