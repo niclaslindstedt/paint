@@ -65,12 +65,12 @@ Chromium is usually at `/opt/pw-browsers/chromium_headless_shell-*/chrome-linux/
 
 ### Reading the table
 
-| column | what it means |
-| --- | --- |
+| column    | what it means                                                                                                                                              |
+| --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `strokeR` | stroke width over the artwork's diagonal, ×1000. Scale-free, so a 66px sheet glyph and a 96px render compare directly. **This is the "too thick" number.** |
-| `fill` | ink area over bounding-box area. How dense the drawing is; catches a glyph with too many strokes even when each one is the right weight. |
-| `aspect` | bounding-box width / height. Catches a glyph that is too tall or too squat. |
-| `IoU` | overlap once both are normalised to the same box. Thin line art scores low even when right — read the trend across rounds, not the absolute. |
+| `fill`    | ink area over bounding-box area. How dense the drawing is; catches a glyph with too many strokes even when each one is the right weight.                   |
+| `aspect`  | bounding-box width / height. Catches a glyph that is too tall or too squat.                                                                                |
+| `IoU`     | overlap once both are normalised to the same box. Thin line art scores low even when right — read the trend across rounds, not the absolute.               |
 
 ## What went wrong last time (read this)
 
@@ -86,7 +86,7 @@ These are the mistakes that cost the most rounds. They will all recur.
   why.
 - **Satellite shapes stretch the bounding box and hide the real size.** A
   bucket's drop flung too far out made the pail measure correct when it was
-  not. Compare the *largest part* (`ascii` prints it) as well as the whole.
+  not. Compare the _largest part_ (`ascii` prints it) as well as the whole.
 - **An interior narrower than about twice the stroke closes up** into a solid
   at small sizes. Widen the barrel rather than thinning the line.
 - **Crops catch their neighbours.** Cell borders and caption text land in the

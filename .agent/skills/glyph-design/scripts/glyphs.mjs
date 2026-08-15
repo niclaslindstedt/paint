@@ -46,8 +46,7 @@ const ONLY = flag("only", null);
 mkdirSync(OUT, { recursive: true });
 
 const same = (a, b) => a.toLowerCase() === b.toLowerCase();
-const pick = (list) =>
-  ONLY ? list.filter((g) => same(g.label, ONLY)) : list;
+const pick = (list) => (ONLY ? list.filter((g) => same(g.label, ONLY)) : list);
 
 // ------------------------------------------------------- source → markup ---
 

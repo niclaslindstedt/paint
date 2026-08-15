@@ -242,8 +242,8 @@ Not every skill keeps something in sync. `.agent/skills/` also holds playbooks
 for work that is easy to do badly, and those carry no `.last-updated` and no
 registry row.
 
-| Skill          | When to run                                                                                                    |
-| -------------- | ---------------------------------------------------------------------------------------------------------------- |
+| Skill          | When to run                                                                                                     |
+| -------------- | --------------------------------------------------------------------------------------------------------------- |
 | `glyph-design` | Whenever you draw or correct a tool glyph in `src/app/icons.tsx` — with a design sheet to match or without one. |
 
 **Do not edit a glyph by eye.** One that reads fine in the editor ships at 18
