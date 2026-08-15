@@ -334,6 +334,75 @@ describe("the SVG export", () => {
     expect(svg.match(sheet)).toHaveLength(2);
   });
 
+  it("wraps a filtered layer in its own filter, and no more than it", () => {
+    const page: Drawing = {
+      ...drawing([]),
+      layers: [
+        { id: "base", name: "" },
+        { id: "photo", name: "Photo", filters: [{ kind: "blur", radius: 8 }] },
+        { id: "top", name: "Ink" },
+      ],
+      strokes: [
+        {
+          id: "s-soft",
+          tool: "pencil",
+          size: 20,
+          layer: "photo",
+          shape: {
+            kind: "path",
+            points: [
+              { x: 0, y: 40 },
+              { x: 200, y: 40 },
+            ],
+          },
+        },
+        {
+          id: "s-lift",
+          tool: "eraser",
+          size: 30,
+          layer: "photo",
+          shape: {
+            kind: "path",
+            points: [
+              { x: 80, y: 40 },
+              { x: 120, y: 40 },
+            ],
+          },
+        },
+        {
+          id: "s-sharp",
+          tool: "pencil",
+          size: 8,
+          layer: "top",
+          shape: {
+            kind: "path",
+            points: [
+              { x: 0, y: 100 },
+              { x: 200, y: 100 },
+            ],
+          },
+        },
+      ],
+    };
+    const svg = toSvg(page);
+    const group = /<g filter="url\(#(layer-filter-\d+)\)">([\s\S]*?)<\/g>/.exec(
+      svg,
+    );
+    expect(group).not.toBeNull();
+    // The filter is defined, and it is a blur.
+    expect(svg).toContain(`<filter id="${group![1]}"`);
+    expect(svg).toContain("feGaussianBlur");
+    // The layer's own erasing is scoped *inside* its group. That is the whole
+    // point of the group in a file: on the canvas the layer is composited on a
+    // surface of its own, so its eraser stops at the layer — and an SVG whose
+    // mask straddled the boundary would rub a hole through the sharp layer
+    // underneath instead.
+    expect(group![2]).toContain("mask=");
+    // …and the layer above it is outside the group, still sharp.
+    expect(group![2]).not.toContain('stroke-width="8"');
+    expect(svg).toContain('stroke-width="8"');
+  });
+
   it("keeps a translucent mark translucent", () => {
     const svg = toSvg(
       drawing([

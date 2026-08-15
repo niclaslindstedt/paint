@@ -36,10 +36,10 @@
 // a whole container without a canvas.
 
 import { drawingSlug } from "./export.ts";
-import { drawingLayers, groupByLayer } from "./layers.ts";
+import { drawingLayers, groupByLayer, layerFilters } from "./layers.ts";
 import { parseDoc, serializeDoc } from "./migrations.ts";
 import type { InkContext } from "./render.ts";
-import type { Drawing, Layer, Stroke } from "./types.ts";
+import type { Drawing, Filter, Layer, Stroke } from "./types.ts";
 
 /** The file extension, and the name of the format. */
 export const PCT_EXTENSION = "pct";
@@ -133,13 +133,21 @@ export type PctManifest = {
  *  when the user picked one, and everything else resolves against the theme at
  *  paint time (`render.ts`), so flipping the app from a dark page to a light one
  *  genuinely re-inks the pixels without touching a single stroke. Leave that out
- *  of the fingerprint and a theme flip would quietly serve stale layers. */
+ *  of the fingerprint and a theme flip would quietly serve stale layers.
+ *
+ *  The layer's own filters are here for exactly that reason. They change the
+ *  pixels without changing a mark (see `Layer.filters`), so a layer whose blur
+ *  was widened hashes the same as the one before it unless the filters are in
+ *  the material — and a re-save would skip it and leave the old softening on
+ *  the backend for good. */
 export type LayerRenderKey = InkContext & {
   width: number;
   height: number;
   /** Whether this layer carries the sheet — the background layer paints the
    *  page colour as part of itself (see `layers.ts`). */
   paintsPage: boolean;
+  /** The layer's own filters, in the order they are applied. */
+  filters?: readonly Filter[];
 };
 
 /** FNV-1a over a string, seeded, as an unsigned 32-bit number. */
@@ -172,6 +180,12 @@ export function layerHash(
     key.pageColor,
     key.defaultInk,
     key.paintsPage,
+    // Empty and absent are the same layer and must hash the same. `planLayers`
+    // reads the filters off every layer, so most of them arrive as `[]` — and
+    // an `[]` that hashed differently from an `undefined` would change the
+    // fingerprint of every layer of every drawing already on a backend the
+    // moment this shipped, and re-upload the lot.
+    key.filters && key.filters.length > 0 ? key.filters : null,
   ]);
   const lo = fnv1a(material, 0x811c9dc5);
   const hi = fnv1a(material, 0x01000193);
@@ -235,6 +249,7 @@ export function planLayers(drawing: Drawing, ink: InkContext): PlannedLayer[] {
       width: drawing.width,
       height: drawing.height,
       paintsPage: paintsPage(drawing, layer),
+      filters: layerFilters(layer),
     });
     return {
       strokes,

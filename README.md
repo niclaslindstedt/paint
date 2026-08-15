@@ -98,11 +98,14 @@ the same [`oss-framework`](https://github.com/niclaslindstedt/oss-framework).
   top, hide or lock any of them. Hiding the background takes the page colour
   with it, and a transparent export leaves that layer out. A drawing nobody
   restacks is stored exactly as it was before layers existed.
-- **Filters that change nothing.** Blur the page or scatter grain over it from
-  the right-hand panel's **Filters** section. A filter is a couple of numbers on
-  the drawing rather than a picture in place of your marks, so it costs one undo
-  step, downloads with the page, and switches off leaving the sketch exactly as
-  it was. See [`docs/features/filters.md`](docs/features/filters.md).
+- **Filters that change nothing.** Blur or scatter grain over the whole page
+  from the right-hand panel's **Filters** section, or over **one layer** from
+  the layer you have selected — so a photograph can go soft while the notes on
+  top of it stay sharp, and the eraser cuts through the softened result to what
+  is underneath. A filter is a couple of numbers on the drawing rather than a
+  picture in place of your marks, so it costs one undo step, downloads with the
+  page, and switches off leaving the sketch exactly as it was. See
+  [`docs/features/filters.md`](docs/features/filters.md).
 - **Vector, not pixels.** Undo is exact, the document is small enough for a
   phone, and a synced copy is readable JSON rather than a blob.
 - **A real file format.** `.pct` is a zip holding one transparent PNG per layer

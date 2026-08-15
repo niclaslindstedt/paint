@@ -204,6 +204,22 @@ describe("scaleDrawing", () => {
     );
   });
 
+  it("grows a layer's filters with the sheet too", () => {
+    const page = {
+      ...drawing(),
+      layers: [
+        { id: "base", name: "" },
+        { id: "photo", name: "Photo", filters: [{ kind: "blur", radius: 4 }] },
+      ],
+    } satisfies Drawing;
+    const edit = scaleDrawing(page, { width: 1600, height: 1200 });
+    // Or a page scaled up would come back with its layers softened by a
+    // different amount than the page they are on.
+    expect(edit.layers?.[1]?.filters).toEqual([{ kind: "blur", radius: 8 }]);
+    // An unfiltered layer is handed back untouched rather than grown a field.
+    expect(edit.layers?.[0]).toEqual({ id: "base", name: "" });
+  });
+
   it("rides the sampling choice onto the pictures and nothing else", () => {
     const page = drawing([
       stroke({

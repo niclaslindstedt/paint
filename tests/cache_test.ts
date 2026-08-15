@@ -500,3 +500,87 @@ describe("dragging the page", () => {
     ).toBe("repainted");
   });
 });
+
+// A layer's filters are the second document edit the cache cannot see in the
+// strokes (the first is the sheet's eye). Moving one repaints a layer without
+// adding, removing or reordering a mark — and a filtered layer cannot take an
+// appended stroke at all, because it is composited as a unit and the whole of
+// it has to be softened again with the new mark inside. Both are invisible in
+// pixels and in the document, so this is the only place they are pinned.
+
+describe("a stack with filters on it", () => {
+  const filtered = (strokes: Stroke[], radius?: number): Drawing => ({
+    id: "d",
+    name: "d",
+    width: 400,
+    height: 300,
+    strokes,
+    layers: [
+      { id: "base", name: "" },
+      {
+        id: "top",
+        name: "Top",
+        ...(radius === undefined
+          ? {}
+          : { filters: [{ kind: "blur" as const, radius }] }),
+      },
+    ],
+  });
+
+  it("repaints when a filter moves, though not a mark changed", () => {
+    const marks = [stroke()];
+    const { ctx, canvas } = screen();
+    const cache = createCache(400, 300);
+    expect(paintCommitted(ctx, canvas, cache, spec(filtered(marks, 6)))).toBe(
+      "repainted",
+    );
+    // The very same marks, in the very same order — only the radius differs.
+    expect(paintCommitted(ctx, canvas, cache, spec(filtered(marks, 24)))).toBe(
+      "repainted",
+    );
+    // …and switching it off is a change too.
+    expect(paintCommitted(ctx, canvas, cache, spec(filtered(marks)))).toBe(
+      "repainted",
+    );
+  });
+
+  it("blits when nothing at all changed", () => {
+    const d = filtered([stroke()], 6);
+    const { ctx, canvas } = screen();
+    const cache = createCache(400, 300);
+    paintCommitted(ctx, canvas, cache, spec(d));
+    expect(paintCommitted(ctx, canvas, cache, spec(d))).toBe("blitted");
+  });
+
+  it("repaints rather than appending a landed stroke", () => {
+    const first = stroke();
+    const { ctx, canvas } = screen();
+    const cache = createCache(400, 300);
+    paintCommitted(ctx, canvas, cache, spec(filtered([first], 6)));
+    // On an unfiltered stack this is the append the whole module exists for.
+    expect(
+      paintCommitted(ctx, canvas, cache, spec(filtered([first, stroke()], 6))),
+    ).toBe("repainted");
+  });
+
+  it("still appends when no layer is filtered", () => {
+    const first = stroke();
+    const { ctx, canvas } = screen();
+    const cache = createCache(400, 300);
+    paintCommitted(ctx, canvas, cache, spec(filtered([first])));
+    expect(
+      paintCommitted(ctx, canvas, cache, spec(filtered([first, stroke()]))),
+    ).toBe("appended");
+  });
+
+  it("repaints rather than scrolling a pan", () => {
+    const d = filtered([stroke()], 6);
+    const { ctx, canvas } = screen();
+    const cache = createCache(400, 300);
+    paintCommitted(ctx, canvas, cache, spec(d));
+    const panned = spec(d, { view: { scale: 1, tx: 20, ty: 0 } });
+    // Correct either way — but each strip would re-filter a canvas-sized
+    // surface, so two strips a frame costs more than the repaint it avoids.
+    expect(paintCommitted(ctx, canvas, cache, panned)).toBe("repainted");
+  });
+});

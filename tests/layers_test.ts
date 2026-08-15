@@ -27,8 +27,11 @@ import {
   strokeLayer,
   strokesExcept,
   visibleStrokes,
+  anyLayerFiltered,
+  layerFilters,
+  paintedLayers,
 } from "../src/app/layers.ts";
-import type { Drawing, Layer, Stroke } from "../src/app/types.ts";
+import type { Drawing, Filter, Layer, Stroke } from "../src/app/types.ts";
 
 let next = 0;
 
@@ -396,5 +399,110 @@ describe("naming a new layer", () => {
     expect(nextLayerName([base, { id: "x", name: "Layer 3" }], name)).toBe(
       "Layer 4",
     );
+  });
+});
+
+// The stack as a *repaint* walks it. Splitting the paint order into layers is
+// what lets a filtered one be composited on its own (see `Layer.filters`), and
+// the danger of having two ways to ask "what gets painted" is that they drift
+// into two different pictures — so the first thing pinned here is that they
+// cannot.
+
+const blur: Filter = { kind: "blur", radius: 6 };
+const noise: Filter = { kind: "noise", amount: 0.3, grain: 2 };
+
+describe("paintedLayers", () => {
+  it("comes to exactly visibleStrokes when its layers are concatenated", () => {
+    const layers: Layer[] = [
+      { id: BACKGROUND_LAYER_ID, name: "" },
+      { id: BASE_LAYER_ID, name: "" },
+      { id: "top", name: "Top" },
+    ];
+    const d: Drawing = {
+      id: "d",
+      name: "d",
+      width: 100,
+      height: 100,
+      layers,
+      strokes: [
+        stroke("top"),
+        stroke(BACKGROUND_LAYER_ID),
+        stroke(),
+        stroke("top"),
+        stroke(BASE_LAYER_ID),
+      ],
+    };
+    for (const scope of [{}, { withoutBackground: true }]) {
+      expect(paintedLayers(d, scope).flatMap((entry) => entry.strokes)).toEqual(
+        visibleStrokes(d, scope),
+      );
+    }
+  });
+
+  it("leaves a hidden layer out and keeps an empty one in", () => {
+    const layers: Layer[] = [
+      { id: BASE_LAYER_ID, name: "" },
+      { id: "gone", name: "Hidden", hidden: true },
+      { id: "empty", name: "Empty" },
+    ];
+    const d: Drawing = {
+      id: "d",
+      name: "d",
+      width: 100,
+      height: 100,
+      layers,
+      strokes: [stroke(), stroke("gone")],
+    };
+    // An empty layer still gets its turn: a filtered layer with nothing on it
+    // is the caller's no-op to spot, and a walk that skipped it would make
+    // "which layer is this" depend on what happened to be drawn.
+    expect(paintedLayers(d).map((entry) => entry.layer.id)).toEqual([
+      BASE_LAYER_ID,
+      "empty",
+    ]);
+  });
+});
+
+describe("a filtered stack", () => {
+  const filtered = (filters?: Filter[]): Drawing => ({
+    id: "d",
+    name: "d",
+    width: 100,
+    height: 100,
+    strokes: [],
+    layers: [
+      { id: BASE_LAYER_ID, name: "" },
+      { id: "top", name: "Top", ...(filters ? { filters } : {}) },
+    ],
+  });
+
+  it("is only filtered when a layer actually carries one", () => {
+    expect(anyLayerFiltered(filtered())).toBe(false);
+    expect(anyLayerFiltered(filtered([]))).toBe(false);
+    expect(anyLayerFiltered(filtered([blur]))).toBe(true);
+    // A drawing with no stack of its own can never be: there is nowhere to
+    // hang one, and this is the guard every fast path in the renderer and the
+    // cache is written behind.
+    expect(
+      anyLayerFiltered({
+        id: "d",
+        name: "d",
+        width: 100,
+        height: 100,
+        strokes: [],
+      }),
+    ).toBe(false);
+  });
+
+  it("reads a layer's filters back in the order they are applied", () => {
+    // Switched on the other way round; blur still comes first, so the grain
+    // sits on the softened layer rather than being smeared by it — the same
+    // order the page's own filters are read in.
+    expect(
+      layerFilters({ id: "l", name: "", filters: [noise, blur] }).map(
+        (f) => f.kind,
+      ),
+    ).toEqual(["blur", "noise"]);
+    expect(layerFilters({ id: "l", name: "" })).toEqual([]);
   });
 });

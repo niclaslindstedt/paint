@@ -59,7 +59,11 @@
 // (This file was `layer.ts` until the drawing itself grew layers. The bitmap
 // gave the word back.)
 
-import { backgroundHidden, visibleStrokes } from "./layers.ts";
+import {
+  anyLayerFiltered,
+  backgroundHidden,
+  visibleStrokes,
+} from "./layers.ts";
 import {
   anyErases,
   paintStrokes,
@@ -143,12 +147,29 @@ export function paintCommitted(
   }
 
   const strokes = visibleStrokes(spec.drawing);
+  // A stack with filters on it gives up both shortcuts, and has to.
+  //
+  // Appending is the load-bearing one: a filtered layer is composited as a unit
+  // (see `Layer.filters`), so a mark landing on it does not go *on top of* the
+  // pixels the cache is holding — the whole layer has to be softened again with
+  // the new mark inside it, and a stroke painted over the finished blur would
+  // sit sharp on a page that is not. Scrolling is a correctness no-op but a
+  // performance one: each strip would re-filter a canvas-sized surface, so two
+  // strips a frame costs more than the single repaint it is avoiding.
+  //
+  // Both are guarded on the drawing rather than on the layer that changed,
+  // because paint order is what makes the difference and a mark can land under
+  // a filtered layer as easily as on it. Drawings with no filtered layer —
+  // which is all of them until someone asks — take neither branch and pay
+  // nothing for this.
+  const layered = anyLayerFiltered(spec.drawing);
   const usable =
     cache.painted !== null &&
     sameFrame(cache.painted, spec) &&
     cache.surface.canvas.width === spec.width &&
     cache.surface.canvas.height === spec.height &&
-    grewFrom(cache.strokes, cache.count, strokes);
+    grewFrom(cache.strokes, cache.count, strokes) &&
+    (!layered || strokes.length === cache.count);
 
   if (usable) {
     const added = strokes.length - cache.count;
@@ -173,7 +194,7 @@ export function paintCommitted(
     return added > 0 ? "appended" : "blitted";
   }
 
-  if (scroll(ctx, cache, spec, strokes)) {
+  if (!layered && scroll(ctx, cache, spec, strokes)) {
     capture(cache, canvas, spec);
     remember(cache, spec, strokes);
     return "scrolled";
@@ -365,9 +386,14 @@ function sameFrame(a: CacheSpec, b: CacheSpec): boolean {
     a.drawing.width === b.drawing.width &&
     a.drawing.height === b.drawing.height &&
     // The sheet is a layer now, so switching its eye off changes the picture
-    // without changing a stroke — the one document edit the stroke comparison
-    // below cannot see.
+    // without changing a stroke — one of the two document edits the stroke
+    // comparison below cannot see.
     backgroundHidden(a.drawing) === backgroundHidden(b.drawing) &&
+    // …and a layer's filters are the other. Moving one repaints the layer
+    // without adding, removing or reordering a single mark, so a cache that
+    // asked only about strokes would blit the picture from before the slider
+    // moved and go on doing it until something else forced a repaint.
+    layerFilterSignature(a.drawing) === layerFilterSignature(b.drawing) &&
     a.view.scale === b.view.scale &&
     a.view.tx === b.view.tx &&
     a.view.ty === b.view.ty &&
@@ -385,6 +411,29 @@ function sameFrame(a: CacheSpec, b: CacheSpec): boolean {
     // repaint it saves on the frames where the answer is no.
     a.options.omit === b.options.omit
   );
+}
+
+/** The stack's filters as one string, which changes whenever any of them does.
+ *
+ *  Cheap where it matters: a drawing with nothing filtered — every drawing
+ *  until someone asks — walks a stack of two or three layers, touches no
+ *  filter, and hands back the empty string it started with. Only the layers
+ *  actually carrying filters are ever serialised, and there are never many of
+ *  them (one of each kind, on the layers someone chose).
+ *
+ *  A string rather than an identity check on `layers`, because identity would
+ *  also fire on hiding, locking, renaming and reordering — all of which the
+ *  stroke comparison already catches — and would turn every one of them into a
+ *  full repaint on a drawing that has no filters at all. */
+function layerFilterSignature(drawing: Drawing): string {
+  const layers = drawing.layers;
+  if (!layers) return "";
+  let signature = "";
+  for (const layer of layers) {
+    if (!layer.filters || layer.filters.length === 0) continue;
+    signature += `${layer.id}:${JSON.stringify(layer.filters)};`;
+  }
+  return signature;
 }
 
 /** Whether `next` is `painted` with more on the end — the shape of a committed

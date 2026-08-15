@@ -112,7 +112,10 @@ export const sv: Catalog = {
     title: "Filter",
     off: "Av",
     open: "Inställningar för {name}",
+    openOnLayer: "Inställningar för {name} på {layer}",
     hint: "Ett filter ändrar hur sidan ses — inget streck ritas om, och stänger du av det ligger teckningen kvar precis som den var.",
+    layerHint:
+      "Det här lagret ses genom filtret; resten av stapeln gör det inte. Suddgummit går igenom resultatet, så du kan sudda ett hål i ett mjukat lager och visa vad som ligger under.",
     apply: "Använd",
     remove: "Stäng av",
     blur: {

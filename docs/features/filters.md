@@ -1,10 +1,14 @@
 # Filters
 
-A filter changes how the whole page is **seen** rather than what is on it. Blur
-a sketch to send it behind something else; scatter grain over it to take the
+A filter changes how a picture is **seen** rather than what is on it. Blur a
+sketch to send it behind something else; scatter grain over it to take the
 flatness off a diagram. Neither one redraws a mark: the drawing underneath is
 exactly the drawing you made, and switching the filter off gives it straight
 back.
+
+You can put a filter on the **whole page** or on **one layer**. The page is for
+a look you want over everything; a layer is for softening a photograph while the
+notes you have written on top of it stay sharp.
 
 That is the point of doing it this way. Your drawing is a list of vector
 strokes, and it stays one — a filter is a couple of numbers alongside them.
@@ -25,6 +29,33 @@ Press a row to open its options. Nothing lands on the drawing until you press
 
 Applying a filter is one edit, like any other: one step of undo, one entry in
 the drawing's history, one push to your cloud copy.
+
+## On one layer
+
+Select a layer in the stack below and the same two rows appear on it, reading
+**Off** until you set one. They open the same options and behave the same way —
+the only difference is what they are applied to.
+
+A layer's filter reaches that layer and nothing else. The layers above and below
+it stay exactly as they were, which is the point: put a photograph on its own
+layer, blur that layer, and everything you have drawn on top of it stays crisp.
+
+Two things follow from a filtered layer being composited as one piece, and both
+are worth knowing because they are what makes it useful:
+
+- **The eraser cuts through the result.** Rub out on a blurred layer and you
+  take the blurred pixels away and see what is underneath — the layers below, or
+  the page. That is how you open a soft hole in a photograph.
+- **The layer blurs as a whole, not mark by mark.** Overlapping strokes on a
+  blurred layer soften together, the way a photograph does, rather than each
+  turning into a soft shape of its own.
+
+An eraser on an **unfiltered** layer is unchanged: it goes on lifting ink off
+everything beneath it, whatever layer that ink was drawn on.
+
+Page and layer filters stack. A layer's own filters are applied first, when the
+layer is painted; the page's are applied last, over the finished picture — so a
+blurred layer inside a grained page comes out grained like everything else.
 
 ## Blur
 
@@ -63,9 +94,9 @@ alone rather than on a rectangle of dust around them.
 
 ## What a filter does not touch
 
-- **The layers.** A filter is applied to the finished page, so it covers the
-  stack rather than any one sheet of it. Hiding a layer removes it from what the
-  filter sees, like everything else.
+- **The marks.** Nothing is flattened and nothing is redrawn, whichever scope
+  you set it at. Hiding a layer removes it from what a page filter sees, like
+  everything else.
 - **Picking colours.** The paint bucket and the dropper read the drawing, not
   the filtered view of it, so a blurred page still fills and samples the colours
   you actually painted.

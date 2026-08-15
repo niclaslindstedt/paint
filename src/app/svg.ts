@@ -444,6 +444,51 @@ export class SvgCanvas {
 
   private pageFilter: { id: string; markup: string } | null = null;
 
+  /** The element runs that outer scopes had recorded before a filtered layer
+   *  opened — see `beginFilterGroup`. */
+  private outer: string[][] = [];
+
+  /** Start recording a layer that is seen through filters of its own.
+   *
+   *  Everything until the matching `endFilterGroup` lands in a run of its own,
+   *  which is what makes both halves of a filtered layer come out right in a
+   *  file (see `Layer.filters`):
+   *
+   *    - the **filter** wraps that run and nothing else, so the layer softens
+   *      and the stack around it stays sharp;
+   *    - and the **eraser** does too. A rubbing out becomes a mask over
+   *      everything recorded so far in the current run, so isolating the run is
+   *      what stops an eraser on a filtered layer punching through the layers
+   *      underneath it — exactly the scoping the canvas gets from painting that
+   *      layer onto a surface of its own.
+   *
+   *  Any run of erasing open on the outer scope is closed first, so a mask can
+   *  never straddle the boundary. */
+  beginFilterGroup(): void {
+    this.closeMask();
+    this.outer.push(this.elements);
+    this.elements = [];
+  }
+
+  /** Close a filtered layer: wrap what it recorded in its filter and hand the
+   *  outer scope back. Unbalanced calls are ignored rather than throwing — a
+   *  recorder that has lost track should still write a file. */
+  endFilterGroup(filter: { id: string; markup: string } | null): void {
+    const outer = this.outer.pop();
+    if (!outer) return;
+    // The layer's own erasing, scoped to the layer's own marks.
+    this.closeMask();
+    const inner = this.elements.join("");
+    this.elements = outer;
+    if (!inner) return;
+    if (!filter) {
+      this.elements.push(inner);
+      return;
+    }
+    this.defs.push(filter.markup);
+    this.elements.push(`<g filter="url(#${filter.id})">${inner}</g>`);
+  }
+
   /** The recorded elements, wrapped in an `<svg>` framing `region`. */
   toSvg(region: {
     x: number;
@@ -451,6 +496,9 @@ export class SvgCanvas {
     width: number;
     height: number;
   }): string {
+    // A recorder handed an unbalanced group — a filtered layer whose painter
+    // threw part way through — still writes a file, with that layer unfiltered.
+    while (this.outer.length > 0) this.endFilterGroup(null);
     // A drawing whose last mark was a rubbing out leaves a run still open.
     this.closeMask();
     const filter = this.pageFilter;

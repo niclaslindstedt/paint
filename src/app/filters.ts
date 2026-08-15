@@ -150,21 +150,76 @@ export function filterDescriptor(kind: string): FilterDescriptor | undefined {
   return FILTERS.find((f) => f.kind === kind);
 }
 
-/** A drawing's filters, in the order they are applied and with anything this
- *  build doesn't recognise (a document written by a newer one) left out. */
-export function activeFilters(drawing: Drawing): Filter[] {
-  const held = drawing.filters ?? [];
+/** Any list of filters, in the order they are applied and with anything this
+ *  build doesn't recognise (a document written by a newer one) left out.
+ *
+ *  The one place that order is decided, so a drawing's filters and a layer's
+ *  come out of it the same way — a page and a sheet of it must not soften and
+ *  grain in opposite orders. */
+export function orderedFilters(
+  filters: readonly Filter[] | undefined,
+): Filter[] {
+  const held = filters ?? [];
   return FILTERS.map((descriptor) =>
     held.find((filter) => filter.kind === descriptor.kind),
   ).filter((filter): filter is Filter => filter !== undefined);
 }
 
-/** The drawing's filter of this kind, or `undefined` when it is switched off. */
+/** A drawing's page-wide filters, in the order they are applied. */
+export function activeFilters(drawing: Drawing): Filter[] {
+  return orderedFilters(drawing.filters);
+}
+
+/** What a filter dialog is currently being opened *for*: which filter, and
+ *  whether it belongs to the page or to one sheet of the stack.
+ *
+ *  One dialog serves both — the controls are the descriptor's either way, and a
+ *  second dialog that rendered the same sliders against a different owner is
+ *  exactly the duplication the descriptors exist to avoid. `layerId` absent
+ *  means the page. */
+export type FilterTarget = { kind: FilterKind; layerId?: string };
+
+/** How far past its standard deviation a Gaussian is worth sampling. Three is
+ *  where it falls under a thousandth and stops being visible. */
+export const BLUR_TAIL = 3;
+
+/** How far these filters can move ink, in document pixels.
+ *
+ *  Zero for everything but a blur: grain lands on the pixel it is over, and
+ *  every other effect this app has is local. A blur is not, and the number
+ *  matters wherever painting is *culled* — a mark a hair off the left of the
+ *  window still fogs its way in, so a repaint that skipped it because it was
+ *  out of frame would leave the edge of a blurred layer visibly lighter than
+ *  the middle. Callers pad their clip by this (see `render.ts`). */
+export function filterReach(filters: readonly Filter[]): number {
+  let reach = 0;
+  for (const filter of filters) {
+    if (filter.kind === "blur") {
+      reach = Math.max(reach, filter.radius * BLUR_TAIL);
+    }
+  }
+  return reach;
+}
+
+/** The drawing's page-wide filter of this kind, or `undefined` when it is
+ *  switched off. */
 export function filterOf(
   drawing: Drawing,
   kind: FilterKind,
 ): Filter | undefined {
   return drawing.filters?.find((filter) => filter.kind === kind);
+}
+
+/** One layer's filter of this kind, or `undefined` when that layer isn't
+ *  carrying one (or isn't in the stack at all — a row that has just been
+ *  deleted out from under an open dialog). */
+export function layerFilterOf(
+  drawing: Drawing,
+  layerId: string,
+  kind: FilterKind,
+): Filter | undefined {
+  const layer = drawing.layers?.find((candidate) => candidate.id === layerId);
+  return layer?.filters?.find((filter) => filter.kind === kind);
 }
 
 /** Switch `filter` on (or move it), keeping one of each kind and the declared
@@ -189,9 +244,7 @@ export function withoutFilter(
 }
 
 function order(filters: readonly Filter[]): Filter[] {
-  return FILTERS.map((descriptor) =>
-    filters.find((filter) => filter.kind === descriptor.kind),
-  ).filter((filter): filter is Filter => filter !== undefined);
+  return orderedFilters(filters);
 }
 
 /** Read one option off a filter by id. A filter is a flat record of primitives
@@ -293,9 +346,9 @@ export function scaleFilters(
  *  with no filters on it. */
 export function svgFilter(
   filters: readonly Filter[],
+  id = "page-filter",
 ): { id: string; markup: string } | null {
   if (filters.length === 0) return null;
-  const id = "page-filter";
   const primitives: string[] = [];
   let source = "SourceGraphic";
   let step = 0;

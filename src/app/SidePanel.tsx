@@ -24,7 +24,8 @@ import {
   FILTERS,
   filterOf,
   filterReadout,
-  type FilterKind,
+  layerFilterOf,
+  type FilterTarget,
 } from "./filters.ts";
 import { useT } from "./i18n/index.ts";
 import {
@@ -117,7 +118,7 @@ type Props = {
   onResize: () => void;
   /** Open one filter's options. The dialog is the screen's, like the resize
    *  one — this panel says which filter, and nothing else about it. */
-  onFilter: (kind: FilterKind) => void;
+  onFilter: (target: FilterTarget) => void;
   /** Turn the page around (see `transform.ts`). Routed through the screen
    *  rather than straight to the store because a transform that changes the
    *  page's shape also changes what the *view* should be looking at, and the
@@ -328,7 +329,7 @@ export function SidePanel({
               <button
                 key={descriptor.kind}
                 type="button"
-                onClick={() => onFilter(descriptor.kind)}
+                onClick={() => onFilter({ kind: descriptor.kind })}
                 title={t(descriptor.hintKey)}
                 aria-label={t("filters.open", {
                   name: t(descriptor.nameKey),
@@ -463,40 +464,92 @@ export function SidePanel({
 
               {/* What you can do to the layer you have picked. */}
               {active && (
-                <div className="flex items-center justify-end gap-0.5 px-1.5 pb-1">
-                  {/* Where a layer may go is `layers.ts`'s to say, and it says
+                <>
+                  {/* The layer's own filters, in the rows the page's Filters
+                      section uses — same wording, same readout, same dialog —
+                      so "blur this layer" and "blur the page" read as one
+                      idea at two scopes rather than as two features.
+
+                      Only on the selected row: a filter per layer on every row
+                      would double the height of the stack for something you
+                      reach for once a drawing. */}
+                  <div className="flex gap-1 px-1.5 pb-1">
+                    {FILTERS.map((descriptor) => {
+                      const on = layerFilterOf(
+                        drawing,
+                        layer.id,
+                        descriptor.kind,
+                      );
+                      return (
+                        <button
+                          key={descriptor.kind}
+                          type="button"
+                          onClick={() =>
+                            onFilter({
+                              kind: descriptor.kind,
+                              layerId: layer.id,
+                            })
+                          }
+                          title={t(descriptor.hintKey)}
+                          aria-label={t("filters.openOnLayer", {
+                            name: t(descriptor.nameKey),
+                            layer: name,
+                          })}
+                          className={`flex min-w-0 flex-1 cursor-pointer items-center gap-1.5 rounded border px-1.5 py-1 text-[11px] hover:bg-surface-2 hover:text-fg-bright ${
+                            on
+                              ? "border-accent bg-accent/10 text-fg-bright"
+                              : "border-line text-muted"
+                          }`}
+                        >
+                          <span className="min-w-0 flex-1 truncate text-left">
+                            {t(descriptor.nameKey)}
+                          </span>
+                          <span
+                            className={`shrink-0 tabular-nums ${
+                              on ? "text-accent" : "text-muted"
+                            }`}
+                          >
+                            {on ? filterReadout(on) : t("filters.off")}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <div className="flex items-center justify-end gap-0.5 px-1.5 pb-1">
+                    {/* Where a layer may go is `layers.ts`'s to say, and it says
                       two things: not off the ends of the stack, and never
                       under the sheet — which is also why the sheet's own row
                       offers no arrows at all. */}
-                  <PanelButton
-                    label={t("layers.moveUp", { name })}
-                    disabled={!canMoveLayerTo(drawing, layer.id, at + 1)}
-                    onClick={() => store.moveLayer(layer.id, at + 1)}
-                  >
-                    <ChevronUpIcon className="h-4 w-4" />
-                  </PanelButton>
-                  <PanelButton
-                    label={t("layers.moveDown", { name })}
-                    disabled={!canMoveLayerTo(drawing, layer.id, at - 1)}
-                    onClick={() => store.moveLayer(layer.id, at - 1)}
-                  >
-                    <ChevronDownIcon className="h-4 w-4" />
-                  </PanelButton>
-                  <PanelButton
-                    label={t("layers.delete", { name })}
-                    tone="danger"
-                    // What may not be deleted is `layers.ts`'s to say — the
-                    // last layer, a locked one, or the last one still taking
-                    // marks. Emptying a drawing outright is Start over's job.
-                    disabled={!canDeleteLayer(drawing, layer.id)}
-                    onClick={() => {
-                      if (strokes.length === 0) store.deleteLayer(layer.id);
-                      else setConfirmDelete(layer.id);
-                    }}
-                  >
-                    <TrashIcon className="h-4 w-4" />
-                  </PanelButton>
-                </div>
+                    <PanelButton
+                      label={t("layers.moveUp", { name })}
+                      disabled={!canMoveLayerTo(drawing, layer.id, at + 1)}
+                      onClick={() => store.moveLayer(layer.id, at + 1)}
+                    >
+                      <ChevronUpIcon className="h-4 w-4" />
+                    </PanelButton>
+                    <PanelButton
+                      label={t("layers.moveDown", { name })}
+                      disabled={!canMoveLayerTo(drawing, layer.id, at - 1)}
+                      onClick={() => store.moveLayer(layer.id, at - 1)}
+                    >
+                      <ChevronDownIcon className="h-4 w-4" />
+                    </PanelButton>
+                    <PanelButton
+                      label={t("layers.delete", { name })}
+                      tone="danger"
+                      // What may not be deleted is `layers.ts`'s to say — the
+                      // last layer, a locked one, or the last one still taking
+                      // marks. Emptying a drawing outright is Start over's job.
+                      disabled={!canDeleteLayer(drawing, layer.id)}
+                      onClick={() => {
+                        if (strokes.length === 0) store.deleteLayer(layer.id);
+                        else setConfirmDelete(layer.id);
+                      }}
+                    >
+                      <TrashIcon className="h-4 w-4" />
+                    </PanelButton>
+                  </div>
+                </>
               )}
             </li>
           );

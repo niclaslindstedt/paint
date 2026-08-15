@@ -92,6 +92,27 @@ describe("layerHash", () => {
     );
   });
 
+  // The same trap as the ink, and a newer one: a layer's filters change its
+  // pixels without changing a mark (see `Layer.filters`), so a hash blind to
+  // them would let a re-save skip the layer whose blur you just widened and
+  // leave the old softening on the backend for good.
+  it("moves when the layer's own filters change", () => {
+    const marks = [stroke("a")];
+    const soft = { ...KEY, filters: [{ kind: "blur" as const, radius: 6 }] };
+    expect(layerHash(marks, KEY)).not.toBe(layerHash(marks, soft));
+    expect(layerHash(marks, soft)).not.toBe(
+      layerHash(marks, {
+        ...KEY,
+        filters: [{ kind: "blur" as const, radius: 24 }],
+      }),
+    );
+    // …and an unfiltered layer hashes exactly as it did before layers could
+    // carry any, so no existing backend copy is invalidated by this landing.
+    expect(layerHash(marks, { ...KEY, filters: [] })).toBe(
+      layerHash(marks, KEY),
+    );
+  });
+
   it("moves when the layer starts or stops carrying the sheet", () => {
     expect(layerHash([], KEY)).not.toBe(
       layerHash([], { ...KEY, paintsPage: true }),

@@ -29,7 +29,7 @@
 // how it used to work — is unavailable in Safari and fails *silently* there.
 // See "Softening without `ctx.filter`" below.
 
-import { GRAIN_CEILING } from "./filters.ts";
+import { BLUR_TAIL, GRAIN_CEILING } from "./filters.ts";
 import { createSurface, type Surface } from "./surface.ts";
 import type { Filter } from "./types.ts";
 
@@ -51,10 +51,6 @@ export type FilterPaint = {
    *  which is what a blurred cut-out should do. */
   transparent?: boolean;
 };
-
-/** How far past its standard deviation a Gaussian is worth sampling. Three is
- *  where it falls under a thousandth and stops being visible. */
-const BLUR_TAIL = 3;
 
 /** How many specks across a grain tile is.
  *
