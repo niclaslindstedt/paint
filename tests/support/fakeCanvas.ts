@@ -51,6 +51,11 @@ export type FakeDraw = {
   /** The `filter` in force when it was drawn — the whole of how the fast blur
    *  path differs from the fallback. */
   filter: string;
+  /** How it was composited. A blit is how a surface built off to one side gets
+   *  back onto the page, and *which way round* is the whole of what the surface
+   *  was for — `destination-in` cuts one picture to the shape of another (see
+   *  `relayFixed` in `render.ts`), `source-over` simply lays it on top. */
+  composite: GlobalCompositeOperation;
 };
 
 /** A recording 2D context, plus the tallies the tests assert on. */
@@ -185,6 +190,7 @@ export function createFakeContext(
         width: sized ? rest[rest.length - 2] : undefined,
         height: sized ? rest[rest.length - 1] : undefined,
         filter: String(ctx.filter),
+        composite: ctx.globalCompositeOperation as GlobalCompositeOperation,
       });
     },
     createRadialGradient() {

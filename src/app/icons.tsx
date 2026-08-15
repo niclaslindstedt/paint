@@ -36,9 +36,12 @@
 // round, flat, watercolour — and a cone against a squared blade reads fine at
 // 18 pixels where a cone against a bellied one does not; what separates the
 // watercolour brush is the solid bead in its head, because ink survives at that
-// size and curvature does not. A distinguishing mark also belongs *inside* the
-// silhouette: hung off the tip of a glyph rotated 45° it stretches the box on
-// the diagonal, and the glyph measures as leaning rather than as bigger.
+// size and curvature does not. The two rubbers are the same story told with the
+// same trick: the rubber is the eraser's own block with its working end
+// filled in instead of seamed across. A distinguishing mark also belongs
+// *inside* the silhouette: hung off the tip of a glyph rotated 45° it stretches
+// the box on the diagonal, and the glyph measures as leaning rather than as
+// bigger.
 //
 // **A pen is one silhouette with cross lines in it, never a stack of boxes.**
 // Barrel, collar and nib drawn as three closed rectangles look identical in the
@@ -122,6 +125,31 @@ export function EraserIcon({ className }: IconProps) {
       <g transform="rotate(-45 12 12)">
         <rect x="4.2" y="8.5" width="15.6" height="7" rx="1.9" />
         <path d="M9.8 8.5v7" />
+      </g>
+      <path d="M9.4 20.6h7.4" />
+    </svg>
+  );
+}
+
+/** The rubber — the same block worked on a pencil drawing, and told
+ *  apart from the plain eraser the way the set tells its third members apart:
+ *  by *ink* rather than by outline (see the header). The block is the eraser's,
+ *  and its working end has gone black with the graphite it has lifted, which is
+ *  what the corner of a real rubber looks like within a day of owning one.
+ *
+ *  The solid end also replaces the eraser's seam line rather than being added to
+ *  it, so the glyph carries the same three marks its sibling does: block, end,
+ *  and the line of the page under it. */
+export function RubberIcon({ className }: IconProps) {
+  return (
+    <svg {...toolBase} className={className} aria-hidden="true">
+      <g transform="rotate(-45 12 12)">
+        <rect x="4.2" y="8.5" width="15.6" height="7" rx="1.9" />
+        <path
+          d="M7.8 8.5H6.1a1.9 1.9 0 0 0-1.9 1.9v3.2a1.9 1.9 0 0 0 1.9 1.9h1.7Z"
+          fill="currentColor"
+          stroke="none"
+        />
       </g>
       <path d="M9.4 20.6h7.4" />
     </svg>

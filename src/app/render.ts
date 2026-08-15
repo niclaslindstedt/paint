@@ -34,7 +34,7 @@
 
 import { filterReach, svgFilter } from "./filters.ts";
 import { paintFilters } from "./filterPaint.ts";
-import { strokeVisible, type Rect } from "./geometry.ts";
+import { strokeBounds, strokeVisible, type Rect } from "./geometry.ts";
 import {
   groundProfile,
   groundStains,
@@ -57,7 +57,7 @@ import { paintRegion } from "./plugins/brushes.ts";
 import { pluginById } from "./plugins/registry.ts";
 import { applyInk, paintPath, paintRect, paintSegment } from "./plugins/ink.ts";
 import { FULL_DETAIL, type PaintDetail } from "./plugins/types.ts";
-import { createSurface } from "./surface.ts";
+import { createSurface, type Surface } from "./surface.ts";
 import type { Drawing, Filter, Ground, Stroke } from "./types.ts";
 import { liftUnder } from "./wet.ts";
 
@@ -99,6 +99,36 @@ export function strokeErases(stroke: Stroke): boolean {
 /** Whether any of these marks erases. */
 export function anyErases(strokes: readonly Stroke[]): boolean {
   return strokes.some(strokeErases);
+}
+
+/** Whether this mark is a rubbing out that only takes off what a rubber could
+ *  actually have lifted — read off `PaintPlugin.lifts`.
+ *
+ *  It is painted exactly like any other erasing mark, because there is no other
+ *  way to take pixels off a canvas: what makes it selective happens afterwards,
+ *  in `relayFixed`. */
+export function strokeLifts(stroke: Stroke): boolean {
+  const plugin = pluginById(stroke.tool);
+  return plugin?.erases === true && plugin.lifts === true;
+}
+
+/** Whether any of these marks is a lifting one. */
+export function anyLifts(strokes: readonly Stroke[]): boolean {
+  return strokes.some(strokeLifts);
+}
+
+/** Whether a rubbing out has to put this mark back — every mark except the two
+ *  a rubber has a genuine claim on: ink it could have lifted (`liftable`), and
+ *  a lifting mark itself, which is a hole rather than something on the page.
+ *
+ *  A mark whose tool this build doesn't ship counts as one to put back. The flag
+ *  lived on the descriptor and the descriptor is gone, so the honest reading is
+ *  the same one `strokeErases` makes: a mark that is on the page, and nothing
+ *  saying a rubber takes it off. */
+function relaid(stroke: Stroke): boolean {
+  const plugin = pluginById(stroke.tool);
+  if (!plugin) return true;
+  return plugin.liftable !== true && !(plugin.erases === true && plugin.lifts);
 }
 
 /** How wet the tool that drew this mark is (`PaintPlugin.wetness`) — 0 for a
@@ -373,11 +403,22 @@ export function renderDrawing(
     (anyLayerFiltered(drawing) ||
       anyStains(strokes, groundProfile(options.ground)));
   if (apart) {
+    // The stack does its own relaying — a rubbing out on a layer composited by
+    // itself is scoped to that layer's surface, so what it owes is scoped to it
+    // too.
     paintStack(ctx, drawing, scope, options);
   } else {
     paintStrokes(ctx, strokes, options);
+    // A rubbing out that only lifts what a rubber can lift took everything for
+    // the length of one composite; this puts the rest back.
+    relayFixed(ctx, strokes, options);
   }
-  if (draft) paintStroke(ctx, draft, options, detailFor(ctx, options));
+  if (draft) {
+    paintStroke(ctx, draft, options, detailFor(ctx, options));
+    // The gesture in flight, over everything already on the page — which is the
+    // order it was painted in, so it is the order it owes ink back in.
+    relayFixed(ctx, [draft], options, strokes);
+  }
 
   underlay(ctx, drawing, options);
 }
@@ -415,13 +456,20 @@ function paintStack(
   options: RenderOptions,
 ): void {
   const ground = groundProfile(options.ground);
+  // What a rubbing out on a layer painted straight onto the page has to put
+  // back: everything already painted, whatever layer it was on — because that is
+  // exactly what it just took off. A layer painted apart settles its own inside
+  // its surface.
+  const under: Stroke[] = [];
   for (const { layer, strokes } of paintedLayers(drawing, scope)) {
     const filters = layerFilters(layer);
     if (filters.length === 0 && !anyStains(strokes, ground)) {
       paintStrokes(ctx, strokes, options);
-      continue;
+      relayFixed(ctx, strokes, options, under);
+    } else {
+      paintLayerApart(ctx, drawing, strokes, filters, options);
     }
-    paintLayerApart(ctx, drawing, strokes, filters, options);
+    under.push(...strokes);
   }
 }
 
@@ -486,11 +534,16 @@ function paintLayerApart(
     surface.ctx.setTransform(view.a, view.b, view.c, view.d, view.e, view.f);
   }
   const scale = options.scale ?? renderScale(ctx);
-  paintStrokes(surface.ctx, strokes, {
+  const scoped = {
     ...options,
     scale,
     clip: padRect(options.clip, filterReach(filters)),
-  });
+  };
+  paintStrokes(surface.ctx, strokes, scoped);
+  // Scoped to this layer, like the erasing it answers: a rubbing out here
+  // reaches no further than the surface it is painted on, so neither does the
+  // ink it owes back.
+  relayFixed(surface.ctx, strokes, scoped);
   // The layer's own filters, over the layer's own pixels. There is no sheet
   // under them — that is the background layer's job and it is somewhere else in
   // this stack — so the blur fades into nothing at the page's edge, which is
@@ -699,6 +752,273 @@ export function underlay(
     ctx.fillRect(0, 0, drawing.width, drawing.height);
   }
   ctx.restore();
+}
+
+// --- What a rubber could not have lifted -------------------------------------
+//
+// A rubber (`PaintPlugin.lifts`) still paints with `destination-out`,
+// because that is the only way a canvas gives up pixels: for the length of one
+// composite it takes off graphite, ink, paint and photographs alike. What makes
+// it a *rubber* is what happens next — everything it could never have lifted is
+// laid straight back over the hole.
+//
+// Which is exact where it matters and approximate where it doesn't, and both
+// halves are worth writing down:
+//
+//   - **The weight is exact.** A run of erasing lanes at alphas a₁…aₙ removes
+//     1 − ∏(1 − aᵢ) of what is under it; the *same* lanes painted normally onto
+//     an empty surface come out at alpha 1 − ∏(1 − aᵢ). So the mask is, to the
+//     pixel, the fraction that went — and opaque ink laid back through it lands
+//     at exactly the strength it started at, whatever the pressure dial said.
+//   - **The order is approximate.** The ink goes back on *top*, after the whole
+//     run, rather than back into the place in the stack it came from. Inside the
+//     rubbed patch, ink that had graphite drawn over it comes out in front of
+//     it — but that graphite is the thing being rubbed away there, so the pixels
+//     the shortcut costs are pixels that are on their way out anyway.
+//
+// Nothing outside this section knows what a rubber is. It is two flags
+// and a compositing pass, exactly as the plain eraser is one flag and a
+// compositing mode.
+
+/** One rubbing out — or a run of them with nothing laid between — and the marks
+ *  that were already on the page when it happened. */
+type LiftGroup = {
+  /** Marks to put back: everything painted before these lifting marks that a
+   *  rubber has no claim on. Erasing marks are in here too and in their original
+   *  order, so a hole somebody took out earlier stays a hole. */
+  relay: readonly Stroke[];
+  /** The lifting marks whose footprint decides where any of it goes back. */
+  lifted: readonly Stroke[];
+};
+
+/** Split a run into the groups above: a new one each time fresh ink lands after
+ *  a rubbing out, because from then on there is more to put back.
+ *
+ *  In practice that is one group. Two are what you get from sketching, rubbing,
+ *  and then inking over the top — and having them separate is what stops the
+ *  second lot of ink being laid back over a patch that was rubbed before it
+ *  existed, which on a translucent mark (a highlighter) would show as a
+ *  double-strength blot in the shape of the rub. */
+function liftGroups(
+  strokes: readonly Stroke[],
+  before: readonly Stroke[],
+): LiftGroup[] {
+  const groups: LiftGroup[] = [];
+  const relay: Stroke[] = before.filter(relaid);
+  let lifted: Stroke[] = [];
+  const close = () => {
+    // A group with nothing but holes behind it has nothing to put back.
+    if (lifted.length > 0 && relay.some((stroke) => !strokeErases(stroke))) {
+      groups.push({ relay: [...relay], lifted });
+    }
+    lifted = [];
+  };
+  for (const stroke of strokes) {
+    if (strokeLifts(stroke)) {
+      lifted.push(stroke);
+      continue;
+    }
+    // Ink a rubber may take: nothing to put back, and nothing that closes a
+    // group either — a second pencil line drawn beside the first does not
+    // change what the rubbing out before it owes.
+    if (!relaid(stroke)) continue;
+    close();
+    relay.push(stroke);
+  }
+  close();
+  return groups;
+}
+
+/** Lay back the ink a rubbing out took off but could never have lifted.
+ *
+ *  `strokes` is the run just painted, in paint order; `before` is what was
+ *  already on these pixels when it started — empty for a repaint that folded the
+ *  whole document, the committed marks for the canvas's gesture in flight and
+ *  for the mark cache's append.
+ *
+ *  A no-op, and a cheap one, for every drawing nobody has reached for the pencil
+ *  eraser in. */
+export function relayFixed(
+  ctx: CanvasRenderingContext2D,
+  strokes: readonly Stroke[],
+  options: RenderOptions,
+  before: readonly Stroke[] = [],
+): void {
+  if (!anyLifts(strokes)) return;
+  for (const group of liftGroups(strokes, before)) {
+    relayGroup(ctx, group, options);
+  }
+}
+
+/** One group put back: the ink, masked by where the rubbing out went. */
+function relayGroup(
+  ctx: CanvasRenderingContext2D,
+  group: LiftGroup,
+  options: RenderOptions,
+): void {
+  // Nothing outside the rubbed patch can have changed, so nothing outside it is
+  // worth repainting — which is what keeps this the cost of the *mark* rather
+  // than the cost of the document.
+  const reach = meet(reachOf(group.lifted), options.clip);
+  if (!reach) return;
+  const relay = group.relay.filter((stroke) => strokeVisible(stroke, reach));
+  if (!relay.some((stroke) => !strokeErases(stroke))) return;
+  const scoped = { ...options, clip: reach };
+
+  const patch = maskedInk(ctx, relay, group.lifted, scoped, reach);
+  if (!patch) {
+    // No surface to mask on: a context that isn't a canvas (the SVG export's
+    // recorder), or a browser that refused one. Put the ink back unmasked — it
+    // then also lands where the rubber never went, which is a stacking order
+    // nobody will notice, where losing the ink outright is the one failure that
+    // would show. Same call the filtered-layer path makes.
+    paintStrokes(ctx, relay, scoped);
+    return;
+  }
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.globalAlpha = 1;
+  ctx.globalCompositeOperation = "source-over";
+  ctx.drawImage(patch.ink.canvas, patch.at.x, patch.at.y);
+  ctx.restore();
+}
+
+/** The ink of a group, kept only where the rubbing out actually reached: the
+ *  marks on one surface, the rubbing out on another, and `destination-in` to cut
+ *  the first to the second. `null` where there is no surface to be had.
+ *
+ *  The surfaces are cut to **the rubbed patch** rather than to the canvas, and
+ *  that is the difference between this costing the mark and costing the screen:
+ *  a rubbing out happens once a frame for as long as a finger is down, and two
+ *  phone-sized canvases a frame is a lot of pixels to mint and throw away for a
+ *  patch a centimetre across. */
+function maskedInk(
+  ctx: CanvasRenderingContext2D,
+  relay: readonly Stroke[],
+  lifted: readonly Stroke[],
+  options: RenderOptions,
+  reach: Rect,
+): { ink: Surface; at: { x: number; y: number } } | null {
+  if (asFilterRecorder(ctx)) return null;
+  const canvas = ctx.canvas;
+  if (!canvas || canvas.width <= 0 || canvas.height <= 0) return null;
+  const view = readTransform(ctx) ?? { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 };
+  const patch = onCanvas(reach, view, canvas);
+  if (!patch) return null;
+
+  const ink = createSurface(patch.width, patch.height);
+  const mask = ink && createSurface(patch.width, patch.height);
+  if (!ink || !mask) return null;
+  // The page's own transform, slid over so the patch's corner is the surface's
+  // origin: the marks then land in the same places they would have landed on
+  // the canvas, and the blit at the end simply puts them back.
+  for (const surface of [ink, mask]) {
+    surface.ctx.setTransform(
+      view.a,
+      view.b,
+      view.c,
+      view.d,
+      view.e - patch.x,
+      view.f - patch.y,
+    );
+  }
+  const scoped = { ...options, scale: options.scale ?? renderScale(ctx) };
+  paintStrokes(ink.ctx, relay, scoped);
+  paintMask(mask.ctx, lifted, scoped);
+
+  ink.ctx.save();
+  ink.ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ink.ctx.globalAlpha = 1;
+  ink.ctx.globalCompositeOperation = "destination-in";
+  ink.ctx.drawImage(mask.canvas, 0, 0);
+  ink.ctx.restore();
+  return { ink, at: patch };
+}
+
+/** Where a box of page lands on the canvas under `view`, in whole canvas pixels
+ *  and clamped to it. `null` when none of it is on the canvas at all — a rubbing
+ *  out that has been scrolled off the screen.
+ *
+ *  All four corners are transformed rather than the two the app's own pan and
+ *  zoom would need, because a box under a rotation is not the box its corners
+ *  are, and the maths is four lines either way. */
+function onCanvas(
+  box: Rect,
+  view: Transform,
+  canvas: { width: number; height: number },
+): { x: number; y: number; width: number; height: number } | null {
+  const xs: number[] = [];
+  const ys: number[] = [];
+  for (const [px, py] of [
+    [box.x, box.y],
+    [box.x + box.width, box.y],
+    [box.x, box.y + box.height],
+    [box.x + box.width, box.y + box.height],
+  ]) {
+    xs.push(view.a * px! + view.c * py! + view.e);
+    ys.push(view.b * px! + view.d * py! + view.f);
+  }
+  // Outwards to whole pixels, so the patch cannot land half a pixel off the
+  // hole it is filling.
+  const x = Math.max(0, Math.floor(Math.min(...xs)));
+  const y = Math.max(0, Math.floor(Math.min(...ys)));
+  const width = Math.min(canvas.width, Math.ceil(Math.max(...xs))) - x;
+  const height = Math.min(canvas.height, Math.ceil(Math.max(...ys))) - y;
+  return width > 0 && height > 0 ? { x, y, width, height } : null;
+}
+
+/** The lifting marks painted as marks rather than as holes, onto an empty
+ *  surface: the same painter, the same alphas, composited the ordinary way
+ *  round. What comes out is a picture of how much went. */
+function paintMask(
+  ctx: CanvasRenderingContext2D,
+  lifted: readonly Stroke[],
+  options: RenderOptions,
+): void {
+  const detail = detailFor(ctx, options);
+  for (const stroke of lifted) {
+    if (!strokeVisible(stroke, options.clip)) continue;
+    const resolved = resolveStrokeInk(stroke, options);
+    ctx.save();
+    pluginById(resolved.tool)?.behaviour.paint(ctx, resolved, detail);
+    ctx.restore();
+  }
+}
+
+/** How far a run of marks reaches, as one box. `null` when none of them can say
+ *  — which for a rubbing out means there is nothing to put back either. */
+function reachOf(strokes: readonly Stroke[]): Rect | null {
+  let box: Rect | null = null;
+  for (const stroke of strokes) {
+    const bounds = strokeBounds(stroke);
+    if (!bounds) continue;
+    box = box ? cover(box, bounds) : bounds;
+  }
+  return box;
+}
+
+/** The smallest box holding both. */
+function cover(a: Rect, b: Rect): Rect {
+  const x = Math.min(a.x, b.x);
+  const y = Math.min(a.y, b.y);
+  return {
+    x,
+    y,
+    width: Math.max(a.x + a.width, b.x + b.width) - x,
+    height: Math.max(a.y + a.height, b.y + b.height) - y,
+  };
+}
+
+/** Where two boxes overlap, or `null` when they don't. An absent second box is
+ *  "everywhere", which is what an unculled repaint passes. */
+function meet(a: Rect | null, b: Rect | undefined): Rect | null {
+  if (!a) return null;
+  if (!b) return a;
+  const x = Math.max(a.x, b.x);
+  const y = Math.max(a.y, b.y);
+  const width = Math.min(a.x + a.width, b.x + b.width) - x;
+  const height = Math.min(a.y + a.height, b.y + b.height) - y;
+  return width > 0 && height > 0 ? { x, y, width, height } : null;
 }
 
 /** Paint a run of strokes onto an already-prepared page — the marks half of a

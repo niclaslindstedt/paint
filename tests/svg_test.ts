@@ -349,6 +349,48 @@ describe("the SVG export", () => {
     expect(page).toBeLessThan(group);
   });
 
+  it("writes the ink a rubber could not have lifted back outside it", () => {
+    // A file has no destination-in either, so the mask trick has no second half
+    // here: the marks a rubber could never have lifted are simply written
+    // *again*, after the group closes, where no mask can reach them. They then
+    // also cover the places the rubber never went — which on an opaque line is
+    // the same picture, and which is the trade the renderer documents.
+    const svg = toSvg(
+      drawing([
+        {
+          id: "s1",
+          tool: "pencil",
+          color: "#ef4444",
+          size: 8,
+          shape: {
+            kind: "path",
+            points: [
+              { x: 10, y: 10 },
+              { x: 80, y: 40 },
+            ],
+          },
+        },
+        {
+          id: "s2",
+          tool: "rubber",
+          size: 20,
+          shape: {
+            kind: "path",
+            points: [
+              { x: 30, y: 20 },
+              { x: 60, y: 30 },
+            ],
+          },
+        },
+      ]),
+    );
+    // The masked group is there, exactly as the plain eraser's is…
+    expect(svg).toMatch(/<g mask="url\(#m0\)">.*stroke="#ef4444".*<\/g>/);
+    // …and the line comes back after it, outside every mask in the file.
+    const closes = svg.indexOf("</g>");
+    expect(svg.indexOf('stroke="#ef4444"', closes)).toBeGreaterThan(closes);
+  });
+
   it("wraps a filtered page in the filter, over a sheet of its own", () => {
     const doc = drawing([
       {

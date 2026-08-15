@@ -31,8 +31,9 @@ the same [`oss-framework`](https://github.com/niclaslindstedt/oss-framework).
 - **Tools are plugins.** Every tool, the pen included, is registered through
   one interface. It opens on the toolbox you already know — pen, pencil,
   eraser, watercolour brush, airbrush, bucket and gradient, text, the shapes, a
-  selection marquee and the dropper — and the media it adds to that (a round and a flat
-  bristle brush, a marker, a crayon, a calligraphy nib, a highlighter) wait in
+  selection marquee and the dropper — and the media it adds to that (a round and
+  a flat bristle brush, a marker, a crayon, a calligraphy nib, a highlighter)
+  wait in
   Settings → Tools, so the toolbar stays as simple as you want it and grows when
   you need it. Rearrange the row there too, and it rearranges here. Each tool
   remembers its own width, so a fat brush never costs you a fine pen.
@@ -62,6 +63,12 @@ the same [`oss-framework`](https://github.com/niclaslindstedt/oss-framework).
   sketching pencil" and give it a mark to know it by, and it is one press away
   from then on. A saved tool carries its width and every dial, and it belongs to
   the tool it was saved from.
+- **Two ways to rub something out, one button.** The **eraser** is a hole: it
+  takes off whatever it covers, at whatever strength you set it to. Press it
+  again for the **rubber**, which is a real one — it lifts pencil and crayon a
+  little at a time, leaves the paper's grain showing through what is left, never
+  quite takes all of it, and leaves ink, paint and marker exactly where they
+  are. So you can sketch in pencil, ink over the sketch, and rub the sketch out.
 - **Eleven shapes, one button.** Rectangle, ellipse, line, arrow, rounded
   rectangle, triangle, diamond, pentagon, hexagon, star and double arrow share a
   single toolbar button and a single switch: press it again for the family, and
@@ -233,7 +240,8 @@ npm run preview
   palette, your own mixed colours, and a free colour mixer; the second button is
   the **nib**, and it shows a **press with the tool in your hand** — the mark
   that width actually leaves, painted by the painter that paints the page (bar
-  the eraser, whose mark is a hole, so its width shows as a plain circle). It
+  the two rubbers, whose mark is a hole, so their width shows as a plain
+  circle). It
   opens the widths, a slider for new ones, and — under an **Advanced** heading,
   open rather than folded away — the knobs belonging to the tool in your hand:
   how charged the head is, its hair gauge, how far it has splayed and how far
@@ -242,12 +250,12 @@ npm run preview
   lead's grade for the pencil — 8H through 9B, as a row of chips rather than a
   slider, because there is nothing between a 2B and a 3B — the chisel of a felt
   tip for the marker and the highlighter, the angle of the nib for the flat
-  brush and the calligraphy pen, strength for the eraser, a feathered edge for
-  the paint bucket and the gradient, how much page one press of the dropper
-  reads, and opacity for most of the rest. Above the widths are two rows of
-  whole tools, one press each: **Presets**, the ways the tool's own medium is
-  used, shipped with it and each showing the mark it makes, and **Saved**, the
-  ones you named yourself.
+  brush and the calligraphy pen, strength for the eraser, pressure for the
+  rubber, a feathered edge for the paint bucket and the gradient, how much page
+  one press of the dropper reads, and opacity for most of the rest. Above the
+  widths are two rows of whole tools, one press each: **Presets**, the ways the
+  tool's own medium is used, shipped with it and each showing the mark it makes,
+  and **Saved**, the ones you named yourself.
   They are kept per tool, so a soft brush stays soft without softening anything
   else. A tool with no width to set shows a **cog** in that slot instead — the
   paint bucket fills the area it traced whatever a nib might say, so it opens
@@ -256,8 +264,8 @@ npm run preview
   under a press of the mark they make, and the ink button is crossed out while it
   is in hand: the gradient is poured from its own two colours (or three) and never
   from the toolbar's. Most tools have a single-key shortcut, and a button with a
-  family behind it — the shapes, the fills — opens the rest of it when you press
-  it a second time.
+  family behind it — the shapes, the fills, the two rubbers — opens the rest of
+  it when you press it a second time.
 - **Fills** — one button, two ways to fill an area: the **paint bucket**, flat
   in the ink you have picked, and the **gradient**, which floods the same area
   and pours a ramp of its own colours through it — press where the first colour

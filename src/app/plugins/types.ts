@@ -386,6 +386,33 @@ export type PaintPlugin = {
    *  than a tool id anything recognises: a shape or a bucket that rubbed out
    *  would declare this and need nothing else. */
   erases?: boolean;
+  /** True when the tool only takes off what a **rubber could actually lift** —
+   *  the rubber. Meaningless without `erases`, which it refines.
+   *
+   *  A plain eraser is indifferent to what is under it: it is a hole, and a hole
+   *  goes through ink and graphite alike. That is not what a rubber does to a
+   *  page. Graphite and wax are *sitting on* the sheet and come away; ink has
+   *  soaked into it and does not, however hard you rub — which is why anyone
+   *  sketching lays the construction lines in pencil and inks over them.
+   *
+   *  So a lifting mark still paints with `destination-out` (there is no other
+   *  way to take pixels off), and the renderer lays the marks it could never
+   *  have lifted back over the hole afterwards (see `relayFixed` in
+   *  `render.ts`). Which marks those are is the other half of this pair:
+   *  `liftable` on the tool that drew them. */
+  lifts?: boolean;
+  /** True when this tool's medium **sits on the sheet** rather than soaking into
+   *  it, so a rubber can take it off again — graphite and wax.
+   *
+   *  The default is the other way round, and deliberately: ink, paint, felt tip,
+   *  a bucket of colour and a dropped photograph all stay put under a rubber,
+   *  and a tool that says nothing about itself is one of those. Only the two dry
+   *  media declare it.
+   *
+   *  It is read by exactly one thing — the rubber's compositing — and, as
+   *  ever, by the flag rather than by the id: a charcoal or a pastel tool would
+   *  declare it and need nothing else. */
+  liftable?: boolean;
   /** True when the tool moves the *view* instead of leaving a mark — the hand.
    *  A one-finger drag then pans the page and a double-tap fits it, no stroke is
    *  ever begun, and the toolbar strikes out the ink it would not use. This is the flag

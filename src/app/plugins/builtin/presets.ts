@@ -62,6 +62,32 @@ export const ERASER_PRESETS: readonly BuiltinPreset[] = [
   },
 ];
 
+/** The rubber. Its dial is how hard you are leaning on it, and a rubber
+ *  is one of the few implements where the *size* and the weight really are the
+ *  same decision: the three below are three different erasers off a stationer's
+ *  shelf, not one at three settings.
+ *
+ *  The pocket rubber it ships as, worked at an ordinary weight; the putty
+ *  kneaded eraser, which is broad and dabbed rather than scrubbed and takes a
+ *  highlight back a shade at a time; and the little one on the end of a pencil,
+ *  which is small, hard and leant on because there is nothing else to do with
+ *  it. */
+export const RUBBER_PRESETS: readonly BuiltinPreset[] = [
+  { id: "pocket", nameKey: "presets.rubber.pocket", size: mm(5) },
+  {
+    id: "kneaded",
+    nameKey: "presets.rubber.kneaded",
+    size: mm(20),
+    dials: { pressure: 0.5 },
+  },
+  {
+    id: "top",
+    nameKey: "presets.rubber.top",
+    size: mm(2),
+    dials: { pressure: 1.45 },
+  },
+];
+
 /** The pencil, which is the tool this whole idea came from: a lead grade and a
  *  width together *are* a pencil, and a sketcher owns three or four of them
  *  rather than one with a slider on it. These are the four in the tin — the HB

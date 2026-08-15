@@ -46,8 +46,12 @@ connect a storage backend yourself.
   keyboard, a right-click or a long press. Ctrl/Cmd+V pastes marks, a picture or words back
   into the drawing — words open the caption box so the typeface and size are
   yours to set first.
+- Press the eraser a second time for the rubber behind it: it lifts pencil and
+  crayon the way a real one does — a little at a time, never all of it, and
+  never the ink drawn over them.
 - Switch more tools on in Settings → Tools (a round and a flat bristle brush,
-  marker, highlighter, crayon, calligraphy pen), and put the rows in the order you want
+  marker, highlighter, crayon, calligraphy pen), and put the rows in the order
+  you want
   the toolbar in. Every tool is a plugin behind one interface, so the list grows
   without the app changing shape.
 - Type on the page: the text tool opens a caret where you tap, in four
@@ -64,12 +68,12 @@ connect a storage backend yourself.
   bleeds for the paintbrush, flow for the airbrush, pressure for the crayon, the
   lead's grade for the pencil, the chisel of a felt tip for the marker and the
   highlighter, the nib's angle for the calligraphy pen, strength for the eraser,
-  a feathered edge for the paint bucket and the gradient, how much page one
-  press of the dropper reads, opacity for most of the rest. Each tool keeps its
-  own settings — including the inks a tool mixes for itself, like the gradient's
-  two ends and its optional middle — and a mark remembers what it was drawn
-  with. On a desktop the pointer is drawn as the nib itself: a circle the size
-  of the mark, at the page's own scale.
+  pressure for the rubber, a feathered edge for the paint bucket and the
+  gradient, how much page one press of the dropper reads, opacity for most of
+  the rest. Each tool keeps its own settings — including the inks a tool mixes
+  for itself, like the gradient's two ends and its optional middle — and a mark
+  remembers what it was drawn with. On a desktop the pointer is drawn as the nib
+  itself: a circle the size of the mark, at the page's own scale.
 - Start a drawing from an empty page, an image file, or an image on the
   clipboard. An empty one asks its canvas size up front — this screen, Full HD,
   4K, A4 or a size you type, drawn to one shared scale so they can be compared

@@ -69,6 +69,7 @@ describe("the shipped set", () => {
       "marker",
       "paintbrush",
       "pencil",
+      "rubber",
       "watercolor",
     ]);
   });

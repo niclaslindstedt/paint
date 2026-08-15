@@ -14,9 +14,11 @@ import { BACKGROUND_LAYER_ID, BASE_LAYER_ID } from "../src/app/layers.ts";
 import { registerPlugin, resetPlugins } from "../src/app/plugins/registry.ts";
 import {
   anyErases,
+  anyLifts,
   paintStroke,
   renderDrawing,
   strokeErases,
+  strokeLifts,
 } from "../src/app/render.ts";
 import type { Drawing, Stroke } from "../src/app/types.ts";
 import {
@@ -61,6 +63,18 @@ function drawing(strokes: Stroke[], over: Partial<Drawing> = {}): Drawing {
  *  pixels saw it. */
 function order(ctx: FakeContext): string[] {
   return ctx.painted.map((p) => `${p.call}@${p.composite}`);
+}
+
+/** The frame's composites in order, with runs of the same one collapsed. A
+ *  textured painter draws one mark as several calls (the pencil lays three
+ *  weights of grain, the rubber three of lift), and what these tests are about
+ *  is the order the *modes* came in rather than how many calls each took. */
+function phases(ctx: FakeContext): string[] {
+  const out: string[] = [];
+  for (const call of ctx.painted) {
+    if (out[out.length - 1] !== call.composite) out.push(call.composite);
+  }
+  return out;
 }
 
 /** The page fill, if this frame laid one: the sheet is the one thing painted as
@@ -192,6 +206,123 @@ describe("the sheet, under the marks", () => {
       ink,
     );
     expect(sheet(hidden)).toHaveLength(0);
+  });
+});
+
+// The rubber takes ink off exactly like the plain eraser — there is no
+// other way to give up pixels — and then everything it could never have lifted
+// is laid straight back over the hole (`relayFixed`). Which marks those are is
+// two descriptor flags and nothing else: `lifts` on the rubber, `liftable` on
+// the two media that sit on the sheet rather than soaking into it.
+
+describe("a rubbing out that only lifts what a rubber can", () => {
+  it("is named by the flags and not by the tool", () => {
+    expect(strokeLifts(mark("rubber"))).toBe(true);
+    // The plain eraser erases and lifts nothing selectively: it is a hole.
+    expect(strokeErases(mark("eraser"))).toBe(true);
+    expect(strokeLifts(mark("eraser"))).toBe(false);
+    expect(strokeLifts(mark("graphite"))).toBe(false);
+    expect(anyLifts([mark("pencil"), mark("rubber")])).toBe(true);
+    expect(anyLifts([mark("pencil"), mark("eraser")])).toBe(false);
+  });
+
+  it("still paints as a hole — the sparing happens afterwards", () => {
+    const ctx = createFakeContext();
+    paintStroke(ctx, mark("rubber"), ink);
+    expect(phases(ctx)).toEqual(["destination-out"]);
+  });
+
+  it("lays the ink it could not have lifted back over the hole", () => {
+    const dom = withFakeDocument();
+    try {
+      const ctx = createFakeCanvas(400, 300).ctx;
+      renderDrawing(
+        ctx,
+        drawing([mark("pencil"), mark("graphite"), mark("rubber")]),
+        null,
+        ink,
+      );
+      // The give-away: two working surfaces — the ink on one, a picture of how
+      // much of it went on the other — and the first blitted back on top.
+      expect(dom.created).toHaveLength(2);
+      expect(ctx.calls.drawImage ?? 0).toBe(1);
+      const [relaid, mask] = dom.created;
+      // The pen's line goes back and the pencil's does not: graphite is
+      // `liftable`, ink is not.
+      expect(relaid!.ctx.calls.stroke ?? 0).toBe(1);
+      // …cut to where the rubbing out actually went, by blitting the mask over
+      // it the one way round that keeps an overlap and throws the rest away.
+      expect(relaid!.ctx.draws).toHaveLength(1);
+      expect(relaid!.ctx.draws[0]!.image).toBe(mask);
+      expect(relaid!.ctx.draws[0]!.composite).toBe("destination-in");
+      // The mask is the same mark painted the ordinary way round: what comes
+      // out is a picture of the fraction that went, not another hole.
+      expect(
+        mask!.ctx.painted.every((p) => p.composite === "source-over"),
+      ).toBe(true);
+    } finally {
+      dom.restore();
+    }
+  });
+
+  it("does nothing at all to a drawing nobody rubbed at", () => {
+    const dom = withFakeDocument();
+    try {
+      const ctx = createFakeCanvas(400, 300).ctx;
+      renderDrawing(ctx, drawing([mark("pencil"), mark("eraser")]), null, ink);
+      // The plain eraser is indifferent to what is under it, so there is
+      // nothing to put back and no surface is ever asked for.
+      expect(dom.created).toHaveLength(0);
+    } finally {
+      dom.restore();
+    }
+  });
+
+  it("keeps a hole somebody took out earlier a hole", () => {
+    // The marks laid back are the ones that were on the page *in order*, plain
+    // erasers included — otherwise rubbing at a patch would resurrect the ink
+    // an eraser took out of it before.
+    const dom = withFakeDocument();
+    try {
+      const ctx = createFakeCanvas(400, 300).ctx;
+      renderDrawing(
+        ctx,
+        drawing([mark("pencil"), mark("eraser"), mark("rubber")]),
+        null,
+        ink,
+      );
+      const relaid = dom.created[0]!.ctx;
+      expect(order(relaid)).toEqual([
+        "stroke@source-over",
+        "stroke@destination-out",
+      ]);
+    } finally {
+      dom.restore();
+    }
+  });
+
+  it("puts the ink back unmasked rather than losing it with no surface", () => {
+    // No DOM to mint a surface in — a browser that refused one, or the SVG
+    // export's recorder. The ink then also lands where the rubber never went,
+    // which is a stacking order nobody will notice; losing it outright is the
+    // failure that would show.
+    const ctx = createFakeContext();
+    renderDrawing(
+      ctx,
+      drawing([mark("pencil"), mark("graphite"), mark("rubber")]),
+      null,
+      ink,
+    );
+    expect(phases(ctx)).toEqual([
+      // The page cleared and the two marks laid down…
+      "source-over",
+      // …the rubbing out…
+      "destination-out",
+      // …the pen's line again, over the hole…
+      "source-over",
+      // …and the sheet under the lot.
+      "destination-over",
+    ]);
   });
 });
 

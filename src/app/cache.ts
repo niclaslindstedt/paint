@@ -69,6 +69,7 @@ import {
   anyErases,
   anyStains,
   paintStrokes,
+  relayFixed,
   renderDrawing,
   underlay,
   type RenderOptions,
@@ -194,8 +195,16 @@ export function paintCommitted(
       });
       // …with the same caveat the screen has: what is already on these pixels
       // is a finished picture, sheet included, so a mark that rubs out takes
-      // the page with it and the page has to go back under the hole.
+      // the page with it — and, if it was a rubber rather than a hole, takes
+      // ink it could never have lifted with it too. Both go back: the ink over
+      // what the rubbing out exposed, then the sheet under the lot.
       if (anyErases(landed)) {
+        relayFixed(
+          cache.surface.ctx,
+          landed,
+          { ...spec.options, clip: windowOnPage(spec) },
+          strokes.slice(0, cache.count),
+        );
         underlay(cache.surface.ctx, spec.drawing, spec.options);
       }
     }
