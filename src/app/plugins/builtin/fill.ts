@@ -59,7 +59,16 @@ export const fillBehaviour: ToolBehaviour = {
   start: (p, ctx) => draftFor(p, ctx),
   // Dragging re-aims the bucket rather than extending anything, so the preview
   // follows the pointer into whichever area it is over now.
-  move: (draft, p, ctx) => draftFor(p, ctx) ?? draft,
+  //
+  // The re-aimed draft keeps the *old* one's tool id, because a fresh draft is
+  // built here rather than edited: the canvas stamps the id onto the draft it
+  // begins (see `PaintCanvas`), and a `move` that handed back a bare one filed
+  // every dragged fill under no tool at all — which the renderer then painted
+  // through its unknown-tool fallback, quietly dropping the feathered edge.
+  move: (draft, p, ctx) => {
+    const next = draftFor(p, ctx);
+    return next ? { ...next, tool: draft.tool } : draft;
+  },
   paint: (ctx2d, stroke, detail = FULL_DETAIL) => {
     if (stroke.shape.kind !== "region") return;
     applyInk(ctx2d, stroke);

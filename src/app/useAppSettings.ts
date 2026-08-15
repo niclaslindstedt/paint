@@ -136,6 +136,15 @@ export type AppSettings = {
    *  hardness and an airbrush's are the same word for two different things, and
    *  one shared number made tuning either of them retune the other. */
   toolDials: Record<string, Record<string, number>>;
+  /** The inks a tool carries of its own, by tool id and then by swatch id — the
+   *  colours on its own settings panel (see `plugins/swatches.ts`).
+   *
+   *  The dials' map one type over: sparse twice, kept per tool because a
+   *  swatch *is* per tool, and holding only what differs from the colours the
+   *  tool ships with. The gradient's two ends are the only ones today. An empty
+   *  string is a value rather than a gap — that is how a swatch that may be
+   *  absent (the gradient's middle stop) records being switched off. */
+  toolColors: Record<string, Record<string, string>>;
   /** Whether shape tools fill rather than outline. */
   filled: boolean;
   /** Paint the canvas over a grid, so a sketch of boxes and arrows lines up. */
@@ -236,8 +245,11 @@ const BASE_SETTINGS: Omit<AppSettings, "enabledPlugins"> = {
   textBold: false,
   textItalic: false,
   // Every tool as its maker intended out of the box — a brush that feathers,
-  // a crayon pressed light, are choices, and they should be ones you made.
+  // a crayon pressed light, are choices, and they should be ones you made. The
+  // same goes for the inks a tool mixes for itself: the gradient opens on the
+  // black-to-white ramp it ships with.
   toolDials: {},
+  toolColors: {},
   filled: false,
   showGrid: false,
   // On out of the box: the first thing a new user does is try the tools, and a
@@ -376,6 +388,28 @@ function toolDials(
   return out;
 }
 
+/** Clean a persisted map of a tool's own inks — the same shape check the
+ *  tunings get, and the same "keep what you can't use" rule: a colour for a
+ *  tool this build no longer ships, or for a swatch it has since dropped, is
+ *  held rather than pruned, because downgrading and upgrading again shouldn't
+ *  forget how you had your ramp mixed. What each value *means* is the swatch's
+ *  to say, and `resolveSwatches` re-checks it at every read. */
+function toolColors(value: unknown): Record<string, Record<string, string>> {
+  const out: Record<string, Record<string, string>> = {};
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return out;
+  }
+  for (const [tool, colors] of Object.entries(value)) {
+    if (typeof colors !== "object" || colors === null) continue;
+    const kept: Record<string, string> = {};
+    for (const [swatch, color] of Object.entries(colors as object)) {
+      if (typeof color === "string") kept[swatch] = color;
+    }
+    if (Object.keys(kept).length > 0) out[tool] = kept;
+  }
+  return out;
+}
+
 /** Read a persisted settings blob back into a whole `AppSettings`.
  *
  *  Exported for the tests: it is the one place an install carries state across
@@ -432,6 +466,7 @@ export function parseSettings(raw: string): AppSettings {
   // tool now declares for itself.
   delete (merged as { size?: number }).size;
   merged.toolDials = toolDials(stored.toolDials, stored.hardness);
+  merged.toolColors = toolColors(stored.toolColors);
   if (!TEXT_FONTS.some((f) => f.id === merged.textFont)) {
     merged.textFont = base.textFont;
   }
@@ -657,14 +692,36 @@ export function useAppSettings() {
     [setSettings],
   );
 
-  /** Put every dial on one tool back where it started. */
+  /** Set one of a tool's own inks — a swatch on its settings panel. `null`
+   *  forgets it, which is how the panel's reset puts the tool back to the
+   *  colours it ships with; the empty string is a *value*, and it is how an
+   *  optional swatch is switched off (see `plugins/swatches.ts`). */
+  const setToolColor = useCallback(
+    (tool: string, swatch: string, color: string | null) =>
+      setSettings((prev) => {
+        const kept = { ...prev.toolColors[tool] };
+        if (color === null) delete kept[swatch];
+        else kept[swatch] = color;
+        const next = { ...prev.toolColors };
+        if (Object.keys(kept).length === 0) delete next[tool];
+        else next[tool] = kept;
+        return { ...prev, toolColors: next };
+      }),
+    [setSettings],
+  );
+
+  /** Put every dial *and* every ink on one tool back where it started — one
+   *  reset, because the panel they sit in is one panel and "the way this tool
+   *  ships" is one answer. */
   const resetToolDials = useCallback(
     (tool: string) =>
       setSettings((prev) => {
-        if (!prev.toolDials[tool]) return prev;
+        if (!prev.toolDials[tool] && !prev.toolColors[tool]) return prev;
         const next = { ...prev.toolDials };
         delete next[tool];
-        return { ...prev, toolDials: next };
+        const colors = { ...prev.toolColors };
+        delete colors[tool];
+        return { ...prev, toolDials: next, toolColors: colors };
       }),
     [setSettings],
   );
@@ -734,6 +791,7 @@ export function useAppSettings() {
     deletePreset,
     applyPreset,
     setToolDial,
+    setToolColor,
     resetToolDials,
   };
 }

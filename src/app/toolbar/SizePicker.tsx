@@ -14,12 +14,13 @@ import {
   stepNote,
   type SizeGauge,
 } from "../plugins/gauge.ts";
-import type { PaintPlugin, ToolDial } from "../plugins/types.ts";
+import type { PaintPlugin, ToolDial, ToolSwatch } from "../plugins/types.ts";
 import type { ToolPreset } from "../presets.ts";
 import { gaugeFor, sizesFor } from "../useAppSettings.ts";
 import { PressPreview } from "./PressPreview.tsx";
 import { PresetBar } from "./PresetBar.tsx";
 import { ToolDials } from "./ToolDials.tsx";
+import { ToolSwatches } from "./ToolSwatches.tsx";
 
 // The tool panel: the tools you saved, the widths this tool is made in, and
 // whatever else the tool in your hand has to tune.
@@ -106,6 +107,15 @@ type Props = {
    *  back to where it started sends, so nothing is kept that isn't doing
    *  anything. */
   onDialChange: (id: string, value: number | null) => void;
+  /** The inks the tool carries of its own, in the order it declared them, and
+   *  where they sit. Empty for every tool that draws with the toolbar's ink —
+   *  which is every tool with a width today — and then there is no swatch
+   *  section at all (see `plugins/swatches.ts`). */
+  swatches: readonly ToolSwatch[];
+  colors: Readonly<Record<string, string>>;
+  onColorChange: (id: string, color: string | null) => void;
+  /** The colours the user has mixed, offered beside the built-in palette. */
+  customColors: readonly string[];
   /** Put this tool back the way it came. Offered only once something is
    *  actually off its default. */
   onResetDials: () => void;
@@ -145,6 +155,10 @@ export function SizePicker({
   dials,
   values,
   onDialChange,
+  swatches,
+  colors,
+  onColorChange,
+  customColors: mixedColors,
   onResetDials,
   tuned,
 }: Props) {
@@ -245,6 +259,7 @@ export function SizePicker({
                     color={color}
                     background={background}
                     dials={values}
+                    colors={colors}
                     filled={filled}
                     box={30}
                   />
@@ -324,6 +339,22 @@ export function SizePicker({
             </div>
           </label>
         </div>
+
+        {/* …and its own inks, for a tool that mixes them. None of the tools
+            that have a width do today — a swatch row belongs to the gradient,
+            which has no width at all — but the seam is the descriptor's rather
+            than the panel's, so one that lands with both gets both. */}
+        {swatches.length > 0 && (
+          <div className="border-t border-line pt-2">
+            <ToolSwatches
+              plugin={plugin}
+              swatches={swatches}
+              values={colors}
+              onChange={onColorChange}
+              customColors={mixedColors}
+            />
+          </div>
+        )}
 
         {/* The tool's own knobs, under the width they are past. Absent
             entirely for a tool that has none, rather than shown empty: a

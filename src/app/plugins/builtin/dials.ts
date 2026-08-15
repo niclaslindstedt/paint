@@ -250,6 +250,39 @@ export const FEATHER: ToolDial = {
   unit: "mm",
 };
 
+/** How much page the colour dropper reads at once, as the radius of the disc it
+ *  averages — in document pixels, like every other distance a mark carries.
+ *
+ *  A dropper that reads one pixel is honest and frequently useless. Half of what
+ *  is on this page is *textured*: an airbrush is a cloud of specks, a crayon
+ *  skips over the tooth of the paper, a watercolour granulates. Aim at any of
+ *  them and the single pixel under the pointer is one speck of one of the
+ *  colours there — usually the page showing between them — where what you were
+ *  pointing at is the colour the passage *reads* as. That is what an average
+ *  over a disc gives you, and it is why every other eyedropper has this setting.
+ *
+ *  Pressed rather than dragged (see `ToolDial.choices`): a sample size is a
+ *  handful of answers, and "the point" is a different kind of answer from the
+ *  rest rather than the bottom of a slider. The labels are the width of the disc
+ *  on the page, because that is what the pointer ring draws around it. */
+export const SAMPLE: ToolDial = {
+  id: "sample",
+  nameKey: "dials.sample.name",
+  hintKey: "dials.sample.hint",
+  min: 0,
+  max: mm(5),
+  step: mm(0.1),
+  default: 0,
+  unit: "mm",
+  choices: [
+    { value: 0, label: "1 px" },
+    { value: mm(0.5), label: "1 mm" },
+    { value: mm(1), label: "2 mm" },
+    { value: mm(2), label: "4 mm" },
+    { value: mm(4), label: "8 mm" },
+  ],
+};
+
 // --- Watercolour --------------------------------------------------------------
 //
 // The three below belong to the wash tool, and they are three different things

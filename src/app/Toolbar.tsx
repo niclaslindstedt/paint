@@ -111,8 +111,14 @@ type Props = {
   /** Move one — or forget it with `null`, which is what the panel sends for a
    *  dial dragged back to where it started. */
   onDialChange: (id: string, value: number | null) => void;
+  /** …and the same pair for the inks a tool carries of its own, which sit at the
+   *  head of the same panel (see `plugins/swatches.ts`). Which swatches those
+   *  are comes off the descriptor, so the toolbar never learns one by name
+   *  either. */
+  colorValues: Readonly<Record<string, string>>;
+  onToolColorChange: (id: string, color: string | null) => void;
   onResetDials: () => void;
-  /** Whether any of them are off their default. */
+  /** Whether any of them — dial or ink — is off what the tool ships with. */
   dialsTuned: boolean;
   filled: boolean;
   onFilledChange: (filled: boolean) => void;
@@ -148,6 +154,8 @@ export function Toolbar({
   onDeletePreset,
   dialValues,
   onDialChange,
+  colorValues,
+  onToolColorChange,
   onResetDials,
   dialsTuned,
   filled,
@@ -183,11 +191,12 @@ export function Toolbar({
   // rendered — so they share the anchor their panel opens over.
   const settingsAnchor = useRef<HTMLButtonElement | null>(null);
 
-  // A tool that lifts ink (the eraser), moves the view (the hand) or chooses
-  // marks (the marquee) has no use for the colour, so its swatch is dimmed —
-  // but the dropper's swatch is where a sampled colour *lands*, so it stays
-  // full strength. Read off descriptor flags (see `plugins/controls.ts`);
-  // nothing here knows a tool by name.
+  // A tool that lifts ink (the eraser), moves the view (the hand), chooses
+  // marks (the marquee) or pours colours of its own (the gradient) has no use
+  // for the ink button, so its swatch is dimmed — but the dropper's swatch is
+  // where a sampled colour *lands*, so it stays full strength. Read off
+  // descriptor flags (see `plugins/controls.ts`); nothing here knows a tool by
+  // name.
   const inkIrrelevant = !usesInk(active);
   // What the button beside the ink is for this tool: its width, its own
   // settings, or nothing (see `plugins/controls.ts`).
@@ -457,6 +466,10 @@ export function Toolbar({
           dials={active?.dials ?? []}
           values={dialValues}
           onDialChange={onDialChange}
+          swatches={active?.swatches ?? []}
+          colors={colorValues}
+          onColorChange={onToolColorChange}
+          customColors={customColors}
           onResetDials={onResetDials}
           tuned={dialsTuned}
         />
@@ -471,6 +484,11 @@ export function Toolbar({
           dials={active?.dials ?? []}
           values={dialValues}
           onDialChange={onDialChange}
+          swatches={active?.swatches ?? []}
+          colors={colorValues}
+          onColorChange={onToolColorChange}
+          customColors={customColors}
+          background={background}
           onResetDials={onResetDials}
           tuned={dialsTuned}
         />

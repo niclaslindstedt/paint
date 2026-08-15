@@ -53,8 +53,15 @@ export type DraftStroke = Omit<Stroke, "id">;
  *  both are `null` when the point is off the page or the browser refuses the
  *  pixels (a tainted canvas). */
 export type CanvasProbe = {
-  /** The colour painted at `p`, as `#rrggbb`. */
-  colorAt(p: Point): string | null;
+  /** The colour painted at `p`, as `#rrggbb`.
+   *
+   *  `radius` — in document pixels — reads an *average* over the disc that wide
+   *  around `p` instead of the one pixel under it, which is what a dropper set
+   *  to sample more than a point asks for: on a sprayed or a textured passage
+   *  the single pixel under the pointer is a speck of one of the colours there,
+   *  and the average is the colour you can see. Absent (or 0) is the single
+   *  pixel, which is what every other caller wants. */
+  colorAt(p: Point, radius?: number): string | null;
   /** Closed outlines of the connected area of like colour containing `p`, in
    *  document coordinates — what a bucket fill would cover. */
   regionAt(p: Point): Point[][] | null;
@@ -118,6 +125,34 @@ export type ToolDial = {
   choices?: readonly { value: number; label: string }[];
 };
 
+/** One ink a tool mixes for **itself**, past the one the toolbar holds — what
+ *  the tool's own settings panel offers as a row of swatches.
+ *
+ *  A dial is a number and this is a colour, and the pair are otherwise the same
+ *  idea: the plugin declares them, the panel renders whatever it declared, the
+ *  settings blob keeps a value per tool per swatch, and nothing outside
+ *  `plugins/` learns one by name (see `plugins/swatches.ts`).
+ *
+ *  Declaring any of them says something else as well, and it is the reason they
+ *  exist: **this tool does not draw with the toolbar's ink.** A gradient is
+ *  poured from its own two or three colours, so the ink button is dimmed while
+ *  it is in hand — the same honesty the toolbar already shows for a tool that
+ *  lifts ink or moves the view (see `plugins/controls.ts`). */
+export type ToolSwatch = {
+  /** Stable id. It is persisted — in the settings blob, and on every mark the
+   *  tool pours — so renaming one forgets that colour. */
+  id: string;
+  /** Catalog key for the label above the row. */
+  nameKey: TKey;
+  /** The colour it rests at. Absent means **no colour**, which is a real answer
+   *  for a swatch that has one: a gradient's middle stop is normally off, and
+   *  the ramp runs straight from one end to the other. */
+  default?: string;
+  /** True when "none" is one of this swatch's answers — the panel then offers a
+   *  way back to it, and the tool reads the colour as absent. */
+  optional?: boolean;
+};
+
 /** The ink the toolbar currently has selected, handed to a tool on every step
  *  of a gesture so it can build its draft. The page background travels with it
  *  because tools like the eraser paint *with* it. */
@@ -130,6 +165,11 @@ export type ToolContext = {
    *  see `dials.ts`. A behaviour reads them as `ctx.dials.flow ?? 1`, so a tool
    *  that was never tuned builds exactly the draft it always did. */
   dials: Readonly<Record<string, number>>;
+  /** The tool's own inks, by swatch id — see `ToolSwatch`. Absent, or missing an
+   *  id, means "the colour that swatch rests at": a behaviour reads them through
+   *  `inkOf` (see `plugins/swatches.ts`), so a tool nobody has re-coloured pours
+   *  exactly what it ships with. */
+  colors?: Readonly<Record<string, string>>;
   /** The shape tools' fill toggle. Ignored by tools that only stroke. */
   filled: boolean;
   /** The active drawing's page colour. */
@@ -192,6 +232,20 @@ export type ToolBehaviour = {
    *  `null` for a gesture that chose nothing — a press that never moved, a trace
    *  that found no area — which is what clears the selection. */
   selection?(draft: DraftStroke): Point[][] | null;
+  /** What a press **reads off the page** — asked only of a tool whose descriptor
+   *  carries `picksColor`, and instead of beginning a gesture.
+   *
+   *  It is the dropper's whole job, and it is a question the tool has to answer
+   *  rather than the canvas, because *how much page* a sample covers is the
+   *  tool's own setting: a dropper set to average a nine-pixel disc reads its
+   *  radius off its dials, and the canvas would have to know that dial's name to
+   *  do it (see `plugins/builtin/dropper.ts`). Pure over `ToolContext.probe`, so
+   *  a whole sample can be driven in a test with no DOM.
+   *
+   *  `null` for a press that read nothing — off the page, or a browser that
+   *  refused the pixels — and the ink is then left alone. A `picksColor` tool
+   *  that offers none falls back to the plain colour under the pointer. */
+  pick?(p: Point, ctx: ToolContext): string | null;
   /** Paint one stroke onto a 2D context, in document coordinates. Called for
    *  committed strokes and for the in-flight draft alike.
    *
@@ -354,6 +408,11 @@ export type PaintPlugin = {
    *  settings blob keeps a value per tool per dial, and the behaviour reads it
    *  off `ToolContext.dials`. Nothing outside `plugins/` learns a dial's name. */
   dials?: readonly ToolDial[];
+  /** The inks this tool mixes for itself, past the toolbar's — see
+   *  `ToolSwatch`. Declaring any of them puts a row of swatches at the head of
+   *  the tool's settings panel and dims the toolbar's ink button, because a tool
+   *  that carries its own colours does not draw with that one. */
+  swatches?: readonly ToolSwatch[];
   /** True when the plugin exists only to *paint* — it is never offered in the
    *  toolbar or listed in Settings → Tools, and its `start` returns nothing.
    *

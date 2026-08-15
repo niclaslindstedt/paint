@@ -22,7 +22,7 @@
 // reading and writing (see `CanvasScreen.tsx`), and this is only the format.
 
 import type { DraftStroke } from "./plugins/types.ts";
-import type { Shape, Stroke } from "./types.ts";
+import type { Gradient, Shape, Stroke } from "./types.ts";
 
 /** What marks the payload as ours. Fixed for good — an older build's clipboard
  *  text has to keep pasting into a newer one. */
@@ -130,6 +130,27 @@ function readPoints(raw: unknown): { x: number; y: number }[] | null {
     : null;
 }
 
+/** The ramp a poured area is inked with, or `null` when there isn't one — which
+ *  is every fill the bucket made, and any copy whose ramp didn't survive the
+ *  trip. A region with no ramp is a flat fill, so dropping a broken one loses
+ *  the colours and keeps the mark; refusing the whole stroke would lose both. */
+function readGradient(raw: unknown): Gradient | null {
+  if (typeof raw !== "object" || raw === null) return null;
+  const g = raw as { from?: unknown; to?: unknown; stops?: unknown };
+  const from = readPoint(g.from);
+  const to = readPoint(g.to);
+  if (!from || !to || !Array.isArray(g.stops)) return null;
+  const stops: Gradient["stops"] = [];
+  for (const raw of g.stops) {
+    if (typeof raw !== "object" || raw === null) return null;
+    const stop = raw as { at?: unknown; color?: unknown };
+    if (typeof stop.at !== "number" || !Number.isFinite(stop.at)) return null;
+    if (typeof stop.color !== "string" || !stop.color) return null;
+    stops.push({ at: stop.at, color: stop.color });
+  }
+  return stops.length > 0 ? { from, to, stops } : null;
+}
+
 /** The geometry half of a mark. Switches on the kind, exactly as every other
  *  reader of a shape in this app does — a shape kind this build doesn't ship
  *  simply doesn't paste. */
@@ -171,9 +192,11 @@ function readShape(raw: unknown): Shape | null {
       if (!Array.isArray(shape.contours)) return null;
       const contours = shape.contours.map(readPoints);
       if (contours.some((c) => c === null)) return null;
+      const gradient = readGradient(shape.gradient);
       return {
         kind: "region",
         contours: contours as { x: number; y: number }[][],
+        ...(gradient ? { gradient } : {}),
       };
     }
     case "text": {

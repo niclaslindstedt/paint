@@ -71,6 +71,21 @@ describe("encodeStrokes", () => {
       { kind: "segment", from: { x: 0, y: 0 }, to: { x: 5, y: 5 } },
       { kind: "box", from: { x: 0, y: 0 }, to: { x: 5, y: 5 } },
       { kind: "region", contours: [[{ x: 0, y: 0 }]] },
+      // A poured area carries its ramp: the run across the page, and every
+      // colour on it. Without them a gradient pasted into another sketchbook
+      // would arrive as a flat fill.
+      {
+        kind: "region",
+        contours: [[{ x: 0, y: 0 }]],
+        gradient: {
+          from: { x: 0, y: 0 },
+          to: { x: 10, y: 4 },
+          stops: [
+            { at: 0, color: "#111827" },
+            { at: 1, color: "#ffffff" },
+          ],
+        },
+      },
       { kind: "text", at: { x: 2, y: 2 }, text: "hi", font: "serif" },
       {
         kind: "image",

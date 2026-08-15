@@ -32,8 +32,10 @@ import type { Drawing, Point } from "./types.ts";
  *  buys a tap that lands in well under a frame. */
 const MAX_SNAPSHOT_SIDE = 1800;
 
-/** A page snapshot: the pixels, and the scale they were taken at. */
-type Snapshot = {
+/** A page snapshot: the pixels, and the scale they were taken at. Exported for
+ *  the averaging below, which is pure and tested on hand-built buffers — the
+ *  rasterising above is the one part of this module that needs a browser. */
+export type Snapshot = {
   pixels: Uint8ClampedArray;
   width: number;
   height: number;
@@ -78,6 +80,53 @@ function toHex(r: number, g: number, b: number): string {
   return `#${pair(r)}${pair(g)}${pair(b)}`;
 }
 
+/** The mean colour of the disc of radius `r` (in *snapshot* pixels) around
+ *  (`x`, `y`), or `null` when it covers no whole pixel.
+ *
+ *  A disc rather than a square, because that is the shape of the thing being
+ *  aimed — the pointer ring shows a circle and the sample should be what is
+ *  inside it — and clamped to the snapshot, so a sample taken at the very edge
+ *  of the page averages the part of the disc that is on it instead of reading
+ *  off the end of the array.
+ *
+ *  The mean is taken channel by channel in sRGB, which is what everyone else's
+ *  eyedropper does and what "the average of these pixels" means to the hand
+ *  holding it. */
+export function averageAt(
+  shot: Snapshot,
+  x: number,
+  y: number,
+  r: number,
+): string | null {
+  const reach = Math.floor(r);
+  if (reach < 1) return null;
+  let red = 0;
+  let green = 0;
+  let blue = 0;
+  let count = 0;
+  const from = { x: Math.max(0, x - reach), y: Math.max(0, y - reach) };
+  const to = {
+    x: Math.min(shot.width - 1, x + reach),
+    y: Math.min(shot.height - 1, y + reach),
+  };
+  for (let py = from.y; py <= to.y; py++) {
+    for (let px = from.x; px <= to.x; px++) {
+      if ((px - x) ** 2 + (py - y) ** 2 > r * r) continue;
+      const i = (py * shot.width + px) * 4;
+      red += shot.pixels[i]!;
+      green += shot.pixels[i + 1]!;
+      blue += shot.pixels[i + 2]!;
+      count++;
+    }
+  }
+  if (count === 0) return null;
+  return toHex(
+    Math.round(red / count),
+    Math.round(green / count),
+    Math.round(blue / count),
+  );
+}
+
 /** Build a probe over one drawing.
  *
  *  The snapshot is taken **lazily and once per probe**: a probe is made fresh
@@ -101,12 +150,16 @@ export function createProbe(drawing: Drawing, ink: InkContext): CanvasProbe {
     p.x >= 0 && p.y >= 0 && p.x < drawing.width && p.y < drawing.height;
 
   return {
-    colorAt(p) {
+    colorAt(p, radius = 0) {
       if (!onPage(p)) return null;
       const shot = pixels();
       if (!shot) return null;
       const x = Math.min(shot.width - 1, Math.floor(p.x * shot.scale));
       const y = Math.min(shot.height - 1, Math.floor(p.y * shot.scale));
+      if (radius > 0) {
+        const averaged = averageAt(shot, x, y, radius * shot.scale);
+        if (averaged) return averaged;
+      }
       const i = (y * shot.width + x) * 4;
       return toHex(shot.pixels[i]!, shot.pixels[i + 1]!, shot.pixels[i + 2]!);
     },

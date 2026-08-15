@@ -49,16 +49,35 @@ describe("toolControl", () => {
     expect(toolControl(bucket)).toBe("dials");
   });
 
-  it("gives no button at all to a tool that leaves no mark", () => {
-    // The hand moves the view, the dropper reads a colour, the marquee chooses
-    // marks. None of them has a width or a dial, and a button that opened an
-    // empty panel is worse than no button. Note that none of the three declares
-    // `sizeless`: leaving no mark is already on the descriptor.
-    for (const id of ["hand", "dropper", "select"]) {
+  it("gives no button at all to a tool with nothing to set", () => {
+    // The hand moves the view and the marquee chooses marks. Neither has a
+    // width or a dial, and a button that opened an empty panel is worse than no
+    // button. Note that neither declares `sizeless`: leaving no mark is already
+    // on the descriptor.
+    for (const id of ["hand", "select"]) {
       const plugin = pluginById(id)!;
       expect(plugin.sizeless).toBeUndefined();
       expect(toolControl(plugin)).toBe("none");
     }
+  });
+
+  it("gives the dropper a cog for the one thing it has to set", () => {
+    // It leaves no mark, so it has no width — but how much page one press reads
+    // is a real setting, and a tool with settings and no width is what the cog
+    // is for.
+    const dropper = pluginById("dropper")!;
+    expect(usesSize(dropper)).toBe(false);
+    expect(toolControl(dropper)).toBe("dials");
+  });
+
+  it("gives a tool that mixes its own inks a cog, and dims the ink button", () => {
+    // The gradient pours from the colours on its own panel, so the toolbar's
+    // ink means nothing while it is in hand — and the panel those colours live
+    // in is the one the cog opens.
+    const gradient = pluginById("gradient")!;
+    expect(usesSize(gradient)).toBe(false);
+    expect(toolControl(gradient)).toBe("dials");
+    expect(usesInk(gradient)).toBe(false);
   });
 
   it("answers 'none' for a tool this build doesn't ship", () => {
@@ -119,7 +138,6 @@ describe("usesInk", () => {
     // colour shown at 40% reads as the dropper having picked a darker one.
     const dropper = pluginById("dropper")!;
     expect(dropper.picksColor).toBe(true);
-    expect(toolControl(dropper)).toBe("none");
     expect(usesInk(dropper)).toBe(true);
   });
 

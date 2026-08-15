@@ -204,6 +204,33 @@ describe("parseSettings", () => {
     });
   });
 
+  describe("toolColors", () => {
+    it("is empty for a blob that has never re-coloured a tool", () => {
+      expect(parseSettings(JSON.stringify({ size: 4 })).toolColors).toEqual({});
+    });
+
+    it("keeps the inks of a tool this build no longer ships", () => {
+      // The tunings' rule, for the same reason: downgrading and upgrading again
+      // shouldn't forget how you had a ramp mixed.
+      const blob = { toolColors: { ghosttool: { from: "#ff0000" } } };
+      expect(parseSettings(JSON.stringify(blob)).toolColors).toEqual({
+        ghosttool: { from: "#ff0000" },
+      });
+    });
+
+    it("keeps a swatch that is switched off, which is a value and not a gap", () => {
+      const blob = { toolColors: { gradient: { mid: "" } } };
+      expect(parseSettings(JSON.stringify(blob)).toolColors).toEqual({
+        gradient: { mid: "" },
+      });
+    });
+
+    it("drops values that aren't strings, and tools left with none", () => {
+      const blob = { toolColors: { gradient: { from: 12 }, x: null } };
+      expect(parseSettings(JSON.stringify(blob)).toolColors).toEqual({});
+    });
+  });
+
   describe("toolOrder", () => {
     it("is empty for a toolbar nobody has rearranged", () => {
       expect(parseSettings(JSON.stringify({})).toolOrder).toEqual([]);

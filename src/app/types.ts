@@ -13,6 +13,28 @@
  *  the same thing at any zoom or screen size. */
 export type Point = { x: number; y: number };
 
+/** A ramp of colour laid across an area — what the gradient tool pours and the
+ *  bucket doesn't.
+ *
+ *  It is *geometry as much as ink*: the ramp runs along the line from `from` to
+ *  `to` in document coordinates, so moving the mark moves the ramp with it and
+ *  scaling the page scales it, exactly as the outlines it fills are moved and
+ *  scaled. That is why it lives on the shape rather than beside the stroke's
+ *  colour.
+ *
+ *  The colours are recorded rather than resolved at paint time, like every other
+ *  ink a mark was made with: re-picking the tool's inks tomorrow must not re-pour
+ *  the fills you made today. */
+export type Gradient = {
+  /** Where the ramp starts and ends, in document coordinates. */
+  from: Point;
+  to: Point;
+  /** The colours along it, each at its place on the run (0 at `from`, 1 at
+   *  `to`), in order. Two of them is the usual case; a third in the middle is
+   *  what makes a sunset rather than a fade. */
+  stops: { at: number; color: string }[];
+};
+
 /** The geometry half of a stroke, tagged by kind so renderers can switch on it.
  *
  *  - `path`     freehand — a polyline sampled from the pointer.
@@ -21,7 +43,9 @@ export type Point = { x: number; y: number };
  *  - `region`   an area, as closed outlines — what the paint bucket leaves
  *               behind. Painted with the even-odd rule, so a loop inside
  *               another loop is a hole rather than a second coat (see
- *               `flood.ts`).
+ *               `flood.ts`). It may carry a `gradient`, which is the one thing
+ *               that separates a poured fill from a bucket one: same area, same
+ *               outlines, inked with a ramp instead of a flat colour.
  *  - `text`     a caption typed at a point — the one mark that is entered
  *               rather than drawn. It anchors at its **top-left** corner and
  *               may run to several lines; the typeface it was set in travels
@@ -46,7 +70,7 @@ export type Shape =
   | { kind: "path"; points: Point[] }
   | { kind: "segment"; from: Point; to: Point }
   | { kind: "box"; from: Point; to: Point }
-  | { kind: "region"; contours: Point[][] }
+  | { kind: "region"; contours: Point[][]; gradient?: Gradient }
   | {
       kind: "text";
       at: Point;

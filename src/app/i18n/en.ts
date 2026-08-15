@@ -314,6 +314,10 @@ export const en = {
       name: "Feather: {value} mm",
       hint: "Fades the fill's edge out instead of stopping it.",
     },
+    sample: {
+      name: "Sample: {value}",
+      hint: "How much page one press reads. Wider averages a textured passage into the colour it looks like.",
+    },
     water: {
       name: "Water: {value}%",
       hint: "How charged the brush is. Wet spreads past the hair and dilutes; dry keeps the shape of the head.",
@@ -362,6 +366,16 @@ export const en = {
     empty: "Empty",
     hint: "New marks land on the selected layer. The background carries the page colour; hide it and the page goes transparent.",
     swipeHint: "Swipe in from the right edge to open this panel.",
+  },
+  // The inks a tool carries of its own — the swatch row at the head of its
+  // settings panel (see `plugins/swatches.ts`). One entry per swatch the shipped
+  // tools declare, and they are *names of colours in a mark* rather than of
+  // controls: "From" is where the ramp starts, not a button.
+  swatches: {
+    from: "From",
+    mid: "Middle",
+    to: "To",
+    none: "No {name} colour",
   },
   tools: {
     // Named "Pen" but keyed `pencil`: the id is persisted on every stroke ever
@@ -491,14 +505,25 @@ export const en = {
       description:
         "Tap the page and type. Pick a typeface, a size, bold or italic while you write.",
     },
+    fills: {
+      name: "Fill",
+      description:
+        "Fill an area — flat with the paint bucket, or with a gradient. Press it again to pick which.",
+    },
     filler: {
       name: "Paint bucket",
       description:
         "Tap an empty space and it takes the colour, up to the marks around it.",
     },
+    gradient: {
+      name: "Gradient",
+      description:
+        "Press an area and drag: it fills with a ramp running the way you dragged, in its own two colours (or three).",
+    },
     dropper: {
       name: "Colour dropper",
-      description: "Tap the page to draw with the colour you tapped.",
+      description:
+        "Tap the page to draw with the colour you tapped. Set how much of it one tap reads.",
     },
     image: {
       name: "Image",

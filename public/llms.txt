@@ -12,9 +12,10 @@ connect a storage backend yourself.
 ## What it does
 
 - Draw with a pen, a graphite pencil, an eraser, a watercolour brush, an
-  airbrush, a paint bucket, the shapes, a selection marquee, a text tool and a
-  colour dropper, plus a hand tool that drags the page around — the toolbar out
-  of the box.
+  airbrush, a paint bucket (and the gradient behind it, which fills the same
+  area with a ramp of its own colours), the shapes, a selection marquee, a text
+  tool and a colour dropper, plus a hand tool that drags the page around — the
+  toolbar out of the box.
 - Set every tool in the sizes it is really made in. A page pixel is one dot of
   an iPhone's screen, so widths are millimetres you can measure on the glass at
   1:1: the pencil offers the
@@ -51,8 +52,12 @@ connect a storage backend yourself.
   bleeds for the paintbrush, flow for the airbrush, pressure for the crayon, the
   lead's grade for the pencil, the chisel of a felt tip for the marker and the
   highlighter, the nib's angle for the calligraphy pen, strength for the eraser,
-  a feathered edge for the paint bucket, opacity for most of the rest. Each tool
-  keeps its own settings, and a mark remembers what it was drawn with.
+  a feathered edge for the paint bucket and the gradient, how much page one
+  press of the dropper reads, opacity for most of the rest. Each tool keeps its
+  own settings — including the inks a tool mixes for itself, like the gradient's
+  two ends and its optional middle — and a mark remembers what it was drawn
+  with. On a desktop the pointer is drawn as the nib itself: a circle the size
+  of the mark, at the page's own scale.
 - Start a drawing from an empty page, an image file, or an image on the
   clipboard. An empty one asks its canvas size up front — this screen, Full HD,
   4K, A4 or a size you type, drawn to one shared scale so they can be compared
