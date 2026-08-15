@@ -7,6 +7,7 @@
 // actually has to supply: the pencil, the marker, the airbrush, the crayon and
 // the eraser are all one call to this with different arguments.
 
+import { SOLID_GROUND } from "../../ground.ts";
 import type { Point } from "../../types.ts";
 import { paintWash } from "../aquarelle.ts";
 import { paintBrush, ROUND_HEAD, type BrushHead } from "../bristle.ts";
@@ -151,6 +152,10 @@ export function freehandBehaviour(ink: FreehandInk = {}): ToolBehaviour {
       // textured painter below spends it the same way: keep the detail the
       // screen can show, drop the detail it cannot.
       const scale = detail.scale;
+      // …and what it is coming out *on*. Absent — a painter called directly, a
+      // test — is the plain solid sheet, which every painter below treats as
+      // the page it has always painted on.
+      const sheet = detail.ground ?? SOLID_GROUND;
       switch (ink.style) {
         case "brush":
           paintBrush(
@@ -163,8 +168,11 @@ export function freehandBehaviour(ink: FreehandInk = {}): ToolBehaviour {
             strokeDial(stroke, "splay"),
             // The one dial whose rest is nothing rather than one: paper that
             // does not wick is the ordinary case, so it has to be what a mark
-            // carrying no `bleed` at all paints as.
-            strokeDial(stroke, "bleed", 0),
+            // carrying no `bleed` at all paints as — and then the sheet adds
+            // its own, whether or not anyone asked. A loaded head on newsprint
+            // feathers; on the solid page the sheet adds nothing, so a drawing
+            // made before grounds existed paints unchanged.
+            strokeDial(stroke, "bleed", 0) + sheet.absorbency * 1.1,
             ink.head === "flat"
               ? {
                   shape: "flat",
@@ -184,9 +192,12 @@ export function freehandBehaviour(ink: FreehandInk = {}): ToolBehaviour {
             scale,
             strokeDial(stroke, "water"),
             strokeDial(stroke, "pigment"),
-            // The sheet's own doing, and the one of the three that rests
+            // The colour's own doing, and the one of the three that rests
             // somewhere other than 1 — see `GRANULATION`.
             strokeDial(stroke, "granulation", 0.6),
+            // …and the sheet, which is the other half of all of them (see
+            // `paintWash`).
+            sheet,
           );
           return;
         case "spray":

@@ -82,6 +82,11 @@ export async function renderLayer(
   if (!ctx) throw new Error("this browser gave no 2D canvas context");
   renderDrawing(ctx, solo(drawing, layerId), null, {
     ...ink,
+    // The sheet the marks were laid on, so a layer's PNG holds the mixing the
+    // canvas showed. Its *grain* only lands on the layer that carries the page
+    // (the rest render on transparency), which is where it belongs — the paper
+    // is the page, not a film over every sheet of the stack.
+    ground: drawing.ground,
     transparentPage: !paintsPage(drawing, layerId),
   });
   const blob = await new Promise<Blob | null>((resolve) =>

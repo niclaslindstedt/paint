@@ -259,6 +259,46 @@ share a factor push that agreement further than a page is wide. The tile is
 built at one speck per pixel and scaled when it is painted, so the field costs
 the same megabyte at every zoom and a zoom never rebuilds it.
 
+### The sheet is a material, not a backdrop
+
+A drawing carries a **ground** — which stock the page is cut from, and how much
+of its grain shows (`Ground` in `types.ts`). Like a pinned page colour it is
+document state: it travels with the drawing, syncs with it, and is one undo
+step. Absent means the plain solid sheet, which is the page every drawing was
+already on, so no migration step and no rewritten bytes (see `migrations.ts`).
+
+The split is the one `filters.ts` / `filterPaint.ts` uses. `ground.ts` is pure:
+the catalog of stocks, the three numbers each carries (how much it drinks, the
+pitch of its grain and how deep that grain is), and the rule that turns a tool's
+declared `wetness` and a sheet's absorbency into what a mark does — which
+compositing it lands with, how much of what is under it it lifts, and how far
+its water runs. `groundPaint.ts` is the pixels: the grain, built once as a tile
+and filled as a pattern anchored to the page, at device resolution and fading
+out when it gets finer than a device pixel.
+
+Two consequences are worth knowing because they are the design rather than side
+effects:
+
+- **A layer that mixes is composited as a unit.** A wet mark mixes with the
+  pixels beneath it, and painted flat "beneath it" would be every lower layer as
+  well — so a layer carrying wet marks on a thirsty ground is lifted onto a
+  surface of its own, exactly as a filtered layer is. Mixing is therefore scoped
+  to a layer, and an eraser on such a layer stops at it. That is the trade a
+  filtered layer already makes, and it is what makes layers the way to keep a
+  mark out of the water.
+- **The mark cache cannot absorb a wet mark.** Its pixels are a finished
+  picture, sheet included, so appending a mark that mixes would mix it with the
+  sheet and with layers a repaint would not. Such a stroke repaints instead —
+  the same call the cache makes for a filtered stack (`cache.ts`).
+
+`wet.ts` is the one piece that is not compositing: it copies the pixels under a
+wet mark, smears them outward, cuts the smear to the mark's own shape and lays
+it back down before the mark goes on top. That is what makes an ink line bleed
+into a wash that crosses it, and what makes the order two washes were laid in
+visible in the result — a mark can only lift what was already there. It is
+bounded by the mark's box, skipped past a pixel budget, and deterministic like
+every other texture in the app.
+
 Filters come at **two scopes**, and the difference is where they are applied
 rather than what they are. The drawing's own (`Drawing.filters`) are composited
 over the finished picture, outside `renderDrawing`, exactly as described above.

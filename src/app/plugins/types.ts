@@ -32,6 +32,7 @@
 
 import type { ReactNode } from "react";
 
+import type { GroundProfile } from "../ground.ts";
 import type { Point, Stroke } from "../types.ts";
 import type { TKey } from "../i18n/index.ts";
 import type { SizeGauge } from "./gauge.ts";
@@ -140,8 +141,13 @@ export type ToolContext = {
   probe?: CanvasProbe | null;
 };
 
-/** How finely a stroke is being rasterised — everything a painter needs to stop
- *  drawing detail nobody can see.
+/** Where a stroke is landing: how finely it is being rasterised, and what it is
+ *  being rasterised *onto*.
+ *
+ *  The first half is everything a painter needs to stop drawing detail nobody
+ *  can see; the second is the sheet, which several painters have a great deal to
+ *  say about (a wash spreads further on thirsty paper and mottles into its
+ *  tooth). Both are resolved once per repaint by the renderer and handed down.
  *
  *  A vector document is painted at wildly different sizes: fitted to the screen,
  *  zoomed to 800%, and at 1:1 into the PNG export. A painter that ignores that
@@ -157,11 +163,17 @@ export type PaintDetail = {
   /** Device pixels per document pixel. 1 at 1:1, 0.4 fitted to a phone, 8
    *  zoomed in. Never zero. */
   scale: number;
+  /** The sheet this mark is landing on (see `ground.ts`). Absent means the
+   *  plain solid page — no grain and nothing absorbs — which is what every mark
+   *  in this app landed on before grounds existed, so a painter that reads it
+   *  and a painter that ignores it both keep drawing what they always drew. */
+  ground?: GroundProfile;
 };
 
-/** The detail a painter assumes when it is handed none — 1:1, i.e. draw
- *  everything. A painter called directly (a test, a one-off) then behaves
- *  exactly as it did before the renderer measured anything. */
+/** The detail a painter assumes when it is handed none — 1:1 onto a plain
+ *  sheet, i.e. draw everything and let the paper do nothing. A painter called
+ *  directly (a test, a one-off) then behaves exactly as it did before the
+ *  renderer measured anything. */
 export const FULL_DETAIL: PaintDetail = { scale: 1 };
 
 /** What a tool does with a pointer gesture, and how its strokes are painted.
@@ -281,6 +293,28 @@ export type PaintPlugin = {
    *  no stroke is ever begun. Like `navigates`, this is a flag the canvas reads
    *  rather than a tool id it recognises. */
   picksColor?: boolean;
+  /** How much **water** this tool puts on the page, 0 (bone dry) to 1 (a
+   *  loaded watercolour brush). Absent means dry.
+   *
+   *  It is the tool's half of a question the *sheet* answers (see `ground.ts`).
+   *  Wetness on its own does nothing: a loaded brush on a sealed digital page
+   *  behaves exactly as it always has. It is wetness **times** the ground's
+   *  absorbency that decides whether a mark
+   *
+   *    - **mixes** with what is under it rather than covering it — so a red
+   *      wash over a blue one on paper comes out purple, and a wash over a
+   *      pencil line leaves the pencil showing through;
+   *    - **lifts** a little of what it crossed into its own wet edge, which is
+   *      what makes an ink line bleed out into a wash that crosses it and what
+   *      makes the order two washes were laid in visible in the result;
+   *    - **spreads** further past the nib than the tool would on its own.
+   *
+   *  Like `erases` and `navigates` this is a flag the renderer reads off the
+   *  descriptor, never a tool id anything recognises: a new medium declares how
+   *  wet it is and gets all three behaviours without a line of code anywhere
+   *  else. It is deliberately *not* on the stroke — the sheet a drawing is on
+   *  can be changed, and when it is, every mark on it has to answer again. */
+  wetness?: number;
   /** True when the tool honours the fill toggle. */
   supportsFill?: boolean;
   /** True when the tool's gesture *chooses marks* rather than leaving one — the

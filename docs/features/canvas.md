@@ -73,6 +73,15 @@ cannot read — and their boxes move with the page. Pictures are redrawn, becaus
 a bitmap has pixels of its own that mapping its frame would leave facing the
 wrong way.
 
+## What the page is made of
+
+The page also has a **material**, and it is set beside its colour in Settings →
+Canvas: a solid digital sheet, one of seven papers, or primed canvas. It is not
+a texture laid over the drawing — the sheet's grain is painted under the marks,
+and on a sheet that drinks, a wet tool mixes with what it is painted over
+instead of covering it. Watercolour is the tool to try it with. See
+[the surface you draw on](surface.md).
+
 ## Zooming and panning
 
 | Gesture                               | What it does                         |

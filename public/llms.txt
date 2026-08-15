@@ -21,6 +21,13 @@ connect a storage backend yourself.
   four leads a mechanical pencil takes, the round brush a #2 through a one-inch
   flat, type is set in points, and each tool's slider spends its middle four
   tenths on the range that tool is genuinely manufactured in.
+- Choose what the page is made of: a solid digital sheet, seven papers
+  (hot-pressed, cold-pressed, rough, cartridge, laid, newsprint, kraft) or
+  primed cotton or linen. The sheet's grain is painted under the marks, and how
+  wet a tool is times how thirsty the sheet is decides whether a mark covers
+  what it is over or mixes into it, how far its water runs past the nib, and
+  how much of an ink line it crosses it drags out into the wash. Wet mixing is
+  scoped to one layer.
 - Save a tool you have set up under a name — "my sketching pencil" — and get
   its width and every dial back in one press.
 - Draw eleven shapes from one toolbar button: rectangle, ellipse, line, arrow,

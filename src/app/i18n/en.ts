@@ -363,6 +363,52 @@ export const en = {
     hint: "New marks land on the selected layer. The background carries the page colour; hide it and the page goes transparent.",
     swipeHint: "Swipe in from the right edge to open this panel.",
   },
+  // The sheets a drawing can be laid on (see `ground.ts`). Named the way a
+  // paper merchant names them — these are stocks you can buy, not adjectives —
+  // and the hint says what the sheet *does*, because that is the thing you are
+  // actually choosing between.
+  grounds: {
+    solid: {
+      name: "Solid colour",
+      hint: "A sealed digital page: no grain, and paint sits on top of what it covers.",
+    },
+    hot: {
+      name: "Hot-pressed",
+      hint: "Watercolour paper rolled smooth. It drinks like paper with almost nothing for pigment to settle into.",
+    },
+    cold: {
+      name: "Cold-pressed",
+      hint: "The sheet most watercolour is painted on. Enough tooth to mottle, not so much that a line breaks up.",
+    },
+    rough: {
+      name: "Rough",
+      hint: "Dried unpressed. Washes pool in the valleys and a dry brush skips across the peaks.",
+    },
+    cartridge: {
+      name: "Cartridge",
+      hint: "Sketchbook paper. A fine grain, and sized enough that ink stays where you put it.",
+    },
+    laid: {
+      name: "Laid",
+      hint: "Ribbed writing paper, with a chain line across it. Holds ink on its face rather than drinking it.",
+    },
+    newsprint: {
+      name: "Newsprint",
+      hint: "Thirsty and unsized: everything wet spreads on it, and a marker goes furry.",
+    },
+    kraft: {
+      name: "Kraft",
+      hint: "Brown wrapping stock — a fibrous sheet that takes a wash. Pin a brown page to go with it.",
+    },
+    cotton: {
+      name: "Cotton duck",
+      hint: "Primed canvas: a coarse weave that shows through everything, and a ground that holds paint on its face.",
+    },
+    linen: {
+      name: "Linen",
+      hint: "A finer, slubbier weave than cotton, and thirstier than neither — primed cloth barely drinks at all.",
+    },
+  },
   tools: {
     // Named "Pen" but keyed `pencil`: the id is persisted on every stroke ever
     // drawn with it, so the name moved and the key stayed put. The tool that
@@ -560,6 +606,16 @@ export const en = {
       pageFollowTheme: "Follow theme",
       pageColorHint:
         "Pin a colour for this drawing only — it overrides the canvas theme and travels with the drawing when it syncs.",
+      surfaceTitle: "Surface",
+      surfaceLabel: "What the page is made of",
+      surfaceHint:
+        "The sheet is part of the picture, so it travels with this drawing: its grain is painted under the marks, and a wet tool on a thirsty sheet mixes with what it is painted over instead of covering it. Watercolour is the one to try it with.",
+      surfaceSolid: "Solid",
+      surfacePaper: "Paper",
+      surfaceCanvas: "Canvas",
+      surfaceTexture: "Grain: {value}%",
+      surfaceTextureHint:
+        "How strongly the sheet's grain shows. It changes what you see, never how much the sheet drinks — that is what the stock is.",
       gridTitle: "Grid",
       showGrid: "Show a grid",
       showGridHint:

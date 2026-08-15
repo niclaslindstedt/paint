@@ -44,6 +44,7 @@
 // repaint and in the exported PNG), and detail finer than a device pixel is not
 // drawn at all (see `PaintDetail`).
 
+import { SOLID_GROUND, type GroundProfile } from "../ground.ts";
 import type { Point } from "../types.ts";
 import { mm } from "../units.ts";
 import {
@@ -64,7 +65,10 @@ import { paintPath } from "./ink.ts";
  *  *puddles between the grains*, and they are a good deal bigger than the
  *  ridges that make them. Rough watercolour stock mottles at about this
  *  spacing, which is why the effect reads across a room and a pencil's speckle
- *  does not. */
+ *  does not.
+ *
+ *  This is the pitch on a page with no sheet under it — the solid digital one.
+ *  A drawing on real stock pools at its own tooth instead (see `poolPitch`). */
 const POOL = mm(0.7);
 
 /** The most pools one wash will ever be drawn from. A page-wide sweep with a
@@ -192,11 +196,26 @@ function pool(
  *  once the view is pulled back far enough that they are finer than one. A wash
  *  big enough to blow the budget coarsens by exactly the factor that brings it
  *  back inside. */
-function poolCell(length: number, size: number, scale: number): number {
-  const cell = Math.max(POOL, PIXEL / scale);
+function poolCell(
+  length: number,
+  size: number,
+  scale: number,
+  pitch = POOL,
+): number {
+  const cell = Math.max(pitch, PIXEL / scale);
   const wanted = ((length + size) * (size + 2 * cell)) / (cell * cell);
   if (wanted <= POOL_BUDGET) return cell;
   return cell * Math.sqrt(wanted / POOL_BUDGET);
+}
+
+/** How far apart the sheet's puddles are, in document pixels — its own tooth,
+ *  a little coarser, because the pools are the gaps *between* the grains.
+ *
+ *  A page with no sheet under it keeps the pitch this painter has always used,
+ *  so a wash on the solid digital page mottles exactly as it did before grounds
+ *  existed. */
+function poolPitch(ground: GroundProfile): number {
+  return ground.tooth > 0 ? ground.tooth * 1.3 : POOL;
 }
 
 /** A wash.
@@ -205,8 +224,15 @@ function poolCell(length: number, size: number, scale: number): number {
  *  loosens both its edges, and dilutes what is left in the middle. `pigment` is
  *  how much colour is in that water — the difference between a tint you can
  *  read a pencil line through and a full-strength stain. `granulation` is the
- *  sheet: 0 is hot-pressed paper and a smooth wash, high is rough stock with a
- *  heavy mineral colour sitting in every dip of it. */
+ *  *colour*: 0 is a phthalo that stays in solution, high is a heavy earth that
+ *  drops out of it.
+ *
+ *  `ground` is the **sheet**, and it is the other half of both of those. A
+ *  thirsty stock pulls the water further past the hair than the dial asked for;
+ *  a toothy one gives the pigment somewhere to settle, at the pitch of its own
+ *  grain. On the solid digital page — a ground that drinks nothing and has no
+ *  tooth — every one of those factors is exactly 1, so a wash painted there is
+ *  pixel-for-pixel the wash this painter has always laid. */
 export function paintWash(
   ctx: CanvasRenderingContext2D,
   points: readonly Point[],
@@ -215,9 +241,13 @@ export function paintWash(
   water = 1,
   pigment = 1,
   granulation = 0.6,
+  ground: GroundProfile = SOLID_GROUND,
 ): void {
   const alpha = ctx.globalAlpha;
-  const wet = Math.max(0, Math.min(2, water));
+  const soak = Math.max(0, Math.min(1, ground.absorbency));
+  // The sheet drinks: the same charge of water on cold-pressed paper runs
+  // further than it does on a sealed surface, and on newsprint it runs away.
+  const wet = Math.max(0, Math.min(2.4, water * (1 + soak * 0.6)));
   const load = Math.max(0.1, Math.min(2, pigment));
   const half = size / 2;
   // How wide the water actually got, and how wide the mark comes out on the
@@ -358,11 +388,15 @@ export function paintWash(
   // The mottle, when the mark has room for one. A wash a few device pixels
   // across cannot show a pool: what it would get instead is one dab per sample
   // covering the whole width, which is not a texture, it is a second coat.
-  if (granulation > 0.02 && onScreen >= MOTTLE_FLOOR) {
+  // Pigment only settles where the sheet has somewhere to hold it, so the
+  // tooth multiplies what the colour would do on its own — barely anything on
+  // hot-pressed, close to double on rough.
+  const mottle = granulation * (1 + ground.bite * 1.2);
+  if (mottle > 0.02 && onScreen >= MOTTLE_FLOOR) {
     granulate(ctx, along, left, right, nxs, nys, {
       alpha: alpha * WASH * load,
-      strength: Math.min(2, granulation),
-      cell: poolCell(total, size, scale),
+      strength: Math.min(2, mottle),
+      cell: poolCell(total, size, scale, poolPitch(ground)),
       scale,
     });
   }

@@ -97,7 +97,15 @@ export function LayerThumbnail({
     // `paintStrokes` reads the detail off this transform, so the textured
     // painters drop the bristles and specks that would land inside one pixel
     // here without being asked to.
-    paintStrokes(ctx, legible(strokes, scale), { pageColor, defaultInk });
+    paintStrokes(ctx, legible(strokes, scale), {
+      pageColor,
+      defaultInk,
+      // The sheet the marks were laid on, so a wash previews mixed with what
+      // it was painted over rather than covering it. Its *grain* never shows
+      // here — a thumbnail is a thirtieth of the page and the tooth fades out
+      // long before that, which is exactly what `groundPaint.ts` is for.
+      ground: drawing.ground,
+    });
 
     // Then the sheet, *under* the marks — the order the canvas paints in, so a
     // layer whose marks include a rubbing out previews with the page showing
@@ -112,6 +120,7 @@ export function LayerThumbnail({
   }, [
     drawing.width,
     drawing.height,
+    drawing.ground,
     strokes,
     pageColor,
     defaultInk,
