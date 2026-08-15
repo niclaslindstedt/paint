@@ -161,18 +161,22 @@ npm run preview
   footer below it (foldable behind a chevron) holds Donate, About — What's new,
   the source, the privacy policy — check for updates, and Settings.
 - **Toolbar** — the enabled tools, then one button for colour and one for the
-  nib. The ink button is the colour you draw with, and opens the palette, your
-  own mixed colours, and a free colour mixer; the nib button shows a **press with the tool in your
-  hand** — the mark that width actually leaves, painted by the painter that
-  paints the page — and opens the
-  widths, a slider for new ones, and — behind an **Advanced** fold — the knobs
-  belonging to the tool in your hand: how charged the head is, its hair gauge,
-  how far it has splayed and how far the paper bleeds for the paintbrush, flow
-  for the airbrush, pressure for the crayon, a feathered edge for the paint
-  bucket, opacity for most of the rest. They are kept per tool, so a soft brush
-  stays soft without softening anything else. Most tools have a single-key
-  shortcut, and the shapes button opens the other ten — and the hollow / solid
-  toggle — when you press it a second time.
+  tool in your hand. The ink button is the colour you draw with, and opens the
+  palette, your own mixed colours, and a free colour mixer; the second button is
+  the **nib**, and it shows a **press with the tool in your hand** — the mark
+  that width actually leaves, painted by the painter that paints the page (bar
+  the eraser, whose mark is a hole, so its width shows as a plain circle). It
+  opens the widths, a slider for new ones, and — under an **Advanced** heading,
+  open rather than folded away — the knobs belonging to the tool in your hand:
+  how charged the head is, its hair gauge, how far it has splayed and how far
+  the paper bleeds for the paintbrush, flow for the airbrush, pressure for the
+  crayon, a feathered edge for the paint bucket, opacity for most of the rest.
+  They are kept per tool, so a soft brush stays soft without softening anything
+  else. A tool with no width to set shows a **cog** in that slot instead — the
+  paint bucket fills the area it traced whatever a nib might say, so it opens
+  its own settings directly — and one that marks nothing at all shows no button
+  there. Most tools have a single-key shortcut, and the shapes button opens the
+  other ten — and the hollow / solid toggle — when you press it a second time.
 - **Selection** — one button, four ways to pick marks out: a box (`V`), an
   oval, a freehand lasso, and a **trace** that follows the contours of whatever
   is drawn under your finger rather than a shape you drew over it. Press the

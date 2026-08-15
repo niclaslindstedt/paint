@@ -4,10 +4,10 @@ import { useEffect, useState } from "react";
 import { FloatingPanel } from "@niclaslindstedt/oss-framework/components";
 
 import { useT } from "../i18n/index.ts";
-import { dialReadout } from "../plugins/dials.ts";
 import type { PaintPlugin, ToolDial } from "../plugins/types.ts";
 import { MAX_SIZE, sizesFor } from "../useAppSettings.ts";
 import { PressPreview } from "./PressPreview.tsx";
+import { ToolDials } from "./ToolDials.tsx";
 
 // The nib picker: the widths, behind one button — and, behind one more press,
 // whatever else the tool in your hand has to tune.
@@ -39,10 +39,13 @@ import { PressPreview } from "./PressPreview.tsx";
 // shares; past it they stop agreeing, and a hardness slider shown to a
 // highlighter was a control that did nothing sitting where a control that did
 // something should be. So the tool declares its own dials (`PaintPlugin.dials`)
-// and this renders them under a disclosure: the basic panel stays the one
-// slider a hand reaches for mid-stroke, and the two knobs that change what the
-// mark is made of are one press further in. Nothing here knows what any of them
-// are — a paintbrush's hair gauge and a bucket's feather are the same loop.
+// and `ToolDials` renders them under an **Advanced** heading — a heading, not a
+// fold: they are a section of this panel rather than a second panel hidden
+// inside it. Nothing here knows what any of them are.
+//
+// This panel is for a tool that *has* a width. One that doesn't (the bucket)
+// gets its dials from a cog beside the ink instead — same section, same rows,
+// no width above them (see `DialPicker.tsx` and `plugins/controls.ts`).
 
 type Props = {
   open: boolean;
@@ -100,10 +103,6 @@ export function SizePicker({
 }: Props) {
   const t = useT();
   const [draft, setDraft] = useState(size);
-  // Whether the dials are showing. Panel state, not a setting: it is a fold in
-  // a menu, and it stays folded out for as long as the session wants it — but
-  // it is not a choice worth carrying across reloads.
-  const [advanced, setAdvanced] = useState(false);
   const sizes = sizesFor(plugin, customSizes);
   const known = sizes.includes(Math.round(draft));
 
@@ -210,82 +209,19 @@ export function SizePicker({
           </div>
         </label>
 
-        {/* The tool's own knobs. Absent entirely for a tool that has none,
-            rather than shown empty: a disclosure that opens onto nothing is a
-            worse answer than no disclosure. */}
+        {/* The tool's own knobs, under the width they are past. Absent
+            entirely for a tool that has none, rather than shown empty: a
+            heading over nothing is a worse answer than no heading. */}
         {dials.length > 0 && (
-          <div className="flex flex-col gap-2 border-t border-line pt-2">
-            <div className="flex items-center justify-between gap-2">
-              <button
-                type="button"
-                onClick={() => setAdvanced((shown) => !shown)}
-                aria-expanded={advanced}
-                className="flex cursor-pointer items-center gap-1 text-xs text-muted hover:text-fg-bright"
-              >
-                <span
-                  aria-hidden="true"
-                  className={`inline-block transition-transform ${
-                    advanced ? "rotate-90" : ""
-                  }`}
-                >
-                  ›
-                </span>
-                {t("dials.advanced")}
-                {/* A dot beside the fold when something under it is off its
-                    default — otherwise a tool you tuned last week looks exactly
-                    like one you never touched. */}
-                {tuned && !advanced && (
-                  <span
-                    aria-hidden="true"
-                    className="h-1.5 w-1.5 rounded-full bg-accent"
-                  />
-                )}
-              </button>
-              {advanced && tuned && (
-                <button
-                  type="button"
-                  onClick={onResetDials}
-                  className="cursor-pointer text-xs text-muted hover:text-fg-bright"
-                >
-                  {t("dials.reset")}
-                </button>
-              )}
-            </div>
-
-            {advanced &&
-              dials.map((dial) => {
-                const rest = dial.default ?? 1;
-                const value = values[dial.id] ?? rest;
-                return (
-                  <label key={dial.id} className="flex flex-col gap-1">
-                    <span className="text-xs text-muted">
-                      {t(dial.nameKey, {
-                        value: String(dialReadout(dial, value)),
-                      })}
-                    </span>
-                    <input
-                      type="range"
-                      min={dial.min}
-                      max={dial.max}
-                      step={dial.step}
-                      value={value}
-                      onChange={(e) => {
-                        const next = Number(
-                          (e.target as HTMLInputElement).value,
-                        );
-                        // Back where it started is not a setting: forget it,
-                        // so the blob only ever holds what differs from the
-                        // tool as it ships.
-                        onDialChange(dial.id, next === rest ? null : next);
-                      }}
-                      className="w-full cursor-pointer"
-                    />
-                    <span className="text-[11px] text-muted">
-                      {t(dial.hintKey)}
-                    </span>
-                  </label>
-                );
-              })}
+          <div className="border-t border-line pt-2">
+            <ToolDials
+              title={t("dials.advanced")}
+              dials={dials}
+              values={values}
+              onChange={onDialChange}
+              onReset={onResetDials}
+              tuned={tuned}
+            />
           </div>
         )}
       </div>

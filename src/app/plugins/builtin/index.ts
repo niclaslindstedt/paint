@@ -418,6 +418,14 @@ export function registerBuiltinPlugins(): void {
     // 8 × 2.5 — a rubber you can actually rub something out with. An eraser the
     // width of the pencil takes as many passes as the drawing took.
     defaultSize: 8,
+    // Its width shows as a plain circle rather than as a press. Every other
+    // tool previews the mark it leaves, but an eraser's mark is a *hole*: on
+    // the bare page a preview is, it lifts nothing and shows nothing, and the
+    // only way to picture it was to fabricate a blot of ink underneath for the
+    // press to bite into — a mark nobody made, standing in for one you can't
+    // see. The nib is round and the number is the nib, so the circle is both
+    // the simpler drawing and the truer one.
+    sizePreview: "circle",
     // It takes ink *off*: the mark is painted with `destination-out`, so what
     // it covers is removed from the picture and the sheet comes back through
     // the hole (see `render.ts`). It used to paint the page colour instead,
@@ -441,6 +449,11 @@ export function registerBuiltinPlugins(): void {
     descriptionKey: "tools.filler.description",
     icon: BucketIcon,
     shortcut: "f",
+    // A bucket has no nib. It fills the area it traced, and it fills exactly
+    // that area whether the width is set to two or to ninety-six — so it is
+    // offered no width at all, and the toolbar puts a cog beside the ink for
+    // the settings it does have instead (see `plugins/controls.ts`).
+    sizeless: true,
     // A wash you can see through, and an edge that fades out rather than
     // stopping — the two things that separate a bucket from a paint pot.
     dials: [OPACITY, FEATHER],

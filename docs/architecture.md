@@ -338,6 +338,10 @@ lives by: **nothing outside it may branch on a tool id.**
 - `dials.ts` — what happens to those sliders' numbers: resolved for the panel,
   and pared back to just the ones moved off their default for the canvas and the
   stroke.
+- `controls.ts` — which button the toolbar puts beside the ink for the tool in
+  hand: its width, a cog holding just its dials (a `sizeless` tool — the
+  bucket), or nothing at all (a tool with neither). One place, read entirely off
+  descriptor flags.
 - `registry.ts` — registration order (which is the toolbar's _default_ order),
   the core / default-on / optional split, resolution, and the two things a
   toolbar is actually built from: **entries** (a lone tool, or a whole family
@@ -397,15 +401,23 @@ member you last held; pressing it again opens the family and the fill toggle.
 Grouping touched no stroke and needed no migration, which is the test any
 "merge these tools" change has to pass: a stroke's `tool` is persisted.
 
-`dials` is that pattern carrying a whole surface. Width is the one control every
-tool shares; past it they stop agreeing, so a tool lists what _it_ has to tune
+`dials` is that pattern carrying a whole surface. Width is the control most
+tools share; past it they stop agreeing, so a tool lists what _it_ has to tune
 (the paintbrush's hair gauge, the airbrush's flow, the bucket's feather) and the
-size panel renders the list under **Advanced** without learning a single dial's
-name. The numbers are fractions of the tool's own normal, kept per tool in the
-settings blob, and **only the ones moved off their default** are handed to a
+panel renders the list under an **Advanced** heading without learning a single
+dial's name. The numbers are fractions of the tool's own normal, kept per tool in
+the settings blob, and **only the ones moved off their default** are handed to a
 behaviour or written onto a mark — so a painter can keep its rest value as an
-ordinary default argument, and a page drawn without opening Advanced serialises
+ordinary default argument, and a page drawn without touching one serialises
 byte-for-byte the way it did before dials existed.
+
+`sizeless` and `sizePreview` are the same seam pointed at the _button_ rather
+than at the panel. The bucket has no nib and the eraser's mark is a hole, and
+both used to be handled by the toolbar knowing which tool it was holding — a
+dimmed size button for one, a fabricated blot of ink under the other's press for
+the other. Now each says what it is on its descriptor and `controls.ts` answers
+in one place, so the tool that lands next year gets the right button without
+this file changing.
 
 `hidden` is the same idea taken to its end: the dropped image's painter is a
 plugin with no button anywhere and no gesture at all. An image arrives as a file,

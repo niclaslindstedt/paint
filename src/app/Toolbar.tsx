@@ -1,8 +1,11 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 import { useEffect, useRef, useState } from "react";
 
+import { CogIcon } from "@niclaslindstedt/oss-framework/components";
+
 import { useT } from "./i18n/index.ts";
 import { fieldHasKeyboard } from "./keys.ts";
+import { toolControl } from "./plugins/controls.ts";
 import {
   enabledPlugins,
   pluginById,
@@ -16,6 +19,7 @@ import {
   type AppSettings,
 } from "./useAppSettings.ts";
 import { ColorPicker } from "./toolbar/ColorPicker.tsx";
+import { DialPicker } from "./toolbar/DialPicker.tsx";
 import { FillPicker } from "./toolbar/FillPicker.tsx";
 import { GroupPicker } from "./toolbar/GroupPicker.tsx";
 import { PressPreview } from "./toolbar/PressPreview.tsx";
@@ -43,10 +47,15 @@ import { SizePicker } from "./toolbar/SizePicker.tsx";
 // paint it. Each opens its picker over the canvas; both close as soon as you
 // have chosen. The row that is left is tools, and it can afford to be.
 //
-// The size button is also where a tool's *own* settings live — its dials, under
-// an Advanced fold in the same panel (see `toolbar/SizePicker.tsx`). Which ones
-// those are is the descriptor's `dials`, so the toolbar hands the picker a list
-// it never reads.
+// **The second of those two buttons belongs to the tool, not to the width.**
+// The size button is also where a tool's own settings live — its dials, under
+// an Advanced heading in the same panel (see `toolbar/SizePicker.tsx`) — and a
+// tool with no width to set gets a **cog** in the same slot, opening the same
+// dials with nothing above them. A tool with neither gets no button at all,
+// where it used to get a dimmed one that opened a panel of widths it ignored.
+// Which of the three it is comes off the descriptor (`plugins/controls.ts`), so
+// the toolbar hands the picker a list it never reads and never asks which tool
+// it is holding.
 //
 // Fill is not a row either. It lives inside the shapes button's panel, under
 // the family: the shape you have picked, drawn hollow and drawn solid. Which
@@ -146,21 +155,26 @@ export function Toolbar({
   const [panel, setPanel] = useState<
     | { kind: "tool"; entry: string }
     | { kind: "color" }
-    | { kind: "size" }
+    | { kind: "settings" }
     | null
   >(null);
   const toolAnchor = useRef<HTMLButtonElement | null>(null);
   const colorAnchor = useRef<HTMLButtonElement | null>(null);
-  const sizeAnchor = useRef<HTMLButtonElement | null>(null);
+  // The size button and the cog are the same slot — only one of them is ever
+  // rendered — so they share the anchor their panel opens over.
+  const settingsAnchor = useRef<HTMLButtonElement | null>(null);
 
   // A tool that lifts ink (the eraser) or moves the view (the hand) has no use
-  // for the colour; one that samples a colour, moves the page or chooses marks
-  // has no use for the nib either. Both are read off descriptor flags — nothing
-  // here knows a tool by name.
-  const leavesNoMark =
-    active?.navigates || active?.picksColor || active?.selects;
-  const inkIrrelevant = active?.erases || leavesNoMark;
-  const nibIrrelevant = leavesNoMark;
+  // for the colour, so its swatch is dimmed. Read off descriptor flags —
+  // nothing here knows a tool by name.
+  const inkIrrelevant =
+    active?.erases ||
+    active?.navigates ||
+    active?.picksColor ||
+    active?.selects;
+  // What the button beside the ink is for this tool: its width, its own
+  // settings, or nothing (see `plugins/controls.ts`).
+  const control = toolControl(active);
 
   // Single-key tool shortcuts, read straight off the plugin descriptors. Held
   // back while a text field or a dialog owns the keyboard so typing a drawing's
@@ -294,34 +308,64 @@ export function Toolbar({
         {/* The nib button — a press with the tool in your hand, on your page,
             in your ink. Not a dot the width of the nib: what a width *is* is
             different for every tool, and the mark itself is the only preview
-            that can say so (see `toolbar/PressPreview.tsx`). */}
-        <button
-          ref={sizeAnchor}
-          type="button"
-          onClick={() =>
-            setPanel((prev) =>
-              prev?.kind === "size" ? null : { kind: "size" },
-            )
-          }
-          aria-haspopup="menu"
-          aria-expanded={panel?.kind === "size"}
-          aria-label={t("canvas.size")}
-          title={t("canvas.size")}
-          className={`inline-flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded border border-line hover:border-accent ${
-            nibIrrelevant ? "opacity-40" : ""
-          }`}
-        >
-          <PressPreview
-            plugin={active}
-            size={size}
-            of={sizesFor(active, customSizes).at(-1) ?? size}
-            color={color}
-            background={background}
-            dials={dialValues}
-            filled={filled}
-            box={26}
-          />
-        </button>
+            that can say so (see `toolbar/PressPreview.tsx`) — bar the tools
+            whose mark can't describe itself, which ask for a plain circle
+            instead (`sizePreview`). */}
+        {control === "size" && (
+          <button
+            ref={settingsAnchor}
+            type="button"
+            onClick={() =>
+              setPanel((prev) =>
+                prev?.kind === "settings" ? null : { kind: "settings" },
+              )
+            }
+            aria-haspopup="menu"
+            aria-expanded={panel?.kind === "settings"}
+            aria-label={t("canvas.size")}
+            title={t("canvas.size")}
+            className="inline-flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded border border-line hover:border-accent"
+          >
+            <PressPreview
+              plugin={active}
+              size={size}
+              of={sizesFor(active, customSizes).at(-1) ?? size}
+              color={color}
+              background={background}
+              dials={dialValues}
+              filled={filled}
+              box={26}
+            />
+          </button>
+        )}
+
+        {/* …and the cog, in the same slot, for a tool that has settings but no
+            width — the bucket. A dot beside it when it is set away from how it
+            ships, which is the one thing a cog can't show on its face. */}
+        {control === "dials" && (
+          <button
+            ref={settingsAnchor}
+            type="button"
+            onClick={() =>
+              setPanel((prev) =>
+                prev?.kind === "settings" ? null : { kind: "settings" },
+              )
+            }
+            aria-haspopup="menu"
+            aria-expanded={panel?.kind === "settings"}
+            aria-label={t("canvas.toolSettings")}
+            title={t("canvas.toolSettings")}
+            className="relative inline-flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded border border-line text-fg hover:border-accent"
+          >
+            <CogIcon className="h-[18px] w-[18px]" />
+            {dialsTuned && (
+              <span
+                aria-hidden="true"
+                className="absolute top-1 right-1 h-1.5 w-1.5 rounded-full bg-accent"
+              />
+            )}
+          </button>
+        )}
       </div>
 
       {/* The panels themselves. All of them open upward: the toolbar is the
@@ -372,25 +416,44 @@ export function Toolbar({
         onRemoveColor={onRemoveColor}
       />
 
-      <SizePicker
-        open={panel?.kind === "size"}
-        onClose={() => setPanel(null)}
-        anchor={sizeAnchor}
-        plugin={active}
-        size={size}
-        onPick={onSizeChange}
-        color={color}
-        background={background}
-        filled={filled}
-        customSizes={customSizes}
-        onAddSize={onAddSize}
-        onRemoveSize={onRemoveSize}
-        dials={active?.dials ?? []}
-        values={dialValues}
-        onDialChange={onDialChange}
-        onResetDials={onResetDials}
-        tuned={dialsTuned}
-      />
+      {/* Whichever panel the slot's button opens. Never both: `toolControl`
+          answers with one of the two or with neither, and a tool with neither
+          has no button to open one from. */}
+      {control === "size" && (
+        <SizePicker
+          open={panel?.kind === "settings"}
+          onClose={() => setPanel(null)}
+          anchor={settingsAnchor}
+          plugin={active}
+          size={size}
+          onPick={onSizeChange}
+          color={color}
+          background={background}
+          filled={filled}
+          customSizes={customSizes}
+          onAddSize={onAddSize}
+          onRemoveSize={onRemoveSize}
+          dials={active?.dials ?? []}
+          values={dialValues}
+          onDialChange={onDialChange}
+          onResetDials={onResetDials}
+          tuned={dialsTuned}
+        />
+      )}
+
+      {control === "dials" && (
+        <DialPicker
+          open={panel?.kind === "settings"}
+          onClose={() => setPanel(null)}
+          anchor={settingsAnchor}
+          plugin={active}
+          dials={active?.dials ?? []}
+          values={dialValues}
+          onDialChange={onDialChange}
+          onResetDials={onResetDials}
+          tuned={dialsTuned}
+        />
+      )}
     </div>
   );
 }

@@ -293,6 +293,33 @@ export type PaintPlugin = {
    *  means the app's own three (`SIZES`), which is right for everything that
    *  draws a line; the text tool overrides it with type sizes. */
   sizes?: readonly number[];
+  /** True when a width means **nothing** to this tool's mark, so it is offered
+   *  none at all.
+   *
+   *  The paint bucket is the case: it fills the area it traced, and it fills
+   *  exactly that area whether the nib is set to two or to ninety-six. A slider
+   *  that moves a number no mark reads is worse than no slider — so a sizeless
+   *  tool gets no size button, and its own settings move to a cog beside the
+   *  ink instead (see `plugins/controls.ts`).
+   *
+   *  Only tools that *do* leave a mark need declare it. A tool that leaves none
+   *  — the hand, the dropper, the selection family — has no width for the same
+   *  reason it has no ink, and that is read off the flags it already carries. */
+  sizeless?: boolean;
+  /** How a width is **shown**: on the size button, and on every button of the
+   *  width row.
+   *
+   *  `"press"` — the default — paints the mark that width would actually leave,
+   *  with the tool that would leave it (see `press.ts`). It is the right answer
+   *  for everything that lays ink down, because what a width *is* differs by
+   *  tool: an airbrush's eight is a soft cone, a highlighter's a broad band.
+   *
+   *  `"circle"` draws a plain disc instead — the width as a width. A tool
+   *  reaches for it when its mark can't describe itself: the eraser's press is
+   *  a *hole*, and a hole shows nothing unless the preview first fabricates
+   *  some ink for it to bite into. The nib is round and the number is the nib,
+   *  so a circle says everything the eraser has to say and says it at a glance. */
+  sizePreview?: "press" | "circle";
   /** What this tool offers under **Advanced** in the size panel, past the width
    *  every tool shares. Two at most: the panel is a thing you reach into
    *  mid-stroke, and a rack of sliders is a settings screen.

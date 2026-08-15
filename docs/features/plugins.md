@@ -176,9 +176,9 @@ are properties of the caption rather than of the gesture, and they mean nothing
 when nothing is being typed. Enter breaks the line, Escape throws it away, and a
 press anywhere else on the page keeps it.
 
-## One width per tool
+## One width per tool — for the tools that have one
 
-Width is the one control every tool shares — and for a long time it was one
+Width is the control most tools share — and for a long time it was one
 _number_ shared by all of them, which meant reaching for a fat brush left you
 with a fat pencil. It is now per tool: a pencil width, a paintbrush width, a type
 size, each remembered separately, and each opening at a value the tool itself
@@ -186,6 +186,15 @@ declares (`defaultSize`) rather than at one number applied to fifteen tools. A
 tool whose scale is its own says so too — the text tool offers type sizes
 (`sizes`) where everything else offers the three nib widths — and the size panel
 renders whatever it is handed without knowing which tool it is drawing for.
+
+Not every tool has one. The paint bucket fills the area it traced whatever a nib
+might say, so it declares `sizeless` and is offered no width at all; the hand,
+the dropper and the selection tools leave no mark, which the descriptor already
+says. What the toolbar puts beside the ink follows from that in one place
+(`plugins/controls.ts`): the width for a tool that has one, a **cog** for a tool
+that has settings but no width, and nothing for a tool with neither. The dimmed
+size button those last two used to get was a promise that the control worked
+sometimes, and for them there was no sometimes.
 
 ## A width is shown as the mark it makes
 
@@ -196,8 +205,15 @@ make it and painted by the same painter that would paint it, on the page colour
 and in the ink you have picked. So an airbrush is a soft cone, a highlighter a
 translucent band, the crayon its speckle, the calligraphy pen its flat, the
 rectangle a rectangle at that line width, the text tool a letter at that type
-size — and the eraser, which lifts ink rather than laying it down, is a bite out
-of a blot of ink, because on its own it would preview as nothing at all.
+size.
+
+A tool whose mark cannot describe itself says so instead
+(`sizePreview: "circle"`) and gets a plain disc. The eraser is the one that
+does: its mark is a _hole_, and a hole on the bare page a preview is shows
+nothing at all. It used to be previewed as a bite out of a blot of ink that
+nobody had drawn — a mark invented for the preview so that the preview would
+have something to show. The nib is round and the number is the nib, so the
+circle is both the simpler drawing and the truer one.
 
 A tool has nothing to add for this. The simulation drives the contract every
 tool already implements: `start` at a point and `end` is what a press _is_; a
@@ -205,8 +221,8 @@ tool that drops a press because its mark needs two anchors (the shapes) is given
 the shortest gesture that does leave one; a tool that reads the page is lent one
 (`ToolContext.probe`), which is how the bucket previews a real feathered fill;
 and `entersText` is the flag that says to ask for a caption instead. A tool
-whose press leaves nothing at all — the hand, the dropper — falls back to the
-plain dot, which is the honest answer for a button that is dimmed anyway.
+whose press leaves nothing at all falls back to the same plain dot the circled
+tools use.
 
 How far past its own geometry a medium's ink actually reaches — an airbrush cone
 is over three times its nib — is **measured** rather than declared: the mark is
@@ -215,11 +231,19 @@ That is what keeps the preview right for a painter nobody has written yet.
 
 ## Every tool tunes differently
 
-The size button opens the widths, and under them an **Advanced** fold holding
-the knobs belonging to the tool in your hand. Width is the only control every
-tool shares; past it a paintbrush and a highlighter have nothing in common, and
+The size button opens the widths, and under them an **Advanced** section holding
+the knobs belonging to the tool in your hand. Width is the only control most
+tools share; past it a paintbrush and a highlighter have nothing in common, and
 a hardness slider shown to the highlighter was a control that did nothing
 sitting where a control that did something should be.
+
+The section is a **heading, not a fold**. It was a disclosure to begin with, on
+the reasoning that the panel should stay the one slider a hand reaches for
+mid-stroke — but a fold you open every time you open the panel is not a saving,
+and a dot beside a collapsed heading is a poor way of saying "this tool is set
+differently from how it ships" when showing the sliders says it outright. For a
+tool with no width (the bucket), the same section _is_ the panel, opened from
+the cog and headed with the tool's own name.
 
 So a tool declares its own, and the bar is high: the panel is something you
 reach into mid-drawing, with one thumb, so a dial has to change what the mark
@@ -233,10 +257,10 @@ or paper that does not, and no one of those four is any of the others:
 | **Paintbrush**                   | opacity, hardness, hair, splay, bleed |
 | **Airbrush**                     | hardness, flow                        |
 | **Crayon**                       | opacity, pressure                     |
-| **Paint bucket**                 | opacity, feather                      |
+| **Paint bucket**                 | opacity, feather — behind its cog     |
 | Pencil, marker, highlighter, pen | opacity                               |
 | Shapes, text                     | opacity                               |
-| Eraser, hand, dropper, select    | nothing — no fold appears             |
+| Eraser, hand, dropper, select    | nothing — no section appears          |
 
 Each one is wired to something the painter actually does. **Hardness** is how
 charged the head is, and it is the brush's main control: turned up it is a
@@ -260,13 +284,15 @@ tool into a way of laying a soft wash behind a sketch — and it stays a vector
 fill, so the fade holds at eight hundred percent.
 
 The settings are **per tool** and they stick: a soft brush is soft the next time
-you pick it up, and it did not also make the airbrush soft. A dot beside
-Advanced says a tool is tuned; **Reset** puts it back.
+you pick it up, and it did not also make the airbrush soft. **Reset** appears
+beside the heading once a tool is off its defaults, and puts it back; on the
+bucket's cog, where the sliders are behind a glyph rather than in the open, a
+dot on the button says the same thing.
 
 Marks remember what they were drawn with, the way they remember their colour and
 their width, so re-tuning a dial never re-draws work you already did. And a dial
-left alone is recorded nowhere at all — a drawing made without opening Advanced
-is exactly the document it would have been.
+left alone is recorded nowhere at all — a drawing made without touching one is
+exactly the document it would have been.
 
 ## The bucket and the dropper read the page
 
@@ -324,7 +350,9 @@ Three steps, none of which touch the canvas, the store, or the toolbar:
    without being asked for, `defaultSize` for the width it opens at, `dials` if
    it has anything of its own to tune, and `group` if it belongs to a family
    that already has a button (a twelfth shape is one line in the `SHAPES`
-   table).
+   table). A tool with no width says `sizeless` and gets the cog instead of the
+   size button; one whose mark cannot picture itself says
+   `sizePreview: "circle"`.
 3. Add those two strings to `src/app/i18n/en.ts` (and `sv.ts`).
 
 Externally-loaded plugins are not implemented yet. When they land they register
