@@ -232,9 +232,25 @@ symlink.
 | `update-docs`   | After any change to user-visible behaviour, the tool set, configuration keys, or the sync backends.      |
 | `update-readme` | After any change that alters user-visible behaviour, commands, or install instructions.                  |
 
-Each skill has a `SKILL.md` (the playbook) and a `.last-updated` file (the
+Each sync skill has a `SKILL.md` (the playbook) and a `.last-updated` file (the
 baseline commit hash). The `maintenance` skill owns a **Registry** table listing
 every `update-*` skill — add a row whenever you create a new sync skill.
+
+## Craft skills
+
+Not every skill keeps something in sync. `.agent/skills/` also holds playbooks
+for work that is easy to do badly, and those carry no `.last-updated` and no
+registry row.
+
+| Skill          | When to run                                                                                                     |
+| -------------- | --------------------------------------------------------------------------------------------------------------- |
+| `glyph-design` | Whenever you draw or correct a tool glyph in `src/app/icons.tsx` — with a design sheet to match or without one. |
+
+**Do not edit a glyph by eye.** One that reads fine in the editor ships at 18
+pixels beside twenty others, and "a bit heavy" is a number you can have in
+seconds. The skill's scripts render the set, measure stroke weight and ink
+density against the design — or against the set's own median when there is no
+design — and overlay the two. They need nothing installed.
 
 ## Communication
 

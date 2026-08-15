@@ -47,11 +47,6 @@
 // happens to the numbers.
 
 import {
-  ImageUpIcon,
-  PencilIcon,
-} from "@niclaslindstedt/oss-framework/components";
-
-import {
   ArrowIcon,
   BrushIcon,
   BucketIcon,
@@ -64,10 +59,12 @@ import {
   HandIcon,
   HexagonIcon,
   HighlighterIcon,
+  ImageIcon,
   LassoIcon,
   LineIcon,
   MarkerIcon,
   NibIcon,
+  PencilIcon,
   PentagonIcon,
   RoundSquareIcon,
   SelectIcon,
@@ -586,7 +583,7 @@ export function registerBuiltinPlugins(): void {
     hidden: true,
     nameKey: "tools.image.name",
     descriptionKey: "tools.image.description",
-    icon: ImageUpIcon,
+    icon: ImageIcon,
     behaviour: imageBehaviour,
   });
 }
