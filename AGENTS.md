@@ -242,15 +242,40 @@ Not every skill keeps something in sync. `.agent/skills/` also holds playbooks
 for work that is easy to do badly, and those carry no `.last-updated` and no
 registry row.
 
-| Skill          | When to run                                                                                                     |
-| -------------- | --------------------------------------------------------------------------------------------------------------- |
-| `glyph-design` | Whenever you draw or correct a tool glyph in `src/app/icons.tsx` — with a design sheet to match or without one. |
+| Skill              | When to run                                                                                                           |
+| ------------------ | --------------------------------------------------------------------------------------------------------------------- |
+| `glyph-design`     | Whenever you draw or correct a tool glyph in `src/app/icons.tsx` — with a design sheet to match or without one.       |
+| `skill-reflection` | At BOTH ends of any session that loads a skill — read its lessons first, reflect them back into it before committing. |
 
 **Do not edit a glyph by eye.** One that reads fine in the editor ships at 18
 pixels beside twenty others, and "a bit heavy" is a number you can have in
 seconds. The skill's scripts render the set, measure stroke weight and ink
 density against the design — or against the set's own median when there is no
 design — and overlay the two. They need nothing installed.
+
+### A session that loads a skill owes it a reflection
+
+Skills only get better if sessions make them better, so **`skill-reflection`
+runs twice in any session that loads another skill**, and it is the only skill
+allowed to rewrite another's `SKILL.md`:
+
+- **At the START**, right after loading a skill — read its accumulated lessons,
+  narrowed to what the task touches:
+  `node scripts/skill-lessons.mjs <skill> --list`, then `--scope=<path>` /
+  `--concepts=<tags>`.
+- **At the END, before the commit** — record what the pass learned as a fragment
+  under `.agent/skills/<skill>/.lessons/` (never by appending to a `SKILL.md`,
+  which conflicts across parallel sessions), fix anything the skill said that
+  turned out WRONG, delete what went stale, merge what now says the same thing
+  twice, and promote anything true in 100% of that skill's runs into the
+  `SKILL.md` itself.
+
+The skill owns the rest: the fragment format (`title`, `date`, and the optional
+`scope`/`concepts` that make the filters work), the **size bars** the tool
+flags — a fragment over 350 words, a skill over 15 fragments or 4000 words of
+them, a `SKILL.md` over 5000 — the consolidation sweep they call for, and the
+standing question of whether a rule sitting in **this** file belongs in a skill
+instead.
 
 ## Communication
 
