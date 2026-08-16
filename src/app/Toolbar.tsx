@@ -266,13 +266,19 @@ export function Toolbar({
 
   return (
     // The toolbar is the last thing above the screen edge, and the app paints
-    // under the home indicator (`viewport-fit=cover`), so 10px is the whole of
+    // under the home indicator (`viewport-fit=cover`), so 15px is the whole of
     // what sits below the last row of buttons. Carrying the bottom safe-area
     // inset as well put them 44px clear of the edge on a phone — a strip of
     // empty surface as tall as a toolbar row, taken off the page for a home
     // indicator that floats over chrome perfectly happily.
+    //
+    // It was 10, and on an installed iOS PWA that read as the bottom row
+    // sitting *in* the home indicator rather than above it: the indicator is
+    // drawn over the toolbar, and a thumb reaching for the last row of buttons
+    // is the same thumb the system watches for a swipe up. Five pixels is what
+    // it takes for the row to clear it.
     <div
-      className="flex items-stretch gap-1.5 border-t border-line bg-surface px-2 pt-2 pb-[10px]"
+      className="flex items-stretch gap-1.5 border-t border-line bg-surface px-2 pt-2 pb-[15px]"
       role="toolbar"
       aria-label={t("canvas.toolbar")}
     >
