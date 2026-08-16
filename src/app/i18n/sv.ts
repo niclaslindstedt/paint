@@ -342,6 +342,14 @@ export const sv: Catalog = {
       "Vatten på papper som torkar steg för steg. Mycket långsammare.",
     washDetail: "Detaljnivå: {value} %",
     washDetailHint: "Lägre är snabbare och grövre.",
+    leadEngine: "Stift",
+    leadSimple: "Drag",
+    leadSimpleHint: "Snabb, och likadan på allt papper.",
+    leadSimulation: "Grafit",
+    leadSimulationHint:
+      "Ett stift tryckt ner i sidans egen tandning. Långsammare.",
+    leadDetail: "Detaljnivå: {value} %",
+    leadDetailHint: "Lägre är snabbare och grövre.",
   },
   presets: {
     pencil: {

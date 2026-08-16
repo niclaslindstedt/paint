@@ -852,6 +852,8 @@ export function CanvasScreen({
             checker={checker}
             washEngine={settings.washEngine}
             washDetail={settings.washDetail}
+            leadEngine={settings.leadEngine}
+            leadDetail={settings.leadDetail}
             fitToken={fitToken}
             refitToken={refitToken}
             onScaleChange={setScale}

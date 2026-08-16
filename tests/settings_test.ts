@@ -395,6 +395,7 @@ describe("withLiveSettings", () => {
       enabledPlugins: [...draft.enabledPlugins, "watercolor"],
       toolOrder: ["eraser", "pencil"],
       washEngine: "simulation",
+      leadEngine: "simulation",
     };
     const saved = withLiveSettings(draft, live);
     for (const key of LIVE_SETTINGS) expect(saved[key]).toEqual(live[key]);

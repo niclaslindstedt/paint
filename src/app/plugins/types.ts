@@ -37,6 +37,7 @@ import type { Rect } from "../geometry.ts";
 import type { Point, Stroke } from "../types.ts";
 import type { TKey } from "../i18n/index.ts";
 import type { SizeGauge } from "./gauge.ts";
+import type { LeadEngine } from "./lead.ts";
 import type { WashEngine } from "./wash.ts";
 
 /** A stroke that hasn't been committed to the document yet — the live gesture.
@@ -355,6 +356,17 @@ export type PaintDetail = {
    *  reason: it changes the picture, so every surface painting the same document
    *  has to be told the same number. Absent is all of it. */
   washDetail?: number;
+  /** Which pencil is in force (see `plugins/lead.ts`) — a *view* of the drawing
+   *  in exactly the way the wash engine above it is, handed down with the scale
+   *  and the sheet rather than recorded on a mark. Absent is the stroke model,
+   *  which is what every painter called directly gets and what this app has
+   *  always drawn. */
+  lead?: LeadEngine;
+  /** …and how finely that engine works a mark out, where it works anything out
+   *  at all (see `MIN_LEAD_DETAIL`). Handed down beside the engine and for the
+   *  same reason: it changes the picture, so every surface painting the same
+   *  document has to be told the same number. Absent is all of it. */
+  leadDetail?: number;
   /** The only part of the page this paint will be **kept**, in document
    *  coordinates — the window, a strip of it coming into view under a drag, or
    *  the patch a gesture has just grown into (see `trail.ts`). Absent means all

@@ -54,10 +54,32 @@ describe("the options a tool declares", () => {
       "washDetail",
     ]);
     expect(hasOptions(watercolor)).toBe(true);
+  });
+
+  it("hangs the pencil's engine off the pencil, the same way", () => {
+    // The second tool to have an opinion about how its own marks are painted,
+    // and the seam held: one more descriptor, no screen the wiser.
+    const graphite = pluginById("graphite");
+    expect(graphite?.options?.map((option) => option.id)).toEqual([
+      "leadEngine",
+      "leadDetail",
+    ]);
+    // …and the detail slider stays out of the way while the cheap engine is
+    // drawing, because there is no field for it to coarsen.
+    expect(
+      shownOptions(graphite!.options!, {
+        leadEngine: "simple",
+        leadDetail: 1,
+      }).map((option) => option.id),
+    ).toEqual(["leadEngine"]);
+    expect(hasOptions(graphite)).toBe(true);
     // …and by nothing else today. A tool with no opinion about how its marks
     // are painted declares none, and gets no such section at all.
     const withOptions = allPlugins().filter(hasOptions);
-    expect(withOptions.map((plugin) => plugin.id)).toEqual(["watercolor"]);
+    expect(withOptions.map((plugin) => plugin.id)).toEqual([
+      "graphite",
+      "watercolor",
+    ]);
   });
 
   it("names settings that exist, at the values they default to", () => {

@@ -54,6 +54,7 @@ import type { EffectPreview } from "./render.ts";
 import { visibleStrokes } from "./layers.ts";
 import { paintMarquee } from "./plugins/builtin/select.ts";
 import type { DraftStroke } from "./plugins/types.ts";
+import type { LeadEngine } from "./plugins/lead.ts";
 import type { WashEngine } from "./plugins/wash.ts";
 import { anyErases, paintStrokes, relayFixed, underlay } from "./render.ts";
 import { translateStrokes } from "./selection.ts";
@@ -102,6 +103,14 @@ export type Frame = {
    *  repaints every wash on the page without touching a stroke, so the cache
    *  has to be able to see it move (see `MIN_WASH_DETAIL`). */
   washDetail: number;
+  /** …and which pencil draws the graphite marks, for the same reason again:
+   *  switching engine redraws every pencil line on the page without touching a
+   *  stroke, so the cache has to be able to see it move (see
+   *  `plugins/lead.ts`). */
+  leadEngine: LeadEngine;
+  /** …and how finely it works them out, for the same reason once more (see
+   *  `MIN_LEAD_DETAIL`). */
+  leadDetail: number;
   /** Bumped whenever a bitmap finishes decoding — see `CacheSpec`. */
   decodedAt: number;
   /** An effect the dialog is setting up, shown on the layers it would land on
@@ -147,6 +156,8 @@ export function paintFrame(frame: Frame): void {
     checker: frame.checker,
     washEngine: frame.washEngine,
     washDetail: frame.washDetail,
+    leadEngine: frame.leadEngine,
+    leadDetail: frame.leadDetail,
     // The effect being set up, if a dialog is open on one. It goes through the
     // renderer rather than being composited over the finished frame, because an
     // effect lands on *layers*: what the preview shows has to be the same

@@ -39,6 +39,7 @@ import { cacheIdForBase } from "./app/pwa.ts";
 import { adoptDrawing } from "./app/pct.ts";
 import { imageStroke } from "./app/plugins/builtin/image.ts";
 import { resolveActiveTool } from "./app/plugins/registry.ts";
+import { setLeadDetail, setLeadEngine } from "./app/plugins/lead.ts";
 import { setWashDetail, setWashEngine } from "./app/plugins/wash.ts";
 import { applyBackdropVars, useAppSettings } from "./app/useAppSettings.ts";
 import { useNamespaces } from "./app/useNamespaces.ts";
@@ -271,14 +272,22 @@ export function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [settings.modalBackdropDarkness, settings.modalBackdropBlur]);
 
-  // Put the chosen watercolour engine in force. It is app-wide rather than
-  // threaded through each repaint so that every surface painting this document
-  // — the screen, the mark cache, the thumbnails, the page the dropper reads,
-  // the exported PNG — cannot disagree about it (see `plugins/wash.ts`).
+  // Put the chosen engines in force — the watercolour's and the pencil's. Both
+  // are app-wide rather than threaded through each repaint so that every
+  // surface painting this document — the screen, the mark cache, the
+  // thumbnails, the page the dropper reads, the exported PNG — cannot disagree
+  // about them (see `plugins/wash.ts` and `plugins/lead.ts`).
   useEffect(() => {
     setWashEngine(settings.washEngine);
     setWashDetail(settings.washDetail);
-  }, [settings.washEngine, settings.washDetail]);
+    setLeadEngine(settings.leadEngine);
+    setLeadDetail(settings.leadDetail);
+  }, [
+    settings.washEngine,
+    settings.washDetail,
+    settings.leadEngine,
+    settings.leadDetail,
+  ]);
 
   useEffect(() => {
     status("App started");

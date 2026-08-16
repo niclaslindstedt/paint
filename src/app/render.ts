@@ -54,6 +54,7 @@ import {
 import { paintRegion } from "./plugins/brushes.ts";
 import { pluginById } from "./plugins/registry.ts";
 import { applyInk, paintPath, paintRect, paintSegment } from "./plugins/ink.ts";
+import { leadDetail, leadEngine, type LeadEngine } from "./plugins/lead.ts";
 import { washDetail, washEngine, type WashEngine } from "./plugins/wash.ts";
 import { FULL_DETAIL, type PaintDetail } from "./plugins/types.ts";
 import { createSurface, type Surface } from "./surface.ts";
@@ -342,6 +343,22 @@ export type RenderOptions = InkContext & {
    *  passes the value it read so the mark cache can see it change, because a
    *  coarser field is a different picture of the same document. */
   washDetail?: number;
+  /** Which pencil draws the graphite marks on this repaint (see
+   *  `plugins/lead.ts`).
+   *
+   *  Absent — which is nearly every caller — means the one the app has in
+   *  force, for the wash engine's reason: the thumbnails, the size preview, the
+   *  page the colour dropper reads and the exported PNG cannot be allowed to
+   *  disagree about it. The same two callers set it, and for the same two
+   *  reasons: the canvas, so the mark cache can *see* it change, and the
+   *  pencil's own panel, which draws a sample of each engine side by side. */
+  leadEngine?: LeadEngine;
+  /** …and how finely it works them out (see `MIN_LEAD_DETAIL`). Absent means the
+   *  detail the app has in force, for the same reason the engine's absence does
+   *  — and it is set by the same caller for the same reason: the canvas passes
+   *  the value it read so the mark cache can see it change, because a coarser
+   *  field is a different picture of the same document. */
+  leadDetail?: number;
   /** Marks to leave off this repaint, by stroke id.
    *
    *  One caller: the canvas, while a selection is being dragged. The marks in
@@ -1035,9 +1052,9 @@ export function paintStrokes(
 }
 
 /** The detail to paint at: what the caller said, or what the context's own
- *  transform says, plus the sheet the marks are landing on and the watercolour
- *  engine in force. All three are resolved once per repaint rather than once
- *  per stroke. */
+ *  transform says, plus the sheet the marks are landing on and the two engines
+ *  in force. All of them are resolved once per repaint rather than once per
+ *  stroke. */
 function detailFor(
   ctx: CanvasRenderingContext2D,
   options: RenderOptions,
@@ -1047,6 +1064,8 @@ function detailFor(
     ground: groundProfile(options.ground),
     wash: options.washEngine ?? washEngine(),
     washDetail: options.washDetail ?? washDetail(),
+    lead: options.leadEngine ?? leadEngine(),
+    leadDetail: options.leadDetail ?? leadDetail(),
     // The same box the stroke cull uses, handed down so a painter can skip the
     // stamps that cannot reach it as well (see `PaintDetail.clip`). A mark that
     // covers the window is one stroke to the cull and three hundred cones to

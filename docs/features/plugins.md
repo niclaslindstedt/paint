@@ -693,22 +693,22 @@ exactly the document it would have been.
 A dial tunes the mark you are about to make. A tool can also declare an
 **option**, and that is a different animal: it says how marks of its kind are
 _painted_, for every drawing you own, including the ones already made. The
-watercolour brush is the only tool with any today — which of the two wash
-engines is painting, and how finely the heavier one resolves — and they sit in
-the same panel as its dials, under **Rendering**, above them.
+watercolour brush and the pencil have them today — which of the two engines
+each is drawn with, and how finely the heavier one works — and they sit in the
+same panel as that tool's dials, under **Rendering**, above them.
 
-They are in the brush's panel because that is where the answer is: a wash engine
-is a property of the brush rather than of the app, and it is a choice nobody can
-make by reading about it. So the two engines are shown rather than described —
-each is a swatch of the same stroke, on the same paper, in the ink you are
-holding, painted by the engine it names. Press one and the page behind repaints
-with it. (They used to be a section of Settings → Tools.)
+They are in the tool's own panel because that is where the answer is: an engine
+is a property of the implement rather than of the app, and it is a choice nobody
+can make by reading about it. So the engines are shown rather than described —
+each is a swatch of the same marks, on the same paper, painted by the engine it
+names. Press one and the page behind repaints with it. (They used to be a
+section of Settings → Tools.)
 
 Nothing about an option is recorded on a mark, and that is the point: a setting
 kept per stroke would mean changing it orphaned everything drawn before. It is a
 way of looking at the page, like the canvas theme — so a wash drawn with one
 engine paints with whichever is in force when the page is next painted, and a
-phone that cannot afford the simulation still opens a page painted with it on a
+phone that cannot afford a simulation still opens a page painted with it on a
 desktop.
 
 ## The fills and the dropper read the page

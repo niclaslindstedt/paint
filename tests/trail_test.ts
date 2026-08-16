@@ -125,6 +125,8 @@ function screen() {
       checker: ["#eee", "#ddd"],
       washEngine: "simple",
       washDetail: 1,
+      leadEngine: "simple",
+      leadDetail: 1,
       decodedAt: 0,
       preview: null,
       draft: null,

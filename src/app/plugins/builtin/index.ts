@@ -171,6 +171,7 @@ import {
   TYPE_GAUGE,
   WASH_GAUGE,
 } from "./gauges.ts";
+import { LEAD_OPTIONS } from "../leadOptions.ts";
 import { WASH_OPTIONS } from "../washOptions.ts";
 import { dropperBehaviour } from "./dropper.ts";
 import { fillBehaviour } from "./fill.ts";
@@ -444,6 +445,12 @@ export function registerBuiltinPlugins(): void {
     // `PaintPlugin.fixedInk`) — the grade below is the only colour control a
     // pencil has, and it is already on the panel.
     fixedInk: true,
+    // …and, under the dials, the one rendering choice a pencil has: which of
+    // the two engines draws its marks (see `plugins/lead.ts`). The stroke model
+    // scatters graphite along the path; the simulation presses a lead into
+    // *this page's own sheet* and draws what the paper kept, which is why it is
+    // the pencil's option and not a setting somewhere about paper.
+    options: LEAD_OPTIONS,
     behaviour: freehandBehaviour({
       style: "graphite",
       // The other half of that: the grey the lead is. The grade picks it, the

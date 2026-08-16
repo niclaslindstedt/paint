@@ -33,6 +33,15 @@ connect a storage backend yourself.
   whatever dries — blooms, backruns, a frayed wet edge, granulation that rolls
   into the paper's valleys. Both read the same dials and the same paper; a
   browser that cannot run the simulation paints with the first one instead.
+- Draw with either of two pencil engines, switched the same way in the pencil's
+  own panel: the fast stroke model the app ships with, or a simulation that
+  presses a lead into the page's own paper and draws whatever the sheet kept —
+  a hard lead riding the peaks and leaving the valleys bare, a second pass
+  filling in what the first could not reach, a black it cannot go past however
+  long you shade, and the crowns of a canvas weave catching while the troughs
+  skip. The page's surface and grain dial decide all of it. A detail slider
+  trades fineness for speed, and a browser that cannot run it draws with the
+  first one instead.
 - Choose what the page is made of when the drawing is made, alongside its size:
   a solid digital sheet, four papers (cartridge, cold-pressed, rough,
   hot-pressed) or primed cotton duck. The sheet stays with the drawing and cannot

@@ -24,6 +24,11 @@ import { cursorFor, usePointerRing } from "./PointerRing.tsx";
 import { pluginById } from "./plugins/registry.ts";
 import type { CanvasProbe, DraftStroke, ToolContext } from "./plugins/types.ts";
 import {
+  DEFAULT_LEAD_DETAIL,
+  DEFAULT_LEAD_ENGINE,
+  type LeadEngine,
+} from "./plugins/lead.ts";
+import {
   DEFAULT_WASH_DETAIL,
   DEFAULT_WASH_ENGINE,
   type WashEngine,
@@ -143,6 +148,14 @@ type Props = {
   /** …and how finely it resolves (see `MIN_WASH_DETAIL`). Passed for the same
    *  reason the engine is: the mark cache has to see it change. */
   washDetail?: number;
+  /** …and which pencil draws a graphite mark (see `plugins/lead.ts`). A render
+   *  input for the same two reasons: the page has to repaint when the setting
+   *  changes, and the mark cache has to be able to tell the two engines' pixels
+   *  apart. */
+  leadEngine?: LeadEngine;
+  /** …and how finely it works them out. Passed for the same reason the engine
+   *  is: the mark cache has to see it change. */
+  leadDetail?: number;
   /** An effect the sidebar's dialog is setting up, shown on the layers it would
    *  land on and never kept (see `effects.ts`). A render input like the wash
    *  engine, and for the same reason: it is what makes the page repaint when a
@@ -204,6 +217,8 @@ export function PaintCanvas({
   checker,
   washEngine = DEFAULT_WASH_ENGINE,
   washDetail = DEFAULT_WASH_DETAIL,
+  leadEngine = DEFAULT_LEAD_ENGINE,
+  leadDetail = DEFAULT_LEAD_DETAIL,
   preview = null,
   fitToken = 0,
   refitToken = 0,
@@ -308,6 +323,8 @@ export function PaintCanvas({
     checker,
     washEngine,
     washDetail,
+    leadEngine,
+    leadDetail,
     preview,
     decodedAt,
     selection,
@@ -320,6 +337,8 @@ export function PaintCanvas({
     checker,
     washEngine,
     washDetail,
+    leadEngine,
+    leadDetail,
     preview,
     decodedAt,
     selection,
@@ -527,6 +546,8 @@ export function PaintCanvas({
     checker,
     washEngine,
     washDetail,
+    leadEngine,
+    leadDetail,
     preview,
     decodedAt,
     selection,

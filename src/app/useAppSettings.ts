@@ -42,6 +42,13 @@ import {
 } from "./presets.ts";
 import type { PaintPlugin } from "./plugins/types.ts";
 import {
+  DEFAULT_LEAD_DETAIL,
+  DEFAULT_LEAD_ENGINE,
+  clampLeadDetail,
+  isLeadEngine,
+  type LeadEngine,
+} from "./plugins/lead.ts";
+import {
   DEFAULT_WASH_DETAIL,
   DEFAULT_WASH_ENGINE,
   clampWashDetail,
@@ -177,6 +184,23 @@ export type AppSettings = {
    *  the cost of a wash goes as the square of it, so it is what makes the
    *  heavier engine usable on a page full of washes, or on an older phone. */
   washDetail: number;
+  /** Which pencil draws a graphite mark (see `plugins/lead.ts`).
+   *
+   *  A setting rather than a property of a drawing, for the wash engine's
+   *  reason: it is a *view*. A sketch drawn with one draws with whichever is in
+   *  force, so switching cannot orphan work — and a phone that cannot afford
+   *  the simulation can still open a page drawn with it on a desktop.
+   *
+   *  Set from the pencil's own panel rather than from a page in Settings: it is
+   *  a property of the pencil, and it is a choice nobody can make without
+   *  drawing with it (see `plugins/leadOptions.ts`). */
+  leadEngine: LeadEngine;
+  /** …and how finely that simulation works a mark out, 0.1 to 1 (see
+   *  `MIN_LEAD_DETAIL`). The wash's own detail slider one shelf along, and it
+   *  buys the same thing: the cost of a pencil mark goes as the square of it, so
+   *  this is what makes the heavier engine usable on a page full of sketch
+   *  strokes, or on an older phone. */
+  leadDetail: number;
   /** Whether shape tools fill rather than outline. */
   filled: boolean;
   /** Paint the canvas over a grid, so a sketch of boxes and arrows lines up. */
@@ -287,6 +311,14 @@ const BASE_SETTINGS: Omit<AppSettings, "enabledPlugins"> = {
   // that quietly painted a coarser wash than its own sample showed would be
   // lying about its picture. Turning it down is a trade the user makes.
   washDetail: DEFAULT_WASH_DETAIL,
+  // The stroke model out of the box here too, and for the same reason: the
+  // sheet simulation is the better picture of a pencil and it costs a field per
+  // mark, which on a page of a thousand sketch strokes is a real difference.
+  leadEngine: DEFAULT_LEAD_ENGINE,
+  // …and all of its field when it is the one drawing, for the wash's reason:
+  // a build that quietly drew a coarser mark than its own sample showed would
+  // be lying about its picture.
+  leadDetail: DEFAULT_LEAD_DETAIL,
   filled: false,
   showGrid: false,
   // On out of the box: the first thing a new user does is try the tools, and a
@@ -534,6 +566,9 @@ export function parseSettings(raw: string): AppSettings {
   // the setting showing nothing selected.
   if (!isWashEngine(merged.washEngine)) merged.washEngine = base.washEngine;
   merged.washDetail = clampWashDetail(merged.washDetail);
+  // …and the same for the pencil's, for the same reason.
+  if (!isLeadEngine(merged.leadEngine)) merged.leadEngine = base.leadEngine;
+  merged.leadDetail = clampLeadDetail(merged.leadDetail);
   return merged;
 }
 
@@ -823,6 +858,8 @@ export const LIVE_SETTINGS = [
   "toolOrder",
   "washEngine",
   "washDetail",
+  "leadEngine",
+  "leadDetail",
   // The New image shelf, for the same reason as the switchboard above it: the
   // Canvas tab is a list you *manage* — make one, name it, throw it away — and
   // an editor with its own Save inside a dialog with another Save is two

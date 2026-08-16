@@ -93,6 +93,15 @@ the same [`oss-framework`](https://github.com/niclaslindstedt/oss-framework).
   and a rim that gathers where the wash actually stopped. It is much slower, so
   it is opt-in, a detail slider beside it trades fineness back for speed, and
   any browser that cannot run it paints with the first one instead.
+- **A pencil that knows what paper it is on.** The pencil has the same pair of
+  engines in the same place, and the second one presses a lead into _this
+  page's own sheet_: a hard lead rides the peaks and leaves the valleys bare —
+  a broken sparkle on rough stock, very nearly solid on hot-pressed — shading a
+  patch twice fills in what the first pass could not reach, a patch of paper
+  holds only so much graphite before it stops taking any, and on cotton duck the
+  lead catches the crowns of the weave and skips the troughs. The grain dial you
+  set when you made the page moves all of it. Opt-in and slider-tuned like the
+  wash, and it falls back to the fast one the same way.
 - **Brushes that are their medium.** The round brush is a head of hair: it lays
   down opaque paint with the hairs' partings scratched through it, frays at the
   sides, and runs dry towards the end of a long drag. The flat is the same head

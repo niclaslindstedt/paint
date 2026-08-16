@@ -52,6 +52,35 @@ export function driftNoise(t: number, seed: number): number {
   return a + (b - a) * u;
 }
 
+/** The same thing over a surface: smooth pseudo-random noise in [0, 1) at a
+ *  point on the page, rather than at a distance along a stroke.
+ *
+ *  `driftNoise` is what a brush head twisting as it travels needs; this is what
+ *  a *sheet* needs — a value that varies continuously in both directions, so a
+ *  field sampled finer than the lattice reads as high ground and low ground
+ *  instead of as squares. Bilinear between four hashed corners, each axis eased
+ *  by the same smoothstep the 1-D one uses, so the two agree about what "smooth"
+ *  means.
+ *
+ *  Anchored to whatever coordinates it is handed. Every caller hands it page
+ *  coordinates, which is what makes two marks that overlap agree about where the
+ *  paper is low. */
+export function areaNoise(x: number, y: number, seed: number): number {
+  const cx = Math.floor(x);
+  const cy = Math.floor(y);
+  const fx = x - cx;
+  const fy = y - cy;
+  const ux = fx * fx * (3 - 2 * fx);
+  const uy = fy * fy * (3 - 2 * fy);
+  const a = hashedRandom(cx, cy, seed);
+  const b = hashedRandom(cx + 1, cy, seed);
+  const c = hashedRandom(cx, cy + 1, seed);
+  const d = hashedRandom(cx + 1, cy + 1, seed);
+  const top = a + (b - a) * ux;
+  const bottom = c + (d - c) * ux;
+  return top + (bottom - top) * uy;
+}
+
 /** The smooth 0→1 ramp between two edges — the falloff of everything here that
  *  fades rather than stops: the shoulder of a nib, the fray at the edge of a
  *  crayon's face, the outer half of a rubber. */
