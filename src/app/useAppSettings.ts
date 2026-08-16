@@ -13,6 +13,7 @@ import {
   cleanCanvasPresets,
   cleanHiddenSizes,
   moveInOrder,
+  type CanvasKit,
   type CanvasPreset,
 } from "./canvasPresets.ts";
 import {
@@ -922,6 +923,43 @@ export function withPreset(
         : { ...settings.toolSizes, [tool]: preset.size },
     toolDials: dials,
   };
+}
+
+/** `settings` with a canvas preset's kit **put in force** — which member of each
+ *  family its button opens on, and how each tool it has set up is set.
+ *
+ *  This is the half of a kit that cannot be a projection. Which tools are in the
+ *  toolbar is read fresh on every render from the kit (see `toolbarFor`), and it
+ *  has to be: nothing can *change* it while you are drawing. A width and a dial
+ *  are the opposite — the size panel is one press away and moving it is the
+ *  ordinary thing to do — so a kit that kept overriding them would be a panel
+ *  whose sliders sprang back. So the kit is applied **when a page made on it is
+ *  opened**: the app presses those preset chips for you, once, and everything
+ *  after that is yours (see the effect in `App.tsx`).
+ *
+ *  Pure, and it hands `settings` straight back when the kit has nothing to say —
+ *  so a page with a plain kit, or none, never writes to the blob at all.
+ *
+ *  Structurally typed on the kit rather than importing one, for the reason
+ *  `toolbarFor` is: this module already imports the canvas presets, and the
+ *  model must not have to import the store back. */
+export function withKit(
+  settings: AppSettings,
+  kit: CanvasKit | undefined,
+): AppSettings {
+  if (!kit) return settings;
+  let next = settings;
+  const groups = Object.entries(kit.groupTools ?? {});
+  if (groups.length > 0) {
+    next = {
+      ...next,
+      groupTools: { ...next.groupTools, ...Object.fromEntries(groups) },
+    };
+  }
+  for (const [tool, preset] of Object.entries(kit.toolSettings ?? {})) {
+    next = withPreset(next, tool, preset);
+  }
+  return next;
 }
 
 /** The presets saved for one tool, likewise. */

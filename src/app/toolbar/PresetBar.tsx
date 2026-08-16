@@ -164,49 +164,12 @@ export function PresetBar({
         onApply={onApply}
       />
 
-      {presets.length > 0 && (
-        <>
-          <span className="text-xs font-bold tracking-wide text-muted uppercase">
-            {t("canvas.presets")}
-          </span>
-          <div className="flex flex-wrap gap-1">
-            {presets.map((preset) => (
-              <span key={preset.id} className="relative inline-flex">
-                <button
-                  type="button"
-                  onClick={() => onApply(preset)}
-                  aria-pressed={preset.id === current?.id}
-                  title={preset.name}
-                  className={`inline-flex max-w-[9.5rem] cursor-pointer items-center gap-1 rounded border px-2 py-1 text-xs ${
-                    preset.id === current?.id
-                      ? "border-accent bg-accent/15 text-accent"
-                      : "border-line text-fg hover:bg-surface-2"
-                  }`}
-                >
-                  {preset.glyph && (
-                    <Glyph
-                      name={preset.glyph}
-                      className="h-3.5 w-3.5 shrink-0"
-                    />
-                  )}
-                  <span className="truncate">{preset.name}</span>
-                </button>
-                {/* A saved thing you cannot unsave is a list that only ever
-                    grows. */}
-                <button
-                  type="button"
-                  onClick={() => onDelete(preset.id)}
-                  aria-label={`${t("canvas.presetForget")} ${preset.name}`}
-                  title={t("canvas.presetForget")}
-                  className="absolute -top-1 -right-1 h-3.5 w-3.5 cursor-pointer rounded-full border border-line bg-surface text-[9px] leading-none text-muted hover:text-fg-bright"
-                >
-                  ×
-                </button>
-              </span>
-            ))}
-          </div>
-        </>
-      )}
+      <SavedPresets
+        presets={presets}
+        active={current?.id}
+        onApply={onApply}
+        onDelete={onDelete}
+      />
 
       {saving && (
         <div className="flex flex-col gap-1.5 rounded border border-line bg-surface-2/50 p-2">
@@ -258,6 +221,78 @@ export function PresetBar({
         </div>
       )}
     </div>
+  );
+}
+
+/** The row of tools the *user* saved for this one.
+ *
+ *  Its own component for `ShippedPresets`'s reason: two panels show it — this
+ *  one, and the tool editor inside a canvas preset, where a page is set up with
+ *  a tool you already built. There the chips are the whole point ("my sketching
+ *  pencil, on every sketchbook page") and there is nothing to unsave, which is
+ *  why the × is the one thing that is optional.
+ *
+ *  Not there at all until something has been saved: an empty heading over an
+ *  empty row is a promise of a feature rather than a feature. */
+export function SavedPresets({
+  presets,
+  active,
+  onApply,
+  onDelete,
+}: {
+  presets: readonly ToolPreset[];
+  /** The one the tool currently *is*, if it is one of them — an observation,
+   *  not a mode (see this module's header). */
+  active?: string;
+  onApply: (preset: PresetSettings) => void;
+  /** Absent where a saved tool is only being read, and then the chips carry no
+   *  ×. */
+  onDelete?: (id: string) => void;
+}) {
+  const t = useT();
+  if (presets.length === 0) return null;
+
+  return (
+    <>
+      <span className="text-xs font-bold tracking-wide text-muted uppercase">
+        {t("canvas.presets")}
+      </span>
+      <div className="flex flex-wrap gap-1">
+        {presets.map((preset) => (
+          <span key={preset.id} className="relative inline-flex">
+            <button
+              type="button"
+              onClick={() => onApply(preset)}
+              aria-pressed={preset.id === active}
+              title={preset.name}
+              className={`inline-flex max-w-[9.5rem] cursor-pointer items-center gap-1 rounded border px-2 py-1 text-xs ${
+                preset.id === active
+                  ? "border-accent bg-accent/15 text-accent"
+                  : "border-line text-fg hover:bg-surface-2"
+              }`}
+            >
+              {preset.glyph && (
+                <Glyph name={preset.glyph} className="h-3.5 w-3.5 shrink-0" />
+              )}
+              <span className="truncate">{preset.name}</span>
+            </button>
+            {/* A saved thing you cannot unsave is a list that only ever
+                grows. */}
+            {onDelete && (
+              <button
+                type="button"
+                onClick={() => onDelete(preset.id)}
+                aria-label={`${t("canvas.presetForget")} ${preset.name}`}
+                title={t("canvas.presetForget")}
+                className="absolute -top-1 -right-1 h-3.5 w-3.5 cursor-pointer rounded-full border border-line bg-surface text-[9px] leading-none text-muted hover:text-fg-bright"
+              >
+                ×
+              </button>
+            )}
+          </span>
+        ))}
+      </div>
+    </>
   );
 }
 

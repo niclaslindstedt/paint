@@ -779,7 +779,19 @@ export const en = {
       ownToolsHint:
         "A page made on this preset opens with the tools below instead of your usual toolbar — every time it is opened, not just the first. Switch it on and it starts from the toolbar you have now.",
       kitHint:
-        "In the order the buttons will sit in on this page. Everything else is the same rack as Settings → Tools — it is just this page's copy of it.",
+        "In the order the buttons will sit in on this page. Press a tool's mark to set that tool up for this page; everything else is the same rack as Settings → Tools.",
+      kitCustomize: "Set {name} up for this page",
+      kitBack: "This page's tools",
+      kitDefaultTitle: "Default tool",
+      kitDefaultHint:
+        "Which of them this page's button opens on. Without one it opens on whichever you used last, which is a fact about your afternoon rather than about this page.",
+      kitDefaultAny: "Whichever you had last",
+      kitToolTitle: "How it is set",
+      kitOwnTool: "Its own {name}",
+      kitOwnToolHint:
+        "A page made on this preset opens with {name} set the way you set it here — the width and every knob — instead of however you last left it. Switch it on and it starts from how you have it now.",
+      kitToolEach:
+        "Each of them keeps its own settings on this page — pick the one you are setting up. It says nothing about which the page opens on.",
       ownSheet: "Its own canvas type",
       ownSheetHint:
         "Picking this preset in New image puts this sheet in the picker. Only a suggestion: the sheet is painted into every mark made on it, so it stays yours to change before you press Create.",

@@ -18,6 +18,7 @@ import {
   MAX_CANVAS_PRESET_NAME,
   SOLID_STOCK,
   canvasPresetName,
+  kitCustomizes,
   moveInOrder,
   withTool,
   type CanvasKit,
@@ -26,8 +27,10 @@ import {
 import { defaultGrain } from "../ground.ts";
 import { GroundPicker } from "../GroundPicker.tsx";
 import { useT } from "../i18n/index.ts";
-import { orderedEntries } from "../plugins/registry.ts";
+import { orderedEntries, type ToolbarEntry } from "../plugins/registry.ts";
 import type { Ground } from "../types.ts";
+import type { AppSettings } from "../useAppSettings.ts";
+import { KitToolEditor } from "./kitTool.tsx";
 import { isCore, Switch, ToolRow } from "./toolRow.tsx";
 
 // One canvas preset, open for editing — a name, a page size, the sheet that page
@@ -45,6 +48,12 @@ import { isCore, Switch, ToolRow } from "./toolRow.tsx";
 // toolbar as it stands right now — nobody wants to build a sixteen-tool rack
 // from nothing, and "the toolbar I have, minus three" is what a sketchbook
 // actually is.
+//
+// **And each of those tools opens.** Pressing a row's glyph goes one level
+// further in, to which member of a family the page's button stands for and how
+// the tool itself is set — the kneaded rubber at 20 mm rather than "an eraser"
+// (see `kitTool.tsx`). Nothing is seeded there: an empty answer is "however you
+// have it", which is what every page did before a kit could say otherwise.
 //
 // **The sheet is a suggestion, and the tools are not.** Both are opt-in, but
 // they land differently: a preset's tools *are* the toolbar of every page made on
@@ -64,6 +73,7 @@ import { isCore, Switch, ToolRow } from "./toolRow.tsx";
 export function CanvasPresetEditor({
   draft,
   seed,
+  settings,
   dark,
   onSave,
   onCancel,
@@ -74,6 +84,9 @@ export function CanvasPresetEditor({
   /** The kit switching "its own tools" on starts from — the app-wide toolbar as
    *  it stands right now (see the note above). */
   seed: CanvasKit;
+  /** The app's own settings: where a tool set up for this page is seeded from,
+   *  and where the tools you saved for yourself come from (see `kitTool.tsx`). */
+  settings: AppSettings;
   /** Whether the app is painting dark — the two greys the stock swatches are
    *  drawn on, exactly as the new-image dialog resolves them. */
   dark: boolean;
@@ -96,6 +109,9 @@ export function CanvasPresetEditor({
   // as the plain solid one — that is a stock like any other, and a preset can
   // mean it.
   const [ground, setGround] = useState<Ground | null>(draft.ground ?? null);
+  // The tool of the kit whose own page is open, or `null` for this one. A third
+  // level, and it takes the page for the reason this editor takes the tab.
+  const [tool, setTool] = useState<ToolbarEntry | null>(null);
 
   // The page the stock swatches are painted on. A canvas preset says nothing
   // about the page's *colour* — that is picked when the page is made — so the
@@ -107,6 +123,22 @@ export function CanvasPresetEditor({
   const parsed = parseCanvasSize(size.width, size.height);
   const named = canvasPresetName(name);
   const ready = parsed !== null && named !== null;
+
+  // One tool of the kit, open. It writes into the same staged kit as the list
+  // it came from, so nothing it does lands until this editor's Save either.
+  if (tool && kit) {
+    return (
+      <KitToolEditor
+        entry={tool}
+        kit={kit}
+        settings={settings}
+        pageColor={pageColor}
+        dark={pageIsDark}
+        onChange={setKit}
+        onBack={() => setTool(null)}
+      />
+    );
+  }
 
   return (
     <div>
@@ -180,7 +212,7 @@ export function CanvasPresetEditor({
           />
         </div>
 
-        {kit && <KitList kit={kit} onChange={setKit} />}
+        {kit && <KitList kit={kit} onChange={setKit} onOpen={setTool} />}
       </Section>
 
       <Section title={t("newImage.canvasTypeLabel")}>
@@ -290,13 +322,20 @@ export function CanvasPresetEditor({
 }
 
 /** The tools this page is worked with — the same list Settings → Tools shows,
- *  writing into one canvas preset rather than into the app. */
+ *  writing into one canvas preset rather than into the app.
+ *
+ *  With one thing that list has no use for: **each row's glyph opens the tool**
+ *  (see `kitTool.tsx`), where the page says which member of a family its button
+ *  stands for and how the tool is set. A row wears a dot when this page has
+ *  something of its own to say about it. */
 function KitList({
   kit,
   onChange,
+  onOpen,
 }: {
   kit: CanvasKit;
   onChange: (next: CanvasKit) => void;
+  onOpen: (entry: ToolbarEntry) => void;
 }) {
   const t = useT();
   const entries = orderedEntries(kit.order);
@@ -311,6 +350,8 @@ function KitList({
               entry={entry}
               checked={isCore(entry) || kit.tools.includes(entry.id)}
               locked={isCore(entry)}
+              onCustomize={() => onOpen(entry)}
+              customized={kitCustomizes(kit, entry.id, entryTools(entry))}
               onChange={(next) => onChange(withTool(kit, entry.id, next))}
               onMoveUp={
                 index > 0
@@ -336,6 +377,13 @@ function KitList({
       </ul>
     </>
   );
+}
+
+/** The tools one row stands for: a family's members, or the lone tool itself. */
+function entryTools(entry: ToolbarEntry): string[] {
+  return entry.kind === "group"
+    ? entry.members.map((member) => member.id)
+    : [entry.plugin.id];
 }
 
 /** One side of the page. The same plain input the typed page in New image uses,

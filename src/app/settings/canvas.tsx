@@ -88,6 +88,7 @@ export function CanvasTab({
       <CanvasPresetEditor
         draft={editing}
         seed={seedKit(settings)}
+        settings={settings}
         dark={dark}
         onSave={(next) => {
           update("canvasPresets", saveCanvasPreset(presets, next));
@@ -210,7 +211,14 @@ export function CanvasTab({
 /** The kit a new canvas preset's tools start from: the app-wide toolbar exactly as
  *  it stands, switches and order alike. The order is written out in full rather
  *  than left empty, so the arrows in the editor have a list to walk even on an
- *  install that has never reordered anything. */
+ *  install that has never reordered anything.
+ *
+ *  The two maps a kit can also hold — which member of a family its button opens
+ *  on, and how a tool is set — are deliberately **not** seeded. They are the
+ *  half of a kit that says something the toolbar never did, and a new preset
+ *  that quietly pinned your current shape and your current pencil width would be
+ *  making claims nobody typed. Empty means "however you have it", which is what
+ *  every page did before a kit could say otherwise. */
 function seedKit(settings: AppSettings): CanvasKit {
   return {
     tools: [...settings.enabledPlugins],

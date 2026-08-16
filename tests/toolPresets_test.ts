@@ -31,6 +31,7 @@ import {
   defaultSettings,
   gaugeFor,
   toolSize,
+  withKit,
   withPreset,
 } from "../src/app/useAppSettings.ts";
 
@@ -254,6 +255,77 @@ describe("wearing one", () => {
       opacity: 0.45,
       feather: wash.dials.feather,
     });
+  });
+});
+
+// A canvas preset's kit can press these chips for you: a page opens with the
+// family member it is worked with in the button and that tool set the way the
+// page is worked (see `canvasPresets.ts`). It is the same apply, once, when the
+// page is opened — so what is checked here is that it *is* the same apply, and
+// that a kit with nothing to say writes nothing at all.
+describe("a page that comes set up", () => {
+  const rubber = pluginById("rubber")!;
+  const kneaded = toolPresets(rubber).find((p) => p.id === "kneaded")!;
+  const kit = {
+    tools: [],
+    order: [],
+    groupTools: { eraser: "rubber" },
+    toolSettings: { rubber: { size: kneaded.size, dials: kneaded.dials } },
+  };
+
+  it("puts the family's default and the tool's own settings in force", () => {
+    const opened = withKit(defaultSettings(), kit);
+    expect(opened.groupTools.eraser).toBe("rubber");
+    expect(toolSize(opened, "rubber")).toBe(kneaded.size);
+    expect(opened.toolDials.rubber).toEqual({ pressure: 0.5 });
+  });
+
+  it("puts a tool tuned this afternoon back the way the page wants it", () => {
+    const fattened = withPreset(
+      defaultSettings(),
+      "rubber",
+      toolPresets(rubber).find((p) => p.id === "top")!,
+    );
+    const opened = withKit(fattened, kit);
+    expect(opened.toolDials.rubber).toEqual({ pressure: 0.5 });
+  });
+
+  it("sets up every member of a family, not only the one it opens on", () => {
+    // A page opens on one of them and is worked with both: the kneaded rubber
+    // for lifting a highlight, the block eraser for clearing a passage. The
+    // settings are kept per tool, so which one the button opens on is a
+    // separate answer from how each of them is set.
+    const eraser = pluginById("eraser")!;
+    const block = toolPresets(eraser).find((p) => p.id === "block")!;
+    const opened = withKit(defaultSettings(), {
+      ...kit,
+      toolSettings: {
+        rubber: { size: kneaded.size, dials: kneaded.dials },
+        eraser: { size: block.size, dials: block.dials },
+      },
+    });
+    expect(opened.groupTools.eraser).toBe("rubber");
+    expect(toolSize(opened, "rubber")).toBe(kneaded.size);
+    expect(toolSize(opened, "eraser")).toBe(block.size);
+  });
+
+  it("leaves the tools it says nothing about alone", () => {
+    const tuned = withPreset(
+      defaultSettings(),
+      "paintbrush",
+      toolPresets(pluginById("paintbrush")!).find((p) => p.id === "dry")!,
+    );
+    expect(withKit(tuned, kit).toolDials.paintbrush).toEqual(
+      tuned.toolDials.paintbrush,
+    );
+  });
+
+  it("hands the settings straight back when there is nothing to put", () => {
+    const settings = defaultSettings();
+    expect(withKit(settings, undefined)).toBe(settings);
+    expect(withKit(settings, { tools: ["marker"], order: ["marker"] })).toBe(
+      settings,
+    );
   });
 });
 

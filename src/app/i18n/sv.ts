@@ -722,7 +722,19 @@ export const sv: Catalog = {
       ownToolsHint:
         "En sida som skapats på den här förinställningen öppnas med verktygen nedan i stället för din vanliga verktygsrad — varje gång den öppnas, inte bara första. Slår du på det utgår den från verktygsraden du har nu.",
       kitHint:
-        "I den ordning knapparna kommer att sitta på den här sidan. I övrigt är det samma ställ som Inställningar → Verktyg — det är bara den här sidans egen kopia av det.",
+        "I den ordning knapparna kommer att sitta på den här sidan. Tryck på ett verktygs märke för att ställa i ordning just det verktyget för den här sidan; i övrigt är det samma ställ som Inställningar → Verktyg.",
+      kitCustomize: "Ställ i ordning {name} för den här sidan",
+      kitBack: "Den här sidans verktyg",
+      kitDefaultTitle: "Förvalt verktyg",
+      kitDefaultHint:
+        "Vilket av dem den här sidans knapp öppnas på. Utan ett val öppnas den på det du använde senast, vilket säger mer om din eftermiddag än om den här sidan.",
+      kitDefaultAny: "Det du hade senast",
+      kitToolTitle: "Hur det är inställt",
+      kitOwnTool: "Egen {name}",
+      kitOwnToolHint:
+        "En sida som skapats på den här förinställningen öppnas med {name} inställt som du ställer det här — bredden och varje ratt — i stället för hur du senast lämnade det. Slår du på det utgår det från hur du har det nu.",
+      kitToolEach:
+        "Var och en av dem har sina egna inställningar på den här sidan — välj den du ställer i ordning. Det säger ingenting om vilken sidan öppnas på.",
       ownSheet: "Egen typ av rityta",
       ownSheetHint:
         "Väljer du den här förinställningen i Ny bild ligger det här arket redan i väljaren. Bara ett förslag: arket målas in i varje streck som görs på det, så det är ditt att ändra innan du trycker Skapa.",

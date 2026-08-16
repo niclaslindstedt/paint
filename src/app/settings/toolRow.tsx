@@ -26,6 +26,12 @@ import type { ToolbarEntry } from "../plugins/registry.ts";
 // the right. The framework's `ToggleRow` puts a checkbox on the *left* and
 // carries no glyph, which is the opposite arrangement — so the row is app-owned.
 //
+// In a canvas preset's kit that glyph is also a **button**: a page can say which
+// member of a family it opens on and how each tool is set, and the mark is the
+// tool, so pressing the tool is how you go and set it up (see `kitTool.tsx`).
+// The app-wide list has no such page to set up, so its glyph stays part of the
+// label — one row, two lists, and the difference is a prop.
+//
 // A row is not always one tool. A family that shares a toolbar button shares a
 // row here too — one switch for the eleven shapes, because "do you want shapes"
 // is a question worth asking once (see `ToolGroup`). Its glyph is the family's
@@ -51,6 +57,8 @@ export function ToolRow({
   onChange,
   onMoveUp,
   onMoveDown,
+  onCustomize,
+  customized = false,
 }: {
   entry: ToolbarEntry;
   checked: boolean;
@@ -59,31 +67,60 @@ export function ToolRow({
   /** Absent at the ends of the list, where there is nowhere to go. */
   onMoveUp?: () => void;
   onMoveDown?: () => void;
+  /** Set this tool up for the page being edited — a canvas preset's kit only,
+   *  and then the **glyph becomes the button** (see `kitTool.tsx`). The mark is
+   *  the tool, so pressing the tool to set the tool up costs the row nothing;
+   *  the app-wide list passes none of this, and its glyph stays part of the
+   *  label the way it always was. */
+  onCustomize?: () => void;
+  /** Whether that page already says something of its own about this tool — the
+   *  glyph then wears a dot, the way a tuned tool's cog does over the canvas. */
+  customized?: boolean;
 }) {
   const t = useT();
   const descriptor = entry.kind === "group" ? entry.group : entry.plugin;
   const Icon = descriptor.icon;
   const name = t(descriptor.nameKey);
   const shortcut = entry.kind === "tool" ? entry.plugin.shortcut : undefined;
+  // The tool's own mark, in the box it occupies in the toolbar — so a row here
+  // and a button there are recognisably the same thing.
+  const mark = <Icon className="h-[18px] w-[18px]" />;
+  const markClass = `relative inline-flex h-8 w-8 shrink-0 items-center justify-center rounded border ${
+    checked
+      ? "border-accent/60 bg-accent/10 text-accent"
+      : "border-line text-muted"
+  }`;
   return (
     <div className="flex items-center gap-2 rounded px-1 py-1.5">
+      {/* Outside the label when it is a button of its own: inside it, every
+          press on the glyph would flick the switch beside it. */}
+      {onCustomize && (
+        <button
+          type="button"
+          onClick={onCustomize}
+          aria-label={t("settings.canvas.kitCustomize", { name })}
+          title={t("settings.canvas.kitCustomize", { name })}
+          className={`${markClass} cursor-pointer hover:border-accent hover:text-accent`}
+        >
+          {mark}
+          {customized && (
+            <span
+              aria-hidden="true"
+              className="absolute -top-0.5 -right-0.5 h-1.5 w-1.5 rounded-full bg-accent"
+            />
+          )}
+        </button>
+      )}
       <label
         className={`flex min-w-0 flex-1 items-center gap-3 ${
           locked ? "" : "cursor-pointer"
         }`}
       >
-        {/* The tool's own mark, in the box it occupies in the toolbar — so a row
-            here and a button there are recognisably the same thing. */}
-        <span
-          aria-hidden="true"
-          className={`inline-flex h-8 w-8 shrink-0 items-center justify-center rounded border ${
-            checked
-              ? "border-accent/60 bg-accent/10 text-accent"
-              : "border-line text-muted"
-          }`}
-        >
-          <Icon className="h-[18px] w-[18px]" />
-        </span>
+        {!onCustomize && (
+          <span aria-hidden="true" className={markClass}>
+            {mark}
+          </span>
+        )}
 
         <span className="min-w-0 flex-1">
           <span className="flex flex-wrap items-baseline gap-x-2">

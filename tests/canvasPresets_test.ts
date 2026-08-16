@@ -11,12 +11,16 @@ import {
   canvasPresetName,
   cleanCanvasPresets,
   cleanHiddenSizes,
+  kitCustomizes,
+  kitGroupTool,
   moveInOrder,
   removeCanvasPreset,
   saveCanvasPreset,
   SOLID_STOCK,
   toolbarFor,
+  withGroupTool,
   withHidden,
+  withKitTool,
   withTool,
   type CanvasPreset,
 } from "../src/app/canvasPresets.ts";
@@ -170,6 +174,77 @@ describe("withTool", () => {
     expect(
       withTool({ tools: ["marker"], order: [] }, "marker", false).tools,
     ).toEqual([]);
+  });
+});
+
+// The other half of a kit: not *which* tools a page is worked with, but which
+// one of a family its button opens on and how each of them is set. Both maps are
+// sparse and both are meant to leave no trace when they are unset, so a preset
+// that has been set up and unset again is the preset it was.
+describe("withGroupTool", () => {
+  it("pins which member of a family the page opens on", () => {
+    const kit = withGroupTool({ tools: [], order: [] }, "erasers", "rubber");
+    expect(kit.groupTools).toEqual({ erasers: "rubber" });
+    expect(kitGroupTool(kit, "erasers")).toBe("rubber");
+  });
+
+  it("gives the answer back to the app, leaving no trace", () => {
+    const kit = withGroupTool({ tools: [], order: [] }, "erasers", "rubber");
+    expect(withGroupTool(kit, "erasers", null)).toEqual({
+      tools: [],
+      order: [],
+    });
+    expect(kitGroupTool(withGroupTool(kit, "erasers", null), "erasers")).toBe(
+      undefined,
+    );
+  });
+});
+
+describe("withKitTool", () => {
+  const kneaded = { size: 120, dials: { pressure: 0.4 } };
+
+  it("sets one tool up, and copies what it was handed", () => {
+    const dials = { pressure: 0.4 };
+    const kit = withKitTool({ tools: [], order: [] }, "rubber", {
+      size: 120,
+      dials,
+    });
+    dials.pressure = 1;
+    expect(kit.toolSettings).toEqual({ rubber: kneaded });
+  });
+
+  it("forgets one, leaving no trace", () => {
+    const kit = withKitTool({ tools: [], order: [] }, "rubber", kneaded);
+    expect(withKitTool(kit, "rubber", null)).toEqual({ tools: [], order: [] });
+  });
+
+  it("leaves the tools it says nothing about alone", () => {
+    const kit = withKitTool(
+      withKitTool({ tools: [], order: [] }, "rubber", kneaded),
+      "graphite",
+      { size: 4, dials: {} },
+    );
+    expect(Object.keys(kit.toolSettings!)).toEqual(["rubber", "graphite"]);
+  });
+});
+
+describe("kitCustomizes", () => {
+  const kit = withKitTool(
+    withGroupTool({ tools: [], order: [] }, "erasers", "rubber"),
+    "graphite",
+    { size: 4, dials: {} },
+  );
+
+  it("sees a family whose default this page has picked", () => {
+    expect(kitCustomizes(kit, "erasers", ["eraser", "rubber"])).toBe(true);
+  });
+
+  it("sees a tool this page has set up, whichever of a family it is", () => {
+    expect(kitCustomizes(kit, "graphite", ["graphite"])).toBe(true);
+  });
+
+  it("says nothing about a tool the page says nothing about", () => {
+    expect(kitCustomizes(kit, "shapes", ["rectangle", "ellipse"])).toBe(false);
   });
 });
 
@@ -406,6 +481,52 @@ describe("cleanCanvasPresets", () => {
       tools: ["from-the-future"],
       order: ["from-the-future"],
     });
+  });
+
+  it("reads a kit that sets its tools up back whole", () => {
+    const [kept] = cleanCanvasPresets([
+      {
+        id: "x",
+        name: "X",
+        size: { width: 100, height: 100 },
+        kit: {
+          tools: [],
+          order: [],
+          groupTools: { erasers: "rubber", shapes: 7 },
+          toolSettings: {
+            rubber: { size: 120, dials: { pressure: 0.4 } },
+            graphite: { size: "wide", dials: { lead: 4 } },
+            nothing: { dials: { bad: "x" } },
+            broken: "settings",
+          },
+        },
+      },
+    ]);
+    expect(kept!.kit).toEqual({
+      tools: [],
+      order: [],
+      // A member id that isn't one is dropped; so is a tool setup that says
+      // nothing at all once the values that aren't values have gone.
+      groupTools: { erasers: "rubber" },
+      toolSettings: {
+        rubber: { size: 120, dials: { pressure: 0.4 } },
+        // …but a width that isn't one only costs the width: the dials it was
+        // written with are still a way this page has the tool set.
+        graphite: { dials: { lead: 4 } },
+      },
+    });
+  });
+
+  it("leaves no empty maps behind for a kit that sets nothing up", () => {
+    const [kept] = cleanCanvasPresets([
+      {
+        id: "x",
+        name: "X",
+        size: { width: 100, height: 100 },
+        kit: { tools: ["marker"], order: ["marker"] },
+      },
+    ]);
+    expect(kept!.kit).toEqual({ tools: ["marker"], order: ["marker"] });
   });
 
   it("stops at the cap", () => {

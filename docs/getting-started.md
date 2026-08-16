@@ -166,10 +166,12 @@ shelf beside them.
 
 A preset can bring **its own tools**, which is the point of it: a page made on
 your sketchbook opens with a pencil, an eraser and nothing else, in the order you
-put them in, while the drawing beside it still has the whole toolbox. It can also
-suggest a **canvas type**, which lands in the picker when you choose the preset
-and is still yours to change before you press Create.
-[More](features/canvas.md).
+put them in, while the drawing beside it still has the whole toolbox. Press a
+tool's mark in that list and you can set the tool up as well — which of a family
+the button opens on, and the width and knobs it opens at — so the sketchbook's
+eraser is a kneaded rubber rather than just an eraser. It can also suggest a
+**canvas type**, which lands in the picker when you choose the preset and is
+still yours to change before you press Create. [More](features/canvas.md).
 
 ## Picking marks up again
 
