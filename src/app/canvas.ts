@@ -4,24 +4,20 @@
 // A sketchpad inside a dark app should be a dark sheet drawn on in light ink —
 // a white page in a black shell is a torch in the face, and switching the app
 // to a light theme should flip both back. So neither the page colour nor the
-// default ink is a fixed constant: both are *resolved* from the canvas theme,
-// which by default follows the app's own theme.
+// default ink is a fixed constant: both are *resolved* from the app's own theme.
 //
-// The two overrides sit at different levels, and that is deliberate:
-//
-//   - `canvasTheme` (Settings → Canvas) is a **preference**: auto / light /
-//     dark, applying to every drawing that hasn't pinned a colour.
-//   - a drawing's `background` is **document state**: pinning a page colour
-//     (a warm cream, a black board) travels with the drawing and syncs with it,
-//     and is left alone when the app theme changes.
+// A drawing may override the sheet, and that override is **document state**
+// rather than a preference: a page colour is picked when the drawing is made
+// (see `NewImageModal`), travels with it, syncs with it, and is left alone when
+// the app theme changes. There is no app-wide "draw on a dark page" switch —
+// a page that follows the theme, and a page that was given a colour of its own,
+// are the only two answers, and the second is asked once where every other
+// question about what the page *is* is asked.
 
 import {
   themeFamily,
   type ThemeAppearance,
 } from "@niclaslindstedt/oss-framework/theme";
-
-/** How the page colour is chosen. `auto` follows the app theme. */
-export type CanvasTheme = "auto" | "light" | "dark";
 
 /** The page a light canvas paints on, and the ink that reads on it. */
 export const LIGHT_PAGE = "#ffffff";
@@ -79,18 +75,23 @@ export function isDarkAppearance(appearance: ThemeAppearance): boolean {
     : window.matchMedia("(prefers-color-scheme: dark)").matches;
 }
 
-/** Resolve the canvas theme preference against the app's appearance. */
-export function isDarkCanvas(
-  canvasTheme: CanvasTheme,
-  appearance: ThemeAppearance,
-): boolean {
-  if (canvasTheme === "light") return false;
-  if (canvasTheme === "dark") return true;
-  return isDarkAppearance(appearance);
-}
+/** The page colours a drawing can be pinned to, beside "follow the app theme".
+ *
+ *  Three light sheets and three dark ones: plain white, a cool paper, a warm
+ *  cream, the app's own dark sheet, true black, and a slate. Short on purpose —
+ *  the choice is made while a drawing is being created, and a page of swatches
+ *  there is a catalogue rather than a decision. */
+export const PAGE_SWATCHES = [
+  "#ffffff",
+  "#f8fafc",
+  "#fef3c7",
+  "#161a20",
+  "#000000",
+  "#0f172a",
+] as const;
 
 /** The page colour to paint: the drawing's own pinned colour when it has one,
- *  otherwise the canvas theme's sheet. */
+ *  otherwise the sheet the app theme calls for. */
 export function resolvePageColor(
   background: string | undefined,
   dark: boolean,

@@ -268,12 +268,12 @@ the page every drawing was already on, so no migration step and no rewritten
 bytes (see `migrations.ts`).
 
 The **stock is chosen once**, in the dialog that makes the drawing
-(`NewDrawingModal`), and is not editable afterwards — the same treatment the page
-size gets, and for a stronger reason: a wet mark is composited _into_ the sheet
-it was made on, so restocking a finished page would repaint every mark on it as
-something the hand that drew them never saw. What Settings → Canvas still edits
-is the grain weight (`Ground.texture`), which scales what shows and never what
-the sheet does, and so is an ordinary page edit like pinning a colour.
+(`NewImageModal`), and is not editable afterwards — the same treatment the page
+size and the page colour get, and for a stronger reason: a wet mark is composited
+_into_ the sheet it was made on, so restocking a finished page would repaint every
+mark on it as something the hand that drew them never saw. `Ground.texture` (the
+grain weight) is still read at every paint and still travels in the file, so a
+page written with one keeps it; nothing in the app writes one today.
 
 The catalog is deliberately short — six stocks, comparable in one glance,
 because the shelf is read once under a Create button. Stocks that have been
@@ -400,12 +400,14 @@ drag has moved a window's width.
 
 ## The canvas is a window
 
-A page is whatever size it was created at — the new-drawing dialog asks, and
+A page is whatever size it was created at — the new-image dialog asks, and
 defaults to the screen's own resolution. The rules behind that question (the
 four presets, what "this screen" resolves to, and the one scale all four are
 _drawn_ at so they can be compared as rectangles) live in `canvasSize.ts`, pure
-and node-testable; `NewDrawingModal.tsx` is only the dialog around them, and the
-size reaches the document as the `init` patch `addDrawing` already took.
+and node-testable; `NewImageModal.tsx` is only the dialog around them, and the
+size reaches the document as the `init` patch `addDrawing` already took — along
+with the page's colour and its sheet, which the same dialog collects as one
+`PageMakeup` because all three are answers to what the page _is_.
 
 `transform.ts` is the other half of that story: mirroring, quarter turns,
 scaling, and resizing the sheet alone. All four are one map from a point on the
@@ -549,8 +551,8 @@ lives by: **nothing outside it may branch on a tool id.**
   towards grey).
 - `wash.ts` — which of the two is painting. Both read the same three dials
   (`water`, `pigment`, `granulation`) and the same sheet, so switching is a
-  change of _rendering_ and not of settings; the choice is a **view**, like the
-  canvas theme, and is never recorded on a stroke or on a drawing. The
+  change of _rendering_ and not of settings; the choice is a **view** and is
+  never recorded on a stroke or on a drawing. The
   simulation can always answer "not me" — no canvas to simulate on, a mark too
   small to be worth a field, a page-wide sweep whose cells would be wider than
   the brush — and the simple engine paints the mark instead, so a browser that

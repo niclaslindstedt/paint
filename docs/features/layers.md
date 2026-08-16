@@ -84,7 +84,7 @@ Deliberately simple for now: no per-layer opacity, no blend modes, no renaming,
 no merging, and no moving marks from one layer to another after they are drawn.
 The stack, what is on it, and what order it is in — that is the whole feature.
 The Background carries the page colour but is not where you _choose_ it — that
-is still Settings → Canvas.
+is the New image dialog, when the page is made.
 
 ## How it is stored
 

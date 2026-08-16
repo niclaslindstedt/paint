@@ -34,7 +34,6 @@ import {
   type Drawing,
   type Folder,
   type Filter,
-  type Ground,
   type Layer,
   type Stroke,
 } from "./types.ts";
@@ -574,24 +573,13 @@ export function usePaintStore(
     [patchActive],
   );
 
-  /** Pin the active page's colour, or hand it back to the canvas theme with
-   *  `undefined`. */
-  const setBackground = useCallback(
-    (background: string | undefined) => patchActive({ background }),
-    [patchActive],
-  );
-
-  /** Put this drawing on another sheet — paper, canvas, or the plain solid page
-   *  that `undefined` means (see `Drawing.ground`).
-   *
-   *  An ordinary page edit, exactly like pinning a colour: one undo step, one
-   *  push to the cloud, and it travels with the drawing. It repaints every mark
-   *  on the page, which is the point rather than a side effect — the sheet is
-   *  part of how a mark looks, not a filter over it. */
-  const setGround = useCallback(
-    (ground: Ground | undefined) => patchActive({ ground }),
-    [patchActive],
-  );
+  // There is deliberately no `setBackground` / `setGround` here. A page's colour
+  // and the sheet it is on are answered once, when the drawing is created (see
+  // `NewImageModal`), and are what the page *is* rather than edits to it: a wet
+  // mark is painted into the sheet it was made on, so changing the stock under a
+  // finished painting would repaint every mark on it as something the hand that
+  // drew them never saw. Both still *load* — a drawing that carries either paints
+  // with it, whoever wrote the file.
 
   const setAppearance = useCallback(
     (patch: { glyph?: string; color?: string }) => patchActive(patch),
@@ -1016,8 +1004,6 @@ export function usePaintStore(
     clearFilter,
     transformActive,
     renameActive,
-    setBackground,
-    setGround,
     setAppearance,
     addLayer,
     selectLayer,

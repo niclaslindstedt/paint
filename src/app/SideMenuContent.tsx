@@ -530,7 +530,7 @@ export function SideMenuContent({
                     touchLongPress={false}
                     actions={[
                       {
-                        label: t("menu.newDrawingIn", { name: folder.name }),
+                        label: t("menu.newImageIn", { name: folder.name }),
                         icon: <PlusIcon className="h-4 w-4" />,
                         onSelect: () => createDrawing(folder.id),
                       },
@@ -580,7 +580,7 @@ export function SideMenuContent({
                         name={folder.name}
                         count={inside.length}
                         expanded={expanded}
-                        addLabel={t("menu.newDrawingIn", { name: folder.name })}
+                        addLabel={t("menu.newImageIn", { name: folder.name })}
                         onToggle={() => toggleFolder(folder.id)}
                         onAdd={() => createDrawing(folder.id)}
                       />
@@ -619,7 +619,7 @@ export function SideMenuContent({
         <div className="overflow-hidden rounded-md border border-line">
           <div className="flex divide-x divide-line">
             <BarButton
-              label={t("menu.newDrawing")}
+              label={t("menu.newImage")}
               onClick={() => createDrawing(null)}
             >
               <PlusIcon className="h-5 w-5" />

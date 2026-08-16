@@ -22,8 +22,8 @@ export const en = {
     close: "Hide the drawings menu",
     drawings: "Drawings",
     favorites: "Favorites",
-    newDrawing: "New drawing",
-    newDrawingIn: "New drawing in {name}",
+    newImage: "New image",
+    newImageIn: "New image in {name}",
     newFolder: "New folder",
     dropImage: "Drop the image to start a drawing from it",
     folderName: "Folder name",
@@ -58,9 +58,9 @@ export const en = {
     updating: "Updating…",
     deleteConfirm: "Delete “{name}”? This cannot be undone.",
   },
-  newDrawing: {
-    title: "New drawing",
-    titleIn: "New drawing in {name}",
+  newImage: {
+    title: "New image",
+    titleIn: "New image in {name}",
     sourceLabel: "Start from",
     sourceBlank: "New",
     sourceFile: "Load",
@@ -78,14 +78,18 @@ export const en = {
     width: "Width",
     height: "Height",
     sizeHint: "Pixels, {min}–{max} on each side.",
-    surfaceLabel: "What the page is made of",
-    surfaceHint:
-      "Picked once, here — the sheet travels with the drawing and can't be changed afterwards. Its grain is painted under the marks, and on a sheet that drinks, a wet tool mixes with what it is over instead of covering it.",
+    pageColorLabel: "Page colour",
+    pageColorFollowTheme: "Follow theme",
+    pageColorHint:
+      "The colour under the marks. It travels with the image and syncs with it, so it stays put when the app theme changes — leave it following the theme and a dark app opens a dark page.",
+    canvasTypeLabel: "Canvas type",
+    canvasTypeHint:
+      "Picked once, here — the sheet travels with the image and can't be changed afterwards. Its grain is painted under the marks, and on a sheet that drinks, a wet tool mixes with what it is over instead of covering it.",
     chooseImage: "Choose an image or a paint file…",
     chooseImageHint:
       "Or drop one here. A picture cuts the page to its own size; a .pct opens with its layers and marks intact.",
     pctChosen: "Paint file · {layers} layers · {dimensions}",
-    dropImage: "Drop the image to start a drawing from it",
+    dropImage: "Drop the image to start from it",
     clipboardName: "Pasted image",
     clipboardPaste: "Paste from clipboard",
     clipboardAgain: "Look again",
@@ -669,7 +673,6 @@ export const en = {
       general: "General",
       appearance: "Appearance",
       tools: "Tools",
-      canvas: "Canvas",
       download: "Download",
       storage: "Storage",
       developer: "Developer",
@@ -680,12 +683,14 @@ export const en = {
       languageTitle: "Language",
       chooseLanguage: "App language",
       languageHint: "Applies immediately — no need to save.",
-      sidebarTitle: "Sidebar",
-      openSidebarWith: "Open the sidebar with",
-      optionSwipe: "Edge swipe too",
-      optionButton: "The button only",
-      sidebarHint:
-        "On phones. The hamburger beside the drawing's name always opens it; this is whether an inward swipe from the screen edge does as well. Wide screens dock the sidebar.",
+      gridTitle: "Grid",
+      showGrid: "Show a grid",
+      showGridHint:
+        "A light grid behind the page, to line boxes and arrows up. It is a guide only — it never exports.",
+      toolNameTitle: "Tool name",
+      showToolName: "Name the tool you pick",
+      showToolNameHint:
+        "The name of the tool fades in over the middle of the page for a moment when you switch to it, then gets out of the way.",
       developerTitle: "Developer",
       developerMode: "Developer mode",
       developerModeHint: "Show the Developer tab and its diagnostics.",
@@ -709,36 +714,6 @@ export const en = {
       washSimulation: "Pigment",
       washSimulationHint:
         "Water and pigment on paper, dried a step at a time: blooms, backruns and a rim that settles where it dries. Much slower — noticeable on a big page or an older phone.",
-    },
-    canvas: {
-      intro: "Defaults for the page you draw on.",
-      themeTitle: "Canvas theme",
-      themeLabel: "Draw on",
-      themeAuto: "Follow app theme",
-      themeLight: "Light page",
-      themeDark: "Dark page",
-      themeHint:
-        "A dark app draws on a dark page in light ink; switching the app to a light theme flips both back. Applies to every drawing that hasn't pinned a colour of its own.",
-      pageTitle: "Page",
-      pageColor: "Page colour",
-      pageFollowTheme: "Follow theme",
-      pageColorHint:
-        "Pin a colour for this drawing only — it overrides the canvas theme and travels with the drawing when it syncs.",
-      surfaceTitle: "Surface",
-      surfaceLabel: "What this page is made of",
-      surfaceFixed:
-        "The sheet is chosen when a drawing is made and stays with it. A wet mark is painted into the sheet it was made on, so swapping the stock under a finished picture would repaint every mark on it — start a new drawing to work on another one.",
-      surfaceTexture: "Grain: {value}%",
-      surfaceTextureHint:
-        "How strongly the sheet's grain shows. It changes what you see, never how much the sheet drinks — that is what the stock is.",
-      gridTitle: "Grid",
-      showGrid: "Show a grid",
-      showGridHint:
-        "A light grid behind the page, to line boxes and arrows up. It is a guide only — it never exports.",
-      toolNameTitle: "Tool name",
-      showToolName: "Name the tool you pick",
-      showToolNameHint:
-        "The name of the tool fades in over the middle of the page for a moment when you switch to it, then gets out of the way.",
     },
     download: {
       intro:

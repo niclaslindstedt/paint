@@ -129,7 +129,7 @@ connect a storage backend yourself.
   was. It is a zip holding one transparent PNG per layer plus a readable
   `manifest.json` — so other tools can read the layers — and the vector marks
   in `vectors.json` alongside, which is what makes reopening it lossless rather
-  than a flatten. Open one from New drawing → File, or by dropping it there.
+  than a flatten. Open one from New image → Load, or by dropping it there.
 - Work offline: it is an installable PWA with a precaching service worker.
 - Optionally sync to a local folder, Dropbox, or Google Drive, with optional
   end-to-end encryption of the synced file.

@@ -6,7 +6,7 @@ import {
 } from "@niclaslindstedt/oss-framework/components";
 import type { ThemeAppearance } from "@niclaslindstedt/oss-framework/theme";
 
-import { isDarkCanvas, resolvePageColor } from "../canvas.ts";
+import { isDarkAppearance, resolvePageColor } from "../canvas.ts";
 import { useT } from "../i18n/index.ts";
 import { orderedEntries, type ToolbarEntry } from "../plugins/registry.ts";
 import type { AppSettings } from "../useAppSettings.ts";
@@ -64,7 +64,7 @@ export function ToolsTab({
   const order = entries.map((entry) => entry.id);
   // The page the watercolour samples below are painted on, so they are *this*
   // sheet rather than a stranger's — the same call the surface swatches make.
-  const dark = isDarkCanvas(settings.canvasTheme, appearance);
+  const dark = isDarkAppearance(appearance);
 
   return (
     <div>

@@ -55,12 +55,12 @@ The row of buttons pinned above the sidebar's footer is where drawings are
 created and filed, kept under your thumb no matter how long the list above it
 grows:
 
-| Button          | What it does                                                    |
-| --------------- | --------------------------------------------------------------- |
-| **New drawing** | Asks how big the page is, then opens the blank sheet.           |
-| **New folder**  | Drops an inline name field into the list; naming it commits it. |
-| **Archive**     | Opens the archive. The corner badge counts what's shelved.      |
-| **Cloud**       | The sync glyph — tap it for the sync command centre.            |
+| Button         | What it does                                                    |
+| -------------- | --------------------------------------------------------------- |
+| **New image**  | Asks what the page is made of, then opens it.                   |
+| **New folder** | Drops an inline name field into the list; naming it commits it. |
+| **Archive**    | Opens the archive. The corner badge counts what's shelved.      |
+| **Cloud**      | The sync glyph — tap it for the sync command centre.            |
 
 Undo and redo used to take a second row here. They are on the canvas toolbar
 now, beside the ink, where the hand that made the mark already is — so the

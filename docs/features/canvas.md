@@ -1,7 +1,7 @@
 # The canvas
 
 The page you draw on is a fixed pixel size, and you choose it when the drawing
-is made: **New drawing** asks how big the page should be before it opens one.
+is made: **New image** asks how big the page should be before it opens one.
 
 | Size            | What it is                                                        |
 | --------------- | ----------------------------------------------------------------- |
@@ -75,14 +75,13 @@ wrong way.
 
 ## What the page is made of
 
-The page also has a **material**, and it is picked with the page size in the New
-drawing dialog: a solid digital sheet, one of four papers, or primed cotton duck.
-It is not a texture laid over the drawing — the sheet's grain is painted under
-the marks, and on a sheet that drinks, a wet tool mixes with what it is painted
-over instead of covering it. Watercolour is the tool to try it with. Like the
-size, it is fixed once the page exists; Settings → Canvas still says which sheet
-a drawing is on and turns its grain up or down. See
-[the surface you draw on](surface.md).
+The page also has a **material**, picked beside the page size and the page
+colour under **Canvas type** in the New image dialog: a solid digital sheet, one
+of four papers, or primed cotton duck. It is not a texture laid over the drawing
+— the sheet's grain is painted under the marks, and on a sheet that drinks, a wet
+tool mixes with what it is painted over instead of covering it. Watercolour is
+the tool to try it with. Like the size and the colour, it is fixed once the page
+exists. See [the surface you draw on](surface.md).
 
 ## Zooming and panning
 
@@ -196,8 +195,8 @@ has a small × on it.
 There is no second half to it. It used to be split corner to corner with the
 page colour below the diagonal, back when painting with the page was how you
 rubbed something out. The eraser lifts ink now, and the sheet's colour belongs
-to the background layer (Settings → Canvas pins it), so the second half stood
-for nothing.
+to the background layer (New image pins it), so the second half stood for
+nothing.
 
 The **nib button** shows a press with the tool in your hand: not a dot the size
 of the nib, but the mark that width actually leaves — painted by the same
@@ -290,8 +289,8 @@ than the sheet, and Discard (or Escape) throws it away. [More](images.md).
 
 ## The grid
 
-Settings → Canvas can put a light grid behind the page to line boxes and arrows
-up. It is a drawing aid only: it is painted by the page element, never by the
+Settings → General can put a light grid behind the page to line boxes and
+arrows up. It is a drawing aid only: it is painted by the page element, never by the
 document, so it can never reach a downloaded file.
 
 ## The tool you picked, named
@@ -304,7 +303,7 @@ tapped is under your thumb, so the highlight that says what you are holding is
 the one pixel you cannot see.
 
 It is a label and nothing else: it never takes a press, so a stroke that starts
-under it draws straight through. Settings → **Canvas** switches it off if you
+under it draws straight through. Settings → **General** switches it off if you
 would rather have the page to yourself.
 
 ## Text selection

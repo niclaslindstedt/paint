@@ -19,8 +19,8 @@ export const sv: Catalog = {
     close: "Dölj teckningsmenyn",
     drawings: "Teckningar",
     favorites: "Favoriter",
-    newDrawing: "Ny teckning",
-    newDrawingIn: "Ny teckning i {name}",
+    newImage: "Ny bild",
+    newImageIn: "Ny bild i {name}",
     newFolder: "Ny mapp",
     dropImage: "Släpp bilden för att skapa en teckning av den",
     folderName: "Mappens namn",
@@ -55,9 +55,9 @@ export const sv: Catalog = {
     updating: "Uppdaterar…",
     deleteConfirm: "Ta bort ”{name}”? Det går inte att ångra.",
   },
-  newDrawing: {
-    title: "Ny teckning",
-    titleIn: "Ny teckning i {name}",
+  newImage: {
+    title: "Ny bild",
+    titleIn: "Ny bild i {name}",
     sourceLabel: "Utgå från",
     sourceBlank: "Ny",
     sourceFile: "Öppna",
@@ -75,14 +75,18 @@ export const sv: Catalog = {
     width: "Bredd",
     height: "Höjd",
     sizeHint: "Bildpunkter, {min}–{max} på varje sida.",
-    surfaceLabel: "Vad sidan är gjord av",
-    surfaceHint:
-      "Väljs en gång, här — arket följer med teckningen och kan inte ändras efteråt. Strukturen målas under strecken, och på ett ark som suger blandar sig ett vått verktyg med det det ligger över i stället för att täcka det.",
+    pageColorLabel: "Sidfärg",
+    pageColorFollowTheme: "Följ temat",
+    pageColorHint:
+      "Färgen under strecken. Den följer med bilden och synkas med den, så den ligger kvar när appens tema byts — låt den följa temat så öppnar en mörk app en mörk sida.",
+    canvasTypeLabel: "Typ av rityta",
+    canvasTypeHint:
+      "Väljs en gång, här — arket följer med bilden och kan inte ändras efteråt. Strukturen målas under strecken, och på ett ark som suger blandar sig ett vått verktyg med det det ligger över i stället för att täcka det.",
     chooseImage: "Välj en bild eller en paint-fil…",
     chooseImageHint:
       "Eller släpp en här. En bild gör sidan lika stor som bilden; en .pct öppnas med sina lager och streck kvar.",
     pctChosen: "Paint-fil · {layers} lager · {dimensions}",
-    dropImage: "Släpp bilden för att börja en teckning från den",
+    dropImage: "Släpp bilden för att börja från den",
     clipboardName: "Inklistrad bild",
     clipboardPaste: "Klistra in från urklipp",
     clipboardAgain: "Titta igen",
@@ -622,7 +626,6 @@ export const sv: Catalog = {
       general: "Allmänt",
       appearance: "Utseende",
       tools: "Verktyg",
-      canvas: "Rityta",
       download: "Nedladdning",
       storage: "Lagring",
       developer: "Utvecklare",
@@ -633,12 +636,14 @@ export const sv: Catalog = {
       languageTitle: "Språk",
       chooseLanguage: "Appens språk",
       languageHint: "Gäller direkt — du behöver inte spara.",
-      sidebarTitle: "Sidopanel",
-      openSidebarWith: "Öppna sidopanelen med",
-      optionSwipe: "Även svep från kanten",
-      optionButton: "Bara knappen",
-      sidebarHint:
-        "På telefoner. Hamburgaren bredvid teckningens namn öppnar den alltid; det här gäller om ett svep in från skärmkanten också gör det. Breda skärmar dockar sidomenyn.",
+      gridTitle: "Rutnät",
+      showGrid: "Visa rutnät",
+      showGridHint:
+        "Ett ljust rutnät bakom sidan, för att rada upp rutor och pilar. Det är bara en hjälplinje — det exporteras aldrig.",
+      toolNameTitle: "Verktygsnamn",
+      showToolName: "Visa namnet på verktyget du väljer",
+      showToolNameHint:
+        "Verktygets namn tonas in mitt på sidan ett ögonblick när du byter till det, och försvinner sedan ur vägen.",
       developerTitle: "Utvecklare",
       developerMode: "Utvecklarläge",
       developerModeHint: "Visa fliken Utvecklare och dess diagnostik.",
@@ -662,36 +667,6 @@ export const sv: Catalog = {
       washSimulation: "Pigment",
       washSimulationHint:
         "Vatten och pigment på papper som torkar steg för steg: blomningar, bakslag och en kant som lägger sig där den torkar. Mycket långsammare — märks på en stor sida eller en äldre telefon.",
-    },
-    canvas: {
-      intro: "Standardvärden för sidan du ritar på.",
-      themeTitle: "Ritytans tema",
-      themeLabel: "Rita på",
-      themeAuto: "Följ appens tema",
-      themeLight: "Ljus sida",
-      themeDark: "Mörk sida",
-      themeHint:
-        "En mörk app ritar på en mörk sida med ljust bläck; byter du till ett ljust tema vänds båda tillbaka. Gäller alla teckningar som inte har låst en egen färg.",
-      pageTitle: "Sida",
-      pageColor: "Sidfärg",
-      pageFollowTheme: "Följ temat",
-      pageColorHint:
-        "Lås en färg för just den här teckningen — den åsidosätter ritytans tema och följer med teckningen när den synkas.",
-      surfaceTitle: "Underlag",
-      surfaceLabel: "Vad den här sidan är gjord av",
-      surfaceFixed:
-        "Arket väljs när teckningen skapas och följer med den. Ett vått streck målas in i arket det gjordes på, så att byta sort under en färdig bild skulle måla om varenda streck på den — börja en ny teckning för att arbeta på ett annat ark.",
-      surfaceTexture: "Struktur: {value}%",
-      surfaceTextureHint:
-        "Hur tydligt arkets struktur syns. Det ändrar vad du ser, aldrig hur mycket arket suger — det är vad sorten är.",
-      gridTitle: "Rutnät",
-      showGrid: "Visa rutnät",
-      showGridHint:
-        "Ett ljust rutnät bakom sidan, för att rada upp rutor och pilar. Det är bara en hjälplinje — det exporteras aldrig.",
-      toolNameTitle: "Verktygsnamn",
-      showToolName: "Visa namnet på verktyget du väljer",
-      showToolNameHint:
-        "Verktygets namn tonas in mitt på sidan ett ögonblick när du byter till det, och försvinner sedan ur vägen.",
     },
     download: {
       intro:

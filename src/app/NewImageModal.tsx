@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 
 import {
   Button,
+  CloseIcon,
   CopyIcon,
   ImageUpIcon,
   LABELED_FIELD_CLASS,
@@ -27,7 +28,7 @@ import {
   type CanvasPreset,
   type CanvasSize,
 } from "./canvasSize.ts";
-import { resolvePageColor } from "./canvas.ts";
+import { isDarkColor, PAGE_SWATCHES, resolvePageColor } from "./canvas.ts";
 import {
   canLookAtClipboard,
   clipboardCanBeRead,
@@ -54,28 +55,36 @@ import { PCT_EXTENSION } from "./pct.ts";
 import type { Drawing, Ground } from "./types.ts";
 import * as output from "../output.ts";
 
-// Where a drawing comes from — the one dialog between pressing New and having a
+// Where an image comes from — the one dialog between pressing New and having a
 // page in front of you.
 //
-// It asks three questions, in that order. **What is this drawing made of**: an
-// empty page, a picture from disk, or whatever is on the clipboard. For an empty
-// one, **how big is it** — asked once, here, because a page never reflows (see
-// `types.ts`), so the size is part of creating the thing rather than a setting
-// to find afterwards. A drawing made *from a picture* skips that one: it is the
-// size of the picture, which is the only answer that isn't a crop. And, for
-// every drawing that starts here, **what is the sheet made of**.
+// **An image, not a drawing**: what starts here is as often a photo off the
+// disk or a screenshot off the clipboard as it is an empty sheet, and calling
+// the dialog "New drawing" told two of its three answers they were in the wrong
+// place. The thing being made is a page with something on it.
 //
-// **The sheet is asked here, and only here.** A stock is not a filter over the
-// page — a wet mark is painted *into* the sheet it was made on, mixing with what
-// it is over and dragging the marks it crosses out into its water (see
-// `ground.ts`) — so moving a finished painting onto rough paper would repaint
-// every mark on it as something the hand that drew them never saw. It is the
-// same class of answer as the size: what the page **is**, fixed when the page is
-// made. What can still be changed afterwards, in Settings → Canvas, is how far
-// the sheet's grain shows, which is a matter of looking rather than of paint.
+// It asks four questions, in that order. **What is this page made of**: an
+// empty page, a picture from disk, or whatever is on the clipboard. For an
+// empty one, **how big is it** — asked once, here, because a page never reflows
+// (see `types.ts`), so the size is part of creating the thing rather than a
+// setting to find afterwards. A page made *from a picture* skips that one: it
+// is the size of the picture, which is the only answer that isn't a crop. Then
+// **what colour is the page**, and **what is the sheet made of**.
+//
+// **The page's colour and its sheet are asked here, and only here.** The sheet
+// because a stock is not a filter over the page — a wet mark is painted *into*
+// the sheet it was made on, mixing with what it is over and dragging the marks
+// it crosses out into its water (see `ground.ts`) — so moving a finished
+// painting onto rough paper would repaint every mark on it as something the
+// hand that drew them never saw. The colour because it is the same class of
+// answer as the size: what the page **is**, fixed when the page is made, and
+// carried on the drawing rather than in a preference that would repaint every
+// page at once. The two are asked in that order because the colour is the
+// ground the sheets are shown *on*: pick a black page and the stock swatches
+// are that black page on each stock rather than a stranger's.
 //
 // The three sources are a segmented control rather than three buttons because
-// they are the same act — start a drawing — from three places, and only one of
+// they are the same act — start an image — from three places, and only one of
 // them can be true at a time.
 //
 // **Clipboard is the awkward one**, because "is there a picture on the
@@ -99,27 +108,47 @@ import * as output from "../output.ts";
 // rectangle takes its place on the shelf at the same scale as the rest, so a
 // typed page is compared the way a named one is rather than being a number you
 // have to imagine. It opens on a big square — the page nobody offers by name.
+//
+// **It is a full-screen sheet on a phone and a card on a desktop** (the
+// framework `Modal`'s uncentered shape), because four questions and two shelves
+// of pictures do not fit a phone-sized card — they scrolled it into a letterbox
+// with the Create button pushed off the bottom. Now the title bar and the
+// buttons are pinned and only the questions between them move.
 
 /** Which of the three the dialog is showing. */
 type Source = "blank" | "file" | "clipboard";
 
+/** What a page is made of beyond its size — every answer this dialog collects
+ *  that is written onto the drawing itself.
+ *
+ *  One object rather than a parameter each, because these arrive together by
+ *  construction: they are what the page *is*, decided in one press of Create.
+ *  Both keys are absent rather than `undefined` when they were left alone, so
+ *  the caller can spread it straight onto a fresh drawing — a page that follows
+ *  the app theme carries no colour at all, and one on the plain solid sheet
+ *  carries no ground at all, which is what every drawing made before either
+ *  existed is. */
+export type PageMakeup = {
+  ground?: Ground;
+  background?: string;
+};
+
 type Props = {
-  /** The folder the drawing will be filed into, named for the title — so
-   *  "New drawing in Diagrams" says where it is about to land. */
+  /** The folder the image will be filed into, named for the title — so
+   *  "New image in Diagrams" says where it is about to land. */
   folderName?: string;
-  /** Whether the page will be a dark sheet, so the surface swatches are painted
-   *  on the page the drawing is about to open on. */
+  /** Whether a page that pins no colour of its own is a dark sheet, so the
+   *  "follow the app theme" swatch shows the page it actually stands for. */
   dark: boolean;
   onCancel: () => void;
-  /** Make an empty page of this size, on this sheet — `undefined` for the plain
-   *  solid page, which is how a drawing with no ground at all is stored. */
-  onCreate: (size: CanvasSize, ground: Ground | undefined) => void;
+  /** Make an empty page of this size, made of this. */
+  onCreate: (size: CanvasSize, page: PageMakeup) => void;
   /** Make a page from a picture: cut to its size, named for where it came
-   *  from, on the chosen sheet. */
+   *  from, made of the same. */
   onCreateFromImage: (
     image: ImportedImage,
     name: string,
-    ground: Ground | undefined,
+    page: PageMakeup,
   ) => void;
   /** Open a `.pct` — a whole drawing, layers and marks and all, rather than a
    *  picture to start one from (see `pct.ts`). It arrives with its own page
@@ -157,7 +186,7 @@ function dragHasPct(dt: DataTransfer | null): boolean {
  *  across the shelf, so this is the room the *largest* of them gets. */
 const PREVIEW_BOX = { width: 104, height: 74 };
 
-export function NewDrawingModal({
+export function NewImageModal({
   folderName,
   dark,
   onCancel,
@@ -185,6 +214,9 @@ export function NewDrawingModal({
   // it carries no ground at all (see `ground.ts`), which is what every drawing
   // made before surfaces existed is.
   const [stock, setStock] = useState<string | undefined>(undefined);
+  // The page's own colour — `undefined` for "whatever the app theme calls for",
+  // which is likewise how a page that pins nothing is stored.
+  const [background, setBackground] = useState<string | undefined>(undefined);
   // What was chosen from disk, waiting for Create.
   const [picked, setPicked] = useState<Picked | null>(null);
   // What we know about the clipboard, which is a state rather than a picture
@@ -304,25 +336,34 @@ export function NewDrawingModal({
     (source === "file" && picked) ||
     (source === "clipboard" && pasted);
 
-  // A container brings its own page — its size, its stack, and the sheet it was
-  // painted on — so the surface shelf is not offered for one. Everything else
-  // that starts here is a page this dialog is building.
+  // A container brings its own page — its size, its colour, its stack and the
+  // sheet it was painted on — so neither shelf is offered for one. Everything
+  // else that starts here is a page this dialog is building.
   const openingPct = source === "file" && picked?.kind === "pct";
-  const ground: Ground | undefined = stock ? { stock } : undefined;
+  const page: PageMakeup = {
+    ...(stock ? { ground: { stock } } : {}),
+    ...(background ? { background } : {}),
+  };
+  // The colour the page will actually be, so the stock shelf below is painted on
+  // *this* page rather than on a stranger's — and the ink in each swatch is read
+  // off that colour rather than off the app theme, or picking a black page would
+  // draw the sample line in black ink on it.
+  const pageColor = resolvePageColor(background, dark);
+  const pageIsDark = isDarkColor(pageColor);
 
   const create = () => {
     if (source === "blank") {
-      if (blankSize) onCreate(blankSize, ground);
+      if (blankSize) onCreate(blankSize, page);
     } else if (source === "file" && picked) {
       if (picked.kind === "pct") onOpenPct(picked.drawing, picked.name);
-      else onCreateFromImage(picked.image, picked.name, ground);
+      else onCreateFromImage(picked.image, picked.name, page);
     } else if (source === "clipboard" && pasted) {
-      onCreateFromImage(pasted, t("newDrawing.clipboardName"), ground);
+      onCreateFromImage(pasted, t("newImage.clipboardName"), page);
     }
   };
 
   const dimensions = (s: { width: number; height: number }) =>
-    t("newDrawing.dimensions", {
+    t("newImage.dimensions", {
       width: String(Math.round(s.width)),
       height: String(Math.round(s.height)),
     });
@@ -331,199 +372,276 @@ export function NewDrawingModal({
     <Modal
       open
       onClose={onCancel}
-      labelledBy="new-drawing-title"
-      centered
-      size="max-w-xl"
+      labelledBy="new-image-title"
       closeLabel={t("common.cancel")}
       footer={
+        /* Pinned under the scrolling questions, so Create is on screen from the
+           moment the dialog opens rather than at the end of a scroll. */
         <footer className="flex shrink-0 items-center justify-end gap-2 border-t border-line bg-surface-3 px-4 py-3">
           <Button variant="secondary" onClick={onCancel}>
             {t("common.cancel")}
           </Button>
           <Button variant="primary" onClick={create} disabled={!ready}>
-            {t("newDrawing.create")}
+            {t("newImage.create")}
           </Button>
         </footer>
       }
     >
-      <div ref={bodyRef} className="relative flex flex-col gap-4 px-5 py-5">
+      {/* …and pinned above them, so the sheet still says what it is once the
+          questions have scrolled past it. */}
+      <header className="flex shrink-0 items-center justify-between gap-2 border-b border-line bg-surface-3 px-4 py-3">
         <h2
-          id="new-drawing-title"
-          className="text-base font-bold text-fg-bright"
+          id="new-image-title"
+          className="min-w-0 text-sm font-bold tracking-wide text-fg-bright"
         >
           {folderName
-            ? t("newDrawing.titleIn", { name: folderName })
-            : t("newDrawing.title")}
+            ? t("newImage.titleIn", { name: folderName })
+            : t("newImage.title")}
         </h2>
+        <button
+          type="button"
+          onClick={onCancel}
+          aria-label={t("common.close")}
+          className="-mr-1 inline-flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded text-muted hover:bg-surface-2 hover:text-fg"
+        >
+          <CloseIcon className="h-5 w-5" />
+        </button>
+      </header>
 
-        <SegmentedControl<Source>
-          value={source}
-          ariaLabel={t("newDrawing.sourceLabel")}
-          onChange={setSource}
-          fullWidth
-          options={[
-            { value: "blank", label: t("newDrawing.sourceBlank") },
-            { value: "file", label: t("newDrawing.sourceFile") },
-            // There unless a free look proved there is nothing to paste — and
-            // dim only for the second such a look takes, never once the tab is
-            // something you are meant to press.
-            ...(tabShown(clip)
-              ? [
-                  {
-                    value: "clipboard" as const,
-                    label: t("newDrawing.sourceClipboard"),
-                    disabled: !tabEnabled(clip),
-                  },
-                ]
-              : []),
-          ]}
-        />
+      {/* The drop target is the whole body — its highlight has to cover the
+          questions wherever they happen to be scrolled to, so the scrolling
+          box sits *inside* the positioned one rather than being it. */}
+      <div ref={bodyRef} className="relative flex min-h-0 flex-1 flex-col">
+        <div className="flex flex-col gap-4 overflow-y-auto overscroll-contain px-5 py-5">
+          <SegmentedControl<Source>
+            value={source}
+            ariaLabel={t("newImage.sourceLabel")}
+            onChange={setSource}
+            fullWidth
+            options={[
+              { value: "blank", label: t("newImage.sourceBlank") },
+              { value: "file", label: t("newImage.sourceFile") },
+              // There unless a free look proved there is nothing to paste — and
+              // dim only for the second such a look takes, never once the tab is
+              // something you are meant to press.
+              ...(tabShown(clip)
+                ? [
+                    {
+                      value: "clipboard" as const,
+                      label: t("newImage.sourceClipboard"),
+                      disabled: !tabEnabled(clip),
+                    },
+                  ]
+                : []),
+            ]}
+          />
 
-        {source === "blank" && (
-          <>
-            <SizeShelf
-              presets={presets}
-              value={blankSize}
-              custom={customSize}
-              typed={typedSize}
-              onPick={(next) => {
-                setTypedSize(false);
-                setSize(next);
-              }}
-              onPickCustom={() => setTypedSize(true)}
-              dimensions={dimensions}
-            />
-            {typedSize && (
-              <div className="flex flex-col gap-1.5">
-                <div className="flex items-end gap-2">
-                  <SideField
-                    label={t("newDrawing.width")}
-                    value={custom.width}
-                    onChange={(width) => setCustom((c) => ({ ...c, width }))}
-                  />
-                  <span className="pb-2 text-sm text-muted">×</span>
-                  <SideField
-                    label={t("newDrawing.height")}
-                    value={custom.height}
-                    onChange={(height) => setCustom((c) => ({ ...c, height }))}
-                  />
+          {source === "blank" && (
+            <>
+              <SizeShelf
+                presets={presets}
+                value={blankSize}
+                custom={customSize}
+                typed={typedSize}
+                onPick={(next) => {
+                  setTypedSize(false);
+                  setSize(next);
+                }}
+                onPickCustom={() => setTypedSize(true)}
+                dimensions={dimensions}
+              />
+              {typedSize && (
+                <div className="flex flex-col gap-1.5">
+                  <div className="flex items-end gap-2">
+                    <SideField
+                      label={t("newImage.width")}
+                      value={custom.width}
+                      onChange={(width) => setCustom((c) => ({ ...c, width }))}
+                    />
+                    <span className="pb-2 text-sm text-muted">×</span>
+                    <SideField
+                      label={t("newImage.height")}
+                      value={custom.height}
+                      onChange={(height) =>
+                        setCustom((c) => ({ ...c, height }))
+                      }
+                    />
+                  </div>
+                  <p
+                    className={`text-xs ${customSize ? "text-muted" : "text-danger"}`}
+                  >
+                    {t("newImage.sizeHint", {
+                      min: String(MIN_CANVAS_SIDE),
+                      max: String(MAX_CANVAS_SIDE),
+                    })}
+                  </p>
                 </div>
-                <p
-                  className={`text-xs ${customSize ? "text-muted" : "text-danger"}`}
-                >
-                  {t("newDrawing.sizeHint", {
-                    min: String(MIN_CANVAS_SIDE),
-                    max: String(MAX_CANVAS_SIDE),
-                  })}
-                </p>
-              </div>
-            )}
-          </>
-        )}
-
-        {source === "file" && (
-          <div className="flex flex-col gap-2">
-            <button
-              type="button"
-              onClick={() => fileRef.current?.click()}
-              className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-line px-4 py-6 text-sm text-muted hover:border-accent hover:text-fg-bright"
-            >
-              {chosen?.src ? (
-                // The picture itself is the confirmation that the right file
-                // was picked — a file name is not.
-                <img
-                  src={chosen.src}
-                  alt=""
-                  className="max-h-32 max-w-full rounded border border-line object-contain"
-                />
-              ) : (
-                <ImageUpIcon className="h-6 w-6 text-accent" />
               )}
-              <span>{chosen ? picked?.name : t("newDrawing.chooseImage")}</span>
-            </button>
-            <p className="text-xs text-muted tabular-nums">
-              {picked?.kind === "pct"
-                ? t("newDrawing.pctChosen", {
-                    layers: String(picked.drawing.layers?.length ?? 1),
-                    dimensions: dimensions(picked.thumb),
-                  })
-                : chosen
-                  ? dimensions(chosen)
-                  : t("newDrawing.chooseImageHint")}
-            </p>
-            <input
-              ref={fileRef}
-              type="file"
-              accept={`image/*,.${PCT_EXTENSION}`}
-              className="hidden"
-              onChange={(e) => {
-                take(e.currentTarget.files?.[0]);
-                // Cleared so picking the same file twice still fires.
-                e.currentTarget.value = "";
-              }}
-            />
-          </div>
-        )}
+            </>
+          )}
 
-        {source === "clipboard" && (
-          <div className="flex flex-col gap-2">
-            {/* One box, whatever the clipboard is currently worth saying: the
+          {source === "file" && (
+            <div className="flex flex-col gap-2">
+              <button
+                type="button"
+                onClick={() => fileRef.current?.click()}
+                className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-line px-4 py-6 text-sm text-muted hover:border-accent hover:text-fg-bright"
+              >
+                {chosen?.src ? (
+                  // The picture itself is the confirmation that the right file
+                  // was picked — a file name is not.
+                  <img
+                    src={chosen.src}
+                    alt=""
+                    className="max-h-32 max-w-full rounded border border-line object-contain"
+                  />
+                ) : (
+                  <ImageUpIcon className="h-6 w-6 text-accent" />
+                )}
+                <span>{chosen ? picked?.name : t("newImage.chooseImage")}</span>
+              </button>
+              <p className="text-xs text-muted tabular-nums">
+                {picked?.kind === "pct"
+                  ? t("newImage.pctChosen", {
+                      layers: String(picked.drawing.layers?.length ?? 1),
+                      dimensions: dimensions(picked.thumb),
+                    })
+                  : chosen
+                    ? dimensions(chosen)
+                    : t("newImage.chooseImageHint")}
+              </p>
+              <input
+                ref={fileRef}
+                type="file"
+                accept={`image/*,.${PCT_EXTENSION}`}
+                className="hidden"
+                onChange={(e) => {
+                  take(e.currentTarget.files?.[0]);
+                  // Cleared so picking the same file twice still fires.
+                  e.currentTarget.value = "";
+                }}
+              />
+            </div>
+          )}
+
+          {source === "clipboard" && (
+            <div className="flex flex-col gap-2">
+              {/* One box, whatever the clipboard is currently worth saying: the
                 picture itself, the spinner while a look is in flight, or the
                 button that takes the look where we may not take it unasked. */}
-            <div className="flex min-h-28 flex-col items-center justify-center gap-3 rounded-lg border border-line px-4 py-4">
-              {pasted ? (
-                <img
-                  src={pasted.src}
-                  alt=""
-                  className="max-h-32 max-w-full rounded object-contain"
-                />
-              ) : looking(clip) ? (
-                <SpinnerIcon className="h-5 w-5 text-muted" />
-              ) : (
-                <>
-                  <CopyIcon className="h-6 w-6 text-accent" />
-                  <Button variant="secondary" onClick={askClipboard}>
-                    {t(
-                      clip.kind === "nothing"
-                        ? "newDrawing.clipboardAgain"
-                        : "newDrawing.clipboardPaste",
-                    )}
-                  </Button>
-                </>
-              )}
+              <div className="flex min-h-28 flex-col items-center justify-center gap-3 rounded-lg border border-line px-4 py-4">
+                {pasted ? (
+                  <img
+                    src={pasted.src}
+                    alt=""
+                    className="max-h-32 max-w-full rounded object-contain"
+                  />
+                ) : looking(clip) ? (
+                  <SpinnerIcon className="h-5 w-5 text-muted" />
+                ) : (
+                  <>
+                    <CopyIcon className="h-6 w-6 text-accent" />
+                    <Button variant="secondary" onClick={askClipboard}>
+                      {t(
+                        clip.kind === "nothing"
+                          ? "newImage.clipboardAgain"
+                          : "newImage.clipboardPaste",
+                      )}
+                    </Button>
+                  </>
+                )}
+              </div>
+              <p className="text-xs text-muted tabular-nums">
+                {pasted
+                  ? dimensions(pasted)
+                  : clip.kind === "reading"
+                    ? t("newImage.clipboardWaiting")
+                    : clip.kind === "nothing"
+                      ? t("newImage.clipboardEmpty")
+                      : t("newImage.clipboardAsk")}
+              </p>
             </div>
-            <p className="text-xs text-muted tabular-nums">
-              {pasted
-                ? dimensions(pasted)
-                : clip.kind === "reading"
-                  ? t("newDrawing.clipboardWaiting")
-                  : clip.kind === "nothing"
-                    ? t("newDrawing.clipboardEmpty")
-                    : t("newDrawing.clipboardAsk")}
-            </p>
-          </div>
-        )}
+          )}
 
-        {/* What the sheet is made of. Under the source panels because it is the
-            last question either path asks, and left out for a `.pct`, which
-            arrives on a sheet of its own. */}
-        {!openingPct && (
-          <div className="flex flex-col gap-2 border-t border-line pt-4">
-            <span className="text-sm text-fg-bright">
-              {t("newDrawing.surfaceLabel")}
-            </span>
-            <GroundPicker
-              value={stock}
-              onChange={(next) =>
-                setStock(next.family === "solid" ? undefined : next.id)
-              }
-              pageColor={resolvePageColor(undefined, dark)}
-              dark={dark}
-              label={t("newDrawing.surfaceLabel")}
-            />
-            <p className="text-xs text-muted">{t("newDrawing.surfaceHint")}</p>
-          </div>
-        )}
+          {/* What colour the page is, and then what it is made of. Under the
+            source panels because they are the last two questions every path
+            asks, in that order because the colour is the ground the stocks are
+            shown on — and left out for a `.pct`, which arrives as a page of its
+            own. */}
+          {!openingPct && (
+            <div className="flex flex-col gap-2 border-t border-line pt-4">
+              <span className="text-sm text-fg-bright">
+                {t("newImage.pageColorLabel")}
+              </span>
+              <div
+                className="flex flex-wrap items-center gap-2"
+                role="radiogroup"
+                aria-label={t("newImage.pageColorLabel")}
+              >
+                {/* "Follow the app theme" first, and painted the colour it
+                  actually stands for right now, so it is a swatch among
+                  swatches rather than an opt-out from them. */}
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={background === undefined}
+                  onClick={() => setBackground(undefined)}
+                  className={`inline-flex cursor-pointer items-center gap-1.5 rounded border px-2 py-1 text-xs ${
+                    background === undefined
+                      ? "border-accent bg-accent/15 text-accent"
+                      : "border-line text-fg hover:bg-surface-2"
+                  }`}
+                >
+                  <span
+                    className="h-4 w-4 rounded-full border border-line"
+                    style={{
+                      backgroundColor: resolvePageColor(undefined, dark),
+                    }}
+                  />
+                  {t("newImage.pageColorFollowTheme")}
+                </button>
+                {PAGE_SWATCHES.map((swatch) => (
+                  <button
+                    key={swatch}
+                    type="button"
+                    role="radio"
+                    aria-checked={swatch === background}
+                    aria-label={swatch}
+                    title={swatch}
+                    onClick={() => setBackground(swatch)}
+                    className={`h-7 w-7 cursor-pointer rounded-full border-2 ${
+                      swatch === background ? "border-accent" : "border-line"
+                    }`}
+                    style={{ backgroundColor: swatch }}
+                  />
+                ))}
+              </div>
+              <p className="text-xs text-muted">
+                {t("newImage.pageColorHint")}
+              </p>
+            </div>
+          )}
+
+          {!openingPct && (
+            <div className="flex flex-col gap-2 border-t border-line pt-4">
+              <span className="text-sm text-fg-bright">
+                {t("newImage.canvasTypeLabel")}
+              </span>
+              <GroundPicker
+                value={stock}
+                onChange={(next) =>
+                  setStock(next.family === "solid" ? undefined : next.id)
+                }
+                pageColor={pageColor}
+                dark={pageIsDark}
+                label={t("newImage.canvasTypeLabel")}
+              />
+              <p className="text-xs text-muted">
+                {t("newImage.canvasTypeHint")}
+              </p>
+            </div>
+          )}
+        </div>
 
         {/* The same "you can drop that here" cue the canvas and the drawer
             show, so the gesture reads the same wherever it is offered. */}
@@ -531,7 +649,7 @@ export function NewDrawingModal({
           <div className="pointer-events-none absolute inset-2 z-10 flex items-center justify-center rounded-lg border-2 border-dashed border-accent bg-surface/90 text-center">
             <span className="flex items-center gap-2 text-sm text-fg-bright">
               <ImageUpIcon className="h-4 w-4 shrink-0 text-accent" />
-              {t("newDrawing.dropImage")}
+              {t("newImage.dropImage")}
             </span>
           </div>
         )}
@@ -573,7 +691,7 @@ function SizeShelf({
     <div
       className="grid grid-cols-3 gap-2 sm:grid-cols-5"
       role="radiogroup"
-      aria-label={t("newDrawing.sizeLabel")}
+      aria-label={t("newImage.sizeLabel")}
     >
       {presets.map((preset) => {
         const active =
@@ -618,7 +736,7 @@ function SizeShelf({
                 active ? "text-accent" : "text-fg-bright"
               }`}
             >
-              {t(`newDrawing.presets.${preset.id}`)}
+              {t(`newImage.presets.${preset.id}`)}
             </span>
             <span className="text-[10px] whitespace-nowrap text-muted tabular-nums">
               {dimensions(preset.size)}
@@ -662,10 +780,10 @@ function SizeShelf({
             typed ? "text-accent" : "text-fg-bright"
           }`}
         >
-          {t("newDrawing.custom")}
+          {t("newImage.custom")}
         </span>
         <span className="text-[10px] whitespace-nowrap text-muted tabular-nums">
-          {custom ? dimensions(custom) : t("newDrawing.customEmpty")}
+          {custom ? dimensions(custom) : t("newImage.customEmpty")}
         </span>
       </button>
     </div>

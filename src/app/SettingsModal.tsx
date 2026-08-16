@@ -24,7 +24,7 @@ import {
 } from "@niclaslindstedt/oss-framework/components";
 import { type ThemeAppearance } from "@niclaslindstedt/oss-framework/theme";
 
-import { CanvasIcon, ToolboxIcon } from "./icons.tsx";
+import { ToolboxIcon } from "./icons.tsx";
 import { useT } from "./i18n/index.ts";
 import { APP_LOOK } from "./look.ts";
 import { defaultSettings, type AppSettings } from "./useAppSettings.ts";
@@ -32,7 +32,6 @@ import type { PaintStore } from "./usePaintStore.ts";
 import type { SyncEngine } from "./useSyncEngine.ts";
 import {
   AppearanceTab,
-  CanvasTab,
   DeveloperTab,
   GeneralTab,
   LogsTab,
@@ -49,17 +48,20 @@ import { ToolsTab } from "./settings/tools.tsx";
 // the `Modal`'s footer slot.
 //
 // Two kinds of setting live here, and they commit differently:
-//   - preferences (General, Appearance, Canvas grid, Developer) are staged in a
+//   - preferences (General, Appearance, Download, Developer) are staged in a
 //     draft and only committed on Save; Cancel reverts;
-//   - device and document state (the Tools switchboard, the storage backend,
-//     the page colour) applies live — there is nothing to roll back, and a tool
-//     you switch on should appear in the toolbar behind the dialog immediately.
+//   - device state (the Tools switchboard, the storage backend) applies live —
+//     there is nothing to roll back, and a tool you switch on should appear in
+//     the toolbar behind the dialog immediately.
+//
+// What the *page* is made of is not here at all: its size, its colour and its
+// sheet are answered once, in the dialog that creates a drawing (see
+// `NewImageModal`), and stored on the drawing rather than as a preference.
 
 type TabId =
   | "general"
   | "appearance"
   | "tools"
-  | "canvas"
   | "download"
   | "storage"
   | "developer"
@@ -79,7 +81,6 @@ const TABS: TabDef[] = [
   { id: "general", labelKey: "settings.tabs.general", icon: SlidersIcon },
   { id: "appearance", labelKey: "settings.tabs.appearance", icon: PaletteIcon },
   { id: "tools", labelKey: "settings.tabs.tools", icon: ToolboxIcon },
-  { id: "canvas", labelKey: "settings.tabs.canvas", icon: CanvasIcon },
   { id: "download", labelKey: "settings.tabs.download", icon: DownloadIcon },
   { id: "storage", labelKey: "settings.tabs.storage", icon: DatabaseIcon },
   { id: "developer", labelKey: "settings.tabs.developer", icon: CodeIcon },
@@ -161,16 +162,13 @@ export function SettingsModal({
   const ActiveIcon = activeDef.icon;
 
   function save() {
-    // The Tools and Canvas tabs write straight through to the committed
-    // settings (a tool you switch on has to reach the toolbar immediately, and
-    // the canvas theme has to repaint the page behind the dialog to be judged),
-    // so the draft's copies of those two fields are the stale ones this dialog
-    // opened with. Carry the live values across, or saving any other tab would
-    // silently revert them.
+    // The Tools tab writes straight through to the committed settings — a tool
+    // you switch on has to reach the toolbar immediately — so the draft's copy
+    // of that field is the stale one this dialog opened with. Carry the live
+    // value across, or saving any other tab would silently revert it.
     commitSettings({
       ...draft,
       enabledPlugins: settings.enabledPlugins,
-      canvasTheme: settings.canvasTheme,
     });
     onClose();
   }
@@ -193,7 +191,6 @@ export function SettingsModal({
     // …and so does the order they sit in: back to the one their plugins
     // registered in.
     updateLive("toolOrder", fresh.toolOrder);
-    updateLive("canvasTheme", fresh.canvasTheme);
     // …and the watercolour engine, which lives on the same live-applied page
     // as the switchboard above it.
     updateLive("washEngine", fresh.washEngine);
@@ -347,14 +344,6 @@ export function SettingsModal({
               setPluginEnabled={setPluginEnabled}
               moveTool={moveTool}
               update={updateLive}
-              appearance={appearance}
-            />
-          )}
-          {activeTab === "canvas" && (
-            <CanvasTab
-              settings={settings}
-              update={updateLive}
-              store={store}
               appearance={appearance}
             />
           )}

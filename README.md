@@ -107,10 +107,12 @@ the same [`oss-framework`](https://github.com/niclaslindstedt/oss-framework).
   a flat wedge that draws a band one way and a hairline the other. Not one pen
   at five different widths.
 - **Paper, canvas, or a plain sheet.** The page has a material as well as a
-  colour, and it is chosen with the page size when the drawing is made: a solid
-  digital sheet, one of four papers (hot-pressed, cold-pressed, rough,
-  cartridge) or primed cotton duck. Like the size it stays put afterwards, since
-  a mark is painted _into_ the sheet it was made on. That grain is painted
+  colour, and **New image** asks for all three at once — size, page colour, and
+  canvas type: a solid digital sheet, one of four papers (hot-pressed,
+  cold-pressed, rough, cartridge) or primed cotton duck, each stock drawn on the
+  colour you picked so you compare them as the page they will be. Like the size
+  they stay put afterwards, since a mark is painted _into_ the sheet it was made
+  on. That grain is painted
   _under_ the marks, so it shows through a wash and not through an opaque line —
   and on a sheet that drinks, the wet tools start behaving like it. A wash mixes
   with the colour it lands on instead of covering it, so red over blue is purple

@@ -6,8 +6,8 @@ import {
   DARK_PAGE,
   LIGHT_INK,
   LIGHT_PAGE,
+  PAGE_SWATCHES,
   isDarkAppearance,
-  isDarkCanvas,
   isDarkColor,
   lightness,
   resolveInk,
@@ -86,20 +86,22 @@ describe("APP_LOOK", () => {
   });
 });
 
-describe("isDarkCanvas", () => {
-  it("pins light and dark regardless of the app theme", () => {
-    expect(isDarkCanvas("light", CUSTOM_DARK)).toBe(false);
-    expect(isDarkCanvas("dark", DEFAULT_THEME_APPEARANCE)).toBe(true);
+describe("PAGE_SWATCHES", () => {
+  // The page colours the new-image dialog offers. They are written onto the
+  // drawing and read straight back by `resolvePageColor`, so each has to be a
+  // colour the ink rule can answer for — and the shelf has to carry both kinds
+  // of page, or "pin a colour" would only ever mean "go lighter".
+  it("are hex colours the ink rule can read", () => {
+    for (const swatch of PAGE_SWATCHES) {
+      expect(swatch).toMatch(/^#[0-9a-f]{6}$/);
+      expect(resolvePageColor(swatch, true)).toBe(swatch);
+      expect(resolvePageColor(swatch, false)).toBe(swatch);
+    }
   });
 
-  it("follows the app theme on auto", () => {
-    expect(isDarkCanvas("auto", CUSTOM_DARK)).toBe(true);
-    expect(
-      isDarkCanvas("auto", {
-        ...DEFAULT_THEME_APPEARANCE,
-        theme: "githubLight",
-      }),
-    ).toBe(false);
+  it("offer both light and dark sheets", () => {
+    expect(PAGE_SWATCHES.some((s) => isDarkColor(s))).toBe(true);
+    expect(PAGE_SWATCHES.some((s) => !isDarkColor(s))).toBe(true);
   });
 });
 

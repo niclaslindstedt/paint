@@ -1,18 +1,13 @@
 # Light page, dark page
 
-The page you draw on has its own theme, separate from the app's.
+A page that has chosen no colour of its own **follows the app theme**: the dark
+app opens a dark sheet and draws on it in light ink, and switching the app to a
+light theme flips both back to a white page and dark ink. A white rectangle
+glaring out of a black shell was the old behaviour; it isn't any more.
 
-By default it **follows the app theme**: the dark app opens a dark sheet and
-draws on it in light ink, and switching the app to a light theme flips both back
-to a white page and dark ink. A white rectangle glaring out of a black shell was
-the old behaviour; it isn't any more.
-
-Settings → Canvas holds the control:
-
-- **Follow app theme** — the default described above.
-- **Light page** / **Dark page** — pin it, whatever the app is wearing. Useful
-  when you're drawing something you'll export and paste somewhere with its own
-  background.
+There is no app-wide "always draw dark" switch. A page that wants a colour of
+its own is given one when it is made — see below — because that answer belongs
+to the drawing rather than to the app.
 
 ## Ink follows the page
 
@@ -32,9 +27,15 @@ the page over it, so a page flip finds nothing in them to re-ink.
 
 ## Pinning one drawing's colour
 
-The canvas theme applies to every drawing that hasn't chosen a colour of its
-own. Settings → Canvas → **Page colour** pins a specific colour to the drawing
-you have open — a warm cream, a blackboard — which overrides the theme for that
-drawing only, and travels with it when it syncs. **Follow theme** hands it back.
+The app theme is what a page falls back to when it has chosen no colour of its
+own. **New image → Page colour** pins a specific colour instead — a warm cream,
+a blackboard — which overrides the theme for that image only and travels with it
+when it syncs. **Follow theme** is the default and hands it back.
+
+It is asked there because it is part of what the page **is**, alongside its size
+and its sheet, and because the stock swatches beside it are painted on it: pick
+a black page and you are comparing the six surfaces as that black page rather
+than as a stranger's white one. Like the size, it is fixed once the page
+exists.
 
 An exported PNG always carries the page it was drawn on, dark sheet included.
