@@ -128,6 +128,7 @@ describe("the mark cache", () => {
       painted: null,
       strokes: [] as Stroke[],
       count: 0,
+      wet: null,
     };
     const first = drawing([line([20, 20], [80, 60])]);
     // One repaint to fill the cache, then a mark landing on top of it — the

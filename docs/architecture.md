@@ -381,10 +381,16 @@ effects:
   surface of its own, exactly as a layer under an effect preview is. Mixing is
   therefore scoped to a layer, and an eraser on such a layer stops at it. It is
   what makes layers the way to keep a mark out of the water.
-- **The mark cache cannot absorb a wet mark.** Its pixels are a finished
-  picture, sheet included, so appending a mark that mixes would mix it with the
-  sheet and with layers a repaint would not. Such a stroke repaints instead —
-  the same call the cache makes while an effect is being previewed (`cache.ts`).
+- **The mark cache cannot absorb a wet mark onto its own pixels.** They are a
+  finished picture, sheet included, so appending a mark that mixes would mix it
+  with the sheet and with layers a repaint would not. So on a sheet that soaks,
+  a full repaint **keeps the topmost painted layer apart as pixels** — the very
+  surface it was lifted onto, plus the screen as it stood below it — and a mark
+  landing on that layer is painted onto the kept surface exactly as the repaint
+  would have painted it, with the screen put back together from the two halves
+  (`cache.ts`). A landed wash then costs one stroke rather than the document;
+  marks landing on lower layers, and every landing while an effect dialog is
+  open, still cost the repaint they always did.
 
 `wet.ts` is the one piece that is not compositing: it copies the pixels under a
 wet mark, smears them outward, cuts the smear to the mark's own shape and lays

@@ -221,6 +221,9 @@ export type WashField = {
   /** How much of each wet cell's neighbourhood is dry paper, 0 in the middle of
    *  a pool and 1 at a lone damp speck (see `expose`). */
   exposure: Float32Array;
+  /** How much of the sheet's mottle this grid can honestly draw, 0–1 — the
+   *  share of the granulation rolling that runs (see `createField`). */
+  resolve: number;
   pigment: Pigment;
   /** How much the sheet drinks (see `GroundProfile.absorbency`). */
   absorbency: number;
@@ -346,6 +349,18 @@ export function createField(o: {
   const tooth = o.ground.tooth > 0 ? o.ground.tooth * 1.3 : BARE_TOOTH;
   const pitch = Math.max(tooth, o.cell * 3.5);
   const bite = o.ground.tooth > 0 ? Math.min(1, o.ground.bite) : BARE_BITE;
+  // …and how much of the mottle a grid this coarse can honestly draw. The
+  // floor above keeps the *bed* smooth, but the pigment that rolls down it
+  // still gathers at the bottoms of its pools, and a pool spanning only the
+  // three-and-a-half cells of the floor bottoms out in a single cell — so on a
+  // coarse grid the mottle comes out as a mosaic of arithmetic-sized squares,
+  // which is the pixelated trail a long stroke used to leave. A fine grid
+  // (every short mark, where the pools span many cells) rolls at full
+  // strength; a floor-bound one rolls not at all, and the wash relies on the
+  // sheet's own grain — painted under it at full resolution — for its tooth.
+  // Detail the grid cannot draw is dropped rather than drawn at the grid's
+  // size, which is the same call `PaintDetail` makes about device pixels.
+  const resolve = Math.max(0, Math.min(1, (pitch / o.cell - 3.5) / 3.5));
   for (let y = 0; y < o.height; y++) {
     for (let x = 0; x < o.width; x++) {
       const at = y * o.width + x;
@@ -374,6 +389,7 @@ export function createField(o: {
     bed,
     flow,
     exposure: new Float32Array(cells),
+    resolve,
     pigment: pigmentFor(o.granulation),
     absorbency: Math.max(0, Math.min(1, o.ground.absorbency)),
     nextWater: new Float32Array(cells),
@@ -743,7 +759,11 @@ function settle(field: WashField): void {
   // What makes ultramarine mottle and phthalo not is that ultramarine is a
   // ground rock in a puddle — it goes to the bottom of wherever it is, and the
   // bottom of a sheet of paper is its valleys.
-  const roll = pigment.granulation * ROLLING;
+  //
+  // Scaled by what this grid can draw: on one coarse enough that a pool
+  // bottoms out in a single cell, the rolling would print squares rather than
+  // mottle, so it stands down instead (see `resolve` in `createField`).
+  const roll = pigment.granulation * ROLLING * field.resolve;
   if (roll > 0) {
     for (let y = field.top; y <= field.bottom; y++) {
       for (let x = field.left; x <= field.right; x++) {

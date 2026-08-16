@@ -60,8 +60,8 @@
 // gave the word back.)
 
 import type { Rect } from "./geometry.ts";
-import { backgroundHidden, visibleStrokes } from "./layers.ts";
-import { groundProfile } from "./ground.ts";
+import { backgroundHidden, paintedLayers, visibleStrokes } from "./layers.ts";
+import { groundProfile, groundStains } from "./ground.ts";
 import {
   anyErases,
   anyStains,
@@ -70,6 +70,7 @@ import {
   relayFixed,
   renderDrawing,
   underlay,
+  type KeepWet,
   type RenderOptions,
 } from "./render.ts";
 import { createSurface, resizeSurface, type Surface } from "./surface.ts";
@@ -119,13 +120,48 @@ export type MarkCache = {
   strokes: readonly Stroke[];
   /** How many of them are actually on the pixels. */
   count: number;
+  /** The topmost painted layer kept apart as pixels, on a sheet that soaks —
+   *  what lets a wet mark land for the cost of one stroke (see the wet-append
+   *  note in `paintCommitted`). `null` until the first repaint on such a
+   *  sheet builds it. */
+  wet: WetLayer | null;
+};
+
+/** The wet layer's own pixels, and the picture that stood below them.
+ *
+ *  A wet mark mixes with *its own layer* rather than with the finished picture
+ *  (see `render.ts`), so the finished pixels above can never absorb one. These
+ *  two surfaces are the decomposition that can: `layer` is the surface the
+ *  topmost painted layer was lifted onto — the exact one `paintLayerApart`
+ *  composited, handed to the cache instead of being recycled — and `below` is
+ *  the screen as it stood just before that composite: every lower layer, and
+ *  no sheet, which goes under at the end (`underlay`). A stroke landing on the
+ *  layer is then painted onto `layer` exactly as a full repaint would have
+ *  painted it — same fold, same pixels under it — and the screen is put back
+ *  together as `below` + `layer` + the sheet.
+ *
+ *  Valid only while `layerId` is set, and only for the spec the cache's own
+ *  pixels were painted for: anything that repaints, scrolls or resizes the
+ *  frame stales it. The surfaces are kept through invalidation so a pinch
+ *  repainting every frame reuses them rather than minting two canvases a
+ *  frame. */
+type WetLayer = {
+  /** Which layer these pixels are, or `null` while they are stale. */
+  layerId: string | null;
+  /** The marks on `layer`, in paint order — what a rubbing out landing next
+   *  owes ink back over (see `relayFixed`). */
+  strokes: readonly Stroke[];
+  layer: Surface;
+  below: Surface;
 };
 
 /** Open a cache, or `null` where there is no DOM to open one in — in which case
  *  the canvas paints the document directly, as it always did. */
 export function createCache(width: number, height: number): MarkCache | null {
   const surface = createSurface(width, height);
-  return surface ? { surface, painted: null, strokes: [], count: 0 } : null;
+  return surface
+    ? { surface, painted: null, strokes: [], count: 0, wet: null }
+    : null;
 }
 
 /** Paint the committed marks onto the visible canvas, keeping `cache` up to
@@ -177,11 +213,28 @@ export function paintCommitted(
   // picture — every layer, and the sheet itself. Appending one would mix it
   // with all of that, where a repaint mixes it only with its own layer, and the
   // two would show a different picture the next time anything forced a full
-  // one. So a wet mark landing on a thirsty sheet repaints, exactly as a mark
-  // landing on a layer under an effect preview does. It costs one repaint per
-  // finished stroke and only on the drawings that asked for paper.
+  // one. So a wet mark can never land on the cache's own pixels — it lands on
+  // the **wet layer's** instead, when the last repaint kept them (see
+  // `WetLayer`): the stroke is painted onto that layer's surface exactly as
+  // the repaint would have painted it, and the screen is put back together
+  // from the two halves. One stroke, not a document — the difference between
+  // a heavy watercolour that hitches on every landing and one that doesn't.
+  // Without kept pixels to land on it costs the repaint it always did, which
+  // rebuilds them for the stroke after it.
   const landed = usable ? strokes.slice(cache.count) : [];
+  if (
+    usable &&
+    landed.length > 0 &&
+    wetAppend(ctx, canvas, cache, spec, landed)
+  ) {
+    remember(cache, spec, strokes);
+    return "appended";
+  }
   if (usable && !anyStains(landed, groundProfile(spec.options.ground))) {
+    // These pixels are everything flattened, so a mark landing here must not
+    // be one the wet layer's surface is also going to claim: the surface goes
+    // stale the moment the append below paints past it.
+    if (landed.length > 0 && cache.wet) cache.wet.layerId = null;
     const added = landed.length;
     if (added > 0) {
       // The gesture that just landed, painted onto the marks already there —
@@ -218,13 +271,137 @@ export function paintCommitted(
   if (!previewing && scroll(ctx, cache, spec, strokes)) {
     capture(cache, canvas, spec);
     remember(cache, spec, strokes);
+    // The kept wet pixels are in the view they were painted in, and the view
+    // just moved under them.
+    if (cache.wet) cache.wet.layerId = null;
     return "scrolled";
   }
 
-  paintDocument(ctx, spec);
+  paintDocument(ctx, spec, wetKeep(cache, canvas, spec));
   capture(cache, canvas, spec);
   remember(cache, spec, strokes);
   return "repainted";
+}
+
+/** Land a run of marks on the kept wet layer: paint them onto its surface
+ *  exactly as the repaint that kept it would have, and put the screen back
+ *  together from the two halves (see `WetLayer`). `false` when the kept pixels
+ *  cannot absorb this landing — stale, the wrong frame shape, or marks that
+ *  belong to some other layer — and the caller repaints.
+ *
+ *  Deliberately not gated on the marks being wet: a dry mark on the wet layer
+ *  lands here too, and has to — painted onto the finished picture instead, it
+ *  would sit *outside* the layer's surface, which the next landing would then
+ *  paint past. It is also simply the more faithful picture: the repaint this
+ *  stands in for scopes everything on that layer, rubbing out included, to the
+ *  layer's own surface. */
+function wetAppend(
+  ctx: CanvasRenderingContext2D,
+  canvas: HTMLCanvasElement,
+  cache: MarkCache,
+  spec: CacheSpec,
+  landed: readonly Stroke[],
+): boolean {
+  const wet = cache.wet;
+  if (!wet || wet.layerId === null) return false;
+  if (
+    wet.layer.canvas.width !== spec.width ||
+    wet.layer.canvas.height !== spec.height ||
+    wet.below.canvas.width !== spec.width ||
+    wet.below.canvas.height !== spec.height
+  ) {
+    return false;
+  }
+  // The kept layer must still be the topmost painted one, and every mark that
+  // landed must be its: the layer's strokes then are the kept ones plus the
+  // landing, by identity, and everything below is untouched.
+  const walk = paintedLayers(spec.drawing, {
+    withoutBackground: spec.options.transparentPage,
+  });
+  const top = walk[walk.length - 1];
+  if (!top || top.layer.id !== wet.layerId) return false;
+  if (top.strokes.length !== wet.strokes.length + landed.length) return false;
+  for (let i = 0; i < wet.strokes.length; i++) {
+    if (top.strokes[i] !== wet.strokes[i]) return false;
+  }
+  for (let i = 0; i < landed.length; i++) {
+    if (top.strokes[wet.strokes.length + i] !== landed[i]) return false;
+  }
+
+  // The landing, onto the layer's own pixels — the same fold the repaint ran:
+  // the marks already there are the same marks, so what a wet one soaks up and
+  // mixes with is what it would have soaked up and mixed with. Unclipped, as
+  // the lift paints unclipped: the sheet's edge is cut at composite time.
+  const scoped = { ...spec.options, clip: windowOnPage(spec) };
+  applyView(wet.layer.ctx, spec);
+  paintStrokes(wet.layer.ctx, landed, scoped);
+  // A rubbing out is scoped to this surface, so what it owes back is too —
+  // the same scoping `paintLayerApart` gives the full run.
+  relayFixed(wet.layer.ctx, landed, scoped, wet.strokes);
+  wet.strokes = top.strokes;
+
+  // The screen, put back together: what stood below the layer, the layer over
+  // it — held to the sheet, exactly as its composite always is — and the sheet
+  // laid under the lot.
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(0, 0, spec.width, spec.height);
+  ctx.drawImage(wet.below.canvas, 0, 0);
+  applyView(ctx, spec);
+  onSheet(ctx, spec.drawing, () => {
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.globalAlpha = 1;
+    ctx.globalCompositeOperation = "source-over";
+    ctx.drawImage(wet.layer.canvas, 0, 0);
+    ctx.restore();
+  });
+  underlay(ctx, spec.drawing, spec.options);
+  capture(cache, canvas, spec);
+  return true;
+}
+
+/** What a repaint is handed so the wet layer's pixels survive it — or `null`
+ *  on the frames that have nothing to keep: a sheet nothing stains on (every
+ *  solid-page drawing), or an effect dialog open (its previews give up every
+ *  shortcut, see above). The two surfaces are reused across rebuilds — a pinch
+ *  repaints every frame, and two minted canvases a frame is an allocator bill
+ *  the whole cache exists to avoid. */
+function wetKeep(
+  cache: MarkCache,
+  canvas: HTMLCanvasElement,
+  spec: CacheSpec,
+): KeepWet | undefined {
+  if (cache.wet) cache.wet.layerId = null;
+  if (spec.options.preview !== undefined) return undefined;
+  if (!groundStains(groundProfile(spec.options.ground))) return undefined;
+  if (!cache.wet) {
+    const layer = createSurface(spec.width, spec.height);
+    const below = layer && createSurface(spec.width, spec.height);
+    if (!layer || !below) return undefined;
+    cache.wet = { layerId: null, strokes: [], layer, below };
+  }
+  const wet = cache.wet;
+  // What the screen holds when the walk reaches the kept layer, taken then;
+  // which layer it was, remembered so a `kept` for some other lift — or none
+  // at all — leaves the cache honestly stale.
+  let saw: string | null = null;
+  return {
+    into: wet.layer,
+    below: (layer) => {
+      resizeSurface(wet.below, spec.width, spec.height);
+      const target = wet.below.ctx;
+      target.setTransform(1, 0, 0, 1, 0, 0);
+      target.globalCompositeOperation = "copy";
+      target.drawImage(canvas, 0, 0);
+      target.globalCompositeOperation = "source-over";
+      saw = layer.id;
+    },
+    kept: (layer, strokes) => {
+      if (saw !== layer.id) return;
+      wet.layerId = layer.id;
+      wet.strokes = strokes;
+    },
+  };
 }
 
 /** Serve a frame that differs from the cache's only by how far the page has
@@ -362,12 +539,18 @@ export function blitCache(
 }
 
 /** Paint the document itself: the page, the grid, and every mark that can reach
- *  the window. */
-function paintDocument(ctx: CanvasRenderingContext2D, spec: CacheSpec): void {
+ *  the window — keeping the wet layer's pixels on the way past when the cache
+ *  asked for them (see `wetKeep`). */
+function paintDocument(
+  ctx: CanvasRenderingContext2D,
+  spec: CacheSpec,
+  keep?: KeepWet,
+): void {
   applyView(ctx, spec);
   renderDrawing(ctx, spec.drawing, null, {
     ...spec.options,
     clip: windowOnPage(spec),
+    ...(keep ? { keepWet: keep } : {}),
   });
 }
 
