@@ -27,7 +27,7 @@ import {
   namespaceFaviconHref,
 } from "@niclaslindstedt/oss-framework/namespaces";
 
-import { isDarkAppearance } from "./app/canvas.ts";
+import { isDarkAppearance, resolvePageColor } from "./app/canvas.ts";
 import { canvasPresetById, toolbarFor } from "./app/canvasPresets.ts";
 import { CanvasScreen } from "./app/CanvasScreen.tsx";
 import { SideMenuContent } from "./app/SideMenuContent.tsx";
@@ -322,6 +322,45 @@ export function App() {
   useEffect(() => {
     status("App started");
   }, []);
+
+  // Warm the new-image dialog's stock shelf while nobody is waiting. The first
+  // swatch ever painted is two orders of magnitude dearer than every one after
+  // (see `warmSwatches`), and the dialog used to pay that bill as it opened. An
+  // idle import rather than a static one — the first paint doesn't need the
+  // dialog's chunk, only the dialog does — and re-run when the theme or an
+  // engine changes, because either one changes the pixels a shelf shows.
+  useEffect(() => {
+    const warm = () => {
+      void import("./app/GroundPicker.tsx").then((m) =>
+        m.warmSwatches(resolvePageColor(undefined, darkCanvas), darkCanvas),
+      );
+    };
+    const idle = (
+      window as Window & {
+        requestIdleCallback?: (fn: () => void) => number;
+        cancelIdleCallback?: (handle: number) => void;
+      }
+    ).requestIdleCallback;
+    if (idle) {
+      const handle = idle(warm);
+      return () =>
+        (
+          window as Window & {
+            cancelIdleCallback?: (handle: number) => void;
+          }
+        ).cancelIdleCallback?.(handle);
+    }
+    // Safari has no idle callback; a beat after the app settles is close
+    // enough to "idle" for a job this size.
+    const handle = window.setTimeout(warm, 1500);
+    return () => window.clearTimeout(handle);
+  }, [
+    darkCanvas,
+    settings.washEngine,
+    settings.washDetail,
+    settings.leadEngine,
+    settings.leadDetail,
+  ]);
 
   // Re-badge the browser tab with the active namespace's glyph, so a glance at
   // the tab strip tells you which sketchbook you're in; without one it wears

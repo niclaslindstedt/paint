@@ -4,6 +4,8 @@ import { useEffect, useRef } from "react";
 import { defaultInk } from "./canvas.ts";
 import { GROUNDS, groundById, type GroundDescriptor } from "./ground.ts";
 import { useT } from "./i18n/index.ts";
+import { leadDetail, leadEngine } from "./plugins/lead.ts";
+import { washDetail, washEngine } from "./plugins/wash.ts";
 import { renderDrawing } from "./render.ts";
 import { mm } from "./units.ts";
 import type { Drawing, Ground } from "./types.ts";
@@ -91,6 +93,30 @@ function sampleMarks(ink: string, wash: string) {
 const painted = new Map<string, HTMLCanvasElement>();
 const PAINTED_MAX = 60;
 
+/** Everything a swatch's pixels are a function of, folded into its cache key.
+ *  The engines in force are in it too: they are read as globals by the
+ *  renderer (see `plugins/wash.ts`), so two swatches painted either side of an
+ *  engine change are two different pictures under the same props. */
+function swatchKey(
+  stock: string | undefined,
+  texture: number,
+  pageColor: string,
+  dark: boolean,
+  dpr: number,
+): string {
+  return [
+    stock ?? "solid",
+    texture,
+    pageColor,
+    dark,
+    dpr,
+    washEngine(),
+    washDetail(),
+    leadEngine(),
+    leadDetail(),
+  ].join("|");
+}
+
 function remember(key: string, swatch: HTMLCanvasElement): void {
   if (painted.size >= PAINTED_MAX) {
     const oldest = painted.keys().next().value;
@@ -169,6 +195,32 @@ function paintSwatch(
   return canvas;
 }
 
+/** Paint the shelf a fresh dialog opens on, before anyone opens it.
+ *
+ *  The first swatch ever painted costs two orders of magnitude more than every
+ *  one after — the painters are compiled and the grain tiles built on that
+ *  first run, and the *pixels* were never the bill: the same six swatches cost
+ *  ~120 ms cold and ~1 ms warm, at any resolution, which is why the answer to
+ *  a slow shelf is warming it rather than shrinking it. Called at idle from the
+ *  app with the page a fresh dialog will actually show — no colour, grain at 1
+ *  — so the bill is paid where nobody is waiting, one swatch per frame through
+ *  the same queue, and the dialog's own shelf is six blits. Calling it warm
+ *  costs six map lookups. */
+export function warmSwatches(pageColor: string, dark: boolean): void {
+  if (typeof document === "undefined" || typeof window === "undefined") return;
+  const dpr = Math.min(window.devicePixelRatio || 1, 3);
+  for (const { id, family } of GROUNDS) {
+    const stock = family === "solid" ? undefined : id;
+    const key = swatchKey(stock, 1, pageColor, dark, dpr);
+    if (painted.has(key)) continue;
+    enqueue(() => {
+      if (painted.has(key)) return;
+      const swatch = paintSwatch(stock, 1, pageColor, dark, dpr);
+      if (swatch) remember(key, swatch);
+    });
+  }
+}
+
 /** One stock, painted as the page it is. */
 export function GroundSwatch({
   stock,
@@ -188,7 +240,7 @@ export function GroundSwatch({
     const canvas = ref.current;
     if (!canvas) return;
     const dpr = Math.min(window.devicePixelRatio || 1, 3);
-    const key = [stock ?? "solid", texture, pageColor, dark, dpr].join("|");
+    const key = swatchKey(stock, texture, pageColor, dark, dpr);
     const show = (source: HTMLCanvasElement) => {
       canvas.width = source.width;
       canvas.height = source.height;
@@ -202,7 +254,10 @@ export function GroundSwatch({
       return;
     }
     return enqueue(() => {
-      const swatch = paintSwatch(stock, texture, pageColor, dark, dpr);
+      // Looked up again inside the job: a warming pass may have painted this
+      // very swatch while ours stood in the queue.
+      const swatch =
+        painted.get(key) ?? paintSwatch(stock, texture, pageColor, dark, dpr);
       if (!swatch) return;
       remember(key, swatch);
       show(swatch);
