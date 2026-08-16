@@ -39,7 +39,7 @@ import { cacheIdForBase } from "./app/pwa.ts";
 import { adoptDrawing } from "./app/pct.ts";
 import { imageStroke } from "./app/plugins/builtin/image.ts";
 import { resolveActiveTool } from "./app/plugins/registry.ts";
-import { setWashEngine } from "./app/plugins/wash.ts";
+import { setWashDetail, setWashEngine } from "./app/plugins/wash.ts";
 import { applyBackdropVars, useAppSettings } from "./app/useAppSettings.ts";
 import { useNamespaces } from "./app/useNamespaces.ts";
 import { freshId, usePaintStore } from "./app/usePaintStore.ts";
@@ -277,7 +277,8 @@ export function App() {
   // the exported PNG — cannot disagree about it (see `plugins/wash.ts`).
   useEffect(() => {
     setWashEngine(settings.washEngine);
-  }, [settings.washEngine]);
+    setWashDetail(settings.washDetail);
+  }, [settings.washEngine, settings.washDetail]);
 
   useEffect(() => {
     status("App started");

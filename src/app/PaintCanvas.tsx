@@ -23,7 +23,11 @@ import type { MarkCache } from "./cache.ts";
 import { cursorFor, usePointerRing } from "./PointerRing.tsx";
 import { pluginById } from "./plugins/registry.ts";
 import type { CanvasProbe, DraftStroke, ToolContext } from "./plugins/types.ts";
-import { DEFAULT_WASH_ENGINE, type WashEngine } from "./plugins/wash.ts";
+import {
+  DEFAULT_WASH_DETAIL,
+  DEFAULT_WASH_ENGINE,
+  type WashEngine,
+} from "./plugins/wash.ts";
 import { createProbe } from "./probe.ts";
 import { inBox } from "./selection.ts";
 import { createTrail } from "./trail.ts";
@@ -136,6 +140,9 @@ type Props = {
    *  when the setting changes, and what lets the mark cache tell the two
    *  engines' pixels apart. */
   washEngine?: WashEngine;
+  /** …and how finely it resolves (see `MIN_WASH_DETAIL`). Passed for the same
+   *  reason the engine is: the mark cache has to see it change. */
+  washDetail?: number;
   /** An effect the sidebar's dialog is setting up, shown on the layers it would
    *  land on and never kept (see `effects.ts`). A render input like the wash
    *  engine, and for the same reason: it is what makes the page repaint when a
@@ -196,6 +203,7 @@ export function PaintCanvas({
   showGrid = false,
   checker,
   washEngine = DEFAULT_WASH_ENGINE,
+  washDetail = DEFAULT_WASH_DETAIL,
   preview = null,
   fitToken = 0,
   refitToken = 0,
@@ -299,6 +307,7 @@ export function PaintCanvas({
     showGrid,
     checker,
     washEngine,
+    washDetail,
     preview,
     decodedAt,
     selection,
@@ -310,6 +319,7 @@ export function PaintCanvas({
     showGrid,
     checker,
     washEngine,
+    washDetail,
     preview,
     decodedAt,
     selection,
@@ -516,6 +526,7 @@ export function PaintCanvas({
     showGrid,
     checker,
     washEngine,
+    washDetail,
     preview,
     decodedAt,
     selection,

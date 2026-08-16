@@ -359,6 +359,24 @@ export const en = {
       hint: "How heavily the pigment settles into the paper's dips. Rough stock and mineral colours mottle most.",
     },
   },
+  // The tool options — the section under the dials in the same panel (see
+  // `plugins/options.ts`). A dial changes the next mark; one of these changes
+  // how every mark of its kind is painted, on every drawing.
+  //
+  // **One short line each.** The swatch is the explanation — it is the mark this
+  // answer makes — so the words are for what a picture cannot show: the cost.
+  // The rest is in `docs/features/surface.md`, where it can be read once rather
+  // than every time the panel is opened.
+  options: {
+    title: "Rendering",
+    washEngine: "Wash",
+    washSimple: "Stroke",
+    washSimpleHint: "Fast, and the same on any device.",
+    washSimulation: "Pigment",
+    washSimulationHint: "Water on paper, dried a step at a time. Much slower.",
+    washDetail: "Detail: {value}%",
+    washDetailHint: "Lower is faster and coarser.",
+  },
   // The presets each tool ships with — the settings its medium is actually used
   // at, offered as chips above the ones you saved yourself (see
   // `plugins/builtin/presets.ts`). Grouped by the tool's own id, so the
@@ -730,15 +748,6 @@ export const en = {
       shortcut: "Shortcut: {key}",
       moveUp: "Move {name} earlier in the toolbar",
       moveDown: "Move {name} later in the toolbar",
-      washTitle: "Watercolour",
-      washHint:
-        "Two ways of painting a wash. Both read the same three dials and the same paper, so this changes how a wash is drawn and nothing you have set — every wash on every drawing, including the ones already made.",
-      washSimple: "Stroke",
-      washSimpleHint:
-        "A wash is a shape with a dried rim and a mottle. Fast, and the same on any device.",
-      washSimulation: "Pigment",
-      washSimulationHint:
-        "Water and pigment on paper, dried a step at a time: blooms, backruns and a rim that settles where it dries. Much slower — noticeable on a big page or an older phone.",
     },
     canvas: {
       intro:

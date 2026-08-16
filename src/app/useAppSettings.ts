@@ -42,7 +42,9 @@ import {
 } from "./presets.ts";
 import type { PaintPlugin } from "./plugins/types.ts";
 import {
+  DEFAULT_WASH_DETAIL,
   DEFAULT_WASH_ENGINE,
+  clampWashDetail,
   isWashEngine,
   type WashEngine,
 } from "./plugins/wash.ts";
@@ -164,8 +166,17 @@ export type AppSettings = {
    *  A setting rather than a property of a drawing, and deliberately: it is a
    *  *view*, like the canvas theme. A wash drawn with one paints with whichever
    *  is in force, so switching cannot orphan work — and a phone that cannot
-   *  afford the simulation can still open a page painted with it on a desktop. */
+   *  afford the simulation can still open a page painted with it on a desktop.
+   *
+   *  Set from the watercolour brush's own panel rather than from a page in
+   *  Settings: it is a property of the brush, and it is a choice nobody can make
+   *  without painting with it (see `plugins/washOptions.ts`). */
   washEngine: WashEngine;
+  /** …and how finely that simulation resolves, 0.1 to 1 (see
+   *  `MIN_WASH_DETAIL`). The one setting in the app that buys nothing but speed:
+   *  the cost of a wash goes as the square of it, so it is what makes the
+   *  heavier engine usable on a page full of washes, or on an older phone. */
+  washDetail: number;
   /** Whether shape tools fill rather than outline. */
   filled: boolean;
   /** Paint the canvas over a grid, so a sketch of boxes and arrows lines up. */
@@ -272,6 +283,10 @@ const BASE_SETTINGS: Omit<AppSettings, "enabledPlugins"> = {
   // picture and it is opt-in anyway, because it costs a great deal more per
   // wash and a page of them on an old phone is a real difference.
   washEngine: DEFAULT_WASH_ENGINE,
+  // …and all of the simulation's field when it is the one painting: a build
+  // that quietly painted a coarser wash than its own sample showed would be
+  // lying about its picture. Turning it down is a trade the user makes.
+  washDetail: DEFAULT_WASH_DETAIL,
   filled: false,
   showGrid: false,
   // On out of the box: the first thing a new user does is try the tools, and a
@@ -518,6 +533,7 @@ export function parseSettings(raw: string): AppSettings {
   // with but the engines that are here, and a name we can't resolve would leave
   // the setting showing nothing selected.
   if (!isWashEngine(merged.washEngine)) merged.washEngine = base.washEngine;
+  merged.washDetail = clampWashDetail(merged.washDetail);
   return merged;
 }
 
@@ -782,10 +798,15 @@ export function sizesFor(plugin: PaintPlugin | undefined): number[] {
  *  `SettingsModal.tsx`).
  *
  *  There is nothing to roll back for any of them: a tool you switch on has to
- *  reach the toolbar behind the dialog, and a watercolour engine whose whole
- *  content is "which of these two do you like" cannot be judged behind a Save
- *  button. They are the ones the dialog *shows* from the committed settings too,
- *  so a draft's copy of them is stale from the moment the control is touched.
+ *  reach the toolbar behind the dialog. They are the ones the dialog *shows*
+ *  from the committed settings too, so a draft's copy of them is stale from the
+ *  moment the control is touched.
+ *
+ *  The two wash settings are here for the neighbouring reason: the dialog does
+ *  not own them **at all** any more. They are set from the watercolour brush's
+ *  own panel (see `plugins/washOptions.ts`), which is somewhere else entirely —
+ *  so the draft's copy of them is a value nobody edited in the dialog, and Save
+ *  writing it back is exactly the silent revert this list exists to prevent.
  *
  *  Named here, in one list, because the dialog's Save has to put every one of
  *  them back over the draft it commits — and a list kept in Save's own head is a
@@ -801,6 +822,7 @@ export const LIVE_SETTINGS = [
   "enabledPlugins",
   "toolOrder",
   "washEngine",
+  "washDetail",
   // The New image shelf, for the same reason as the switchboard above it: the
   // Canvas tab is a list you *manage* — make one, name it, throw it away — and
   // an editor with its own Save inside a dialog with another Save is two

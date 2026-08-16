@@ -18,12 +18,19 @@ import {
   type SizeGauge,
 } from "../plugins/gauge.ts";
 import type { ToolPresetOption } from "../plugins/presets.ts";
-import type { PaintPlugin, ToolDial, ToolSwatch } from "../plugins/types.ts";
+import type { ToolOptionValue } from "../plugins/options.ts";
+import type {
+  PaintPlugin,
+  ToolDial,
+  ToolOption,
+  ToolSwatch,
+} from "../plugins/types.ts";
 import type { PresetSettings, ToolPreset } from "../presets.ts";
 import { gaugeFor, sizesFor } from "../useAppSettings.ts";
 import { PressPreview } from "./PressPreview.tsx";
 import { PresetBar } from "./PresetBar.tsx";
 import { ToolDials } from "./ToolDials.tsx";
+import { ToolOptions } from "./ToolOptions.tsx";
 import { ToolSwatches } from "./ToolSwatches.tsx";
 
 // The tool panel: the tools you saved, the widths this tool is made in, and
@@ -72,6 +79,14 @@ import { ToolSwatches } from "./ToolSwatches.tsx";
 // **The width belongs to the tool**, and so does everything else here. One
 // pencil width, one brush width, one type size, one set of dials each — so
 // reaching for the brush no longer costs you the pencil you had set.
+//
+// **Rendering** — the settings that are not about the next mark but about how
+// marks of this kind are *painted*, for every drawing there is
+// (`PaintPlugin.options`, and see `ToolOptions.tsx`). The watercolour brush is
+// the only tool with any: which of the two watercolours this build paints with,
+// and how finely the heavier of them resolves. They were a page in Settings, and
+// this is where they belong — a wash engine is a property of the brush, and it
+// is a choice nobody can make without painting with it.
 //
 // **Advanced** — the tool's own knobs, rendered from what it declares and
 // nothing else (`PaintPlugin.dials`). Nothing in this file knows what any of
@@ -123,6 +138,12 @@ type Props = {
    *  back to where it started sends, so nothing is kept that isn't doing
    *  anything. */
   onDialChange: (id: string, value: number | null) => void;
+  /** The app-wide settings the tool declares, and where they sit — the section
+   *  above the dials (see `plugins/options.ts`). Empty for every tool but the
+   *  watercolour brush today, and then there is no such section at all. */
+  options: readonly ToolOption[];
+  optionValues: Readonly<Record<string, ToolOptionValue>>;
+  onOptionChange: (id: string, value: ToolOptionValue) => void;
   /** The inks the tool carries of its own, in the order it declared them, and
    *  where they sit. Empty for every tool that draws with the toolbar's ink —
    *  which is every tool with a width today — and then there is no swatch
@@ -169,6 +190,9 @@ export function SizePicker({
   dials,
   values,
   onDialChange,
+  options,
+  optionValues,
+  onOptionChange,
   swatches,
   colors,
   onColorChange,
@@ -396,6 +420,25 @@ export function SizePicker({
               values={colors}
               onChange={onColorChange}
               customColors={mixedColors}
+            />
+          </div>
+        )}
+
+        {/* The settings that are not about the next mark at all: which of a
+            medium's renderings is painting, for every drawing (see
+            `ToolOptions`). Above the dials rather than below them, because it
+            is the coarser question — the dials tune what this picks — and
+            because the answers are *pictures*: a comparison you have to scroll
+            a rack of sliders to reach is a comparison nobody makes. */}
+        {options.length > 0 && (
+          <div className="border-t border-line pt-2">
+            <ToolOptions
+              title={t("options.title")}
+              options={options}
+              values={optionValues}
+              onChange={onOptionChange}
+              color={color}
+              background={background}
             />
           </div>
         )}

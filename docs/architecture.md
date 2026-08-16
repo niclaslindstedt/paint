@@ -580,6 +580,17 @@ lives by: **nothing outside it may branch on a tool id.**
 - `dials.ts` — what happens to those sliders' numbers: resolved for the panel,
   and pared back to just the ones moved off their default for the canvas and the
   stroke.
+- `options.ts` — `dials.ts`'s sibling for the settings that are **not** about
+  the next mark: an option (`PaintPlugin.options`) says how marks of a tool's
+  kind are _painted_, for every drawing, so it is nowhere on a stroke and lives
+  in the app settings under its own id — an option _is_ a setting, declared by
+  the tool it is about. It resolves the same two ways a dial does (every option
+  for the panel; each pulled back onto its own control), and an option can
+  depend on another, which is how a setting belonging to one answer stays hidden
+  while a different answer is picked. `washOptions.ts` is the only set today:
+  which watercolour engine paints, and how finely the simulation resolves, each
+  answer carrying a painter for its own swatch so the panel that draws it learns
+  nothing about washes.
 - `presets.ts` — the settings a tool _ships_ with (`builtin/presets.ts` for the
   set): a width and the dials that make its medium's must-haves, declared as
   only what each one moves and resolved here into a whole tool, so applying one
@@ -636,10 +647,14 @@ lives by: **nothing outside it may branch on a tool id.**
   a gesture and turns the pigment it settled into pixels, subtractively
   (`colour ^ density`, so glazing deepens towards the colour rather than
   towards grey).
-- `wash.ts` — which of the two is painting. Both read the same three dials
-  (`water`, `pigment`, `granulation`) and the same sheet, so switching is a
-  change of _rendering_ and not of settings; the choice is a **view** and is
-  never recorded on a stroke or on a drawing. The
+- `wash.ts` — which of the two is painting, and how much of the simulation's
+  field to run. Both read the same three dials (`water`, `pigment`,
+  `granulation`) and the same sheet, so switching is a change of _rendering_ and
+  not of settings; the choice is a **view** and is never recorded on a stroke or
+  on a drawing. Both are app-wide values put in force once, and both also travel
+  on the render options, so the mark cache can see them change. The detail is the
+  one setting in the app that buys nothing but speed: the field's cells widen as
+  it comes down, and an ordinary mark costs the square of it. The
   simulation can always answer "not me" — no canvas to simulate on, a mark too
   small to be worth a field, a page-wide sweep whose cells would be wider than
   the brush — and the simple engine paints the mark instead, so a browser that
