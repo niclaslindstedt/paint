@@ -12,7 +12,7 @@
 // that pans and pinches at frame rate and one that re-dries every mark on it
 // per frame.
 
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { SOLID_GROUND } from "../src/app/ground.ts";
 import {
@@ -36,7 +36,20 @@ beforeEach(() => {
   ctx = createFakeContext();
 });
 
-afterEach(() => dom.restore());
+afterEach(() => {
+  dom.restore();
+  vi.unstubAllGlobals();
+});
+
+/** How many simulations have actually run — the field is turned into pixels
+ *  with exactly one `putImageData` per drying, and a blit of a held mark makes
+ *  none, so the sum across every canvas ever minted is the bill. */
+function simulations(): number {
+  return dom.created.reduce(
+    (count, canvas) => count + (canvas.ctx.calls.putImageData ?? 0),
+    0,
+  );
+}
 
 /** A stroke, as a run of samples `span` document pixels long. A fresh array
  *  every time, because the store compares paths by identity — which is exactly
@@ -139,6 +152,92 @@ describe("the marks it is holding", () => {
     expect(live!.width * live!.height).toBeLessThan(
       landed!.width * landed!.height,
     );
+  });
+
+  it("holds a whole painting's marks, not a couple of dozen", () => {
+    // A session of real watercolour is scores of washes, and every landed
+    // stroke on a sheet that soaks repaints all of them (see `cache.ts`). A
+    // store smaller than the page used to forget each mark moments before the
+    // repaint asked for it again — a page one wash past the bound went from
+    // all blits to all simulations at once.
+    const marks: Point[][] = [];
+    for (let at = 0; at < 40; at++) marks.push(sweep(mm(4), 40 + at * 12));
+    for (const points of marks) paint(points, { size: mm(3) });
+    const dried = simulations();
+    expect(dried).toBe(40);
+    // The repaint a landed stroke, a pinch or an undo asks for: every mark
+    // again, in paint order, and not one of them dries twice.
+    for (const points of marks) paint(points, { size: mm(3) });
+    expect(simulations()).toBe(dried);
+  });
+
+  it("slows by its overflow on a page bigger than it, not by the page", () => {
+    // Past the bound the store holds what it has rather than churning: the
+    // held majority stays a blit for ever, and a repaint re-dries only the
+    // marks past the bound — plus nothing, because the newest of them sits in
+    // the turned-away slot between repaints. The page gets slower one wash at
+    // a time instead of falling off a cliff. Driven against a store held to a
+    // dozen marks: the policy at the bound is the subject, and reaching the
+    // real bound would cost this suite a few hundred dryings.
+    const bound = 12;
+    forgetDriedWashes({ marks: bound });
+    const over = 4;
+    const marks: Point[][] = [];
+    for (let at = 0; at < bound + over; at++) {
+      marks.push(sweep(mm(4), 40 + at * 3));
+    }
+    for (const points of marks) paint(points, { size: mm(3) });
+    const dried = simulations();
+    expect(dried).toBe(bound + over);
+    const minted = dom.created.length;
+    for (const points of marks) paint(points, { size: mm(3) });
+    // One repaint of the whole page costs the overflow and nothing else…
+    expect(simulations()).toBe(dried + over);
+    // …and allocates nothing: the turned-away marks pass one canvas between
+    // them rather than minting one each.
+    expect(dom.created.length).toBe(minted);
+  });
+
+  it("lets go of a mark whose stroke nothing can ever ask for again", () => {
+    // A held path is the store's key, matched by identity — so a path the rest
+    // of the app has dropped (a wash undone and then drawn past, a page since
+    // closed) is a mark no repaint can ever name, and the collector saying so
+    // is what makes room. Stood in for here by a `WeakRef` whose targets the
+    // test collects by hand, because a real collection cannot be forced.
+    const gone = new Set<object>();
+    class CollectableRef {
+      private target: object;
+      constructor(target: object) {
+        this.target = target;
+      }
+      deref(): object | undefined {
+        return gone.has(this.target) ? undefined : this.target;
+      }
+    }
+    vi.stubGlobal("WeakRef", CollectableRef);
+
+    const bound = 12;
+    forgetDriedWashes({ marks: bound });
+    const marks: Point[][] = [];
+    for (let at = 0; at < bound; at++) {
+      marks.push(sweep(mm(4), 40 + at * 3));
+    }
+    for (const points of marks) paint(points, { size: mm(3) });
+    // The oldest marks' strokes go the way an undone-and-drawn-past wash goes.
+    for (const points of marks.slice(0, 10)) gone.add(points);
+
+    // Ten new washes land on a store that was full: each sweeps one dead mark
+    // out and is admitted in its place…
+    const fresh: Point[][] = [];
+    for (let at = 0; at < 10; at++) fresh.push(sweep(mm(4), 900 + at * 3));
+    for (const points of fresh) paint(points, { size: mm(3) });
+    const dried = simulations();
+    // …and being admitted, they are held: the next repaint blits them.
+    for (const points of fresh) paint(points, { size: mm(3) });
+    expect(simulations()).toBe(dried);
+    // The swept marks really went — asking for one dries it again.
+    paint(marks[0]!, { size: mm(3) });
+    expect(simulations()).toBe(dried + 1);
   });
 
   it("holds the gesture in flight one deep, so it cannot evict what has landed", () => {
