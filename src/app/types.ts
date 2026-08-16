@@ -244,6 +244,17 @@ export type Drawing = {
    *  the two are set apart because a cream sheet and a rough sheet are
    *  different questions, and every combination of them is a real page. */
   ground?: Ground;
+  /** The canvas preset this page was made on, by id (see `canvasPresets.ts`).
+   *
+   *  Absent — the usual case — means a page made at a size off the shelf, or
+   *  before canvas presets existed. Where it is set, and the canvas preset still
+   *  carries a kit, that kit is the toolbar this drawing opens with: a
+   *  sketchbook page comes back with the sketchbook's tools in the order they
+   *  were put in. It is recorded rather than resolved because it is a fact about
+   *  how the page was made — an id naming a canvas preset that has since been
+   *  deleted simply falls back to the app-wide toolbar, and the page itself is
+   *  unaffected: its size was baked in when it was created. */
+  canvasPreset?: string;
   strokes: Stroke[];
   /** The stack the marks are painted in, **bottom first**. Absent — the usual
    *  case, and every drawing until someone adds a layer to it — means one

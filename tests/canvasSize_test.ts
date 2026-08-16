@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import {
   MAX_CANVAS_SIDE,
   MIN_CANVAS_SIDE,
-  canvasPresets,
+  sizePresets,
   clampCanvasSize,
   clampSide,
   currentScreenCanvasSize,
@@ -124,16 +124,16 @@ describe("orientation", () => {
   });
 });
 
-describe("canvasPresets", () => {
+describe("sizePresets", () => {
   it("stands every size the way the screen is being held", () => {
     // A phone is held upright, and nobody picking A4 or 4K on one means "and
     // lying on its side". So the shelf faces the way the screen does, and every
     // rectangle on it — the named ones included — is turned to match.
-    const portrait = canvasPresets({ width: 1179, height: 2556 });
+    const portrait = sizePresets({ width: 1179, height: 2556 });
     for (const preset of portrait) {
       expect(preset.size.height, preset.id).toBeGreaterThan(preset.size.width);
     }
-    const landscape = canvasPresets({ width: 2560, height: 1440 });
+    const landscape = sizePresets({ width: 2560, height: 1440 });
     for (const preset of landscape) {
       expect(preset.size.width, preset.id).toBeGreaterThan(preset.size.height);
     }
@@ -141,7 +141,7 @@ describe("canvasPresets", () => {
 
   it("turns the whole shelf when it is asked for the other way round", () => {
     // The dialog's flip: one answer for the shelf, not one per cell.
-    const flipped = canvasPresets({ width: 2560, height: 1440 }, "portrait");
+    const flipped = sizePresets({ width: 2560, height: 1440 }, "portrait");
     expect(flipped.map((p) => p.size)).toEqual([
       { width: 1440, height: 2560 },
       { width: 1080, height: 1920 },
@@ -151,7 +151,7 @@ describe("canvasPresets", () => {
   });
 
   it("keeps a turned size the same page, so nothing is lost by turning it", () => {
-    const a4 = canvasPresets({ width: 2560, height: 1440 }).find(
+    const a4 = sizePresets({ width: 2560, height: 1440 }).find(
       (p) => p.id === "print",
     );
     // A4 is quoted portrait and drawn landscape on a landscape shelf — still
@@ -163,7 +163,7 @@ describe("canvasPresets", () => {
     // The screen is quoted portrait here and Full HD landscape: they are the
     // same page, and the shelf may only find that out after it has stood them
     // the same way up.
-    const presets = canvasPresets({ width: 1080, height: 1920 });
+    const presets = sizePresets({ width: 1080, height: 1920 });
     const hd = presets.filter((p) =>
       sameCanvasSize(p.size, { width: 1080, height: 1920 }),
     );
@@ -172,7 +172,7 @@ describe("canvasPresets", () => {
   });
 
   it("offers this screen first — it is the default answer", () => {
-    const presets = canvasPresets({ width: 2560, height: 1440 });
+    const presets = sizePresets({ width: 2560, height: 1440 });
     expect(presets[0]).toEqual({
       id: "screen",
       size: { width: 2560, height: 1440 },
@@ -180,13 +180,13 @@ describe("canvasPresets", () => {
   });
 
   it("offers four sizes and no more — they are compared, not read", () => {
-    expect(
-      canvasPresets({ width: 2560, height: 1440 }).map((p) => p.id),
-    ).toEqual(["screen", "hd", "uhd", "print"]);
+    expect(sizePresets({ width: 2560, height: 1440 }).map((p) => p.id)).toEqual(
+      ["screen", "hd", "uhd", "print"],
+    );
   });
 
   it("lists a named size that is also the screen size only once", () => {
-    const presets = canvasPresets({ width: 1920, height: 1080 });
+    const presets = sizePresets({ width: 1920, height: 1080 });
     const hd = presets.filter((p) =>
       sameCanvasSize(p.size, { width: 1920, height: 1080 }),
     );
@@ -195,7 +195,7 @@ describe("canvasPresets", () => {
   });
 
   it("clamps a screen size it is handed before offering it", () => {
-    const presets = canvasPresets({ width: 12000, height: 12000 });
+    const presets = sizePresets({ width: 12000, height: 12000 });
     expect(presets[0]?.size).toEqual({
       width: MAX_CANVAS_SIDE,
       height: MAX_CANVAS_SIDE,
@@ -203,14 +203,14 @@ describe("canvasPresets", () => {
   });
 
   it("finds the preset a size came from", () => {
-    const presets = canvasPresets({ width: 2560, height: 1440 });
+    const presets = sizePresets({ width: 2560, height: 1440 });
     expect(matchPreset(presets, { width: 3840, height: 2160 })?.id).toBe("uhd");
     expect(matchPreset(presets, { width: 1234, height: 567 })).toBeUndefined();
   });
 });
 
 describe("previewScale", () => {
-  const presets = canvasPresets({ width: 2560, height: 1440 });
+  const presets = sizePresets({ width: 2560, height: 1440 });
   const sizes = presets.map((p) => p.size);
 
   it("fits the largest page in the box, in whichever direction it is largest", () => {

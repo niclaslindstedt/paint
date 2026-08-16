@@ -24,7 +24,6 @@ import {
 } from "@niclaslindstedt/oss-framework/hooks";
 
 import {
-  canvasPresets,
   currentScreenCanvasSize,
   CUSTOM_CANVAS,
   flipOrientation,
@@ -33,11 +32,17 @@ import {
   orientationOf,
   orientSize,
   parseCanvasSize,
-  previewScale,
-  type CanvasPreset,
+  sizePresets,
   type CanvasSize,
   type Orientation,
 } from "./canvasSize.ts";
+import {
+  canvasShelf,
+  SOLID_STOCK,
+  type CanvasPreset,
+  type ShelfItem,
+} from "./canvasPresets.ts";
+import { SizeShelf } from "./SizeShelf.tsx";
 import {
   CHECKER_SQUARE,
   checkerColors,
@@ -64,7 +69,6 @@ import {
 import { defaultGrain } from "./ground.ts";
 import { GroundPicker } from "./GroundPicker.tsx";
 import { useT } from "./i18n/index.ts";
-import { FlipIcon } from "./icons.tsx";
 import {
   imageFileStem,
   importImageFile,
@@ -117,6 +121,14 @@ import * as output from "../output.ts";
 // whole shelf repaints as you drag it, so you watch the tooth come up instead
 // of taking a number on trust.
 //
+// **A page can also be one you set up yourself.** A canvas preset — a name, a
+// size, and optionally the kit of tools that page is worked with — stands on the
+// shelf beside the shipped sizes and is picked exactly like one (see
+// `canvasPresets.ts`). Making a page on one writes its id onto the drawing, which
+// is what brings the sketchbook's pencil-and-eraser back when the page is opened
+// again tomorrow. Which shipped sizes are on the shelf at all is the same
+// question answered from the other end, in Settings → Canvas.
+//
 // The three sources are a segmented control rather than three buttons because
 // they are the same act — start an image — from three places, and only one of
 // them can be true at a time.
@@ -132,26 +144,8 @@ import * as output from "../output.ts";
 // while the user was still reading it. So there the tab is simply offered, and
 // looking is a button inside it. See `clipboard.ts` and `clipboardSource.ts`.
 //
-// **The sizes are drawn, not listed.** Four rectangles at one shared scale
-// answer "how much bigger is 4K than Full HD" and "is A4 taller than my screen"
-// in the way a dropdown of numbers never did — the choice is a comparison, so
-// the control is one too. Four named sizes is the whole list on purpose: past
-// that the shelf stops being comparable and starts being a catalogue.
-//
-// **Custom** is the fifth cell, and it is drawn too: type a size and its
-// rectangle takes its place on the shelf at the same scale as the rest, so a
-// typed page is compared the way a named one is rather than being a number you
-// have to imagine. It opens on a big square — the page nobody offers by name.
-//
-// **The shelf faces the way the screen does**, and **Flip** is the sixth cell.
-// Each named size is written down in whichever orientation it is quoted in —
-// two displays on their sides, a sheet of paper on its end — and that is an
-// accident of the quoting rather than an answer to what page you want. A phone
-// held upright wants an upright page from all four of them, so the orientation
-// is one answer for the whole shelf and the sizes are turned to face it (see
-// `canvasSize.ts`). Flip turns the shelf, the typed page, and the cell already
-// lit, all at once — so it is a toggle rather than a choice you can lose your
-// place in: flip and flip back and you are exactly where you started.
+// **The sizes are drawn, not listed** — see `SizeShelf.tsx`, which owns the
+// shelf, the typed page, and the flip that stands all of them the other way up.
 //
 // **It is a full-screen sheet on a phone and a card on a desktop** (the
 // framework `Modal`'s uncentered shape), because four questions and two shelves
@@ -174,6 +168,12 @@ type Source = "blank" | "file" | "clipboard";
 export type PageMakeup = {
   ground?: Ground;
   background?: string;
+  /** The canvas preset this page was made on, by id — absent for a page made at a
+   *  shipped size or a typed one. It is the only answer here that is not about
+   *  what the page is made *of*: it rides along because it is decided by the
+   *  same press, and because what it buys is read off the drawing later (see
+   *  `Drawing.canvasPreset`). */
+  canvasPreset?: string;
   /** The page has no sheet at all — the marks land on nothing. Exclusive with
    *  `background`, and the default: it is the background layer's eye rather than
    *  a field on the drawing, so the caller turns it into a stack (see
@@ -185,6 +185,11 @@ type Props = {
   /** The folder the image will be filed into, named for the title — so
    *  "New image in Diagrams" says where it is about to land. */
   folderName?: string;
+  /** The pages the user has set up for themselves, and the shipped sizes they
+   *  have taken off the shelf (see `canvasPresets.ts`). Handed in rather than read
+   *  from the settings here, so this dialog stays a function of its props. */
+  canvasPresets: readonly CanvasPreset[];
+  hiddenSizes: readonly string[];
   /** Whether the app itself is painting dark — which decides the two greys the
    *  transparency chequer is drawn in, and the sheet the stock shelf is shown on
    *  while the page has no colour of its own. */
@@ -216,6 +221,27 @@ type Picked =
   | { kind: "image"; image: ImportedImage; name: string }
   | { kind: "pct"; drawing: Drawing; thumb: ImportedImage; name: string };
 
+/** Which cell of the size shelf is in hand: its id, the page it stands for, and
+ *  — for one of the user's own — the canvas preset that page will be made on. */
+type Cell = { id: string; size: CanvasSize; canvasPreset?: string };
+
+/** The cell a fresh dialog opens on: the first one on the shelf, or none at all
+ *  where every size has been hidden and no canvas preset stands in their place. */
+function firstCell(shelf: readonly ShelfItem[]): Cell | null {
+  const first = shelf[0];
+  if (!first) return null;
+  return cellFor(first);
+}
+
+/** One shelf item as the cell in hand. */
+function cellFor(item: ShelfItem): Cell {
+  return {
+    id: item.id,
+    size: item.size,
+    ...(item.kind === "preset" ? { canvasPreset: item.id } : {}),
+  };
+}
+
 /** Whether a picked file is a paint container. Matched on the extension: the
  *  OS has no MIME type registered for `.pct`, so a browser hands one over as an
  *  empty type or `application/zip` depending on its mood. */
@@ -231,12 +257,10 @@ function dragHasPct(dt: DataTransfer | null): boolean {
   return Array.from(dt?.items ?? []).some((item) => item.kind === "file");
 }
 
-/** The box each preset is drawn inside, in CSS pixels. One scale is shared
- *  across the shelf, so this is the room the *largest* of them gets. */
-const PREVIEW_BOX = { width: 104, height: 74 };
-
 export function NewImageModal({
   folderName,
+  canvasPresets,
+  hiddenSizes,
   dark,
   onCancel,
   onCreate,
@@ -249,19 +273,32 @@ export function NewImageModal({
   const [screen] = useState(currentScreenCanvasSize);
   // …and which way round the shelf stands, which starts as which way round that
   // screen is. Every size is turned to face it, so a phone held upright offers
-  // four upright pages instead of asking for the one it is obviously being
-  // asked for (see `canvasSize.ts`).
+  // upright pages instead of asking for the one it is obviously being asked for
+  // (see `canvasSize.ts`).
   const [orientation, setOrientation] = useState<Orientation>(() =>
     orientationOf(screen),
   );
-  const presets = useMemo(
-    () => canvasPresets(screen, orientation),
-    [screen, orientation],
+  // What is on the shelf: the shipped sizes that haven't been hidden, then the
+  // pages the user set up themselves — all of them stood the way the shelf is
+  // facing.
+  const shelf = useMemo(
+    () =>
+      canvasShelf(
+        sizePresets(screen, orientation),
+        hiddenSizes,
+        canvasPresets,
+        orientation,
+      ),
+    [screen, orientation, hiddenSizes, canvasPresets],
   );
   const [source, setSource] = useState<Source>("blank");
-  const [size, setSize] = useState<CanvasSize>(
-    () => presets[0]?.size ?? { width: 1920, height: 1080 },
-  );
+  // Which cell of the shelf is in hand — by id, with the page it stands for and
+  // whether it is one of the user's own. The id is held rather than the size
+  // alone because two cells can be the same page (a sketchbook quoted at A4's
+  // pixels) and lighting both would say the wrong one was chosen; the size is
+  // held beside it rather than looked up, so the cell survives its canvas preset
+  // being edited in another tab.
+  const [cell, setCell] = useState<Cell | null>(() => firstCell(shelf));
   // The typed page, and whether it is the one chosen. Held as text so a
   // half-typed number is the user's business rather than something to round on
   // every keystroke.
@@ -269,7 +306,11 @@ export function NewImageModal({
     width: String(CUSTOM_CANVAS.width),
     height: String(CUSTOM_CANVAS.height),
   });
-  const [typedSize, setTypedSize] = useState(false);
+  // …and it is the cell in hand from the start on a shelf with nothing on it,
+  // which is what hiding every shipped size and keeping no canvas presets leaves.
+  // A dialog whose only page is one you have to notice a cell for would open
+  // unable to create anything.
+  const [typedSize, setTypedSize] = useState(shelf.length === 0);
   // The sheet, by stock id — `undefined` is the plain solid page, and a page on
   // it carries no ground at all (see `ground.ts`), which is what every drawing
   // made before surfaces existed is.
@@ -385,22 +426,24 @@ export function NewImageModal({
       take(files.find(isPctFile) ?? firstFileOfType(files, "image/")),
   });
 
-  /** Turn the shelf, and everything standing on it: the presets (through
-   *  `canvasPresets`), the page currently lit, and the typed one. The lit page
-   *  is turned rather than reset because it is one of the rectangles on the
-   *  shelf and it stays the same one — flip and flip back and you are where you
+  /** Turn the shelf, and everything standing on it: every cell (through
+   *  `canvasShelf`), the page currently lit, and the typed one. The lit page is
+   *  turned rather than reset because it is one of the rectangles on the shelf
+   *  and it stays the same one — flip and flip back and you are where you
    *  started, with the same cell still chosen. */
   const flip = () => {
     const next = flipOrientation(orientation);
     setOrientation(next);
-    setSize((current) => orientSize(current, next));
+    setCell((current) =>
+      current ? { ...current, size: orientSize(current.size, next) } : null,
+    );
     setCustom((c) => ({ width: c.height, height: c.width }));
   };
 
   const customSize = parseCanvasSize(custom.width, custom.height);
   // The page a blank drawing would be made at: the typed one when Custom is the
   // cell in hand, otherwise whichever rectangle is lit.
-  const blankSize = typedSize ? customSize : size;
+  const blankSize = typedSize ? customSize : (cell?.size ?? null);
 
   const chosen =
     source === "file"
@@ -423,6 +466,12 @@ export function NewImageModal({
       ? { ground: { stock, ...(texture === 1 ? {} : { texture }) } }
       : {}),
     ...(background ? { background } : { transparent: true }),
+    // …and which canvas preset made it, for a blank page made on one of the
+    // user's own cells. A page cut from a picture is the size of the picture and
+    // a typed one is nobody's canvas preset, so neither carries one.
+    ...(source === "blank" && !typedSize && cell?.canvasPreset
+      ? { canvasPreset: cell.canvasPreset }
+      : {}),
   };
   // The page the stock shelf is painted on. A page with a colour is shown as
   // that colour; a page with none is shown on the sheet it *would* have, because
@@ -526,15 +575,27 @@ export function NewImageModal({
           {source === "blank" && (
             <>
               <SizeShelf
-                presets={presets}
-                value={blankSize}
+                items={shelf}
+                chosen={typedSize ? null : cell}
                 custom={customSize}
                 typed={typedSize}
                 orientation={orientation}
                 onFlip={flip}
-                onPick={(next) => {
+                onPick={(item) => {
                   setTypedSize(false);
-                  setSize(next);
+                  setCell(cellFor(item));
+                  // A preset that says which sheet it is usually on puts that
+                  // sheet in the picker below — as a starting point, not a
+                  // decision: the shelf is still there, and Create takes
+                  // whatever is in it (see `canvasPresets.ts`).
+                  if (item.kind === "preset" && item.ground) {
+                    setStock(
+                      item.ground.stock === SOLID_STOCK
+                        ? undefined
+                        : item.ground.stock,
+                    );
+                    setTexture(item.ground.texture ?? 1);
+                  }
                 }}
                 onPickCustom={() => setTypedSize(true)}
                 dimensions={dimensions}
@@ -800,180 +861,6 @@ function checkerStyle(even: string, odd: string): CSSProperties {
     backgroundSize: `${size * 2}px ${size * 2}px`,
     backgroundPosition: `0 0, ${size}px ${size}px`,
   };
-}
-
-/** The page sizes, drawn to one shared scale so they can be compared rather than
- *  read — the four named ones, the one you type, and the button that stands the
- *  whole shelf the other way up. */
-function SizeShelf({
-  presets,
-  value,
-  custom,
-  typed,
-  orientation,
-  onFlip,
-  onPick,
-  onPickCustom,
-  dimensions,
-}: {
-  presets: readonly CanvasPreset[];
-  /** The page currently chosen, or `null` while a typed one is unusable. */
-  value: CanvasSize | null;
-  /** The typed page, or `null` when the fields don't describe one. */
-  custom: CanvasSize | null;
-  /** Whether the typed cell is the one in hand. */
-  typed: boolean;
-  /** Which way round every page on the shelf is standing. */
-  orientation: Orientation;
-  onFlip: () => void;
-  onPick: (size: CanvasSize) => void;
-  onPickCustom: () => void;
-  dimensions: (size: CanvasSize) => string;
-}) {
-  const t = useT();
-  // The typed page is on the shelf, so it is in the scale too: type a bigger
-  // page than 4K and the whole shelf shrinks to keep the comparison honest.
-  const scale = previewScale(
-    [...presets.map((p) => p.size), custom ?? CUSTOM_CANVAS],
-    PREVIEW_BOX,
-  );
-  return (
-    <div
-      className="grid grid-cols-3 gap-2 sm:grid-cols-6"
-      role="radiogroup"
-      aria-label={t("newImage.sizeLabel")}
-    >
-      {presets.map((preset) => {
-        const active =
-          !typed &&
-          preset.size.width === value?.width &&
-          preset.size.height === value.height;
-        return (
-          <button
-            key={preset.id}
-            type="button"
-            role="radio"
-            aria-checked={active}
-            onClick={() => onPick(preset.size)}
-            className={`flex cursor-pointer flex-col items-center gap-1.5 rounded-lg border p-2 ${
-              active
-                ? "border-accent bg-accent/10"
-                : "border-line hover:bg-surface-2"
-            }`}
-          >
-            {/* The page itself, at the shelf's scale. The row of boxes is a
-                fixed height so the rectangles sit on one baseline and only
-                their own shapes differ. */}
-            <span
-              aria-hidden="true"
-              className="flex items-end justify-center"
-              style={{ height: `${PREVIEW_BOX.height}px` }}
-            >
-              <span
-                className={`block rounded-[2px] border ${
-                  active
-                    ? "border-accent bg-accent/20"
-                    : "border-muted bg-surface-2"
-                }`}
-                style={{
-                  width: `${Math.max(6, Math.round(preset.size.width * scale))}px`,
-                  height: `${Math.max(6, Math.round(preset.size.height * scale))}px`,
-                }}
-              />
-            </span>
-            <span
-              className={`text-xs whitespace-nowrap ${
-                active ? "text-accent" : "text-fg-bright"
-              }`}
-            >
-              {t(`newImage.presets.${preset.id}`)}
-            </span>
-            <span className="text-[10px] whitespace-nowrap text-muted tabular-nums">
-              {dimensions(preset.size)}
-            </span>
-          </button>
-        );
-      })}
-
-      {/* The typed page, drawn like the rest — the fields for it appear under
-          the shelf once this is the cell in hand. A size the fields can't make
-          a page of shows as a dashed outline of the last usable one, so the
-          cell never collapses to nothing while you are mid-number. */}
-      <button
-        type="button"
-        role="radio"
-        aria-checked={typed}
-        onClick={onPickCustom}
-        className={`flex cursor-pointer flex-col items-center gap-1.5 rounded-lg border p-2 ${
-          typed
-            ? "border-accent bg-accent/10"
-            : "border-line hover:bg-surface-2"
-        }`}
-      >
-        <span
-          aria-hidden="true"
-          className="flex items-end justify-center"
-          style={{ height: `${PREVIEW_BOX.height}px` }}
-        >
-          <span
-            className={`block rounded-[2px] border border-dashed ${
-              typed ? "border-accent bg-accent/20" : "border-muted bg-surface-2"
-            }`}
-            style={{
-              width: `${Math.max(6, Math.round((custom ?? CUSTOM_CANVAS).width * scale))}px`,
-              height: `${Math.max(6, Math.round((custom ?? CUSTOM_CANVAS).height * scale))}px`,
-            }}
-          />
-        </span>
-        <span
-          className={`text-xs whitespace-nowrap ${
-            typed ? "text-accent" : "text-fg-bright"
-          }`}
-        >
-          {t("newImage.custom")}
-        </span>
-        <span className="text-[10px] whitespace-nowrap text-muted tabular-nums">
-          {custom ? dimensions(custom) : t("newImage.customEmpty")}
-        </span>
-      </button>
-
-      {/* Stand the whole shelf the other way up — every named size, the typed
-          one, and the page currently chosen, all at once.
-
-          It is the last cell of the shelf rather than a control above it
-          because it is an answer about the same thing the shelf is: a page is a
-          shape, and which way round that shape stands is half of the shape. A
-          button and not a sixth radio, though — it doesn't compete with them
-          for the selection, it turns whichever one is already lit. */}
-      <button
-        type="button"
-        onClick={onFlip}
-        aria-label={t(
-          orientation === "portrait"
-            ? "newImage.flipToLandscape"
-            : "newImage.flipToPortrait",
-        )}
-        className="flex cursor-pointer flex-col items-center gap-1.5 rounded-lg border border-line p-2 hover:bg-surface-2"
-      >
-        <span
-          aria-hidden="true"
-          className="flex items-center justify-center"
-          style={{ height: `${PREVIEW_BOX.height}px` }}
-        >
-          <FlipIcon className="h-10 w-10 text-accent" />
-        </span>
-        <span className="text-xs whitespace-nowrap text-fg-bright">
-          {t("newImage.flip")}
-        </span>
-        {/* Which way the shelf is standing now — the state, not the promise,
-            so the cell says what you are looking at rather than what pressing
-            it would give you. */}
-        <span className="text-[10px] whitespace-nowrap text-muted">
-          {t(`newImage.${orientation}`)}
-        </span>
-      </button>
-    </div>
-  );
 }
 
 /** One side of a typed page. A plain input rather than the framework's

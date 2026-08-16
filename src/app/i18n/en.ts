@@ -125,7 +125,6 @@ export const en = {
     apply: "Apply",
     open: "Apply {name}",
     action: "Apply\u2026",
-    hint: "An effect is applied once and is then part of the picture. It flattens the layers it lands on into an image; marks you make afterwards are unaffected.",
     scopeLabel: "Apply to",
     scopeLayer: "This layer",
     scopeDrawing: "All layers",
@@ -716,6 +715,7 @@ export const en = {
       general: "General",
       appearance: "Appearance",
       tools: "Tools",
+      canvas: "Canvas",
       download: "Download",
       storage: "Storage",
       developer: "Developer",
@@ -748,6 +748,34 @@ export const en = {
       shortcut: "Shortcut: {key}",
       moveUp: "Move {name} earlier in the toolbar",
       moveDown: "Move {name} later in the toolbar",
+    },
+    canvas: {
+      intro:
+        "The shelf New image offers: the sizes this app ships with, and the pages you set up yourself.",
+      sizesTitle: "Sizes",
+      sizesHint:
+        "The sizes New image offers by name. Hiding one takes it off that shelf — nothing you have already drawn changes, because a page's size is fixed when it is made.",
+      hide: "Hide {name} on the New image shelf",
+      show: "Show {name} on the New image shelf",
+      presetsTitle: "Canvas presets",
+      presetsHint:
+        "A page you have set up and named — a sketchbook, a phone wallpaper, a comic panel. It stands on the New image shelf beside the sizes above, and it can bring its own tools and its own canvas type.",
+      add: "New canvas preset",
+      full: "That is all {n} of them. Throw one away to make another.",
+      edit: "Edit {name}",
+      back: "All canvas presets",
+      pageTitle: "The page",
+      nameLabel: "Name",
+      namePlaceholder: "Sketchbook",
+      toolsTitle: "Tools",
+      ownTools: "Its own tools",
+      ownToolsHint:
+        "A page made on this preset opens with the tools below instead of your usual toolbar — every time it is opened, not just the first. Switch it on and it starts from the toolbar you have now.",
+      kitHint:
+        "In the order the buttons will sit in on this page. Everything else is the same rack as Settings → Tools — it is just this page's copy of it.",
+      ownSheet: "Its own canvas type",
+      ownSheetHint:
+        "Picking this preset in New image puts this sheet in the picker. Only a suggestion: the sheet is painted into every mark made on it, so it stays yours to change before you press Create.",
     },
     download: {
       intro:

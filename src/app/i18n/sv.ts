@@ -118,7 +118,6 @@ export const sv: Catalog = {
     apply: "Använd",
     open: "Använd {name}",
     action: "Använd\u2026",
-    hint: "En effekt används en gång och är sedan en del av bilden. Den plattar ut lagren den läggs på till en bild; streck du drar efteråt påverkas inte.",
     scopeLabel: "Använd på",
     scopeLayer: "Det här lagret",
     scopeDrawing: "Alla lager",
@@ -658,6 +657,7 @@ export const sv: Catalog = {
       general: "Allmänt",
       appearance: "Utseende",
       tools: "Verktyg",
+      canvas: "Rityta",
       download: "Nedladdning",
       storage: "Lagring",
       developer: "Utvecklare",
@@ -690,6 +690,34 @@ export const sv: Catalog = {
       shortcut: "Kortkommando: {key}",
       moveUp: "Flytta {name} tidigare i verktygsfältet",
       moveDown: "Flytta {name} senare i verktygsfältet",
+    },
+    canvas: {
+      intro:
+        "Hyllan som Ny bild erbjuder: storlekarna appen levereras med, och sidorna du själv ställt i ordning.",
+      sizesTitle: "Storlekar",
+      sizesHint:
+        "Storlekarna Ny bild erbjuder vid namn. Att dölja en tar bort den från hyllan — ingenting du redan ritat ändras, eftersom en sidas storlek bestäms när den skapas.",
+      hide: "Dölj {name} på hyllan i Ny bild",
+      show: "Visa {name} på hyllan i Ny bild",
+      presetsTitle: "Förinställda ritytor",
+      presetsHint:
+        "En sida du ställt i ordning och gett ett namn — en skissbok, en telefonbakgrund, en serieruta. Den står på hyllan i Ny bild bredvid storlekarna ovan, och den kan ta med sig egna verktyg och en egen typ av rityta.",
+      add: "Ny förinställd rityta",
+      full: "Det är alla {n}. Släng en för att göra plats.",
+      edit: "Ändra {name}",
+      back: "Alla förinställda ritytor",
+      pageTitle: "Sidan",
+      nameLabel: "Namn",
+      namePlaceholder: "Skissbok",
+      toolsTitle: "Verktyg",
+      ownTools: "Egna verktyg",
+      ownToolsHint:
+        "En sida som skapats på den här förinställningen öppnas med verktygen nedan i stället för din vanliga verktygsrad — varje gång den öppnas, inte bara första. Slår du på det utgår den från verktygsraden du har nu.",
+      kitHint:
+        "I den ordning knapparna kommer att sitta på den här sidan. I övrigt är det samma ställ som Inställningar → Verktyg — det är bara den här sidans egen kopia av det.",
+      ownSheet: "Egen typ av rityta",
+      ownSheetHint:
+        "Väljer du den här förinställningen i Ny bild ligger det här arket redan i väljaren. Bara ett förslag: arket målas in i varje streck som görs på det, så det är ditt att ändra innan du trycker Skapa.",
     },
     download: {
       intro:

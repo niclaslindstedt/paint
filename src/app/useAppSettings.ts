@@ -10,6 +10,12 @@ import {
 } from "@niclaslindstedt/oss-framework/theme";
 
 import {
+  cleanCanvasPresets,
+  cleanHiddenSizes,
+  moveInOrder,
+  type CanvasPreset,
+} from "./canvasPresets.ts";
+import {
   DOWNLOAD_FORMATS,
   type DownloadFormat,
   type ExportScope,
@@ -83,6 +89,19 @@ export type AppSettings = {
    *  tool added by a later release lands where its maker put it rather than at
    *  the end of an order written before it existed (see `orderEntries`). */
   toolOrder: string[];
+  /** The pages you have set up and named — what New image offers beside the
+   *  sizes this build ships, and where a page's own kit of tools comes from
+   *  (see `canvasPresets.ts`).
+   *
+   *  Here rather than on a drawing because a canvas preset is a thing you make
+   *  *pages with*; what a page then is — its size, its colour, its sheet, and
+   *  which canvas preset made it — is written onto the drawing, so deleting a
+   *  canvas preset never reaches back into the work done on it. */
+  canvasPresets: CanvasPreset[];
+  /** The shipped sizes taken off that shelf, by preset id. Stored as the ones
+   *  that are *off*, so a size a later release adds arrives on the shelf rather
+   *  than hidden from every install that already holds this key. */
+  hiddenCanvasSizes: string[];
   /** The tool the canvas opens with — the last one used. */
   activeTool: string;
   /** Which member of each tool group was last in hand, by group id — the shape
@@ -238,6 +257,11 @@ const BASE_SETTINGS: Omit<AppSettings, "enabledPlugins"> = {
   // Empty on purpose: an untouched toolbar is the one its tools registered in,
   // so this only ever holds the ways your toolbar differs from the box.
   toolOrder: [],
+  // Empty on purpose, both of them: a fresh install offers the four sizes it
+  // ships with and nothing of its own, so this only ever holds the ways your
+  // New image shelf differs from the box.
+  canvasPresets: [],
+  hiddenCanvasSizes: [],
   activeTool: "pencil",
   groupTools: {},
   color: null,
@@ -440,6 +464,12 @@ export function parseSettings(raw: string): AppSettings {
   merged.toolOrder = Array.isArray(merged.toolOrder)
     ? merged.toolOrder.filter((id): id is string => typeof id === "string")
     : [];
+  // The New image shelf renders straight off these two, and a canvas preset is a
+  // button somebody presses Create on — so a half-written one is dropped rather
+  // than kept (see `cleanCanvasPresets`). A *drawing* that pointed at it is
+  // untouched: it keeps its size and falls back to the app-wide toolbar.
+  merged.canvasPresets = cleanCanvasPresets(stored.canvasPresets);
+  merged.hiddenCanvasSizes = cleanHiddenSizes(stored.hiddenCanvasSizes);
   merged.groupTools = strings(stored.groupTools);
   merged.toolSizes = toolSizes(stored.toolSizes);
   // …and drop the one width every tool used to share. It is deliberately *not*
@@ -700,14 +730,10 @@ export function useAppSettings() {
    *  builds that ship a different set of them. */
   const moveTool = useCallback(
     (order: readonly string[], from: number, to: number) =>
-      setSettings((prev) => {
-        if (from === to || from < 0 || to < 0) return prev;
-        if (from >= order.length || to >= order.length) return prev;
-        const next = [...order];
-        const [moved] = next.splice(from, 1);
-        next.splice(to, 0, moved!);
-        return { ...prev, toolOrder: next };
-      }),
+      setSettings((prev) => ({
+        ...prev,
+        toolOrder: moveInOrder(order, from, to),
+      })),
     [setSettings],
   );
 
@@ -797,6 +823,12 @@ export const LIVE_SETTINGS = [
   "toolOrder",
   "washEngine",
   "washDetail",
+  // The New image shelf, for the same reason as the switchboard above it: the
+  // Canvas tab is a list you *manage* — make one, name it, throw it away — and
+  // an editor with its own Save inside a dialog with another Save is two
+  // buttons arguing about which one meant it.
+  "canvasPresets",
+  "hiddenCanvasSizes",
 ] as const satisfies readonly (keyof AppSettings)[];
 
 export type LiveSetting = (typeof LIVE_SETTINGS)[number];

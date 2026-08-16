@@ -27,7 +27,7 @@ import {
   stepNote,
   type SizeGauge,
 } from "../src/app/plugins/gauge.ts";
-import { canvasPresets } from "../src/app/canvasSize.ts";
+import { sizePresets } from "../src/app/canvasSize.ts";
 import { allPlugins, pluginById } from "../src/app/plugins/registry.ts";
 import {
   DPI,
@@ -77,7 +77,7 @@ describe("the page's scale", () => {
     // Asked for upright, because that is how a sheet of paper is quoted — the
     // shelf stands every size whichever way the screen is, and turning A4 on
     // its side is still 2480 × 3508 of paper (see `canvasSize.ts`).
-    const a4 = canvasPresets({ width: 1000, height: 1000 }, "portrait").find(
+    const a4 = sizePresets({ width: 1000, height: 1000 }, "portrait").find(
       (p) => p.id === "print",
     )!;
     expect(a4.size).toEqual({ width: 2480, height: 3508 });

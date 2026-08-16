@@ -12,6 +12,7 @@ import {
   CloseIcon,
   CodeIcon,
   CogIcon,
+  CropIcon,
   DatabaseIcon,
   DownloadIcon,
   FloatingPanel,
@@ -43,6 +44,7 @@ import {
   LogsTab,
   StorageTab,
 } from "./settings/tabs.tsx";
+import { CanvasTab } from "./settings/canvas.tsx";
 import { DownloadTab } from "./settings/download.tsx";
 import { ToolsTab } from "./settings/tools.tsx";
 
@@ -60,14 +62,17 @@ import { ToolsTab } from "./settings/tools.tsx";
 //     there is nothing to roll back, and a tool you switch on should appear in
 //     the toolbar behind the dialog immediately.
 //
-// What the *page* is made of is not here at all: its size, its colour and its
+// What one *page* is made of is not here at all: its size, its colour and its
 // sheet are answered once, in the dialog that creates a drawing (see
-// `NewImageModal`), and stored on the drawing rather than as a preference.
+// `NewImageModal`), and stored on the drawing rather than as a preference. What
+// the Canvas tab holds is the shelf that dialog offers — which sizes it lists,
+// and the named pages the user has set up beside them (see `canvasPresets.ts`).
 
 type TabId =
   | "general"
   | "appearance"
   | "tools"
+  | "canvas"
   | "download"
   | "storage"
   | "developer"
@@ -87,6 +92,7 @@ const TABS: TabDef[] = [
   { id: "general", labelKey: "settings.tabs.general", icon: SlidersIcon },
   { id: "appearance", labelKey: "settings.tabs.appearance", icon: PaletteIcon },
   { id: "tools", labelKey: "settings.tabs.tools", icon: ToolboxIcon },
+  { id: "canvas", labelKey: "settings.tabs.canvas", icon: CropIcon },
   { id: "download", labelKey: "settings.tabs.download", icon: DownloadIcon },
   { id: "storage", labelKey: "settings.tabs.storage", icon: DatabaseIcon },
   { id: "developer", labelKey: "settings.tabs.developer", icon: CodeIcon },
@@ -353,6 +359,13 @@ export function SettingsModal({
               settings={settings}
               setPluginEnabled={setPluginEnabled}
               moveTool={moveTool}
+            />
+          )}
+          {activeTab === "canvas" && (
+            <CanvasTab
+              settings={settings}
+              update={updateLive}
+              dark={darkCanvas}
             />
           )}
           {activeTab === "download" && (

@@ -27,9 +27,9 @@ export const MAX_CANVAS_SIDE = 8192;
 /** The sizes the new-drawing picker offers by name. `screen` is not listed
  *  here: it is whatever the device you are holding actually is, so it is
  *  computed rather than written down. */
-export type CanvasPresetId = "screen" | "hd" | "uhd" | "print";
+export type SizePresetId = "screen" | "hd" | "uhd" | "print";
 
-export type CanvasPreset = { id: CanvasPresetId; size: CanvasSize };
+export type SizePreset = { id: SizePresetId; size: CanvasSize };
 
 /** The named sizes, in the order they are offered under "This screen".
  *
@@ -38,7 +38,7 @@ export type CanvasPreset = { id: CanvasPresetId; size: CanvasSize };
  *  numbers — and a shelf of a dozen shapes is a thing you compare instead of a
  *  thing you choose from. What is left is the two displays anything is made
  *  for, the display it will be shown on, and the piece of paper. */
-const NAMED_PRESETS: readonly CanvasPreset[] = [
+const NAMED_PRESETS: readonly SizePreset[] = [
   { id: "hd", size: { width: 1920, height: 1080 } },
   { id: "uhd", size: { width: 3840, height: 2160 } },
   // A4 — the one preset that is a piece of paper rather than a display. Written
@@ -66,7 +66,7 @@ const NAMED_PRESETS: readonly CanvasPreset[] = [
  *  each is quoted rather than a claim about the page you want. A phone held
  *  upright wants an upright page from all four of them, so the orientation is a
  *  property of the *shelf* and the sizes are turned to face it (see
- *  `canvasPresets`). It opens on whichever way the screen itself is being held.
+ *  `sizePresets`). It opens on whichever way the screen itself is being held.
  *
  *  A square is landscape by convention: it is the same rectangle either way, so
  *  it has to answer *something* and neither answer changes it. */
@@ -169,28 +169,39 @@ export function currentScreenCanvasSize(): CanvasSize {
  *  on a 1080p monitor "Full HD" and "This screen" are the same page, and two
  *  rows reading `1920 × 1080` only make the list longer. Compared *after* both
  *  have been turned, because that is when they are the same page. */
-export function canvasPresets(
+export function sizePresets(
   screen: CanvasSize,
   orientation: Orientation = orientationOf(screen),
-): CanvasPreset[] {
-  const first: CanvasPreset = {
-    id: "screen",
-    size: orientSize(clampCanvasSize(screen), orientation),
-  };
+): SizePreset[] {
+  const [first, ...rest] = allSizePresets(screen, orientation);
+  return [first!, ...rest.filter((p) => !sameCanvasSize(p.size, first!.size))];
+}
+
+/** Every shipped size, screen first, with none of them dropped.
+ *
+ *  What Settings → Canvas lists, where the shelf's de-duplication would be the
+ *  wrong answer: a switch for "Full HD" that vanishes because you happen to be
+ *  on a 1080p monitor is a setting nobody can find again on the laptop where it
+ *  does show up. The shelf still shows one rectangle for the two of them (see
+ *  `sizePresets`) — that is a fact about *this screen*, not a choice. */
+export function allSizePresets(
+  screen: CanvasSize,
+  orientation: Orientation = orientationOf(screen),
+): SizePreset[] {
   return [
-    first,
+    { id: "screen", size: orientSize(clampCanvasSize(screen), orientation) },
     ...NAMED_PRESETS.map((p) => ({
       ...p,
       size: orientSize(p.size, orientation),
-    })).filter((p) => !sameCanvasSize(p.size, first.size)),
+    })),
   ];
 }
 
 /** The preset that matches a size, if one does. */
 export function matchPreset(
-  presets: readonly CanvasPreset[],
+  presets: readonly SizePreset[],
   size: CanvasSize,
-): CanvasPreset | undefined {
+): SizePreset | undefined {
   return presets.find((p) => sameCanvasSize(p.size, size));
 }
 
