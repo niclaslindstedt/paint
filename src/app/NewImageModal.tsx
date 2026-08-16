@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 
 import {
   Button,
@@ -28,7 +28,13 @@ import {
   type CanvasPreset,
   type CanvasSize,
 } from "./canvasSize.ts";
-import { isDarkColor, PAGE_SWATCHES, resolvePageColor } from "./canvas.ts";
+import {
+  CHECKER_SQUARE,
+  checkerColors,
+  isDarkColor,
+  PAGE_SWATCHES,
+  resolvePageColor,
+} from "./canvas.ts";
 import {
   canLookAtClipboard,
   clipboardCanBeRead,
@@ -83,6 +89,21 @@ import * as output from "../output.ts";
 // ground the sheets are shown *on*: pick a black page and the stock swatches
 // are that black page on each stock rather than a stranger's.
 //
+// **The default colour is no colour**, drawn as the chequer that means it
+// everywhere else in the trade. An image is as often something to drop onto a
+// page somebody else owns as it is a sketch on a sheet of its own, and a page
+// that starts with nothing behind it exports with nothing behind it without
+// anybody having to find a setting. There is deliberately no "follow the app
+// theme" cell any more: that was a third state that looked like a colour, was
+// not one, and quietly repainted finished work when the app theme changed.
+//
+// **Grain rides with the stock**, as the slider under the shelf. It is the one
+// thing about a sheet that is a matter of looking rather than of paint (see
+// `groundProfile`), so it could have stayed a setting — but it belongs to the
+// sheet, and putting it here buys the thing a grain dial is actually for: the
+// whole shelf repaints as you drag it, so you watch the tooth come up instead
+// of taking a number on trust.
+//
 // The three sources are a segmented control rather than three buttons because
 // they are the same act — start an image — from three places, and only one of
 // them can be true at a time.
@@ -123,22 +144,27 @@ type Source = "blank" | "file" | "clipboard";
  *
  *  One object rather than a parameter each, because these arrive together by
  *  construction: they are what the page *is*, decided in one press of Create.
- *  Both keys are absent rather than `undefined` when they were left alone, so
- *  the caller can spread it straight onto a fresh drawing — a page that follows
- *  the app theme carries no colour at all, and one on the plain solid sheet
- *  carries no ground at all, which is what every drawing made before either
- *  existed is. */
+ *  A key is absent rather than `undefined` when the answer was the default, so
+ *  the caller can spread it straight onto a fresh drawing — a page on the plain
+ *  solid sheet carries no ground at all, which is what every drawing made before
+ *  surfaces existed is. */
 export type PageMakeup = {
   ground?: Ground;
   background?: string;
+  /** The page has no sheet at all — the marks land on nothing. Exclusive with
+   *  `background`, and the default: it is the background layer's eye rather than
+   *  a field on the drawing, so the caller turns it into a stack (see
+   *  `transparentLayers`) rather than writing a colour that means "no colour". */
+  transparent?: true;
 };
 
 type Props = {
   /** The folder the image will be filed into, named for the title — so
    *  "New image in Diagrams" says where it is about to land. */
   folderName?: string;
-  /** Whether a page that pins no colour of its own is a dark sheet, so the
-   *  "follow the app theme" swatch shows the page it actually stands for. */
+  /** Whether the app itself is painting dark — which decides the two greys the
+   *  transparency chequer is drawn in, and the sheet the stock shelf is shown on
+   *  while the page has no colour of its own. */
   dark: boolean;
   onCancel: () => void;
   /** Make an empty page of this size, made of this. */
@@ -214,8 +240,14 @@ export function NewImageModal({
   // it carries no ground at all (see `ground.ts`), which is what every drawing
   // made before surfaces existed is.
   const [stock, setStock] = useState<string | undefined>(undefined);
-  // The page's own colour — `undefined` for "whatever the app theme calls for",
-  // which is likewise how a page that pins nothing is stored.
+  // …and how strongly its grain shows, as a multiple of the stock's own weight.
+  // 1 is the sheet as it is sold, which is what a page that says nothing about
+  // its grain is on.
+  const [texture, setTexture] = useState(1);
+  // The page's own colour — `undefined` is **no page at all**, which is what a
+  // new image starts as (see `layers.ts`). Not "whatever the theme says": that
+  // was a third state nobody could see, and a page either has a colour or it
+  // doesn't.
   const [background, setBackground] = useState<string | undefined>(undefined);
   // What was chosen from disk, waiting for Create.
   const [picked, setPicked] = useState<Picked | null>(null);
@@ -341,15 +373,21 @@ export function NewImageModal({
   // else that starts here is a page this dialog is building.
   const openingPct = source === "file" && picked?.kind === "pct";
   const page: PageMakeup = {
-    ...(stock ? { ground: { stock } } : {}),
-    ...(background ? { background } : {}),
+    ...(stock
+      ? { ground: { stock, ...(texture === 1 ? {} : { texture }) } }
+      : {}),
+    ...(background ? { background } : { transparent: true }),
   };
-  // The colour the page will actually be, so the stock shelf below is painted on
-  // *this* page rather than on a stranger's — and the ink in each swatch is read
-  // off that colour rather than off the app theme, or picking a black page would
-  // draw the sample line in black ink on it.
+  // The page the stock shelf is painted on. A page with a colour is shown as
+  // that colour; a page with none is shown on the sheet it *would* have, because
+  // the shelf is a catalogue of sheets and a sheet with no page behind it has no
+  // grain to compare (the tooth is painted as part of the page — see
+  // `render.ts`). The ink in each swatch is read off that colour rather than off
+  // the app theme, or picking a black page would draw the sample line in black
+  // ink on it.
   const pageColor = resolvePageColor(background, dark);
   const pageIsDark = isDarkColor(pageColor);
+  const [checkerEven, checkerOdd] = checkerColors(dark);
 
   const create = () => {
     if (source === "blank") {
@@ -578,28 +616,22 @@ export function NewImageModal({
                 role="radiogroup"
                 aria-label={t("newImage.pageColorLabel")}
               >
-                {/* "Follow the app theme" first, and painted the colour it
-                  actually stands for right now, so it is a swatch among
-                  swatches rather than an opt-out from them. */}
+                {/* No page at all, first and by default — drawn as the chequer
+                  it will be on the canvas, because "no colour" is the one
+                  answer here that cannot be a colour. Round like the swatches
+                  beside it: it is one of them, not an opt-out from them. */}
                 <button
                   type="button"
                   role="radio"
                   aria-checked={background === undefined}
+                  aria-label={t("newImage.pageColorTransparent")}
+                  title={t("newImage.pageColorTransparent")}
                   onClick={() => setBackground(undefined)}
-                  className={`inline-flex cursor-pointer items-center gap-1.5 rounded border px-2 py-1 text-xs ${
-                    background === undefined
-                      ? "border-accent bg-accent/15 text-accent"
-                      : "border-line text-fg hover:bg-surface-2"
+                  className={`h-7 w-7 cursor-pointer rounded-full border-2 ${
+                    background === undefined ? "border-accent" : "border-line"
                   }`}
-                >
-                  <span
-                    className="h-4 w-4 rounded-full border border-line"
-                    style={{
-                      backgroundColor: resolvePageColor(undefined, dark),
-                    }}
-                  />
-                  {t("newImage.pageColorFollowTheme")}
-                </button>
+                  style={checkerStyle(checkerEven, checkerOdd)}
+                />
                 {PAGE_SWATCHES.map((swatch) => (
                   <button
                     key={swatch}
@@ -629,6 +661,7 @@ export function NewImageModal({
               </span>
               <GroundPicker
                 value={stock}
+                texture={texture}
                 onChange={(next) =>
                   setStock(next.family === "solid" ? undefined : next.id)
                 }
@@ -636,8 +669,35 @@ export function NewImageModal({
                 dark={pageIsDark}
                 label={t("newImage.canvasTypeLabel")}
               />
+              {/* How far that sheet's tooth shows. Offered only where there is a
+                  tooth to show: on the plain sheet it would be a slider that
+                  moves nothing. It sits here rather than in Settings because it
+                  is part of the sheet, and because the shelf above repaints at
+                  it as you drag — the whole point of a grain dial is watching
+                  the paper come up or go flat. */}
+              {stock && (
+                <label className="flex flex-col gap-1">
+                  <span className="text-xs text-muted">
+                    {t("newImage.grainLabel", {
+                      value: String(Math.round(texture * 100)),
+                    })}
+                  </span>
+                  <input
+                    type="range"
+                    min={0}
+                    max={2}
+                    step={0.05}
+                    value={texture}
+                    onChange={(e) =>
+                      setTexture(Number((e.target as HTMLInputElement).value))
+                    }
+                    className="w-full cursor-pointer"
+                  />
+                </label>
+              )}
               <p className="text-xs text-muted">
                 {t("newImage.canvasTypeHint")}
+                {stock ? ` ${t("newImage.grainHint")}` : ""}
               </p>
             </div>
           )}
@@ -656,6 +716,24 @@ export function NewImageModal({
       </div>
     </Modal>
   );
+}
+
+/** The transparency chequer as a CSS background, for the swatch that stands for
+ *  a page with none.
+ *
+ *  Two crossed gradients rather than an image, so it costs nothing and takes the
+ *  same two colours the canvas paints (see `canvas.ts`) — the swatch and the
+ *  page it stands for are the same chequer, which is the only reason the swatch
+ *  reads as one. Half the canvas's square, because the swatch is a fraction of
+ *  the size and one square of nothing is not a pattern. */
+function checkerStyle(even: string, odd: string): CSSProperties {
+  const size = CHECKER_SQUARE / 2;
+  return {
+    backgroundColor: even,
+    backgroundImage: `linear-gradient(45deg, ${odd} 25%, transparent 25%, transparent 75%, ${odd} 75%), linear-gradient(45deg, ${odd} 25%, transparent 25%, transparent 75%, ${odd} 75%)`,
+    backgroundSize: `${size * 2}px ${size * 2}px`,
+    backgroundPosition: `0 0, ${size}px ${size}px`,
+  };
 }
 
 /** The page sizes, drawn to one shared scale so they can be compared rather than

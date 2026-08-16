@@ -17,7 +17,7 @@ import {
   useFileDrop,
 } from "@niclaslindstedt/oss-framework/hooks";
 
-import { defaultInk, resolvePageColor } from "./canvas.ts";
+import { checkerColors, defaultInk, resolvePageColor } from "./canvas.ts";
 import {
   readPaste,
   readSystemClipboard,
@@ -649,6 +649,9 @@ export function CanvasScreen({
   // so screen and file agree.
   const pageColor = resolvePageColor(drawing.background, darkCanvas);
   const ink = defaultInk(darkCanvas);
+  // What a page with no sheet at all is drawn as. Theme-coloured, so it reads
+  // as "there is nothing here" in a dark app and in a light one alike.
+  const checker = checkerColors(darkCanvas);
 
   return (
     <div className="flex h-full min-h-0 flex-col">
@@ -774,6 +777,7 @@ export function CanvasScreen({
             }}
             defaultInk={ink}
             showGrid={settings.showGrid}
+            checker={checker}
             washEngine={settings.washEngine}
             fitToken={fitToken}
             refitToken={refitToken}

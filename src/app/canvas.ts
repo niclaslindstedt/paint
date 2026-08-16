@@ -75,7 +75,7 @@ export function isDarkAppearance(appearance: ThemeAppearance): boolean {
     : window.matchMedia("(prefers-color-scheme: dark)").matches;
 }
 
-/** The page colours a drawing can be pinned to, beside "follow the app theme".
+/** The page colours a drawing can be given, beside no page at all.
  *
  *  Three light sheets and three dark ones: plain white, a cool paper, a warm
  *  cream, the app's own dark sheet, true black, and a slate. Short on purpose —
@@ -90,8 +90,39 @@ export const PAGE_SWATCHES = [
   "#0f172a",
 ] as const;
 
-/** The page colour to paint: the drawing's own pinned colour when it has one,
- *  otherwise the sheet the app theme calls for. */
+// --- Nothing at all ---------------------------------------------------------
+//
+// A page can also have **no** colour: the sheet is switched off and the marks
+// land on transparency (see `layers.ts` — it is the background layer's eye, so
+// there is one answer rather than two). That is the default a new image is made
+// with, because an image is as often something to be dropped onto a page
+// somebody else owns as it is a sketch on a sheet of its own.
+//
+// Nothing can be *drawn* for "no colour", so it is drawn as the convention
+// every image editor uses instead: a chequerboard, which is unmistakably not a
+// colour because no page is ever two colours in squares. It is a **view** —
+// painted by the screen, never by an export, exactly like the grid.
+
+/** How big one square of the transparency chequer is, in document pixels. */
+export const CHECKER_SQUARE = 12;
+
+/** The two squares, on a light app and on a dark one. Kept dim and close
+ *  together: it has to read as "there is nothing here" behind whatever is drawn
+ *  over it, not as a pattern somebody chose. */
+export const CHECKER_LIGHT = ["#ffffff", "#e2e5ea"] as const;
+export const CHECKER_DARK = ["#20242b", "#181b21"] as const;
+
+/** The chequer for the app as it is currently painting. */
+export function checkerColors(dark: boolean): readonly [string, string] {
+  return dark ? CHECKER_DARK : CHECKER_LIGHT;
+}
+
+/** The page colour to paint **when there is one**: the drawing's own pinned
+ *  colour, or the sheet the app theme calls for.
+ *
+ *  Whether there is one at all is a separate question, and not this function's:
+ *  a page with its sheet switched off is never filled, and the answer here is
+ *  only what it would go back to (see `layers.ts`). */
 export function resolvePageColor(
   background: string | undefined,
   dark: boolean,

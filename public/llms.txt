@@ -104,8 +104,8 @@ connect a storage backend yourself.
   use the header button) for a panel that adds, selects, shows, hides, locks,
   reorders and deletes them, each row previewing the marks on that layer. Every
   drawing starts with a locked Background layer — which carries the page colour,
-  stays at the bottom of the stack and takes nothing underneath it — and one
-  layer above it. New marks land on the selected layer; a hidden layer leaves the
+  stays at the bottom of the stack and takes nothing underneath it, and is
+  switched off on a page made with no colour — and one layer above it. New marks land on the selected layer; a hidden layer leaves the
   screen and every export, and a transparent export leaves the Background out
   entirely.
 - Keep several drawings, group them into folders, star the ones you return to,
@@ -124,7 +124,10 @@ connect a storage backend yourself.
 - Undo and redo every mark; download a page as PNG, JPG or SVG, copy it to the
   clipboard, or export the whole document as JSON. Settings → Download chooses
   which types the menu offers, whether a file covers the whole page or crops to
-  the marks, and whether the background is kept or transparent.
+  the marks, and whether the background is kept or transparent. A page made with
+  no colour of its own downloads transparent as PNG or SVG whatever that setting
+  says; JPG, which has no transparency, is given the colour the sheet would have
+  had.
 - Save a whole drawing as a `.pct` paint file and open it again exactly as it
   was. It is a zip holding one transparent PNG per layer plus a readable
   `manifest.json` — so other tools can read the layers — and the vector marks

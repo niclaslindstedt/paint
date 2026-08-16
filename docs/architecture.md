@@ -180,7 +180,27 @@ colour is painted as part of it**. `renderDrawing` fills the sheet only while
 that layer is in play, so hiding it and exporting transparently are the same
 mechanism rather than two — and `visibleStrokes(drawing, { withoutBackground })`
 is what a transparent export asks for, taking the marks drawn on the sheet out
-with the colour. Because the fill is not a stroke, `cache.ts` compares
+with the colour.
+
+That is also **what "no page colour" is**, and deliberately so: a new image is
+made with `transparentLayers()` (the default stack with the sheet's eye off)
+rather than with a sentinel in `Drawing.background` meaning "not a colour". One
+state, so the renderer asks one question, an export leaves one thing out, and
+the way back to a sheet is the eye the layers panel already offers. It also
+costs no migration — a drawing written before any of this carries no `layers` at
+all, still reads as `defaultLayers()`, and still has its sheet.
+
+Where a page has no sheet, the screen paints a **chequer** under the marks
+(`RenderOptions.checker`). It is a view and never a mark: like the grid, only the
+canvas passes it and every export leaves it unset, so the nothing stays nothing
+in the file. It is painted in document coordinates so it sits still under a pan,
+and its squares go down _before_ the flat sheet behind them — `underlay` composites
+`destination-over`, so the order that reads backwards is the one that works.
+
+One place the drawing and the file have to disagree: **JPG has no alpha**, so a
+page made of nothing would encode as solid black. `flattensPage` catches exactly
+that pair and lays `resolvePageColor`'s answer under the finished picture — after
+the renderer, never before it, because a repaint clears the canvas it is handed. Because the fill is not a stroke, `cache.ts` compares
 `backgroundHidden` alongside the stroke list: it is the one document edit the
 identity comparison cannot see.
 

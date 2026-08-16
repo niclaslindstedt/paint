@@ -195,8 +195,8 @@ has a small × on it.
 There is no second half to it. It used to be split corner to corner with the
 page colour below the diagonal, back when painting with the page was how you
 rubbed something out. The eraser lifts ink now, and the sheet's colour belongs
-to the background layer (New image pins it), so the second half stood for
-nothing.
+to the background layer (New image gives it one, or leaves the page with none at
+all), so the second half stood for nothing.
 
 The **nib button** shows a press with the tool in your hand: not a dot the size
 of the nib, but the mark that width actually leaves — painted by the same

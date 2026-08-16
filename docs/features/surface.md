@@ -29,8 +29,12 @@ the over-and-under of cotton duck. The grain is painted under the marks, which i
 why it shows _through_ a wash in proportion to how transparent the wash is and
 not at all through an opaque line — the thing that makes paper look like paper.
 Pull the page away far enough and it fades out rather than turning into static.
-Each stock carries the weight of grain it is sold with, and that is what a page
-made on it wears.
+**Grain**, the slider under the shelf in New image, turns how much of it shows up
+or down — the whole shelf repaints as you drag, so you watch the tooth come up
+rather than taking a number on trust. It is the one thing about a sheet that
+changes what you see and never how the sheet behaves, and because the grain is
+painted as part of the page, it shows where the page has a colour and not on a
+transparent one.
 
 **It decides whether paint sits on top or soaks in.** A sealed sheet holds paint
 on its face, so a second pass covers the first. Paper takes the water into its

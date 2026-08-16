@@ -76,12 +76,15 @@ export const sv: Catalog = {
     height: "Höjd",
     sizeHint: "Bildpunkter, {min}–{max} på varje sida.",
     pageColorLabel: "Sidfärg",
-    pageColorFollowTheme: "Följ temat",
+    pageColorTransparent: "Ingen sida — genomskinlig",
     pageColorHint:
-      "Färgen under strecken. Den följer med bilden och synkas med den, så den ligger kvar när appens tema byts — låt den följa temat så öppnar en mörk app en mörk sida.",
+      "Vad som ligger under strecken. Rutmönstret betyder ingenting alls, och så börjar en ny bild: den laddas ner som PNG eller SVG utan något bakom sig, redo att läggas på någon annans sida. Väljer du en färg i stället följer den med bilden och synkas med den. Hur som helst bestäms det här — lagerpanelen kan fortfarande släcka och tända arket.",
     canvasTypeLabel: "Typ av rityta",
     canvasTypeHint:
-      "Väljs en gång, här — arket följer med bilden och kan inte ändras efteråt. Strukturen målas under strecken, och på ett ark som suger blandar sig ett vått verktyg med det det ligger över i stället för att täcka det.",
+      "Väljs en gång, här — arket följer med bilden och kan inte ändras efteråt. På ett ark som suger blandar sig ett vått verktyg med det det ligger över i stället för att täcka det, oavsett vad sidan är.",
+    grainLabel: "Struktur: {value}%",
+    grainHint:
+      "Strukturen målas som en del av sidan, så den syns där sidan har en färg och inte på en genomskinlig — den ändrar vad du ser, aldrig hur mycket arket suger.",
     chooseImage: "Välj en bild eller en paint-fil…",
     chooseImageHint:
       "Eller släpp en här. En bild gör sidan lika stor som bilden; en .pct öppnas med sina lager och streck kvar.",

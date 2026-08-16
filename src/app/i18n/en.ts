@@ -79,12 +79,15 @@ export const en = {
     height: "Height",
     sizeHint: "Pixels, {min}–{max} on each side.",
     pageColorLabel: "Page colour",
-    pageColorFollowTheme: "Follow theme",
+    pageColorTransparent: "No page — transparent",
     pageColorHint:
-      "The colour under the marks. It travels with the image and syncs with it, so it stays put when the app theme changes — leave it following the theme and a dark app opens a dark page.",
+      "What is under the marks. The chequer means nothing at all, which is how a new image starts: it downloads as a PNG or an SVG with nothing behind it, ready to drop onto somebody else's page. Pick a colour instead and it travels with the image and syncs with it. Either way it is fixed here — the layers panel can still switch the sheet off and on again.",
     canvasTypeLabel: "Canvas type",
     canvasTypeHint:
-      "Picked once, here — the sheet travels with the image and can't be changed afterwards. Its grain is painted under the marks, and on a sheet that drinks, a wet tool mixes with what it is over instead of covering it.",
+      "Picked once, here — the sheet travels with the image and can't be changed afterwards. On a sheet that drinks, a wet tool mixes with what it is over instead of covering it, whatever the page is.",
+    grainLabel: "Grain: {value}%",
+    grainHint:
+      "The grain is painted as part of the page, so it shows where the page has a colour and not on a transparent one — it changes what you see, never how much the sheet drinks.",
     chooseImage: "Choose an image or a paint file…",
     chooseImageHint:
       "Or drop one here. A picture cuts the page to its own size; a .pct opens with its layers and marks intact.",

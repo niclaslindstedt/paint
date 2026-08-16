@@ -30,6 +30,7 @@ import { isDarkAppearance } from "./app/canvas.ts";
 import { CanvasScreen } from "./app/CanvasScreen.tsx";
 import { SideMenuContent } from "./app/SideMenuContent.tsx";
 import { useT } from "./app/i18n/index.ts";
+import { transparentLayers } from "./app/layers.ts";
 import { APP_LOOK } from "./app/look.ts";
 import { descendingLogStore, logStore } from "./app/log.ts";
 import { cacheIdForBase } from "./app/pwa.ts";
@@ -41,7 +42,20 @@ import { applyBackdropVars, useAppSettings } from "./app/useAppSettings.ts";
 import { useNamespaces } from "./app/useNamespaces.ts";
 import { freshId, usePaintStore } from "./app/usePaintStore.ts";
 import { useSyncEngine } from "./app/useSyncEngine.ts";
+import type { PageMakeup } from "./app/NewImageModal.tsx";
+import type { Drawing } from "./app/types.ts";
 import { status } from "./output.ts";
+
+/** The new-image dialog's answers as a patch for the drawing it is making.
+ *
+ *  Only `transparent` needs translating: a page with no sheet is the background
+ *  layer's eye rather than a field on the drawing (see `layers.ts`), so it
+ *  becomes a stack. The rest is already the shape a `Drawing` wants, which is
+ *  what `PageMakeup` was built to be — a type-only import here, so the dialog
+ *  itself stays off the first-paint path. */
+function pageInit({ transparent, ...page }: PageMakeup): Partial<Drawing> {
+  return { ...page, ...(transparent ? { layers: transparentLayers() } : {}) };
+}
 
 // Lazy: none of these are on the first-paint path (the canvas is), and each
 // pulls a chunk of framework UI with it.
@@ -377,7 +391,7 @@ export function App() {
             onCreate={(size, page) => {
               store.addDrawing("", pendingDrawing.folderId, {
                 ...size,
-                ...page,
+                ...pageInit(page),
               });
               setPendingDrawing(null);
               setView("canvas");
@@ -389,7 +403,7 @@ export function App() {
               store.addDrawing(name, pendingDrawing.folderId, {
                 width: image.width,
                 height: image.height,
-                ...page,
+                ...pageInit(page),
                 strokes: [
                   {
                     ...imageStroke(image.src, {

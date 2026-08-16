@@ -157,12 +157,11 @@ picture or words back into the page.
 
 ## Light page, dark page
 
-A page that pinned no colour of its own follows the app theme: a dark app opens
-a dark sheet, and switching to a light theme flips both back. Marks that never
-chose a colour follow the page, so flipping the theme re-inks the whole sketch
-instead of hiding it. To fix a page's colour instead, pick one under **New
-image → Page colour** when you make it — it travels with the image and ignores
-the theme from then on. [More](features/canvas-theme.md).
+A page opens with no colour at all, drawn as a chequer, and the ink follows the
+app theme — white marks in a dark app, near-black in a light one — so a sketch
+re-inks itself rather than disappearing when you flip the theme. Give the page a
+colour under **New image → Page colour** and it keeps that colour whatever the
+app is wearing. [More](features/canvas-theme.md).
 
 Settings → **General** holds the two things drawn _around_ your marks: the
 on-screen grid, and the **tool-name** label that names each tool over the middle
@@ -197,13 +196,16 @@ one you type, all at one shared scale, so you can see how much bigger 4K is
 before you pick it. The page can still be resized afterwards, from the
 right-hand panel.
 
-Every page that starts here is also asked its **page colour** — follow the app
-theme, or one of six sheets — and its **canvas type**: a solid digital sheet, one
-of four papers, or primed canvas. The stocks are drawn too, each swatch a real
-page with a wash laid across an ink line on it, and they are painted on the
-colour you just picked, so a black page is compared as a black page. Neither
-changes afterwards: a wet mark is painted _into_ the sheet it was made on, so
-both are part of building the page rather than settings to find later.
+Every page that starts here is also asked its **page colour** and its **canvas
+type**. The colour opens on the chequer, which means no page at all: the marks
+land on nothing, and a PNG or an SVG of the image downloads with nothing behind
+it. Pick one of the six sheets instead and it travels with the image. The canvas
+type is a solid digital sheet, one of four papers, or primed canvas, drawn as
+swatches — each a real page with a wash laid across an ink line on it, painted on
+the colour you just picked, so a black page is compared as a black page — with a
+**Grain** slider under them for how strongly that sheet's tooth shows. None of it
+changes afterwards: a wet mark is painted _into_ the sheet it was made on, so all
+of it is part of building the page rather than settings to find later.
 [More](features/surface.md).
 
 Star a drawing with the star in the canvas header and it appears under

@@ -123,6 +123,9 @@ type Props = {
   onContextMenu?: (at: Point) => void;
   /** Paint a faint grid behind the page as a drawing aid. Never exported. */
   showGrid?: boolean;
+  /** The transparency chequer for the app's current theme (see `canvas.ts`) —
+   *  what a page with no sheet is drawn as. Never exported either. */
+  checker: readonly [string, string];
   /** Which watercolour engine paints a wash (see `plugins/wash.ts`). Threaded
    *  in rather than read off the module the app puts it in force on, because
    *  the canvas needs it as a *render input*: it is what makes a page repaint
@@ -176,6 +179,7 @@ export function PaintCanvas({
   onMoveSelection,
   onContextMenu,
   showGrid = false,
+  checker,
   washEngine = DEFAULT_WASH_ENGINE,
   fitToken = 0,
   refitToken = 0,
@@ -276,6 +280,7 @@ export function PaintCanvas({
     pageColor,
     defaultInk,
     showGrid,
+    checker,
     washEngine,
     decodedAt,
     selection,
@@ -285,6 +290,7 @@ export function PaintCanvas({
     pageColor,
     defaultInk,
     showGrid,
+    checker,
     washEngine,
     decodedAt,
     selection,
@@ -482,6 +488,7 @@ export function PaintCanvas({
     pageColor,
     defaultInk,
     showGrid,
+    checker,
     washEngine,
     decodedAt,
     selection,

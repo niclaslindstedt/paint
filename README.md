@@ -110,9 +110,11 @@ the same [`oss-framework`](https://github.com/niclaslindstedt/oss-framework).
   colour, and **New image** asks for all three at once — size, page colour, and
   canvas type: a solid digital sheet, one of four papers (hot-pressed,
   cold-pressed, rough, cartridge) or primed cotton duck, each stock drawn on the
-  colour you picked so you compare them as the page they will be. Like the size
-  they stay put afterwards, since a mark is painted _into_ the sheet it was made
-  on. That grain is painted
+  colour you picked so you compare them as the page they will be, with a grain
+  slider that repaints the whole shelf as you drag it. The colour opens on **no
+  colour** — a chequer, and a PNG or SVG of that image downloads with nothing
+  behind it. Like the size they stay put afterwards, since a mark is painted
+  _into_ the sheet it was made on. That grain is painted
   _under_ the marks, so it shows through a wash and not through an opaque line —
   and on a sheet that drinks, the wet tools start behaving like it. A wash mixes
   with the colour it lands on instead of covering it, so red over blue is purple
