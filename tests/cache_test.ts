@@ -13,6 +13,7 @@ import {
 import { registerPlugin, resetPlugins } from "../src/app/plugins/registry.ts";
 import type { Drawing, Stroke } from "../src/app/types.ts";
 import {
+  createFakeCanvas,
   createFakeContext,
   withFakeDocument,
   type FakeContext,
@@ -57,6 +58,29 @@ beforeEach(() => {
     behaviour: {
       start: (p) => ({
         tool: "wiper",
+        size: 1,
+        shape: { kind: "path", points: [p] },
+      }),
+      move: (draft) => draft,
+      paint: (_ctx, stroke) => {
+        painted.push(stroke);
+      },
+    },
+  });
+  // …and one that paints wet: a loaded watercolour brush, as far as the cache
+  // is concerned. On a sheet that soaks, its marks mix with their own layer
+  // rather than covering the picture, which is the whole reason the wet-append
+  // path exists.
+  registerPlugin({
+    id: "soaker",
+    core: true,
+    nameKey: "tools.pencil.name",
+    descriptionKey: "tools.pencil.description",
+    icon: () => null,
+    wetness: 1,
+    behaviour: {
+      start: (p) => ({
+        tool: "soaker",
         size: 1,
         shape: { kind: "path", points: [p] },
       }),
@@ -679,5 +703,176 @@ describe("a stack with an effect being previewed on it", () => {
         view: { scale: 1, tx: 20, ty: 0 },
       }),
     ).toBe("repainted");
+  });
+});
+
+describe("a sheet that soaks", () => {
+  // Cold-pressed paper: thirsty enough that a wet mark stains, which used to
+  // mean every landed wash repainted the whole document. On the drawing,
+  // because the sheet is the drawing's own — and on the options too, which is
+  // how the canvas hands it to the cache (see `frame.ts`).
+  const ground = { stock: "cold" };
+
+  function paper(strokes: Stroke[]): Drawing {
+    return { ...drawing(strokes), ground };
+  }
+
+  function wetSpec(d: Drawing, over: Partial<CacheSpec> = {}): CacheSpec {
+    return spec(d, {
+      options: { pageColor: "#fff", defaultInk: "#000", ground },
+      ...over,
+    });
+  }
+
+  function wash(x = 100): Stroke {
+    return { ...stroke(x), tool: "soaker" };
+  }
+
+  /** A screen whose context knows its canvas — the wet path lifts the layer
+   *  onto a surface of its own, and a context with no canvas behind it cannot
+   *  say how big that surface should be. */
+  function wetScreen(): { ctx: FakeContext; canvas: HTMLCanvasElement } {
+    const canvas = createFakeCanvas(400, 300);
+    return { ctx: canvas.ctx, canvas: canvas as never };
+  }
+
+  /** The marks the painter was actually handed, de-duplicated: a wet mark is
+   *  laid twice by design — once to cut its bleed to its own shape and once
+   *  for real (see `wet.ts`) — and that doubling is not what these tests are
+   *  about. */
+  function reached(): string[] {
+    return [...new Set(painted.map((s) => s.id))];
+  }
+
+  it("lands a wet mark for the cost of one stroke, not the document", () => {
+    const washes = [wash(40), wash(80), wash(120)];
+    const page = paper(washes);
+    const first = wetScreen();
+    const cache = createCache(400, 300);
+    // The first frame repaints — and keeps the wet layer's pixels on the way.
+    expect(paintCommitted(first.ctx, first.canvas, cache, wetSpec(page))).toBe(
+      "repainted",
+    );
+    const next = wash(160);
+    const grown = { ...page, strokes: [...washes, next] };
+    painted = [];
+    const second = wetScreen();
+    const work = paintCommitted(
+      second.ctx,
+      second.canvas,
+      cache,
+      wetSpec(grown),
+    );
+    expect(work).toBe("appended");
+    // The three washes already dry were never painted again.
+    expect(reached()).toEqual([next.id]);
+    // …and the screen was put back together from the two kept halves — what
+    // stood below the layer, and the layer itself — rather than repainted.
+    expect(second.ctx.blits.length).toBe(2);
+  });
+
+  it("keeps a dry mark on the wet layer inside the layer's surface too", () => {
+    const page = paper([wash(40)]);
+    const first = wetScreen();
+    const cache = createCache(400, 300);
+    paintCommitted(first.ctx, first.canvas, cache, wetSpec(page));
+    // A pencil line on the same layer: painted onto the finished picture it
+    // would sit outside the surface the next wash mixes on, so it lands on the
+    // layer's own pixels exactly as the wet marks do.
+    const line = stroke(200);
+    const grown = { ...page, strokes: [...page.strokes, line] };
+    painted = [];
+    const second = wetScreen();
+    expect(
+      paintCommitted(second.ctx, second.canvas, cache, wetSpec(grown)),
+    ).toBe("appended");
+    expect(reached()).toEqual([line.id]);
+    expect(second.ctx.blits.length).toBe(2);
+  });
+
+  it("gives the kept layer up when the view moves, and takes it back", () => {
+    const washes = [wash(40), wash(80)];
+    const page = paper(washes);
+    const cache = createCache(400, 300);
+    const a = wetScreen();
+    paintCommitted(a.ctx, a.canvas, cache, wetSpec(page));
+    // A pan serves the frame by scrolling, and the kept pixels are in the view
+    // they were painted in — so the wash landing after it costs the repaint it
+    // always did…
+    const b = wetScreen();
+    expect(
+      paintCommitted(
+        b.ctx,
+        b.canvas,
+        cache,
+        wetSpec(page, {
+          view: { scale: 1, tx: 20, ty: 0 },
+        }),
+      ),
+    ).toBe("scrolled");
+    const landed = wash(120);
+    const grownOnce = { ...page, strokes: [...washes, landed] };
+    const c = wetScreen();
+    expect(
+      paintCommitted(
+        c.ctx,
+        c.canvas,
+        cache,
+        wetSpec(grownOnce, {
+          view: { scale: 1, tx: 20, ty: 0 },
+        }),
+      ),
+    ).toBe("repainted");
+    // …and that repaint kept the layer again, so the one after it is absorbed.
+    const again = wash(160);
+    const grownTwice = { ...grownOnce, strokes: [...grownOnce.strokes, again] };
+    painted = [];
+    const d = wetScreen();
+    expect(
+      paintCommitted(
+        d.ctx,
+        d.canvas,
+        cache,
+        wetSpec(grownTwice, {
+          view: { scale: 1, tx: 20, ty: 0 },
+        }),
+      ),
+    ).toBe("appended");
+    expect(reached()).toEqual([again.id]);
+  });
+
+  it("keeps only the topmost layer, and repaints a wash landing lower", () => {
+    // Washes on the middle layer of a stack: a mark there lands under pixels
+    // the kept surfaces cannot reconstruct, so it costs a repaint — the price
+    // of painting below your own top layer, not of the page being paper.
+    const layered = (strokes: Stroke[]): Drawing => ({
+      ...paper(strokes),
+      layers: [
+        { id: "base", name: "" },
+        { id: "top", name: "Top" },
+      ],
+    });
+    const washes = [
+      { ...wash(40), layer: "base" },
+      { ...wash(80), layer: "base" },
+    ];
+    const page = layered(washes);
+    const s = wetScreen();
+    const cache = createCache(400, 300);
+    paintCommitted(s.ctx, s.canvas, cache, wetSpec(page));
+    const grown = layered([...washes, { ...wash(120), layer: "base" }]);
+    const t = wetScreen();
+    expect(paintCommitted(t.ctx, t.canvas, cache, wetSpec(grown))).toBe(
+      "repainted",
+    );
+  });
+
+  it("still blits a frame where nothing changed at all", () => {
+    const page = paper([wash(40)]);
+    const held = wetSpec(page);
+    const s = wetScreen();
+    const cache = createCache(400, 300);
+    paintCommitted(s.ctx, s.canvas, cache, held);
+    expect(paintCommitted(s.ctx, s.canvas, cache, { ...held })).toBe("blitted");
   });
 });

@@ -58,7 +58,7 @@ import { leadDetail, leadEngine, type LeadEngine } from "./plugins/lead.ts";
 import { washDetail, washEngine, type WashEngine } from "./plugins/wash.ts";
 import { FULL_DETAIL, type PaintDetail } from "./plugins/types.ts";
 import { createSurface, resizeSurface, type Surface } from "./surface.ts";
-import type { Drawing, Ground, Stroke } from "./types.ts";
+import type { Drawing, Ground, Layer, Stroke } from "./types.ts";
 import { liftUnder } from "./wet.ts";
 
 /** The colours a repaint resolves absent stroke ink against. */
@@ -378,6 +378,32 @@ export type RenderOptions = InkContext & {
    *  mark. It buys the expensive painters a cheaper setting for that coat and
    *  nothing else. */
   live?: boolean;
+  /** Keep the topmost painted layer's pixels when it is lifted onto a surface
+   *  for its wet marks — the mark cache's seam, and its alone (see `cache.ts`).
+   *
+   *  A wet mark mixes with its own layer, so a stroke landing on a thirsty
+   *  sheet cannot be appended onto the finished picture and used to cost a
+   *  full repaint instead. Keeping the layer's own surface, and the screen as
+   *  it stood *below* that layer, is what lets the cache absorb the next wet
+   *  mark by painting one stroke instead of the document. Only the topmost
+   *  painted layer is offered — anything higher would sit on top of pixels the
+   *  cache cannot reconstruct — and only when it is lifted for its wet marks
+   *  rather than for an effect being previewed. */
+  keepWet?: KeepWet;
+};
+
+/** What the mark cache hands a repaint to keep the wet layer's pixels with. */
+export type KeepWet = {
+  /** The surface to lift the layer onto — the caller's own, not the shared
+   *  scratch, because it outlives the repaint. */
+  into: Surface;
+  /** Called when the canvas holds everything painted *below* the layer — every
+   *  lower layer, and not yet the sheet, which goes under at the end. */
+  below: (layer: Layer) => void;
+  /** Called when the layer's marks are all on `into` and composited onto the
+   *  page: the two surfaces now reconstruct this repaint. Not called when the
+   *  lift fell back to painting the layer straight on. */
+  kept: (layer: Layer, strokes: readonly Stroke[]) => void;
 };
 
 /** Paint `marks` with the context held to the sheet — nothing outside the page's
@@ -599,16 +625,31 @@ function paintStack(
   // exactly what it just took off. A layer painted apart settles its own inside
   // its surface.
   const under: Stroke[] = [];
-  for (const { layer, strokes } of paintedLayers(drawing, scope)) {
+  const walk = paintedLayers(drawing, scope);
+  walk.forEach(({ layer, strokes }, at) => {
     const shown = preview?.layerIds.has(layer.id) ? preview.effect : null;
     if (!shown && !anyStains(strokes, ground)) {
       paintStrokes(ctx, strokes, options);
       relayFixed(ctx, strokes, options, under);
     } else {
-      paintLayerApart(ctx, drawing, strokes, shown, options);
+      // The mark cache may ask to keep this layer's pixels — only the topmost
+      // painted layer, and only one lifted for its wet marks: a preview is a
+      // dialog being tried on, and its pixels are nothing to keep.
+      const keep =
+        !shown && at === walk.length - 1 ? options.keepWet : undefined;
+      if (keep) keep.below(layer);
+      const apart = paintLayerApart(
+        ctx,
+        drawing,
+        strokes,
+        shown,
+        options,
+        keep?.into,
+      );
+      if (keep && apart) keep.kept(layer, strokes);
     }
     under.push(...strokes);
-  }
+  });
 }
 
 /** The one surface layers are lifted onto, held between repaints.
@@ -630,15 +671,20 @@ function apartSurface(width: number, height: number): Surface | null {
   const held = apartHeld ?? createSurface(width, height);
   if (!held) return null;
   apartHeld = held;
-  resizeSurface(held, width, height);
-  // Resizing only clears when the size actually changed (see `surface.ts`), so
-  // the slate is wiped explicitly — under a fresh identity transform, because
-  // the last use left its view transform behind.
-  held.ctx.setTransform(1, 0, 0, 1, 0, 0);
-  held.ctx.globalAlpha = 1;
-  held.ctx.globalCompositeOperation = "source-over";
-  held.ctx.clearRect(0, 0, held.canvas.width, held.canvas.height);
-  return held;
+  return wipeSurface(held, width, height);
+}
+
+/** A surface sized to `width`×`height` and blank, whoever owns it. Resizing
+ *  only clears when the size actually changed (see `surface.ts`), so the slate
+ *  is wiped explicitly — under a fresh identity transform, because the last use
+ *  left its view transform behind. */
+function wipeSurface(surface: Surface, width: number, height: number): Surface {
+  resizeSurface(surface, width, height);
+  surface.ctx.setTransform(1, 0, 0, 1, 0, 0);
+  surface.ctx.globalAlpha = 1;
+  surface.ctx.globalCompositeOperation = "source-over";
+  surface.ctx.clearRect(0, 0, surface.canvas.width, surface.canvas.height);
+  return surface;
 }
 
 /** One layer painted apart: its marks onto a surface of their own, an effect
@@ -658,14 +704,20 @@ function apartSurface(width: number, height: number): Surface | null {
  *  The window cull is **widened by the effect's reach** before the marks go
  *  down. A blur moves ink, so a mark just off the edge of the window still fogs
  *  its way into it, and culling it for being out of frame would leave the edge
- *  of the layer lighter than its middle — a seam that moves as you pan. */
+ *  of the layer lighter than its middle — a seam that moves as you pan.
+ *
+ *  `into` is a surface the caller wants the layer lifted onto instead of the
+ *  shared scratch — the mark cache keeping the wet layer's pixels (see
+ *  `KeepWet`). Answers whether the lift actually happened: a `false` fell back
+ *  to painting the layer straight on, and there is nothing on `into` to keep. */
 function paintLayerApart(
   ctx: CanvasRenderingContext2D,
   drawing: Drawing,
   strokes: readonly Stroke[],
   effect: Effect | null,
   options: RenderOptions,
-): void {
+  into?: Surface,
+): boolean {
   // A recorder rather than a canvas: an SVG has no pixels to composite, and
   // nothing that reaches it needs any. An effect preview never exports — it is a
   // dialog that is open on the screen — and a layer here only to mix its wet
@@ -674,17 +726,19 @@ function paintLayerApart(
   // the sheet's grain (see `groundPaint.ts`).
   if (isRecorder(ctx)) {
     paintStrokes(ctx, strokes, options);
-    return;
+    return false;
   }
 
   const canvas = ctx.canvas;
   const surface =
     canvas && canvas.width > 0 && canvas.height > 0
-      ? apartSurface(canvas.width, canvas.height)
+      ? into
+        ? wipeSurface(into, canvas.width, canvas.height)
+        : apartSurface(canvas.width, canvas.height)
       : null;
   if (!surface) {
     paintStrokes(ctx, strokes, options);
-    return;
+    return false;
   }
   const view = readTransform(ctx);
   if (view) {
@@ -718,6 +772,7 @@ function paintLayerApart(
   ctx.globalCompositeOperation = "source-over";
   ctx.drawImage(surface.canvas, 0, 0);
   ctx.restore();
+  return true;
 }
 
 /** Where the page's rectangle falls on a canvas under `view`, in canvas pixels
