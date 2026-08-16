@@ -4,9 +4,15 @@ import { useEffect, useRef } from "react";
 import { defaultInk } from "./canvas.ts";
 import { GROUNDS, groundById, type GroundDescriptor } from "./ground.ts";
 import { useT } from "./i18n/index.ts";
-import { leadDetail, leadEngine } from "./plugins/lead.ts";
-import { washDetail, washEngine } from "./plugins/wash.ts";
 import { renderDrawing } from "./render.ts";
+import {
+  TileCache,
+  blit,
+  enqueuePaint,
+  rendererKey,
+  tileCanvas,
+  tileRatio,
+} from "./tiles.ts";
 import { mm } from "./units.ts";
 import type { Drawing, Ground } from "./types.ts";
 
@@ -90,13 +96,12 @@ function sampleMarks(ink: string, wash: string) {
  *  simulations. Capped because a drag of the grain slider mints a shelf's worth
  *  of entries per step; the oldest go first, and repainting an evicted swatch
  *  costs what it always cost. */
-const painted = new Map<string, HTMLCanvasElement>();
-const PAINTED_MAX = 60;
+const painted = new TileCache(60);
 
 /** Everything a swatch's pixels are a function of, folded into its cache key.
- *  The engines in force are in it too: they are read as globals by the
- *  renderer (see `plugins/wash.ts`), so two swatches painted either side of an
- *  engine change are two different pictures under the same props. */
+ *  The engines in force are in it too (`rendererKey`): they are read as globals
+ *  by the renderer (see `plugins/wash.ts`), so two swatches painted either side
+ *  of an engine change are two different pictures under the same props. */
 function swatchKey(
   stock: string | undefined,
   texture: number,
@@ -104,60 +109,9 @@ function swatchKey(
   dark: boolean,
   dpr: number,
 ): string {
-  return [
-    stock ?? "solid",
-    texture,
-    pageColor,
-    dark,
-    dpr,
-    washEngine(),
-    washDetail(),
-    leadEngine(),
-    leadDetail(),
-  ].join("|");
-}
-
-function remember(key: string, swatch: HTMLCanvasElement): void {
-  if (painted.size >= PAINTED_MAX) {
-    const oldest = painted.keys().next().value;
-    if (oldest !== undefined) painted.delete(oldest);
-  }
-  painted.set(key, swatch);
-}
-
-/** Swatches waiting to be painted, taken one per animation frame.
- *
- *  One per frame rather than all at once, because the queue's whole reason to
- *  exist is that a swatch is worth a real slice of a frame: painting the shelf
- *  in one go blocks the thread until the last one is done, and the dialog that
- *  just opened sits frozen behind it. Spread out, the dialog paints first and
- *  stays interactive while the shelf fills in — and a swatch whose answer is no
- *  longer wanted (the grain slider has moved on) is pulled back off the queue by
- *  its effect's cleanup instead of being painted and thrown away. */
-const queue: Array<() => void> = [];
-let pumping = false;
-
-function pump(): void {
-  const job = queue.shift();
-  if (!job) {
-    pumping = false;
-    return;
-  }
-  job();
-  requestAnimationFrame(pump);
-}
-
-/** Put a paint job in line. Returns the way to take it back out. */
-function enqueue(job: () => void): () => void {
-  queue.push(job);
-  if (!pumping) {
-    pumping = true;
-    requestAnimationFrame(pump);
-  }
-  return () => {
-    const at = queue.indexOf(job);
-    if (at >= 0) queue.splice(at, 1);
-  };
+  return [stock ?? "solid", texture, pageColor, dark, dpr, rendererKey()].join(
+    "|",
+  );
 }
 
 /** One swatch, painted onto a canvas of its own — the cache's currency. `null`
@@ -169,11 +123,9 @@ function paintSwatch(
   dark: boolean,
   dpr: number,
 ): HTMLCanvasElement | null {
-  const canvas = document.createElement("canvas");
-  canvas.width = Math.round(SWATCH.width * dpr);
-  canvas.height = Math.round(SWATCH.height * dpr);
-  const ctx = canvas.getContext("2d");
-  if (!ctx) return null;
+  const made = tileCanvas(SWATCH.width, SWATCH.height, dpr);
+  if (!made) return null;
+  const { canvas, ctx } = made;
   const ink = defaultInk(dark);
   const ground: Ground | undefined = stock
     ? { stock, ...(texture === 1 ? {} : { texture }) }
@@ -208,15 +160,15 @@ function paintSwatch(
  *  costs six map lookups. */
 export function warmSwatches(pageColor: string, dark: boolean): void {
   if (typeof document === "undefined" || typeof window === "undefined") return;
-  const dpr = Math.min(window.devicePixelRatio || 1, 3);
+  const dpr = tileRatio();
   for (const { id, family } of GROUNDS) {
     const stock = family === "solid" ? undefined : id;
     const key = swatchKey(stock, 1, pageColor, dark, dpr);
     if (painted.has(key)) continue;
-    enqueue(() => {
+    enqueuePaint(() => {
       if (painted.has(key)) return;
       const swatch = paintSwatch(stock, 1, pageColor, dark, dpr);
-      if (swatch) remember(key, swatch);
+      if (swatch) painted.remember(key, swatch);
     });
   }
 }
@@ -239,28 +191,23 @@ export function GroundSwatch({
   useEffect(() => {
     const canvas = ref.current;
     if (!canvas) return;
-    const dpr = Math.min(window.devicePixelRatio || 1, 3);
+    const dpr = tileRatio();
     const key = swatchKey(stock, texture, pageColor, dark, dpr);
-    const show = (source: HTMLCanvasElement) => {
-      canvas.width = source.width;
-      canvas.height = source.height;
-      canvas.getContext("2d")?.drawImage(source, 0, 0);
-    };
     // Seen before: a blit, on the spot. The queue is only for pixels that have
     // to be worked out.
     const kept = painted.get(key);
     if (kept) {
-      show(kept);
+      blit(canvas, kept);
       return;
     }
-    return enqueue(() => {
+    return enqueuePaint(() => {
       // Looked up again inside the job: a warming pass may have painted this
       // very swatch while ours stood in the queue.
       const swatch =
         painted.get(key) ?? paintSwatch(stock, texture, pageColor, dark, dpr);
       if (!swatch) return;
-      remember(key, swatch);
-      show(swatch);
+      painted.remember(key, swatch);
+      blit(canvas, swatch);
     });
   }, [stock, texture, pageColor, dark]);
 

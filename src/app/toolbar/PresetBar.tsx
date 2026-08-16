@@ -17,7 +17,7 @@ import {
   type PresetSettings,
   type ToolPreset,
 } from "../presets.ts";
-import { PressPreview } from "./PressPreview.tsx";
+import { PressPreview, type PressTile } from "./PressPreview.tsx";
 
 // Whole tools, one press away — at the top of the panel, in two rows.
 //
@@ -76,6 +76,41 @@ import { PressPreview } from "./PressPreview.tsx";
  *  a hard-edged disc — which is what the flat fill beside it already looks
  *  like, so the row would be three identical chips. */
 const NO_WIDTH_PRESS = 16;
+
+/** How big a shipped preset's press is drawn, in CSS pixels — a chip's worth,
+ *  beside its name. */
+const PRESS_BOX = 18;
+
+/** The presses the shipped row is made of, in the order the presets are given
+ *  and scaled against the broadest of them, so the row reads as one comparison
+ *  rather than as four marks each fitted to its own tile (the same rule the
+ *  width row follows).
+ *
+ *  Its own function so the row can be painted before it is shown: the panel
+ *  warms exactly these tiles at idle, and opening it is then a row of blits
+ *  (see `warmPressTiles` and `SizePicker`). */
+export function presetTiles(look: {
+  plugin: PaintPlugin | undefined;
+  presets: readonly ToolPresetOption[];
+  color: string;
+  background: string;
+  filled: boolean;
+}): PressTile[] {
+  const widest = look.presets.reduce(
+    (top, preset) => Math.max(top, preset.size ?? NO_WIDTH_PRESS),
+    0,
+  );
+  return look.presets.map((preset) => ({
+    plugin: look.plugin,
+    size: preset.size ?? NO_WIDTH_PRESS,
+    of: widest,
+    color: look.color,
+    background: look.background,
+    dials: preset.dials,
+    filled: look.filled,
+    box: PRESS_BOX,
+  }));
+}
 
 type Props = {
   /** The tool the panel is open over — it paints the shipped chips' previews. */
@@ -324,13 +359,7 @@ export function ShippedPresets({
 }) {
   const t = useT();
   const current = activePreset(presets, size, dials);
-  // The broadest press on the row: what every preview in it is scaled against,
-  // so the row reads as one comparison rather than as four marks each fitted to
-  // its own tile (the same rule the width row follows).
-  const widest = presets.reduce(
-    (top, preset) => Math.max(top, preset.size ?? NO_WIDTH_PRESS),
-    0,
-  );
+  const tiles = presetTiles({ plugin, presets, color, background, filled });
 
   if (presets.length === 0) return null;
 
@@ -340,7 +369,7 @@ export function ShippedPresets({
         {t("canvas.builtinPresets")}
       </span>
       <div className="flex flex-wrap gap-1">
-        {presets.map((preset) => (
+        {presets.map((preset, at) => (
           <button
             key={preset.id}
             type="button"
@@ -356,16 +385,7 @@ export function ShippedPresets({
             {/* The mark this preset makes, with every one of its dials — the
                 whole reason a word like "wet-in-wet" is worth putting on a
                 chip. */}
-            <PressPreview
-              plugin={plugin}
-              size={preset.size ?? NO_WIDTH_PRESS}
-              of={widest}
-              color={color}
-              background={background}
-              dials={preset.dials}
-              filled={filled}
-              box={18}
-            />
+            <PressPreview {...tiles[at]!} />
             <span className="truncate">{t(preset.nameKey)}</span>
           </button>
         ))}

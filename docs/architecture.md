@@ -509,6 +509,38 @@ so marks carried along by a scroll keep the antialiasing fringes they were first
 drawn with. The difference is bounded, does not compound, and heals once the
 drag has moved a window's width.
 
+### The panels' little pictures are painted once, and early
+
+The controls show pictures rather than words wherever the answer _is_ a picture:
+a press with the tool in your hand on each width and each shipped preset
+(`toolbar/PressPreview.tsx`), a swatch per paper stock (`GroundPicker.tsx`), a
+sheet painted by each wash engine (`toolbar/ToolOptions.tsx`). Every one of them
+is a real render through `render.ts` — which is the point, and is why they are
+not cheap: the size panel of the watercolour brush is eleven of them, one a
+whole sheet of simulated pigment, and painting the set in the effect flush that
+follows the press froze the thread for a third of a second.
+
+`tiles.ts` is the answer, and it is three rules rather than a faster renderer:
+
+- **Painted once.** A tile is a function of its key and nothing else, so the
+  pixels are kept for the life of the tab and shown again with a blit. The key
+  carries `rendererKey()` — the wash and lead engines in force — because the
+  renderer reads those as globals, so two tiles painted either side of an engine
+  change are two different pictures under the same props.
+- **One per frame.** Jobs go through a single shared queue taken a job at a
+  time, so a panel paints and stays interactive while its pictures fill in
+  rather than sitting frozen behind them. A job whose answer is no longer wanted
+  is pulled back out by the effect that queued it.
+- **Warm before it is asked for.** `SizePicker` warms its own tiles at idle
+  while it is _closed_, from the very props it would render; `App.tsx` warms the
+  new-image shelf the same way. The first tile ever painted is dearer than every
+  one after it — the painters compile and the grain tiles are built on that run
+  — so warming pays even where the pixels are cheap.
+
+Nothing here is a second rendering path: a tile that is not in the cache is
+painted exactly as it was before, and a queue that never ran would only make the
+panel slow again.
+
 ## The canvas is a window
 
 A page is whatever size it was created at — the new-image dialog asks, and

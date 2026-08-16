@@ -14,7 +14,7 @@ import {
 } from "../plugins/gauge.ts";
 import type { PaintPlugin } from "../plugins/types.ts";
 import { gaugeFor, sizesFor } from "../useAppSettings.ts";
-import { PressPreview } from "./PressPreview.tsx";
+import { PressPreview, type PressTile } from "./PressPreview.tsx";
 
 // How wide a tool draws: five buttons and a slider, and both of them are about
 // a real implement rather than about a number between 1 and 200.
@@ -44,6 +44,33 @@ import { PressPreview } from "./PressPreview.tsx";
  *  than about the widths: 400 is finer than a finger can place on a 200-pixel
  *  track, and coarse enough that dragging it does not re-render for nothing. */
 const NOTCHES = 400;
+
+/** How big each width's press is drawn, in CSS pixels. */
+const PRESS_BOX = 30;
+
+/** The presses this row is made of: one per width the tool is made in, every
+ *  one of them scaled against the broadest.
+ *
+ *  Its own function because the row is painted twice — once here, and once at
+ *  idle before the panel is ever opened, so that opening it is a row of blits
+ *  rather than five renders (see `warmPressTiles` and `SizePicker`). Two lists
+ *  that had to agree would be one that eventually didn't. */
+export function widthTiles(look: {
+  plugin: PaintPlugin | undefined;
+  color: string;
+  background: string;
+  filled: boolean;
+  dials: Readonly<Record<string, number>>;
+  colors?: Readonly<Record<string, string>>;
+}): PressTile[] {
+  const sizes = sizesFor(look.plugin);
+  return sizes.map((size) => ({
+    ...look,
+    size,
+    of: sizes[sizes.length - 1] ?? size,
+    box: PRESS_BOX,
+  }));
+}
 
 /** A width as the panel prints it: the number, its unit, and the trade's name
  *  for it when this gauge has one — "4.8 mm · #6". */
@@ -85,8 +112,15 @@ export function WidthPicker({
 }) {
   const t = useT();
   const gauge = gaugeFor(plugin);
-  const sizes = sizesFor(plugin);
   const label = useSizeLabel(gauge);
+  const tiles = widthTiles({
+    plugin,
+    color,
+    background,
+    filled,
+    dials,
+    colors,
+  });
   // The slider is held as a *position*, not as a width: dragging it has to move
   // smoothly through a scale that is geometric in three pieces, and rounding a
   // width back into a position every frame would make the thumb stick.
@@ -118,8 +152,8 @@ export function WidthPicker({
         role="group"
         aria-label={t("canvas.size")}
       >
-        {sizes.map((option) => (
-          <span key={option} className="relative inline-flex">
+        {tiles.map((tile) => (
+          <span key={tile.size} className="relative inline-flex">
             <button
               type="button"
               // Picking a width does **not** close the panel. It used to, on
@@ -129,27 +163,17 @@ export function WidthPicker({
               // star it, or to nudge a dial, or to try the width beside it. The
               // way out is the same as for every other panel: press somewhere
               // else.
-              onClick={() => onPick(option)}
-              aria-pressed={option === size}
-              aria-label={label(option)}
-              title={label(option)}
+              onClick={() => onPick(tile.size)}
+              aria-pressed={tile.size === size}
+              aria-label={label(tile.size)}
+              title={label(tile.size)}
               className={`inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded border ${
-                option === size
+                tile.size === size
                   ? "border-accent bg-accent/15"
                   : "border-line hover:bg-surface-2"
               }`}
             >
-              <PressPreview
-                plugin={plugin}
-                size={option}
-                of={sizes[sizes.length - 1] ?? option}
-                color={color}
-                background={background}
-                dials={dials}
-                colors={colors}
-                filled={filled}
-                box={30}
-              />
+              <PressPreview {...tile} />
             </button>
           </span>
         ))}

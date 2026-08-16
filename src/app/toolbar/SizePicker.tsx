@@ -16,12 +16,14 @@ import type {
   ToolSwatch,
 } from "../plugins/types.ts";
 import type { PresetSettings, ToolPreset } from "../presets.ts";
+import { atIdle } from "../tiles.ts";
 import { MAX_PANEL_HEIGHT } from "./panel.ts";
-import { PresetBar } from "./PresetBar.tsx";
+import { PresetBar, presetTiles } from "./PresetBar.tsx";
+import { warmPressTiles } from "./PressPreview.tsx";
 import { ToolDials } from "./ToolDials.tsx";
-import { ToolOptions } from "./ToolOptions.tsx";
+import { ToolOptions, warmOptionPreviews } from "./ToolOptions.tsx";
 import { ToolSwatches } from "./ToolSwatches.tsx";
-import { WidthPicker } from "./WidthPicker.tsx";
+import { WidthPicker, widthTiles } from "./WidthPicker.tsx";
 
 // The tool panel: the tools you saved, the widths this tool is made in, and
 // whatever else the tool in your hand has to tune.
@@ -166,6 +168,79 @@ export function SizePicker({
   useEffect(() => {
     if (!open) setSaving(false);
   }, [open]);
+
+  // Paint the panel's pictures before anyone presses the button that opens it.
+  //
+  // Everything in here that is worth looking at is a real render — four preset
+  // chips, five widths, and for the watercolour brush a whole sheet per engine
+  // — and they used to be painted, all of them, in the effect flush that
+  // followed the press. That is a third of a second of frozen thread on a
+  // desktop and a good deal worse on a phone, and it is entirely avoidable: the
+  // panel's props are known long before it opens, and a tile is a function of
+  // nothing else (see `tiles.ts`).
+  //
+  // So the tiles are queued at idle while the panel is *closed*, one per frame,
+  // and the panel that opens afterwards finds every one of them painted and
+  // blits it. Warming again when the ink, the tool or a dial changes is what
+  // keeps it warm for the panel you would actually open next; each pass is a
+  // handful of map lookups when nothing has moved, and a pass that is overtaken
+  // — the ink moved on while it was still queued — is taken back out rather
+  // than painting pictures for a panel nobody will open.
+  //
+  // Keyed on what the panel would *show* rather than on the props it is handed:
+  // the toolbar hands it a fresh preset array and a fresh dial record on every
+  // render, and an effect that re-armed on those would cancel its own idle
+  // callback for the whole of a gesture and warm nothing.
+  const warmth = JSON.stringify([
+    plugin?.id,
+    color,
+    background,
+    filled,
+    values,
+    colors,
+    builtinPresets.map((preset) => [preset.id, preset.size, preset.dials]),
+    options.map((option) => option.id),
+    optionValues,
+  ]);
+  useEffect(() => {
+    if (open) return;
+    let stopWarming = () => {};
+    const stopIdle = atIdle(() => {
+      const presses = warmPressTiles([
+        ...presetTiles({
+          plugin,
+          presets: builtinPresets,
+          color,
+          background,
+          filled,
+        }),
+        ...widthTiles({
+          plugin,
+          color,
+          background,
+          filled,
+          dials: values,
+          colors,
+        }),
+      ]);
+      const pictures = warmOptionPreviews(
+        options,
+        optionValues,
+        color,
+        background,
+      );
+      stopWarming = () => {
+        presses();
+        pictures();
+      };
+    });
+    return () => {
+      stopIdle();
+      stopWarming();
+    };
+    // `warmth` is everything in here that decides a picture.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, warmth]);
 
   return (
     <FloatingPanel

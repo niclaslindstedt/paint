@@ -11,6 +11,14 @@ import {
 import { sizePreview } from "../plugins/controls.ts";
 import type { PaintPlugin } from "../plugins/types.ts";
 import { paintStrokes, type InkContext } from "../render.ts";
+import {
+  TileCache,
+  blit,
+  enqueuePaint,
+  rendererKey,
+  tileCanvas,
+  tileRatio,
+} from "../tiles.ts";
 import type { Stroke } from "../types.ts";
 
 // The nib preview: a press with the tool in your hand, painted for real.
@@ -39,6 +47,14 @@ import type { Stroke } from "../types.ts";
 // mark at all (the hand, the dropper), and one that asks for a circle because
 // its mark cannot describe itself (`sizePreview: "circle"` — the eraser, whose
 // press is a hole). Both come out of the same branch: no marks, so a dot.
+//
+// **A press is not cheap, and a panel opens ten of them.** The four preset
+// chips and the five widths of the watercolour brush are nine real renders, and
+// painting them in one effect flush is what made the size panel open a third of
+// a second after it was pressed. So a tile is painted once and kept, painted one
+// per frame rather than all at once, and — the half that makes the panel open
+// already drawn — painted at idle before the button that opens it is pressed
+// (see `warmPressTiles` and `tiles.ts`).
 
 /** How much of the tile the broadest mark on the row is fitted into. */
 const FILL = 0.88;
@@ -46,12 +62,6 @@ const FILL = 0.88;
 /** The smallest a mark may come out, in CSS pixels, before the fit gives up and
  *  draws it at a size that can be seen. */
 const MIN_MARK = 4;
-
-/** Device pixels per CSS pixel, capped: past three the tile costs more to paint
- *  than it can show. */
-function ratio(): number {
-  return Math.min(window.devicePixelRatio || 1, 3);
-}
 
 // --- How much room the ink needs ---------------------------------------------
 // A stroke's own box is its geometry — its anchors and its nib. Half the tools
@@ -155,7 +165,12 @@ function reachFor(
   return reach;
 }
 
-type Props = {
+/** Everything a press tile is a picture of.
+ *
+ *  The preview's own props, and also what a warming pass is handed: the panel
+ *  can paint the tiles it is about to show before it shows them precisely
+ *  because a tile is a function of nothing but this (see `warmPressTiles`). */
+export type PressTile = {
   /** The tool the press is made with. Absent — a tool this build doesn't ship
    *  — falls back to the dot. */
   plugin: PaintPlugin | undefined;
@@ -181,100 +196,191 @@ type Props = {
   box?: number;
 };
 
-export function PressPreview({
-  plugin,
-  size,
-  of,
-  color,
-  background,
-  dials,
-  colors,
-  filled = false,
-  box = 26,
-}: Props) {
+/** What a press tile is made of: the marks a single press leaves, the yardstick
+ *  they are scaled against, and how far this medium's ink reaches past its own
+ *  geometry.
+ *
+ *  The simulation half of a tile, and the cheap half — driving the plugin
+ *  contract builds stroke geometry, where painting that geometry is what runs a
+ *  watercolour. Kept apart from the painting so the component can ask "is there
+ *  a mark here at all?" (the dot's question, answered every render) without
+ *  asking "what does it look like?" (the queue's). */
+function pressFor(tile: PressTile): {
+  press: Stroke[];
+  reach: () => number;
+  widest: number;
+} {
+  const { plugin, size, of, color, background, dials, colors, filled } = tile;
+  // A tool that asks for a circle is not simulated at all: there is no press
+  // to paint, and the dot below is the whole preview.
+  if (sizePreview(plugin) === "circle") {
+    return { press: [], reach: () => 1, widest: 0 };
+  }
+  // The yardstick: the broadest width on the row — or the width in hand when
+  // it is broader still, which is what the slider is doing while it is being
+  // dragged past everything the row offers.
+  const top = Math.max(of, size);
+  const travel = pressReach(top);
+  const ink = { color, dials, colors, filled: filled ?? false, background };
+  const press = pressMarks(plugin, { ...ink, size }, travel);
+  const widest =
+    size === top ? press : pressMarks(plugin, { ...ink, size: top }, travel);
+  const tuning = JSON.stringify(dials) + JSON.stringify(colors ?? {});
+  return {
+    press,
+    // How far this medium's ink reaches past the geometry, measured once and
+    // shared by every cell of the row (see `inkReach`). The engines in force
+    // are in the key with the tuning: the same brush painted by the other
+    // watercolour is a different mark, and it reaches differently.
+    reach: () =>
+      reachFor(`${plugin?.id}|${filled}|${tuning}|${rendererKey()}`, widest, {
+        pageColor: background,
+        defaultInk: color,
+      }),
+    widest: pressExtent(widest),
+  };
+}
+
+/** …and the painting half: the press, fitted and centred on a tile of its own.
+ *  `null` for a press that leaves no mark, or where a 2D context is not to be
+ *  had. */
+function paintPress(
+  tile: PressTile,
+  marks: ReturnType<typeof pressFor>,
+): HTMLCanvasElement | null {
+  const { color, background, box = DEFAULT_BOX } = tile;
+  const at = pressBox(marks.press);
+  if (!at) return null;
+  const dpr = tileRatio();
+  const made = tileCanvas(box, box, dpr);
+  if (!made) return null;
+  const { canvas, ctx } = made;
+  const side = canvas.width;
+
+  // The geometry, grown by however far this medium's ink reaches past it —
+  // so what is fitted to the tile is the mark that lands, not the box the
+  // stroke claims.
+  const reach = marks.reach();
+  const scale = pressScale(
+    pressExtent(marks.press) * reach,
+    marks.widest * reach,
+    box * FILL,
+    MIN_MARK,
+  );
+  // Centred on the tile by the mark's own box: a caption hangs from its
+  // top-left and a dab sits on the press, and neither should decide where the
+  // preview sits.
+  ctx.setTransform(dpr * scale, 0, 0, dpr * scale, side / 2, side / 2);
+  ctx.translate(-(at.x + at.width / 2), -(at.y + at.height / 2));
+  // `paintStrokes` reads the detail off this transform, so the textured
+  // painters drop the specks and hairs that would land inside one device
+  // pixel here without being told the preview is small.
+  paintStrokes(ctx, marks.press, { pageColor: background, defaultInk: color });
+
+  // The page last, under the mark — the same order the canvas paints in, and
+  // for the same reason: a tool that rubs out has to take ink off without
+  // taking the sheet with it (see `render.ts`). Opaque, because a preview of
+  // a white nib on nothing is nothing.
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.globalCompositeOperation = "destination-over";
+  ctx.fillStyle = background;
+  ctx.fillRect(0, 0, side, side);
+  ctx.globalCompositeOperation = "source-over";
+  return canvas;
+}
+
+/** Everything that decides a tile's pixels, folded into one string — the tuning
+ *  and the ink, and with them the tile's own size on this screen and the
+ *  engines the renderer is painting with. */
+function pressKey(tile: PressTile): string {
+  const tuning = JSON.stringify(tile.dials) + JSON.stringify(tile.colors ?? {});
+  return [
+    tile.plugin?.id,
+    tile.size,
+    tile.of,
+    tile.color,
+    tile.background,
+    tile.filled ?? false,
+    tile.box ?? DEFAULT_BOX,
+    tileRatio(),
+    rendererKey(),
+    tuning,
+  ].join("|");
+}
+
+/** Presses already painted. A panel's worth is ten or so, and a dial dragged
+ *  across its track mints one per step per cell, so the cap is a few panels
+ *  deep and the oldest go first. */
+const painted = new TileCache(120);
+
+/** The tile's side when the caller doesn't say. */
+const DEFAULT_BOX = 26;
+
+/** Paint the presses a panel is about to show, before it is opened.
+ *
+ *  This is what makes the size panel open drawn rather than open and then fill
+ *  in: called at idle with the very tiles the panel would render (see
+ *  `SizePicker`), it puts them through the same one-per-frame queue while
+ *  nobody is waiting, and the panel's own effects then find every one of them
+ *  in the cache and blit it. Calling it warm costs a map lookup each.
+ *
+ *  Returns the way to call the rest of it off. A warming pass is queued from an
+ *  effect, and the ink or the tuning it was warming *for* can change while it
+ *  is still standing in line — so the pass that replaces it takes the last one
+ *  back out of the queue rather than leaving a trail of pictures nobody will
+ *  ever look at. */
+export function warmPressTiles(tiles: readonly PressTile[]): () => void {
+  if (typeof document === "undefined" || typeof window === "undefined")
+    return () => {};
+  const queued: Array<() => void> = [];
+  for (const tile of tiles) {
+    const key = pressKey(tile);
+    if (painted.has(key)) continue;
+    queued.push(
+      enqueuePaint(() => {
+        // Looked up again inside the job: the panel may have opened while this
+        // stood in the queue, and painted the very tile it was queued for.
+        if (painted.has(key)) return;
+        const canvas = paintPress(tile, pressFor(tile));
+        if (canvas) painted.remember(key, canvas);
+      }),
+    );
+  }
+  return () => queued.forEach((cancel) => cancel());
+}
+
+export function PressPreview(props: PressTile) {
+  const { size, of, background, box = DEFAULT_BOX } = props;
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  // One string standing for everything that changes the mark. The simulation
-  // and the repaint both hang off it, so the preview costs nothing while the
-  // toolbar re-renders for reasons it doesn't care about — a pan moves the zoom
-  // readout, not the nib.
-  const tuning = JSON.stringify(dials) + JSON.stringify(colors ?? {});
-  const key = `${plugin?.id}|${size}|${of}|${color}|${background}|${filled}|${tuning}`;
-  const marks = useMemo(() => {
-    // A tool that asks for a circle is not simulated at all: there is no press
-    // to paint, and the dot below is the whole preview.
-    if (sizePreview(plugin) === "circle") {
-      return { press: [] as Stroke[], reach: () => 1, widest: 0 };
-    }
-    // The yardstick: the broadest width on the row — or the width in hand when
-    // it is broader still, which is what the slider is doing while it is being
-    // dragged past everything the row offers.
-    const top = Math.max(of, size);
-    const travel = pressReach(top);
-    const ink = { color, dials, colors, filled, background };
-    const press = pressMarks(plugin, { ...ink, size }, travel);
-    const widest =
-      size === top ? press : pressMarks(plugin, { ...ink, size: top }, travel);
-    return {
-      press,
-      // How far this medium's ink reaches past the geometry, measured once and
-      // shared by every cell of the row (see `inkReach`).
-      reach: () =>
-        reachFor(`${plugin?.id}|${filled}|${tuning}`, widest, {
-          pageColor: background,
-          defaultInk: color,
-        }),
-      widest: pressExtent(widest),
-    };
-    // Everything the marks are built from is in `key`.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key]);
+  // One string standing for everything that changes the picture. The
+  // simulation, the cache and the repaint all hang off it, so the preview costs
+  // nothing while the toolbar re-renders for reasons it doesn't care about — a
+  // pan moves the zoom readout, not the nib.
+  const key = pressKey(props);
+  // Everything the marks are built from is in `key`.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const marks = useMemo(() => pressFor(props), [key]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
-    const at = pressBox(marks.press);
-    if (!at) return;
-    const dpr = ratio();
-    const side = Math.max(1, Math.round(box * dpr));
-    canvas.width = side;
-    canvas.height = side;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    // The geometry, grown by however far this medium's ink reaches past it —
-    // so what is fitted to the tile is the mark that lands, not the box the
-    // stroke claims.
-    const reach = marks.reach();
-    const scale = pressScale(
-      pressExtent(marks.press) * reach,
-      marks.widest * reach,
-      box * FILL,
-      MIN_MARK,
-    );
-    // Centred on the tile by the mark's own box: a caption hangs from its
-    // top-left and a dab sits on the press, and neither should decide where the
-    // preview sits.
-    ctx.setTransform(dpr * scale, 0, 0, dpr * scale, side / 2, side / 2);
-    ctx.translate(-(at.x + at.width / 2), -(at.y + at.height / 2));
-    // `paintStrokes` reads the detail off this transform, so the textured
-    // painters drop the specks and hairs that would land inside one device
-    // pixel here without being told the preview is small.
-    paintStrokes(ctx, marks.press, {
-      pageColor: background,
-      defaultInk: color,
+    if (!canvas || marks.press.length === 0) return;
+    // Painted before: a blit, on the spot. The queue is only for pixels that
+    // have to be worked out.
+    const kept = painted.get(key);
+    if (kept) {
+      blit(canvas, kept);
+      return;
+    }
+    return enqueuePaint(() => {
+      const tile = painted.get(key) ?? paintPress(props, marks);
+      if (!tile) return;
+      painted.remember(key, tile);
+      blit(canvas, tile);
     });
-
-    // The page last, under the mark — the same order the canvas paints in, and
-    // for the same reason: a tool that rubs out has to take ink off without
-    // taking the sheet with it (see `render.ts`). Opaque, because a preview of
-    // a white nib on nothing is nothing.
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.globalCompositeOperation = "destination-over";
-    ctx.fillStyle = background;
-    ctx.fillRect(0, 0, side, side);
-    ctx.globalCompositeOperation = "source-over";
-  }, [marks, background, color, box]);
+    // `key` is what `props` amounts to here, and `marks` is built from it.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key, marks]);
 
   if (marks.press.length === 0) return <SizeDot size={size} of={of} />;
 
@@ -284,7 +390,13 @@ export function PressPreview({
       // Decorative: the button beside it is labelled with the width itself, and
       // a screen reader gains nothing from a picture of a dab of ink.
       aria-hidden="true"
-      style={{ width: `${box}px`, height: `${box}px` }}
+      // The page's own colour behind the canvas, so a tile still in the queue
+      // reads as a blank sheet rather than as a hole in the row.
+      style={{
+        width: `${box}px`,
+        height: `${box}px`,
+        backgroundColor: background,
+      }}
       className="rounded-[3px]"
     />
   );
