@@ -1040,6 +1040,11 @@ function detailFor(
     scale: options.scale ?? renderScale(ctx),
     ground: groundProfile(options.ground),
     wash: options.washEngine ?? washEngine(),
+    // The same box the stroke cull uses, handed down so a painter can skip the
+    // stamps that cannot reach it as well (see `PaintDetail.clip`). A mark that
+    // covers the window is one stroke to the cull and three hundred cones to
+    // the painter, and only the painter can drop the other two hundred.
+    ...(options.clip ? { clip: options.clip } : {}),
   };
 }
 

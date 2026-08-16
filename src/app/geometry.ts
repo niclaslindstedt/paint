@@ -15,20 +15,25 @@
 // changed measures itself exactly once.
 
 import { textBox } from "./plugins/builtin/text.ts";
+import { pluginById } from "./plugins/registry.ts";
 import type { Point, Stroke } from "./types.ts";
 
 /** An axis-aligned box in document coordinates. */
 export type Rect = { x: number; y: number; width: number; height: number };
 
 /** How far past its own geometry a painter is allowed to spread, as a multiple
- *  of the stroke width.
+ *  of the stroke width, for a tool that hasn't said.
  *
  *  This is the one number that has to stay ahead of the painters: the airbrush
  *  lays a cone 1.6× its width plus its grain, the soft nib a halo 2.2×, the
  *  bucket's feather up to forty document pixels. Set it too low and a mark is culled while a corner of
  *  it is still on screen, which reads as a stroke that pops in. It is
  *  deliberately generous — the cost of being wrong is a visible glitch, and the
- *  cost of being loose is a few strokes painted that needn't have been. */
+ *  cost of being loose is a few strokes painted that needn't have been.
+ *
+ *  A tool that has actually been read for it says so on its descriptor
+ *  (`PaintPlugin.reach`) and gets a box its own size instead. That is worth
+ *  doing where the box is a *repaint* rather than a cull — see `runBounds`. */
 const SPREAD = 4;
 
 /** …and a floor, in document pixels, for a hairline stroke whose spread is a
@@ -57,6 +62,28 @@ function around(points: readonly Point[], pad: number): Rect | null {
   };
 }
 
+/** How far past a point of this stroke's geometry its painter can reach: what
+ *  the tool declares, or the generous default for one that hasn't. */
+function padFor(stroke: Stroke): number {
+  const spread = pluginById(stroke.tool)?.reach ?? SPREAD;
+  return stroke.size * spread + MARGIN;
+}
+
+/** The box a *run* of a path's points can paint inside — `strokeBounds` for
+ *  part of a stroke, padded by the very same rule.
+ *
+ *  One caller: the gesture in flight, which grows by a point or two per frame
+ *  and is repainted only where it grew (see `trail.ts`). It shares `SPREAD`
+ *  deliberately — "how far past its geometry a painter reaches" is one number,
+ *  and a second copy of it would be a second thing to keep ahead of the
+ *  painters. */
+export function runBounds(
+  stroke: Stroke,
+  points: readonly Point[],
+): Rect | null {
+  return around(points, padFor(stroke));
+}
+
 /** The box a stroke can possibly paint inside, in document coordinates.
  *
  *  `null` for a stroke with no geometry at all (an empty path), which is a
@@ -64,7 +91,7 @@ function around(points: readonly Point[], pad: number): Rect | null {
 export function strokeBounds(stroke: Stroke): Rect | null {
   const hit = cache.get(stroke);
   if (hit) return hit;
-  const pad = stroke.size * SPREAD + MARGIN;
+  const pad = padFor(stroke);
   const shape = stroke.shape;
   let box: Rect | null = null;
   if (shape.kind === "path") box = around(shape.points, pad);

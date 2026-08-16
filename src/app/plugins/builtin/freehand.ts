@@ -222,6 +222,11 @@ export function freehandBehaviour(ink: FreehandInk = {}): ToolBehaviour {
             strokeColor(stroke),
             scale,
             strokeDial(stroke, "flow"),
+            // …and the patch the caller is actually keeping, so a cone that
+            // cannot reach it is never filled (see `PaintDetail.clip`). The one
+            // painter here that is handed it, because it is the one whose cost
+            // is a few hundred full-radius fills rather than one path.
+            detail.clip,
           );
           return;
         case "crayon":

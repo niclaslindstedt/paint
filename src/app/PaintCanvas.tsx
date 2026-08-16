@@ -26,6 +26,7 @@ import type { CanvasProbe, DraftStroke, ToolContext } from "./plugins/types.ts";
 import { DEFAULT_WASH_ENGINE, type WashEngine } from "./plugins/wash.ts";
 import { createProbe } from "./probe.ts";
 import { inBox } from "./selection.ts";
+import { createTrail } from "./trail.ts";
 import type { Drawing, Point, Stroke } from "./types.ts";
 import {
   clampView,
@@ -47,13 +48,14 @@ import {
 // through the view transform, so the page can be bigger than the screen and you
 // move around it rather than squinting at a shrunken whole.
 //
-// A frame is not a full repaint. The gesture in flight is painted every frame,
-// because it changes every frame; the marks already committed come off a cache
-// of pixels (`cache.ts`), which is what stops one more pencil line costing a
-// whole page of airbrush. Frames are asked for rather than taken — one per
-// animation frame however many pointer samples arrive — and the draft never
-// travels through React state to get here, because the only thing it feeds is
-// the next frame.
+// A frame is not a full repaint, and there are two halves to that. The marks
+// already committed come off a cache of pixels (`cache.ts`), which is what
+// stops one more pencil line costing a whole page of airbrush; and the gesture
+// in flight is painted only where it has just grown (`trail.ts`), which is what
+// stops the tenth second of an airbrush stroke costing ten times the first.
+// Frames are asked for rather than taken — one per animation frame however many
+// pointer samples arrive — and the draft never travels through React state to
+// get here, because the only thing it feeds is the next frame.
 //
 // The gesture split is the Procreate one, and it is the whole interaction model:
 //
@@ -307,6 +309,10 @@ export function PaintCanvas({
   // The committed marks, as pixels (see `cache.ts`). Opened on the first paint
   // and kept for the life of the canvas.
   const cacheRef = useRef<MarkCache | null>(null);
+  // …and what the last frame painted, which is what lets a frame of a gesture
+  // in flight repaint the patch it grew into rather than the whole mark (see
+  // `trail.ts`). Kept for the life of the canvas for the same reason.
+  const trailRef = useRef(createTrail());
   // The repaint this frame has already scheduled, so a burst of pointer moves
   // costs one paint rather than one each.
   const pending = useRef<number | null>(null);
@@ -461,6 +467,7 @@ export function PaintCanvas({
       draft: draftRef.current,
       moving: moving ? { ...moving, offset: moveBy.current } : null,
       cache: cacheRef,
+      trail: trailRef.current,
     });
   }, []);
 
