@@ -258,6 +258,118 @@ describe("the wet field", () => {
   });
 });
 
+// --- The mottle on a coarse grid ---------------------------------------------
+//
+// A long stroke blows the simulation's cell budget and is worked out on a
+// coarser grid (see `washSim.ts`), and the sheet's pools are then held to a
+// floor of a few cells (see `createField`). The floor keeps the *bed* smooth —
+// but the pigment that granulates rolls to the bottoms of those pools, and a
+// pool spanning the floor bottoms out in a single cell. What that dried into
+// was a mosaic of arithmetic-sized squares across the middle of every long
+// wash: a pixelated trail, at exactly the strokes big enough to be coarsened.
+// So the rolling stands down as the grid coarsens past the paper, and these
+// pin both halves: the fade itself, and the picture it exists for.
+
+describe("the mottle on a coarse grid", () => {
+  /** A cell the budget would force on a long stroke — coarse enough that the
+   *  bed's floor of 3.5 cells beats the bare sheet's own tooth. */
+  const COARSE = mm(0.2);
+
+  /** A wide brush swept in an S across a coarse sheet, laid over time the way
+   *  a gesture is: the shape of the stroke that used to pixelate. */
+  function sweep(granulation: number): {
+    settled: Float32Array;
+    width: number;
+    height: number;
+  } {
+    const width = 170;
+    const height = 110;
+    const field = createField({
+      x: 0,
+      y: 0,
+      width,
+      height,
+      cell: COARSE,
+      ground: SOLID_GROUND,
+      granulation,
+    });
+    for (let i = 0; i < 48; i++) {
+      const t = i / 47;
+      charge(
+        field,
+        (25 + t * 120) * COARSE,
+        (55 + Math.sin(t * Math.PI * 2) * 28) * COARSE,
+        mm(4),
+        0.4,
+        0.22,
+      );
+      if (i % 5 === 4) step(field);
+    }
+    for (let i = 0; i < 40; i++) step(field);
+    return { settled: density(field), width, height };
+  }
+
+  /** How rough the wash's body is cell to cell: the mean distance of each
+   *  well-inked cell from its four neighbours, per unit of ink. A texture at
+   *  the paper's pitch spans cells and barely registers; a mosaic of single
+   *  cells is exactly what it reads. */
+  function roughness(wash: ReturnType<typeof sweep>): number {
+    const { settled, width, height } = wash;
+    let mean = 0;
+    let cells = 0;
+    for (const v of settled) {
+      if (v > 0) {
+        mean += v;
+        cells++;
+      }
+    }
+    mean /= cells;
+    let noise = 0;
+    let ink = 0;
+    for (let y = 1; y < height - 1; y++) {
+      for (let x = 1; x < width - 1; x++) {
+        const at = y * width + x;
+        if (settled[at]! < mean * 0.5) continue;
+        const avg =
+          (settled[at - 1]! +
+            settled[at + 1]! +
+            settled[at - width]! +
+            settled[at + width]!) /
+          4;
+        noise += Math.abs(settled[at]! - avg);
+        ink += settled[at]!;
+      }
+    }
+    return noise / ink;
+  }
+
+  it("rolls the mottle only on a grid fine enough to draw it", () => {
+    const grid = (cell: number) =>
+      createField({
+        x: 0,
+        y: 0,
+        width: 8,
+        height: 8,
+        cell,
+        ground: SOLID_GROUND,
+        granulation: 1,
+      });
+    // Every short mark: the pools span many cells, and the mottle is theirs.
+    expect(grid(mm(0.05)).resolve).toBe(1);
+    // A budget-coarsened one: the pools are the floor's own size, and rolling
+    // pigment into them would print the grid.
+    expect(grid(COARSE).resolve).toBe(0);
+  });
+
+  it("granulates no rougher per cell than a staining pigment dries", () => {
+    // The user-visible half. A heavy pigment on a grid too coarse to draw its
+    // pools must not granulate into single cells — before the fade, this wash
+    // dried a quarter *rougher* than the staining one, and that quarter was
+    // the pixelated trail.
+    expect(roughness(sweep(2))).toBeLessThan(roughness(sweep(0)));
+  });
+});
+
 // --- The box the arithmetic actually runs in ---------------------------------
 //
 // The field is stepped inside a box drawn round the water rather than over the
