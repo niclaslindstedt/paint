@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 // Generate the PWA install icons and the social-preview image from the same
-// geometry as public/icons/icon.svg — a bristle brush drawn as gradient line
-// art on the app's dark surface (the style shared with the sibling notes,
-// checklist and contacts marks). Pure Node (zlib + a minimal PNG encoder), so
-// the pipeline needs no native image dependencies. Rerun with `npm run icons` /
-// `make icons` after changing the mark.
+// geometry as public/icons/icon.svg — a stylized pen drawn as a solid green
+// silhouette on the app's dark surface (the style shared with the sibling
+// notes, checklist and contacts marks). Pure Node (zlib + a minimal PNG
+// encoder), so the pipeline needs no native image dependencies. Rerun with
+// `npm run icons` / `make icons` after changing the mark.
 import { deflateSync } from "node:zlib";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -14,26 +14,13 @@ const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const iconsDir = join(root, "public", "icons");
 mkdirSync(iconsDir, { recursive: true });
 
-// The app look's surface (see src/app/look.ts) and the mark's amber gradient —
-// a distinct hue from the green-marked sibling apps. Kept in lockstep with the
-// <linearGradient> stops in public/icons/icon.svg.
+// The app look's surface (see src/app/look.ts) and the mark's ink: one flat
+// green, the hue the sibling apps' marks wear, so a home screen holding
+// several of them reads as one family. Flat rather than graded on purpose —
+// at 16 px a ramp is a colour nobody picked, and the siblings are flat.
+// Kept in lockstep with the `fill` in public/icons/icon.svg.
 const BG = [11, 13, 16]; // #0b0d10
-const GRAD_TOP = [253, 224, 71]; // #fde047
-const GRAD_BOT = [249, 115, 22]; // #f97316
-// The gradient runs top-to-bottom over the mark's vertical extent (unit space),
-// matching the `y1` / `y2` of the userSpaceOnUse gradient in the SVG, over 100.
-const GRAD_Y0 = 0.14;
-const GRAD_Y1 = 0.86;
-
-// The stroke ink at unit-space height `y`, interpolated along the gradient.
-function markInk(y) {
-  const t = Math.max(0, Math.min(1, (y - GRAD_Y0) / (GRAD_Y1 - GRAD_Y0)));
-  return [
-    GRAD_TOP[0] + (GRAD_BOT[0] - GRAD_TOP[0]) * t,
-    GRAD_TOP[1] + (GRAD_BOT[1] - GRAD_TOP[1]) * t,
-    GRAD_TOP[2] + (GRAD_BOT[2] - GRAD_TOP[2]) * t,
-  ];
-}
+const MARK = [110, 231, 167]; // #6ee7a7
 
 // --- minimal PNG encoder ----------------------------------------------------
 
@@ -105,71 +92,74 @@ function encodePng(width, height, rgba) {
 
 // --- the mark ----------------------------------------------------------------
 
-// The app mark: a bristle brush held at 45° — the same object the toolbar's
-// `BrushIcon` draws, at the weight a launcher tile wants. It is built the way
-// the sibling marks are (the notes page, the checklist tick): **solid** shapes
-// in a vertical gradient, filling the tile corner to corner, with the detail
-// cut *out* of them in the background colour rather than drawn as thin lines.
-// A hairline outline survives neither a 16 px favicon nor a phone's home screen
-// two rows down; a solid silhouette does, and it is what puts this icon in the
-// same family as the others rather than beside them.
+// The app mark: a stylized pen held at 45°. It is built the way the sibling
+// marks are (the notes page, the checklist tick): **solid** shapes in one flat
+// colour, filling the tile corner to corner, with the detail cut *out* of them
+// in the background colour rather than drawn as thin lines. A hairline outline
+// survives neither a 16 px favicon nor a phone's home screen two rows down; a
+// solid silhouette does, and it is what puts this icon in the same family as
+// the others rather than beside them.
 //
-// The geometry is written upright — handle, ferrule, then the splayed head —
-// and turned as a whole, which is how `icon.svg` states it too
-// (`transform="translate(3 -3) rotate(45 50 50)"`). Kept in lockstep with that
-// file: the point lists below are its `d` attributes.
+// Three pieces, which is the ceiling before a mark reads as texture: barrel,
+// collar, nib. They are what tell a pen from the pencil-shaped things — the
+// barrel widens toward the collar instead of tapering to the tip, the collar
+// is the widest part, and the nib comes to a point in a third of the length.
+//
+// The geometry is written upright — barrel at the top, nib at the bottom — and
+// turned as a whole, which is how `icon.svg` states it too
+// (`transform="translate(1.4 -1.4) rotate(45 50 50)"`). Kept in lockstep with
+// that file: the point lists below are its `d` attributes.
 
 // Every solid piece is drawn *and* outlined with a round-joined stroke this
 // wide, which is what rounds its corners — the soft-cornered geometry the
 // sibling marks wear (`stroke-linejoin="round"` on a filled path in the SVG).
+// It also blunts the nib's point, which is what keeps the tip from
+// disappearing into a single pale pixel at favicon size.
 const ROUND = 6;
-// The handle is a bar rather than a shape: a segment this wide with round ends.
-const HANDLE_WIDTH = 13;
 
 const UPRIGHT = {
-  // The handle. It starts above the tile's box because the mark is turned onto
-  // the diagonal, which is where the room is: upright it would be half again
-  // too long, turned it fills the tile corner to corner.
-  bars: [
-    [
-      [50, 6],
-      [50, 52],
-    ],
-  ],
   fills: [
-    // The ferrule — the metal band that holds the hair, and the widest part of
-    // the brush, so the head reads as hair coming out of it rather than as
-    // more handle.
+    // The barrel. It starts above the tile's box because the mark is turned
+    // onto the diagonal, which is where the room is: upright it would be half
+    // again too long, turned it fills the tile corner to corner.
     [
-      [34, 54],
-      [66, 54],
-      [66, 68],
-      [34, 68],
+      [38, 2],
+      [62, 2],
+      [64, 50],
+      [36, 50],
     ],
-    // The head, tapering to the tip it paints with. The taper is steep on
-    // purpose: turned 45° and seen at 16 px, a gentle one reads as another
-    // block of handle.
+    // The collar — the band the nib seats into, and the widest part of the
+    // pen, so what comes out below it reads as a nib rather than as more
+    // barrel.
     [
-      [37, 78],
-      [63, 78],
-      [56, 106],
-      [44, 106],
+      [33, 60],
+      [67, 60],
+      [67, 72],
+      [33, 72],
+    ],
+    // The nib, coming to a point. The taper is steep on purpose: turned 45°
+    // and seen at 16 px, a gentle one reads as another block of barrel.
+    [
+      [38, 82],
+      [62, 82],
+      [50, 114],
     ],
   ],
 };
 
-// Nothing is drawn *on* the mark: the seam between the ferrule and the hair is
-// the gap between two solid pieces, so the unlit tile shows through it — the
+// Nothing is drawn *on* the mark: the seams above and below the collar are the
+// gaps between three solid pieces, so the unlit tile shows through them — the
 // way the notes page's lines are cut out of its silhouette rather than ruled
-// across it.
+// across it. The gaps are 10 units of raw geometry because the round-joined
+// outline eats 3 from each side; what ships is the 4 that is left.
 
 // Rotate 45° about the tile's centre, then nudge the turned mark back onto it
-// (the head is wider and longer than the handle, so the rotation alone leaves
-// it hanging low and left). Applied once at module load; everything downstream
-// works in unit space.
+// (the nib reaches further past the centre than the barrel's blunt end does,
+// so the rotation alone leaves it hanging low and left). Applied once at
+// module load; everything downstream works in unit space.
 const COS45 = Math.SQRT1_2;
-const NUDGE_X = 3;
-const NUDGE_Y = -3;
+const NUDGE_X = 1.4;
+const NUDGE_Y = -1.4;
 const turn = (points) =>
   points.map(([x, y]) => {
     const dx = x - 50;
@@ -179,11 +169,9 @@ const turn = (points) =>
       (50 + (dx + dy) * COS45 + NUDGE_Y) / 100,
     ];
   });
-const BARS = UPRIGHT.bars.map(turn);
 const FILLS = UPRIGHT.fills.map(turn);
 
 const ROUND_HALF = ROUND / 2 / 100;
-const HANDLE_HALF = HANDLE_WIDTH / 2 / 100;
 
 // Distance from unit-space (px, py) to the segment (ax, ay)–(bx, by). A segment
 // within half a width of the point is a capsule, so round caps and joins fall
@@ -224,13 +212,12 @@ function inPolygon(polygon, px, py) {
   return inside;
 }
 
-// Whether unit-space point (x, y) lands on the brush: inside a solid piece, or
-// within the round-join outline that softens its corners, or on the handle bar.
+// Whether unit-space point (x, y) lands on the pen: inside a solid piece, or
+// within the round-join outline that softens its corners.
 function inStroke(x, y) {
   return (
     FILLS.some((polygon) => inPolygon(polygon, x, y)) ||
-    nearAny(FILLS, x, y, ROUND_HALF, true) ||
-    nearAny(BARS, x, y, HANDLE_HALF)
+    nearAny(FILLS, x, y, ROUND_HALF, true)
   );
 }
 
@@ -252,8 +239,6 @@ function renderIcon(size, { pad = 0.12, radius = 0.2 } = {}) {
       // half-transparent and left the maskable and apple-touch icons ghosted).
       const bgAlpha = r === 0 ? 1 : Math.max(0, Math.min(1, 0.5 - outside));
       // Mark coverage in padded unit space, 3×3 supersampled for smooth edges.
-      // The gradient ink is sampled at the pixel's own height so the mark
-      // shades top-to-bottom.
       let hit = 0;
       for (const oy of [1 / 6, 0.5, 5 / 6]) {
         for (const ox of [1 / 6, 0.5, 5 / 6]) {
@@ -263,8 +248,7 @@ function renderIcon(size, { pad = 0.12, radius = 0.2 } = {}) {
         }
       }
       const [br, bg2, bb] = BG;
-      const sy = ((py + 0.5) / size - pad) / (1 - 2 * pad);
-      const [fr, fg2, fb] = markInk(sy);
+      const [fr, fg2, fb] = MARK;
       rgba[i] = Math.round(br + (fr - br) * hit);
       rgba[i + 1] = Math.round(bg2 + (fg2 - bg2) * hit);
       rgba[i + 2] = Math.round(bb + (fb - bb) * hit);
@@ -297,7 +281,7 @@ function renderOg() {
     for (let px = 0; px < w; px++) {
       const i = (py * w + px) * 4;
       let [cr, cg, cb] = BG;
-      // The brush swipe, drawn with the same gradient stroke as the icons.
+      // The pen, drawn from the same geometry and in the same ink as the icons.
       if (
         px >= markX &&
         px < markX + markSize &&
@@ -306,7 +290,7 @@ function renderOg() {
       ) {
         const sx = (px - markX) / markSize;
         const sy = (py - markY) / markSize;
-        if (inStroke(sx, sy)) [cr, cg, cb] = markInk(sy).map(Math.round);
+        if (inStroke(sx, sy)) [cr, cg, cb] = MARK;
       }
       // The colour swatches.
       for (const rrow of rows) {
