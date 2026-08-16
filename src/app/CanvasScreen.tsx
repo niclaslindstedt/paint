@@ -17,7 +17,7 @@ import {
   useFileDrop,
 } from "@niclaslindstedt/oss-framework/hooks";
 
-import { defaultInk, resolvePageColor } from "./canvas.ts";
+import { checkerColors, defaultInk, resolvePageColor } from "./canvas.ts";
 import {
   readPaste,
   readSystemClipboard,
@@ -33,7 +33,6 @@ import {
 } from "./filters.ts";
 import { previewFilter } from "./filterPreview.ts";
 import { DrawingTitle } from "./DrawingTitle.tsx";
-import type { MenuEdge } from "./gestures.ts";
 import { HeaderIconButton } from "./HeaderIconButton.tsx";
 import { PasteIcon, ScissorsIcon, SidePanelIcon } from "./icons.tsx";
 import { useT } from "./i18n/index.ts";
@@ -160,12 +159,9 @@ type Props = {
   palette: PaletteActions;
   /** The active tool, already resolved against what the toolbar offers. */
   tool: string;
-  /** Whether the page is a dark sheet — resolved from the canvas theme and the
+  /** Whether a page with no pinned colour is a dark sheet — resolved from the
    *  app appearance by `App`, so the screen never re-derives it. */
   darkCanvas: boolean;
-  /** The screen edge the sidebar's open-swipe is armed on, if any. Passed
-   *  through to the canvas, which must not draw that swipe. */
-  menuSwipeEdge?: MenuEdge | null;
   /** Show or hide the drawings menu — the header's hamburger. It sits here, at
    *  the head of the drawing, rather than floating over the canvas: the one
    *  button that says "the list of drawings" belongs beside the name of the one
@@ -196,7 +192,6 @@ export function CanvasScreen({
   palette,
   tool,
   darkCanvas,
-  menuSwipeEdge = null,
   onToggleMenu,
   menuOpen,
   dockPanel,
@@ -692,6 +687,9 @@ export function CanvasScreen({
   // so screen and file agree.
   const pageColor = resolvePageColor(drawing.background, darkCanvas);
   const ink = defaultInk(darkCanvas);
+  // What a page with no sheet at all is drawn as. Theme-coloured, so it reads
+  // as "there is nothing here" in a dark app and in a light one alike.
+  const checker = checkerColors(darkCanvas);
 
   return (
     <div className="flex h-full min-h-0 flex-col">
@@ -821,6 +819,7 @@ export function CanvasScreen({
             }}
             defaultInk={ink}
             showGrid={settings.showGrid}
+            checker={checker}
             washEngine={settings.washEngine}
             fitToken={fitToken}
             refitToken={refitToken}
@@ -828,16 +827,9 @@ export function CanvasScreen({
             onViewChange={setView}
             placing={placement !== null}
             onPlacingPress={settle}
-            menuSwipeEdge={menuSwipeEdge}
-            // The layers panel's edge — unless the sidebar is already watching
-            // that side, in which case its swipe owns it and the header button is
-            // the way in. Nothing is armed while the panel is open: the scrim
-            // below has the canvas then.
-            panelSwipeEdge={
-              panelDocked || layersOpen || menuSwipeEdge === "right"
-                ? null
-                : "right"
-            }
+            // The layers panel's edge. Nothing is armed while the panel is
+            // open: the scrim below has the canvas then.
+            panelSwipeEdge={panelDocked || layersOpen ? null : "right"}
             onPanelSwipe={() => setLayersOpen(true)}
             onCommit={store.addStroke}
             // The selection gesture: the marks its outline caught become the

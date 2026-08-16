@@ -12,7 +12,7 @@ get `<drawing-name>.pct` — one file, wherever your downloads go.
 
 ## Opening one
 
-**New drawing** → the **File** tab → choose the `.pct`, or drop it onto the
+**New image** → the **Load** tab → choose the `.pct`, or drop it onto the
 dialog. The page arrives at its own size with its own stack; nothing is cut or
 resized to fit. Press **Create** and it is filed into the sketchbook as a new
 drawing.
@@ -37,8 +37,8 @@ interchange half**: anything that can read JSON and PNG can pull your layers out
 — stack order, names and all — without knowing anything about this app.
 **`vectors.json` is the native half**: it holds the marks, which is what makes
 reopening your own file lossless rather than a flatten. Your strokes come back
-as strokes, undoable and re-editable, and the drawing re-inks itself if you flip
-the canvas theme.
+as strokes, undoable and re-editable, and a drawing that pinned no colour of its
+own re-inks itself when you flip the app theme.
 
 A file from another tool that has no `vectors.json` still opens — each layer's
 PNG is placed as an image on a layer of its own, so the picture and the stack

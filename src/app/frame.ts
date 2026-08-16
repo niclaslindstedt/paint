@@ -75,6 +75,11 @@ export type Frame = {
   pageColor: string;
   defaultInk: string;
   showGrid: boolean;
+  /** The two squares of the transparency chequer for the app as it is currently
+   *  painting (see `canvas.ts`). Only ever set by a screen: it is how a page
+   *  with no sheet is *shown*, and an export leaves it out so the nothing stays
+   *  nothing. */
+  checker: readonly [string, string];
   /** Which watercolour engine paints a wash on this frame (see
    *  `plugins/wash.ts`). Written into the render options so the mark cache can
    *  see it change — switching engine repaints the page rather than blitting
@@ -114,6 +119,7 @@ export function paintFrame(frame: Frame): void {
     // colour is (see `ground.ts`).
     ground: frame.drawing.ground,
     grid: frame.showGrid ? GRID_STEP : undefined,
+    checker: frame.checker,
     washEngine: frame.washEngine,
     // Marks being dragged are left out of the page and painted below instead.
     // The set is the caller's and lives as long as the drag, because the cache

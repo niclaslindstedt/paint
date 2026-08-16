@@ -423,6 +423,10 @@ function sameFrame(a: CacheSpec, b: CacheSpec): boolean {
     a.options.pageColor === b.options.pageColor &&
     a.options.defaultInk === b.options.defaultInk &&
     a.options.grid === b.options.grid &&
+    // The chequer under a page with no sheet: it is theme-coloured, so flipping
+    // the app between light and dark repaints it without touching a stroke.
+    a.options.checker?.[0] === b.options.checker?.[0] &&
+    a.options.checker?.[1] === b.options.checker?.[1] &&
     a.options.transparentPage === b.options.transparentPage &&
     // Which watercolour engine is painting. It is a view of the drawing rather
     // than part of it (see `plugins/wash.ts`), so switching it changes every

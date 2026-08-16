@@ -136,6 +136,7 @@ export function GroundSwatch({
  *  comparison is what the choice is. */
 export function GroundPicker({
   value,
+  texture = 1,
   onChange,
   pageColor,
   dark,
@@ -144,6 +145,10 @@ export function GroundPicker({
   /** The stock in hand, by id — `undefined` for the plain solid sheet, which is
    *  how a page with no ground at all is stored. */
   value: string | undefined;
+  /** How strongly the grain shows, as a multiple of the stock's own weight.
+   *  Every cell is painted at it, so turning the grain down is a change you
+   *  watch happen across the whole shelf rather than one you take on trust. */
+  texture?: number;
   onChange: (stock: GroundDescriptor) => void;
   /** The page colour the drawing will actually paint on, so a swatch is that
    *  page on this stock rather than a stranger's. */
@@ -182,7 +187,7 @@ export function GroundPicker({
             >
               <GroundSwatch
                 stock={stock.family === "solid" ? undefined : stock.id}
-                texture={1}
+                texture={texture}
                 pageColor={pageColor}
                 dark={dark}
               />

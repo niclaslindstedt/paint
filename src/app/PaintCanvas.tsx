@@ -123,6 +123,9 @@ type Props = {
   onContextMenu?: (at: Point) => void;
   /** Paint a faint grid behind the page as a drawing aid. Never exported. */
   showGrid?: boolean;
+  /** The transparency chequer for the app's current theme (see `canvas.ts`) —
+   *  what a page with no sheet is drawn as. Never exported either. */
+  checker: readonly [string, string];
   /** Which watercolour engine paints a wash (see `plugins/wash.ts`). Threaded
    *  in rather than read off the module the app puts it in force on, because
    *  the canvas needs it as a *render input*: it is what makes a page repaint
@@ -150,15 +153,9 @@ type Props = {
    *  still move the view, so you can look around before deciding. */
   placing?: boolean;
   onPlacingPress?: () => void;
-  /** The screen edge the sidebar's open-swipe is currently armed on, or `null`
-   *  when nothing is watching an edge (a docked sidebar, the floating-button
-   *  mode, a drawer that is already open). A touch that lands in that strip is
-   *  held rather than drawn — see `gestures.ts`. */
-  menuSwipeEdge?: MenuEdge | null;
   /** The screen edge an inward swipe opens the layers panel from, or `null`
-   *  when it isn't armed. Held and measured exactly like the sidebar's swipe —
-   *  the difference is only whose it is: the framework opens the drawer itself,
-   *  where this one is fired back through `onPanelSwipe`. */
+   *  when it isn't armed. A touch that lands in that strip is held rather than
+   *  drawn, and measured before it is either — see `gestures.ts`. */
   panelSwipeEdge?: MenuEdge | null;
   onPanelSwipe?: () => void;
   ariaLabel: string;
@@ -182,6 +179,7 @@ export function PaintCanvas({
   onMoveSelection,
   onContextMenu,
   showGrid = false,
+  checker,
   washEngine = DEFAULT_WASH_ENGINE,
   fitToken = 0,
   refitToken = 0,
@@ -189,7 +187,6 @@ export function PaintCanvas({
   onViewChange,
   placing = false,
   onPlacingPress,
-  menuSwipeEdge = null,
   panelSwipeEdge = null,
   onPanelSwipe,
   ariaLabel,
@@ -283,6 +280,7 @@ export function PaintCanvas({
     pageColor,
     defaultInk,
     showGrid,
+    checker,
     washEngine,
     decodedAt,
     selection,
@@ -292,6 +290,7 @@ export function PaintCanvas({
     pageColor,
     defaultInk,
     showGrid,
+    checker,
     washEngine,
     decodedAt,
     selection,
@@ -489,6 +488,7 @@ export function PaintCanvas({
     pageColor,
     defaultInk,
     showGrid,
+    checker,
     washEngine,
     decodedAt,
     selection,
@@ -613,17 +613,11 @@ export function PaintCanvas({
   };
 
   /** Which swipe, if any, a press landing at `x` (in viewport coordinates)
-   *  could still turn out to be. The sidebar is asked first: it is the
-   *  framework's gesture and it is already listening whatever we decide, so on
-   *  the one edge both could want, holding it for anything else would open two
-   *  things at once. */
+   *  could still turn out to be. */
   const edgeWatching = (
     x: number,
   ): { edge: MenuEdge; open?: () => void } | undefined => {
     const width = window.innerWidth;
-    if (menuSwipeEdge && inEdgeZone(x, width, menuSwipeEdge)) {
-      return { edge: menuSwipeEdge };
-    }
     if (panelSwipeEdge && inEdgeZone(x, width, panelSwipeEdge)) {
       return { edge: panelSwipeEdge, open: onPanelSwipe };
     }

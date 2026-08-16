@@ -7,7 +7,6 @@ import {
 } from "@niclaslindstedt/oss-framework/theme";
 import {
   Sidebar,
-  useEdgeSwipeOpen,
   usePersistentMenuPosition,
   useSidebarInset,
 } from "@niclaslindstedt/oss-framework/sidebar";
@@ -27,10 +26,11 @@ import {
   namespaceFaviconHref,
 } from "@niclaslindstedt/oss-framework/namespaces";
 
-import { isDarkCanvas } from "./app/canvas.ts";
+import { isDarkAppearance } from "./app/canvas.ts";
 import { CanvasScreen } from "./app/CanvasScreen.tsx";
 import { SideMenuContent } from "./app/SideMenuContent.tsx";
 import { useT } from "./app/i18n/index.ts";
+import { transparentLayers } from "./app/layers.ts";
 import { APP_LOOK } from "./app/look.ts";
 import { descendingLogStore, logStore } from "./app/log.ts";
 import { cacheIdForBase } from "./app/pwa.ts";
@@ -42,7 +42,20 @@ import { applyBackdropVars, useAppSettings } from "./app/useAppSettings.ts";
 import { useNamespaces } from "./app/useNamespaces.ts";
 import { freshId, usePaintStore } from "./app/usePaintStore.ts";
 import { useSyncEngine } from "./app/useSyncEngine.ts";
+import type { PageMakeup } from "./app/NewImageModal.tsx";
+import type { Drawing } from "./app/types.ts";
 import { status } from "./output.ts";
+
+/** The new-image dialog's answers as a patch for the drawing it is making.
+ *
+ *  Only `transparent` needs translating: a page with no sheet is the background
+ *  layer's eye rather than a field on the drawing (see `layers.ts`), so it
+ *  becomes a stack. The rest is already the shape a `Drawing` wants, which is
+ *  what `PageMakeup` was built to be — a type-only import here, so the dialog
+ *  itself stays off the first-paint path. */
+function pageInit({ transparent, ...page }: PageMakeup): Partial<Drawing> {
+  return { ...page, ...(transparent ? { layers: transparentLayers() } : {}) };
+}
 
 // Lazy: none of these are on the first-paint path (the canvas is), and each
 // pulls a chunk of framework UI with it.
@@ -64,13 +77,13 @@ const ChangelogPanel = lazy(() =>
 const ArchiveScreen = lazy(() =>
   import("./app/ArchiveScreen.tsx").then((m) => ({ default: m.ArchiveScreen })),
 );
-// The "what is this drawing made of" dialog. It lives up here rather than in the
+// The "what is this page made of" dialog. It lives up here rather than in the
 // side menu that opens it: pressing New closes the drawer, and on a phone the
 // drawer *unmounts* its contents when it closes — a dialog owned by the menu
 // would be dismissed by the very gesture that asked for it.
-const NewDrawingModal = lazy(() =>
-  import("./app/NewDrawingModal.tsx").then((m) => ({
-    default: m.NewDrawingModal,
+const NewImageModal = lazy(() =>
+  import("./app/NewImageModal.tsx").then((m) => ({
+    default: m.NewImageModal,
   })),
 );
 
@@ -166,10 +179,11 @@ export function App() {
   // blob) can never leave the canvas holding a tool with no button.
   const tool = resolveActiveTool(settings.activeTool, settings.enabledPlugins);
 
-  // Whether the page is a dark sheet: the canvas theme, resolved against the
-  // app's own appearance. Derived once here so the screen, the PNG export, and
-  // the settings tab can never disagree about which page is being painted.
-  const darkCanvas = isDarkCanvas(settings.canvasTheme, appearance);
+  // Whether a page that has pinned no colour of its own is a dark sheet — the
+  // app's own appearance, and nothing else. Derived once here so the screen,
+  // the PNG export and the dialogs can never disagree about which page is being
+  // painted.
+  const darkCanvas = isDarkAppearance(appearance);
 
   // The real PWA update lifecycle, driven by the app's own service worker
   // (built by `pwa-plugin.ts`). In a deployed install this raises the prompt
@@ -179,16 +193,6 @@ export function App() {
     base: import.meta.env.BASE_URL,
     cacheId: cacheIdForBase(import.meta.env.BASE_URL),
     enabled: !import.meta.env.DEV,
-  });
-
-  // "Open sidebar with" (Settings → General): on phones the header button is
-  // always there, and this is whether an inward edge swipe opens the drawer as
-  // well.
-  const swipeToOpen = !pinned && settings.menuMode === "swipe";
-  useEdgeSwipeOpen({
-    side: position.side,
-    enabled: swipeToOpen && !drawerOpen,
-    onOpen: () => setDrawerOpen(true),
   });
 
   // Keyboard undo/redo over the same history the sidebar buttons drive
@@ -362,36 +366,32 @@ export function App() {
                   }
                 : null
             }
-            // The edge the drawer's open-swipe is watching, so the canvas can
-            // hold that swipe back instead of drawing it. `null` whenever
-            // nothing is listening — a docked sidebar, the floating button, or
-            // a drawer that is already open.
-            menuSwipeEdge={swipeToOpen && !drawerOpen ? position.side : null}
           />
         )}
       </main>
 
-      {/* What a new drawing is made of, and how big it is. Mounted only while
+      {/* What a new image is made of, and how big it is. Mounted only while
           one is pending, so each is asked fresh rather than reopening on the
           last answer. */}
       {pendingDrawing && (
         <Suspense fallback={null}>
-          <NewDrawingModal
+          <NewImageModal
             folderName={
               store.data.folders.find((f) => f.id === pendingDrawing.folderId)
                 ?.name
             }
             dark={darkCanvas}
             onCancel={() => setPendingDrawing(null)}
-            // The size and the sheet are both part of making the page rather
-            // than edits to it, so they arrive together and the drawing is
-            // created finished (see `NewDrawingModal`). A page on the plain
-            // solid sheet carries no ground at all, which is what every drawing
-            // made before surfaces existed is.
-            onCreate={(size, ground) => {
+            // The size, the colour and the sheet are all part of making the
+            // page rather than edits to it, so they arrive together and the
+            // drawing is created finished (see `NewImageModal`). `page` holds
+            // only the answers that were actually given, so a plain page
+            // carries neither a ground nor a colour — which is what every
+            // drawing made before either existed is.
+            onCreate={(size, page) => {
               store.addDrawing("", pendingDrawing.folderId, {
                 ...size,
-                ...(ground ? { ground } : {}),
+                ...pageInit(page),
               });
               setPendingDrawing(null);
               setView("canvas");
@@ -399,11 +399,11 @@ export function App() {
             // A drawing made from a picture is the size of the picture, and it
             // opens with the picture already on it as one ordinary mark — the
             // same stroke a drop onto the canvas would have left.
-            onCreateFromImage={(image, name, ground) => {
+            onCreateFromImage={(image, name, page) => {
               store.addDrawing(name, pendingDrawing.folderId, {
                 width: image.width,
                 height: image.height,
-                ...(ground ? { ground } : {}),
+                ...pageInit(page),
                 strokes: [
                   {
                     ...imageStroke(image.src, {

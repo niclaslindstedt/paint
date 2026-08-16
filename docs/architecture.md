@@ -180,7 +180,27 @@ colour is painted as part of it**. `renderDrawing` fills the sheet only while
 that layer is in play, so hiding it and exporting transparently are the same
 mechanism rather than two — and `visibleStrokes(drawing, { withoutBackground })`
 is what a transparent export asks for, taking the marks drawn on the sheet out
-with the colour. Because the fill is not a stroke, `cache.ts` compares
+with the colour.
+
+That is also **what "no page colour" is**, and deliberately so: a new image is
+made with `transparentLayers()` (the default stack with the sheet's eye off)
+rather than with a sentinel in `Drawing.background` meaning "not a colour". One
+state, so the renderer asks one question, an export leaves one thing out, and
+the way back to a sheet is the eye the layers panel already offers. It also
+costs no migration — a drawing written before any of this carries no `layers` at
+all, still reads as `defaultLayers()`, and still has its sheet.
+
+Where a page has no sheet, the screen paints a **chequer** under the marks
+(`RenderOptions.checker`). It is a view and never a mark: like the grid, only the
+canvas passes it and every export leaves it unset, so the nothing stays nothing
+in the file. It is painted in document coordinates so it sits still under a pan,
+and its squares go down _before_ the flat sheet behind them — `underlay` composites
+`destination-over`, so the order that reads backwards is the one that works.
+
+One place the drawing and the file have to disagree: **JPG has no alpha**, so a
+page made of nothing would encode as solid black. `flattensPage` catches exactly
+that pair and lays `resolvePageColor`'s answer under the finished picture — after
+the renderer, never before it, because a repaint clears the canvas it is handed. Because the fill is not a stroke, `cache.ts` compares
 `backgroundHidden` alongside the stroke list: it is the one document edit the
 identity comparison cannot see.
 
@@ -280,12 +300,12 @@ the page every drawing was already on, so no migration step and no rewritten
 bytes (see `migrations.ts`).
 
 The **stock is chosen once**, in the dialog that makes the drawing
-(`NewDrawingModal`), and is not editable afterwards — the same treatment the page
-size gets, and for a stronger reason: a wet mark is composited _into_ the sheet
-it was made on, so restocking a finished page would repaint every mark on it as
-something the hand that drew them never saw. What Settings → Canvas still edits
-is the grain weight (`Ground.texture`), which scales what shows and never what
-the sheet does, and so is an ordinary page edit like pinning a colour.
+(`NewImageModal`), and is not editable afterwards — the same treatment the page
+size and the page colour get, and for a stronger reason: a wet mark is composited
+_into_ the sheet it was made on, so restocking a finished page would repaint every
+mark on it as something the hand that drew them never saw. `Ground.texture` (the
+grain weight) is still read at every paint and still travels in the file, so a
+page written with one keeps it; nothing in the app writes one today.
 
 The catalog is deliberately short — six stocks, comparable in one glance,
 because the shelf is read once under a Create button. Stocks that have been
@@ -412,12 +432,14 @@ drag has moved a window's width.
 
 ## The canvas is a window
 
-A page is whatever size it was created at — the new-drawing dialog asks, and
+A page is whatever size it was created at — the new-image dialog asks, and
 defaults to the screen's own resolution. The rules behind that question (the
 four presets, what "this screen" resolves to, and the one scale all four are
 _drawn_ at so they can be compared as rectangles) live in `canvasSize.ts`, pure
-and node-testable; `NewDrawingModal.tsx` is only the dialog around them, and the
-size reaches the document as the `init` patch `addDrawing` already took.
+and node-testable; `NewImageModal.tsx` is only the dialog around them, and the
+size reaches the document as the `init` patch `addDrawing` already took — along
+with the page's colour and its sheet, which the same dialog collects as one
+`PageMakeup` because all three are answers to what the page _is_.
 
 `transform.ts` is the other half of that story: mirroring, quarter turns,
 scaling, and resizing the sheet alone. All four are one map from a point on the
@@ -561,8 +583,8 @@ lives by: **nothing outside it may branch on a tool id.**
   towards grey).
 - `wash.ts` — which of the two is painting. Both read the same three dials
   (`water`, `pigment`, `granulation`) and the same sheet, so switching is a
-  change of _rendering_ and not of settings; the choice is a **view**, like the
-  canvas theme, and is never recorded on a stroke or on a drawing. The
+  change of _rendering_ and not of settings; the choice is a **view** and is
+  never recorded on a stroke or on a drawing. The
   simulation can always answer "not me" — no canvas to simulate on, a mark too
   small to be worth a field, a page-wide sweep whose cells would be wider than
   the brush — and the simple engine paints the mark instead, so a browser that

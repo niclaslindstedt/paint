@@ -9,7 +9,6 @@ import {
   type BackdropDarknessPreset,
 } from "@niclaslindstedt/oss-framework/theme";
 
-import type { CanvasTheme } from "./canvas.ts";
 import {
   DOWNLOAD_FORMATS,
   type DownloadFormat,
@@ -42,14 +41,16 @@ import {
   type WashEngine,
 } from "./plugins/wash.ts";
 
-// The app's own (non-theme) settings — how the side menu opens, which optional
-// tool plugins are switched on, the last-used ink, developer mode, and log
-// capture. The framework deliberately leaves this in the app; it only owns the
-// appearance projection. (The active *language* is owned by the framework i18n
-// runtime — see `i18n/index.ts`.) Persisted to localStorage so a reload keeps
-// your choices.
-
-export type MenuMode = "swipe" | "button";
+// The app's own (non-theme) settings — which optional tool plugins are switched
+// on, the last-used ink, developer mode, and log capture. The framework
+// deliberately leaves this in the app; it only owns the appearance projection.
+// (The active *language* is owned by the framework i18n runtime — see
+// `i18n/index.ts`.) Persisted to localStorage so a reload keeps your choices.
+//
+// What the *page* is made of is deliberately not here: its size, its colour and
+// its sheet are answered once when a drawing is created (see `NewImageModal`)
+// and stored on the drawing, because a page never reflows and a mark is painted
+// into the sheet it was made on.
 
 /** How far the page behind an open dialog is dimmed / blurred. The presets (and
  *  their values) are the framework theme engine's. */
@@ -57,7 +58,6 @@ export type BackdropDarkness = BackdropDarknessPreset;
 export type BackdropBlur = BackdropBlurPreset;
 
 export type AppSettings = {
-  menuMode: MenuMode;
   devMode: boolean;
   captureLogs: boolean;
   /** Which set of defaults this blob has already been seeded with. Bumped when
@@ -90,11 +90,8 @@ export type AppSettings = {
    *  family is active, and the one you used last is the only defensible answer.
    *  Sparse: a group nobody has picked from opens on its first member. */
   groupTools: Record<string, string>;
-  /** Whether the page is a light sheet or a dark one. `auto` follows the app
-   *  theme, so a dark app draws on a dark page in light ink. */
-  canvasTheme: CanvasTheme;
   /** The ink the toolbar opens with, or `null` for "whatever reads on this
-   *  page" — which flips with the canvas theme. Picking a swatch pins it. */
+   *  page" — which flips with the app theme. Picking a swatch pins it. */
   color: string | null;
   /** Colours the user mixed for themselves, kept beside the built-in palette in
    *  the colour picker. Most recent first, capped at `MAX_CUSTOM_COLORS`. */
@@ -224,9 +221,6 @@ export const SETTINGS_VERSION = 7;
  *  — that one comes from the registry, so it can't be a constant here (see
  *  `defaultSettings`). */
 const BASE_SETTINGS: Omit<AppSettings, "enabledPlugins"> = {
-  // The discoverable default on phones: a floating sidebar button. Switching to
-  // "swipe" hides it and opens the drawer with an inward edge swipe instead.
-  menuMode: "button",
   devMode: false,
   captureLogs: false,
   settingsVersion: SETTINGS_VERSION,
@@ -235,9 +229,6 @@ const BASE_SETTINGS: Omit<AppSettings, "enabledPlugins"> = {
   toolOrder: [],
   activeTool: "pencil",
   groupTools: {},
-  // Follow the app theme out of the box: a dark app opens a dark sheet, a light
-  // one a white sheet, and the default ink flips with it.
-  canvasTheme: "auto",
   color: null,
   customColors: [],
   // Empty on purpose: an unresized tool opens at the width its own plugin
@@ -469,6 +460,16 @@ export function parseSettings(raw: string): AppSettings {
   // The field is dropped rather than migrated, because a bare number is not
   // enough to build a preset out of — there is no name to give it.
   delete (merged as { customSizes?: unknown }).customSizes;
+  // …and the two preferences that used to answer what the *page* was made of.
+  // Both are gone: the page's colour is picked when a drawing is created and
+  // kept on the drawing (see `NewImageModal`), and a page that follows the app
+  // theme is now the only other answer. Neither can be migrated into a document
+  // setting — a preference applied to every drawing at once has no one drawing
+  // to be written onto — so they are dropped rather than folded in.
+  delete (merged as { canvasTheme?: unknown }).canvasTheme;
+  // …and the one that chose whether an inward edge swipe opened the drawer. The
+  // header's hamburger opens it on every screen, which is the whole answer.
+  delete (merged as { menuMode?: unknown }).menuMode;
   merged.toolPresets = cleanPresets(stored.toolPresets);
   // The download menu renders straight off this list, so an unknown id (a
   // format some newer build offered) is dropped rather than kept: there is
@@ -755,22 +756,24 @@ export function sizesFor(plugin: PaintPlugin | undefined): number[] {
  *  `SettingsModal.tsx`).
  *
  *  There is nothing to roll back for any of them: a tool you switch on has to
- *  reach the toolbar behind the dialog, a page you darken has to repaint, and a
- *  watercolour engine whose whole content is "which of these two do you like"
- *  cannot be judged behind a Save button. They are the ones the dialog *shows*
- *  from the committed settings too, so a draft's copy of them is stale from the
- *  moment the control is touched.
+ *  reach the toolbar behind the dialog, and a watercolour engine whose whole
+ *  content is "which of these two do you like" cannot be judged behind a Save
+ *  button. They are the ones the dialog *shows* from the committed settings too,
+ *  so a draft's copy of them is stale from the moment the control is touched.
  *
  *  Named here, in one list, because the dialog's Save has to put every one of
  *  them back over the draft it commits — and a list kept in Save's own head is a
  *  list that forgets the next live setting somebody adds. That is exactly how
- *  the watercolour engine came to be silently reverted by pressing Save. */
+ *  the watercolour engine came to be silently reverted by pressing Save.
+ *
+ *  It cuts the other way too, and just as sharply: a setting that stops applying
+ *  live has to *leave* this list, or Save reads the committed value back over
+ *  the draft the user just edited and reverts them for the opposite reason. The
+ *  grid and the tool-name label left it that way — they are ordinary staged
+ *  settings on the General tab since the Canvas tab went away. */
 export const LIVE_SETTINGS = [
   "enabledPlugins",
   "toolOrder",
-  "canvasTheme",
-  "showGrid",
-  "showToolName",
   "washEngine",
 ] as const satisfies readonly (keyof AppSettings)[];
 

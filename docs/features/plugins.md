@@ -361,7 +361,7 @@ postcard held landscape at 177 × 110 mm. Type is measured in **points**, becaus
 type has been sold that way for four hundred years and a caption in millimetres
 is one nobody can compare against anything.
 
-The new-drawing dialog's **A4** preset is the one number here that is _not_ on
+The new-image dialog's **A4** preset is the one number here that is _not_ on
 this scale, and deliberately: it answers a different question — how many pixels
 a sheet needs to **print** sharply. Photo labs and consumer inkjets want image
 data at 300 ppi (the 1440 and 5760 dpi on the box are ink droplets, not pixels),

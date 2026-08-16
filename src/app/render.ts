@@ -32,6 +32,7 @@
 // drawing's ground and the tool's declared wetness, so no part of the renderer
 // knows what watercolour is called.
 
+import { CHECKER_SQUARE } from "./canvas.ts";
 import { filterReach, svgFilter } from "./filters.ts";
 import { paintFilters } from "./filterPaint.ts";
 import { strokeBounds, strokeVisible, type Rect } from "./geometry.ts";
@@ -278,6 +279,13 @@ export type RenderOptions = InkContext & {
    *  marks. A **screen-only** drawing aid: the PNG export leaves it unset, so a
    *  grid can never reach an exported file. */
   grid?: number;
+  /** The two squares of the transparency chequer, painted under the marks where
+   *  a page has no sheet at all (see `canvas.ts`). **Screen-only**, for the same
+   *  reason the grid is: it is how "there is nothing here" is drawn, and an
+   *  export that baked it in would have painted the nothing it was asked to
+   *  leave out. An export therefore leaves it unset and the page stays
+   *  genuinely empty. */
+  checker?: readonly [string, string];
   /** Paint only the marks that can reach this box, in document coordinates.
    *  The canvas passes the slice of the page its window is actually showing;
    *  the export and the bucket's snapshot, which want the whole page, leave it
@@ -359,6 +367,42 @@ function paintGrid(
     ctx.lineTo(drawing.width, y);
   }
   ctx.stroke();
+  ctx.restore();
+}
+
+/** The transparency chequer, clipped to the page. Squares are laid in document
+ *  coordinates so they sit still under a pan and grow under a zoom — a chequer
+ *  that stayed screen-sized would crawl across the drawing whenever the view
+ *  moved, which reads as something painted on rather than as the absence of it.
+ *
+ *  **The dark squares go down first**, which looks backwards and is not: this is
+ *  called under `destination-over` (see `underlay`), where each fill lands
+ *  *behind* everything already painted. So the squares are laid first and the
+ *  flat sheet behind them fills what is left — paint the sheet first and it
+ *  would cover the page in one colour, with every square that followed hidden
+ *  behind the very fill it was meant to sit on. */
+function paintChecker(
+  ctx: CanvasRenderingContext2D,
+  drawing: Drawing,
+  [even, odd]: readonly [string, string],
+): void {
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(0, 0, drawing.width, drawing.height);
+  ctx.clip();
+  const step = CHECKER_SQUARE;
+  const cols = Math.ceil(drawing.width / step);
+  const rows = Math.ceil(drawing.height / step);
+  ctx.fillStyle = odd;
+  ctx.beginPath();
+  for (let row = 0; row < rows; row += 1) {
+    for (let col = row % 2; col < cols; col += 2) {
+      ctx.rect(col * step, row * step, step, step);
+    }
+  }
+  ctx.fill();
+  ctx.fillStyle = even;
+  ctx.fillRect(0, 0, drawing.width, drawing.height);
   ctx.restore();
 }
 
@@ -744,6 +788,13 @@ export function underlay(
   // where it was when it was painted before them, and which is why a rubbed-out
   // patch shows the ruling again rather than bare page.
   if (options.grid) paintGrid(ctx, drawing, options.grid);
+  // …and, where there is no sheet, the chequer under everything, so a rubbed-out
+  // patch on a transparent page shows the nothing it went back to rather than a
+  // hole through to the app behind it. Only a screen asks for it (see
+  // `RenderOptions.checker`).
+  if (withoutBackground && options.checker) {
+    paintChecker(ctx, drawing, options.checker);
+  }
   if (!withoutBackground) {
     // Then the sheet's own grain, between the page colour and the ruling: the
     // paper is what the grid is ruled on. Laid *under* the marks like

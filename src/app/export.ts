@@ -102,13 +102,55 @@ export function exportRegion(drawing: Drawing, scope: ExportScope): Box {
   };
 }
 
-/** Whether an export of this format should leave the page unpainted. JPG never
- *  can — it has no alpha, and a "transparent" JPEG comes out black. */
+/** Whether a format can carry transparency at all. JPG cannot — it has no alpha
+ *  channel, and a "transparent" JPEG comes out solid black.
+ *
+ *  Exported for the tests: what comes out of a page made of nothing is decided
+ *  by these three predicates and nothing else, and they are worth pinning down
+ *  without a canvas to rasterise onto. */
+export function carriesAlpha(format: DownloadFormat): boolean {
+  return format !== "jpg";
+}
+
+/** Whether an export of this format should leave the page unpainted *because it
+ *  was asked to* — the download setting, which is a choice about this file
+ *  rather than about the drawing. */
 function wantsTransparency(
   format: DownloadFormat,
   options: ExportOptions,
 ): boolean {
-  return options.transparent && format !== "jpg";
+  return options.transparent && carriesAlpha(format);
+}
+
+/** Whether this file will end up with nothing behind the marks: because the
+ *  export asked for it, or because the page itself has no sheet.
+ *
+ *  The second half is the one worth naming. A page with no colour is not a page
+ *  that *happens* to be white — its background layer is switched off (see
+ *  `layers.ts`), which is the same state as hiding the sheet from the layers
+ *  panel, and the renderer honours it whoever is painting. So a PNG or an SVG of
+ *  one comes out transparent without the download menu being asked, which is
+ *  right: an image made to sit on somebody else's page should arrive with
+ *  nothing behind it. */
+export function exportsTransparent(
+  drawing: Drawing,
+  format: DownloadFormat,
+  options: ExportOptions,
+): boolean {
+  return (
+    carriesAlpha(format) && (options.transparent || backgroundHidden(drawing))
+  );
+}
+
+/** Whether this file has to be given a page the drawing hasn't got: a page with
+ *  no sheet, written to a format with no alpha. Without it the encoder reads the
+ *  nothing as black, which is the one way a "transparent" export can come out
+ *  looking like a mistake rather than like a choice. */
+export function flattensPage(
+  drawing: Drawing,
+  format: DownloadFormat,
+): boolean {
+  return !carriesAlpha(format) && backgroundHidden(drawing);
 }
 
 /** Render a drawing into one of the image formats.
@@ -137,6 +179,15 @@ export async function drawingToBlob(
     transparentPage: wantsTransparency(format, options),
   };
 
+  // What actually comes out, once the page's own sheet has had its say.
+  const transparent = exportsTransparent(drawing, format, options);
+  // …and the case the two disagree on: a page with no sheet, written to a format
+  // that cannot hold one. The marks would land on nothing and the encoder would
+  // read that nothing as black, so the file gets a page after all — the colour
+  // the sheet would go back to if it were switched on (see `resolvePageColor`),
+  // which is what "JPG always keeps the page colour" has always meant.
+  const flatten = flattensPage(drawing, format);
+
   const filters = activeFilters(drawing);
 
   if (format === "svg") {
@@ -157,6 +208,20 @@ export async function drawingToBlob(
   // painting with its origin moved onto the crop.
   ctx.translate(-region.x, -region.y);
   renderDrawing(ctx, drawing, null, paint);
+  // …and then, for a format that cannot hold the nothing this page is made of,
+  // a sheet under the lot. *After* the renderer and never before it: a repaint
+  // clears the canvas it is handed before it paints anything (see
+  // `renderDrawing`), so a fill laid first is a fill thrown away — which is
+  // exactly how a "transparent" JPEG comes out black. `destination-over` puts it
+  // behind the marks, which is the same way the sheet goes down when there is
+  // one.
+  if (flatten) {
+    ctx.save();
+    ctx.globalCompositeOperation = "destination-over";
+    ctx.fillStyle = options.pageColor;
+    ctx.fillRect(region.x, region.y, region.width, region.height);
+    ctx.restore();
+  }
   // …and the page's filters over the finished picture, through the same code
   // the screen's last coat runs (see `filterPaint.ts`), at one canvas pixel per
   // document pixel. A cropped export moves the page's corner with the origin.
@@ -169,7 +234,7 @@ export async function drawingToBlob(
     },
     scale: 1,
     pageColor: options.pageColor,
-    transparent: paint.transparentPage || backgroundHidden(drawing),
+    transparent,
   });
   const blob = await new Promise<Blob | null>((resolve) =>
     canvas.toBlob(resolve, formatMime(format), JPEG_QUALITY),

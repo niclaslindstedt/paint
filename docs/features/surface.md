@@ -1,18 +1,18 @@
 # The surface you draw on
 
 A page has a colour and it has a **material**, and until now this app only had
-the colour. The New drawing dialog now asks what the page is made of: a solid
-digital sheet, one of four papers, or primed cotton duck. The choice belongs to
-the drawing — it travels with it and syncs with it — and it is made in the same
-breath as the page size, because it is the same kind of answer.
+the colour. The New image dialog's **Canvas type** asks what the page is made
+of: a solid digital sheet, one of four papers, or primed cotton duck. The choice
+belongs to the drawing — it travels with it and syncs with it — and it is made
+in the same breath as the page size and the page colour, because all three are
+the same kind of answer.
 
 **It is asked there, and only there.** A stock is not a filter laid over the
 picture: a wet mark is painted _into_ the sheet it was made on, mixing with what
 it is over and pulling the marks it crosses out into its water. Moving a finished
 painting onto rough paper would therefore repaint every mark on it as something
 you never actually made, so the sheet is fixed once the page exists — like its
-size, and unlike its colour, which is only ever a backdrop. To work on a
-different stock, start a drawing on one.
+size and its colour. To work on a different stock, start an image on one.
 
 The shelf is short on purpose. Six sheets fit in a row you can compare at a
 glance, and they are the ones an artist reaches for and nothing else: the three
@@ -29,9 +29,12 @@ the over-and-under of cotton duck. The grain is painted under the marks, which i
 why it shows _through_ a wash in proportion to how transparent the wash is and
 not at all through an opaque line — the thing that makes paper look like paper.
 Pull the page away far enough and it fades out rather than turning into static.
-**Grain**, in Settings → Canvas, turns how much of it shows up or down. It is the
-one thing about the sheet you can still change after the fact, because it changes
-what you see and never how the sheet behaves.
+**Grain**, the slider under the shelf in New image, turns how much of it shows up
+or down — the whole shelf repaints as you drag, so you watch the tooth come up
+rather than taking a number on trust. It is the one thing about a sheet that
+changes what you see and never how the sheet behaves, and because the grain is
+painted as part of the page, it shows where the page has a colour and not on a
+transparent one.
 
 **It decides whether paint sits on top or soaks in.** A sealed sheet holds paint
 on its face, so a second pass covers the first. Paper takes the water into its
@@ -73,7 +76,7 @@ picks between them. Both read the same three dials — water, pigment,
 granulation — and the same sheet, so switching is a change of how a wash is
 drawn and not of anything you have set. It applies to every wash on every
 drawing, including the ones already made: the engine is a way of looking at the
-page, like the canvas theme, not something recorded in the file.
+page, not something recorded in the file.
 
 **Stroke** is the default. A wash is a shape: it runs past the hair that laid
 it, both edges wander with the paper, the rim is drawn dark, and the pigment is

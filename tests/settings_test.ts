@@ -380,27 +380,40 @@ describe("withLiveSettings", () => {
 
   it("keeps the draft's staged settings", () => {
     const live = defaultSettings();
-    const draft = { ...live, menuMode: "swipe" as const, devMode: true };
+    const draft = { ...live, showGrid: !live.showGrid, devMode: true };
     const saved = withLiveSettings(draft, live);
-    expect(saved.menuMode).toBe("swipe");
+    expect(saved.showGrid).toBe(!live.showGrid);
     expect(saved.devMode).toBe(true);
   });
 
   it("takes every live-applied setting from the committed blob", () => {
     // The draft holds the values the dialog opened with; `live` holds what the
-    // user has since done to the switchboard, the page and the brush.
+    // user has since done to the switchboard and the brush.
     const draft = defaultSettings();
     const live: typeof draft = {
       ...draft,
       enabledPlugins: [...draft.enabledPlugins, "watercolor"],
       toolOrder: ["eraser", "pencil"],
-      canvasTheme: "dark",
-      showGrid: !draft.showGrid,
-      showToolName: !draft.showToolName,
       washEngine: "simulation",
     };
     const saved = withLiveSettings(draft, live);
     for (const key of LIVE_SETTINGS) expect(saved[key]).toEqual(live[key]);
+  });
+
+  it("leaves the staged half of the General tab alone", () => {
+    // The grid and the tool-name label used to apply live from the Canvas tab.
+    // They are staged settings now (see `LIVE_SETTINGS`), so Save has to take
+    // them from the *draft* — reading them off the committed blob would revert
+    // the toggle the user just flipped, which is the same bug the other way up.
+    const live = defaultSettings();
+    const draft = {
+      ...live,
+      showGrid: !live.showGrid,
+      showToolName: !live.showToolName,
+    };
+    const saved = withLiveSettings(draft, live);
+    expect(saved.showGrid).toBe(draft.showGrid);
+    expect(saved.showToolName).toBe(draft.showToolName);
   });
 
   it("does not revert the watercolour engine", () => {

@@ -21,12 +21,7 @@ import {
   MIME_JSON,
 } from "@niclaslindstedt/oss-framework/files";
 
-import {
-  defaultInk,
-  isDarkCanvas,
-  resolvePageColor,
-  type CanvasTheme,
-} from "../canvas.ts";
+import { defaultInk, resolvePageColor } from "../canvas.ts";
 import { drawingToPng, exportFileName } from "../export.ts";
 import { useT } from "../i18n/index.ts";
 import { log, logStore } from "../log.ts";
@@ -47,7 +42,6 @@ import {
   type SyncBackendId,
   type SyncEngine,
 } from "../useSyncEngine.ts";
-import { SurfaceSection } from "./ground.tsx";
 import { LanguagePicker } from "./shared.tsx";
 
 type Update = <K extends keyof AppSettings>(
@@ -152,10 +146,6 @@ export function GeneralTab({
   update: Update;
 }) {
   const t = useT();
-  const modeOptions = [
-    { value: "swipe" as const, label: t("settings.general.optionSwipe") },
-    { value: "button" as const, label: t("settings.general.optionButton") },
-  ];
   return (
     <div>
       <p className="mb-3 text-xs text-muted">{t("settings.general.intro")}</p>
@@ -172,21 +162,26 @@ export function GeneralTab({
         </div>
       </Section>
 
-      <Section title={t("settings.general.sidebarTitle")}>
-        <div className="flex flex-col gap-1">
-          <span className="text-sm text-fg-bright">
-            {t("settings.general.openSidebarWith")}
-          </span>
-          <SegmentedControl
-            value={settings.menuMode}
-            options={modeOptions}
-            onChange={(next) => update("menuMode", next)}
-            ariaLabel={t("settings.general.openSidebarWith")}
-          />
-          <p className="text-xs text-muted">
-            {t("settings.general.sidebarHint")}
-          </p>
-        </div>
+      {/* The two things that are drawn *around* your marks rather than being
+          part of the page. They sit here rather than with the page's own
+          answers (size, colour, sheet) because neither is one: both are ways of
+          looking at any drawing, and neither ever exports. */}
+      <Section title={t("settings.general.gridTitle")}>
+        <ToggleRow
+          label={t("settings.general.showGrid")}
+          hint={t("settings.general.showGridHint")}
+          checked={settings.showGrid}
+          onChange={(next) => update("showGrid", next)}
+        />
+      </Section>
+
+      <Section title={t("settings.general.toolNameTitle")}>
+        <ToggleRow
+          label={t("settings.general.showToolName")}
+          hint={t("settings.general.showToolNameHint")}
+          checked={settings.showToolName}
+          onChange={(next) => update("showToolName", next)}
+        />
       </Section>
 
       <Section title={t("settings.general.developerTitle")}>
@@ -195,134 +190,6 @@ export function GeneralTab({
           hint={t("settings.general.developerModeHint")}
           checked={settings.devMode}
           onChange={(next) => update("devMode", next)}
-        />
-      </Section>
-    </div>
-  );
-}
-
-// --- Canvas ----------------------------------------------------------------
-
-// The page you draw on: whether it is a light or a dark sheet (a preference,
-// applied live), and whether the open drawing pins a colour of its own
-// (document state). The grid is a preference too, staged in the draft.
-export function CanvasTab({
-  settings,
-  update,
-  store,
-  appearance,
-}: {
-  settings: AppSettings;
-  update: Update;
-  store: PaintStore;
-  appearance: ThemeAppearance;
-}) {
-  const t = useT();
-  // The canvas theme applies live rather than on Save: it repaints the page
-  // behind the dialog, which is the only way to judge the choice.
-  const dark = isDarkCanvas(settings.canvasTheme, appearance);
-  const pinned = store.activeDrawing?.background;
-  // The colour the open drawing actually paints on, so the surface swatches
-  // below are *this* page on each stock rather than a stranger's.
-  const pinnedPage = resolvePageColor(pinned, dark);
-  const themeOptions = [
-    { value: "auto" as const, label: t("settings.canvas.themeAuto") },
-    { value: "light" as const, label: t("settings.canvas.themeLight") },
-    { value: "dark" as const, label: t("settings.canvas.themeDark") },
-  ];
-  // "Follow the theme" first, then the pinnable page colours. A pin overrides
-  // the theme for this drawing only, and travels with it when it syncs.
-  const swatches = [
-    "#ffffff",
-    "#f8fafc",
-    "#fef3c7",
-    "#161a20",
-    "#000000",
-    "#0f172a",
-  ];
-
-  return (
-    <div>
-      <p className="mb-3 text-xs text-muted">{t("settings.canvas.intro")}</p>
-
-      <Section title={t("settings.canvas.themeTitle")}>
-        <div className="flex flex-col gap-1">
-          <span className="text-sm text-fg-bright">
-            {t("settings.canvas.themeLabel")}
-          </span>
-          <SegmentedControl<CanvasTheme>
-            value={settings.canvasTheme}
-            options={themeOptions}
-            onChange={(next) => update("canvasTheme", next)}
-            ariaLabel={t("settings.canvas.themeLabel")}
-          />
-          <p className="text-xs text-muted">{t("settings.canvas.themeHint")}</p>
-        </div>
-      </Section>
-
-      <Section title={t("settings.canvas.pageTitle")}>
-        <div className="flex flex-col gap-1">
-          <span className="text-sm text-fg-bright">
-            {t("settings.canvas.pageColor")}
-          </span>
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              onClick={() => store.setBackground(undefined)}
-              aria-pressed={pinned === undefined}
-              className={`inline-flex cursor-pointer items-center gap-1.5 rounded border px-2 py-1 text-xs ${
-                pinned === undefined
-                  ? "border-accent bg-accent/15 text-accent"
-                  : "border-line text-fg hover:bg-surface-2"
-              }`}
-            >
-              <span
-                className="h-4 w-4 rounded-full border border-line"
-                style={{ backgroundColor: resolvePageColor(undefined, dark) }}
-              />
-              {t("settings.canvas.pageFollowTheme")}
-            </button>
-            {swatches.map((swatch) => (
-              <button
-                key={swatch}
-                type="button"
-                onClick={() => store.setBackground(swatch)}
-                aria-pressed={swatch === pinned}
-                aria-label={swatch}
-                title={swatch}
-                className={`h-7 w-7 cursor-pointer rounded-full border-2 ${
-                  swatch === pinned ? "border-accent" : "border-line"
-                }`}
-                style={{ backgroundColor: swatch }}
-              />
-            ))}
-          </div>
-          <p className="text-xs text-muted">
-            {t("settings.canvas.pageColorHint")}
-          </p>
-        </div>
-      </Section>
-
-      {/* What the sheet is made of — paper, canvas, or the plain page. Applied
-          live like the theme above it, and for the same reason: the only way to
-          judge a surface is to see the drawing on it. */}
-      <SurfaceSection store={store} pageColor={pinnedPage} dark={dark} />
-
-      <Section title={t("settings.canvas.gridTitle")}>
-        <ToggleRow
-          label={t("settings.canvas.showGrid")}
-          hint={t("settings.canvas.showGridHint")}
-          checked={settings.showGrid}
-          onChange={(next) => update("showGrid", next)}
-        />
-      </Section>
-
-      <Section title={t("settings.canvas.toolNameTitle")}>
-        <ToggleRow
-          label={t("settings.canvas.showToolName")}
-          hint={t("settings.canvas.showToolNameHint")}
-          checked={settings.showToolName}
-          onChange={(next) => update("showToolName", next)}
         />
       </Section>
     </div>

@@ -45,6 +45,14 @@ one physics rather than policy: JPG has no transparency and always keeps the
 page colour. Anywhere you erased comes out transparent — the eraser takes ink
 off rather than painting over it, so there is nothing there to export.
 
+**An image that never had a page needs none of that.** A new image is made with
+no page colour at all (**New image → Page colour**, the chequered swatch), which
+is the same state as switching the Background layer off: a PNG or an SVG of one
+comes out transparent whether or not the switch above is on. JPG is the one
+exception, and for the one reason — it has no transparency to come out with, so
+the file is given the colour the sheet would have had rather than the black an
+empty JPEG would otherwise be.
+
 ## About the SVG
 
 The SVG holds the marks as vectors, so the drawing stays sharp at any size —

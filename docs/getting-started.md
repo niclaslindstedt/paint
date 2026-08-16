@@ -157,15 +157,15 @@ picture or words back into the page.
 
 ## Light page, dark page
 
-Settings → **Canvas** picks whether you draw on a light or a dark sheet, or
-follow the app theme (the default). Marks that never chose a colour follow the
-page, so flipping the theme re-inks the whole sketch instead of hiding it.
-[More](features/canvas-theme.md).
+A page opens with no colour at all, drawn as a chequer, and the ink follows the
+app theme — white marks in a dark app, near-black in a light one — so a sketch
+re-inks itself rather than disappearing when you flip the theme. Give the page a
+colour under **New image → Page colour** and it keeps that colour whatever the
+app is wearing. [More](features/canvas-theme.md).
 
-The same tab has the on-screen grid, the **tool-name** label that names each
-tool over the middle of the page as you pick it, can pin a specific page colour
-to the drawing you have open, and shows which sheet that drawing was made on
-with a **Grain** slider for how strongly its tooth shows.
+Settings → **General** holds the two things drawn _around_ your marks: the
+on-screen grid, and the **tool-name** label that names each tool over the middle
+of the page as you pick it.
 
 ## Drawings, folders, and sketchbooks
 
@@ -177,11 +177,14 @@ right-click a row for the same actions — star it, move it to a folder, duplica
 it, archive it, delete it — or drag it with the mouse.
 
 The block of buttons at the foot of the sidebar is where the rest lives — **new
-drawing**, **new folder**, the **archive**, **undo**, **redo**, and the **cloud
+image**, **new folder**, the **archive**, **undo**, **redo**, and the **cloud
 sync** glyph, which shows the sync state and opens the sync details.
 
-**New drawing** gets the sidebar out of the way and asks what the drawing is
-made of: **New** for an empty page, **Load** for an image from disk (or dropped
+**New image** gets the sidebar out of the way and asks what the page is made of
+— an image, because as often as not what starts here is a photo off the disk or
+a screenshot off the clipboard rather than an empty sheet. On a phone it fills
+the screen, with its title and its Create button pinned and only the questions
+between them scrolling: **New** for an empty page, **Load** for an image from disk (or dropped
 onto the dialog), and **Clipboard** for the picture you copied — a drawing made
 from a picture is cut to the picture's size. Browsers differ on how much they
 will say about the clipboard: where a page may look freely the tab appears only
@@ -193,13 +196,17 @@ one you type, all at one shared scale, so you can see how much bigger 4K is
 before you pick it. The page can still be resized afterwards, from the
 right-hand panel.
 
-Every drawing that starts here is also asked **what the page is made of** — a
-solid digital sheet, one of four papers, or primed canvas — and those are drawn
-too, each swatch a real page with a wash laid across an ink line on it. That one
-does not change afterwards: a wet mark is painted _into_ the sheet it was made
-on, so the stock is part of building the page rather than a setting to find
-later. Settings → Canvas says which sheet the open drawing is on and turns its
-grain up or down. [More](features/surface.md).
+Every page that starts here is also asked its **page colour** and its **canvas
+type**. The colour opens on the chequer, which means no page at all: the marks
+land on nothing, and a PNG or an SVG of the image downloads with nothing behind
+it. Pick one of the six sheets instead and it travels with the image. The canvas
+type is a solid digital sheet, one of four papers, or primed canvas, drawn as
+swatches — each a real page with a wash laid across an ink line on it, painted on
+the colour you just picked, so a black page is compared as a black page — with a
+**Grain** slider under them for how strongly that sheet's tooth shows. None of it
+changes afterwards: a wet mark is painted _into_ the sheet it was made on, so all
+of it is part of building the page rather than settings to find later.
+[More](features/surface.md).
 
 Star a drawing with the star in the canvas header and it appears under
 **Favorites** at the top of the sidebar, wherever it happens to be filed.

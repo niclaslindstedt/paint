@@ -26,6 +26,7 @@ import {
   reorderLayers,
   strokeLayer,
   strokesExcept,
+  transparentLayers,
   visibleStrokes,
   anyLayerFiltered,
   layerFilters,
@@ -89,6 +90,23 @@ describe("the implicit stack", () => {
     expect(
       visibleStrokes(drawing({ strokes }), { withoutBackground: true }),
     ).toBe(strokes);
+  });
+});
+
+describe("a page made of nothing", () => {
+  it("is the sheet's own eye, not a second flag beside it", () => {
+    const stack = transparentLayers();
+    expect(stack.map((l) => l.id)).toEqual(defaultLayers().map((l) => l.id));
+    expect(backgroundHidden(drawing({ layers: stack }))).toBe(true);
+    expect(backgroundHidden(drawing({ layers: defaultLayers() }))).toBe(false);
+  });
+
+  it("leaves a drawing that carries no stack on a sheet", () => {
+    // Every drawing written before a page could be made of nothing has no
+    // `layers` at all, and reads as the default stack — sheet showing. The
+    // transparent stack is stamped rather than implicit for exactly that
+    // reason.
+    expect(backgroundHidden(drawing())).toBe(false);
   });
 });
 

@@ -69,6 +69,23 @@ export function defaultLayers(): Layer[] {
   ];
 }
 
+/** The same stack with the sheet switched off — a page made of nothing, which
+ *  is what a new image starts as unless it was given a colour (see
+ *  `NewImageModal`).
+ *
+ *  Transparency is the background layer's eye and not a second flag beside it,
+ *  so a page that has no colour and a page whose sheet you hid from the layers
+ *  panel are the same state: one thing for the renderer to ask about, one thing
+ *  for an export to leave out, and the way *back* to a sheet is the eye you
+ *  already know. Stamped rather than implicit, since "no layers" has to keep
+ *  meaning `defaultLayers` for every drawing already written. */
+export function transparentLayers(): Layer[] {
+  return [
+    { id: BACKGROUND_LAYER_ID, name: "", locked: true, hidden: true },
+    { id: BASE_LAYER_ID, name: "" },
+  ];
+}
+
 /** The stack, bottom first — always at least one layer. A drawing that has
  *  never been given one of its own reads as `defaultLayers`, which is what lets
  *  every caller work in terms of layers without first asking whether this

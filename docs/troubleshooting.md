@@ -12,8 +12,8 @@ reload.
 
 It shouldn't: marks that never chose a colour follow the page. If a _specific_
 mark disappeared, it was drawn with an explicitly picked colour that matches the
-new page — pick a different ink and redraw, or flip the canvas theme back under
-Settings → Canvas.
+new page — pick a different ink and redraw, or give the page a colour of its own
+when you make it (**New image** → **Page colour**).
 
 ## A cloud backend isn't offered
 
