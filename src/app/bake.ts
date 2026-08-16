@@ -19,7 +19,7 @@
 //   - **It is cropped to the ink.** The bitmap covers the marks that went into
 //     it, grown by how far the effect can move ink (`effectReach`) and clipped
 //     to the page. Baking the whole sheet would put megabytes of transparent
-//     pixels in a document that lives in localStorage; baking the ink alone
+//     pixels in a document that has to be serialized on every edit; baking the ink alone
 //     costs what the drawing actually has on it.
 //   - **It has a resolution ceiling.** A bake past `MAX_BAKE_PIXELS` is
 //     rasterised smaller and painted back at full size. A page is up to 8192
@@ -51,7 +51,7 @@ import type { Drawing, Stroke } from "./types.ts";
  *  one layer, and the point past which the PNG stops fitting anywhere sensible.
  *  Grain is the case that decides it: noise is incompressible by construction,
  *  so a full-page speckled layer encodes at roughly a byte a pixel and a
- *  document lives in localStorage. Past this the bake is rasterised smaller and
+ *  document is re-serialized on every edit. Past this the bake is rasterised smaller and
  *  the image stroke is painted back at the size it was cropped to, so the
  *  drawing is unchanged in *geometry* and only softer in detail. */
 export const MAX_BAKE_PIXELS = 4_000_000;

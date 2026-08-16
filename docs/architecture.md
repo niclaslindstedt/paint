@@ -113,10 +113,15 @@ follows off a page that has left. A folder travels with the drawings filed in
 it, re-filed under the folder's new id, so a group arrives as a group.
 
 The store writes the destination first and then **reads it back** looking for
-the ids the hand-off minted. `DocBackend.save` is a best-effort sink that
-reports a failure rather than throwing, so "it didn't throw" is not evidence the
-bytes landed — and without the read-back a full disk would swallow the drawing
-on the way over _and_ remove it here.
+the ids the hand-off minted. Writes are a best-effort sink that report a failure
+rather than throwing, so "it didn't throw" is not evidence the bytes landed —
+and without the read-back a full disk would swallow the drawing on the way over
+_and_ remove it here.
+
+This is the one path that waits on storage rather than going through the
+synchronous cache (`DocBackend.deliver`): it writes, waits for the database to
+confirm, and re-reads _past_ the cache. A cached read would only be the write
+agreeing with itself.
 
 ## Safe areas
 
@@ -136,8 +141,8 @@ never a bitmap, and that single decision pays for most of the app:
 
 - **Undo is exact and cheap.** One mark is one entry; undo is `pop()`, not a
   per-stroke image snapshot.
-- **The document fits in localStorage.** A sketch is a few kilobytes of JSON
-  where a 3200×2000 PNG is a megabyte or more.
+- **The document stays small.** A sketch is a few kilobytes of JSON where a
+  3200×2000 PNG is a megabyte or more, and it is re-serialized on every edit.
 - **Sync is diffable and readable.** The bytes pushed to Dropbox are the same
   JSON you can export, open in an editor, and reason about.
 - **The page can be re-themed.** Because ink is data rather than baked pixels, a
@@ -150,7 +155,7 @@ a picture dropped onto the page — carries its bytes inline as a `data:` URL,
 because an imported photo has no vector form and the alternative to inlining it
 is not having it. It is still one stroke: it undoes, syncs and exports like any
 other mark, and imports are downscaled on the way in (`images.ts`) so a document
-that lives in localStorage stays a sane size. On the way out to a remote backend
+re-serialized on every edit stays a sane size. On the way out to a remote backend
 those bytes are filed off into a real image file beside the document (see
 [Sync](#sync) below), which is what keeps the pushed JSON small.
 
@@ -272,7 +277,8 @@ PNG on the wire. Two things keep that affordable — the bake is **cropped** to 
 ink it covers grown by the effect's reach and clipped to the page, and it has a
 **resolution ceiling** (`MAX_BAKE_PIXELS`) past which it rasterises smaller and
 paints back at full size. Grain is the case that sets the ceiling: noise is
-incompressible by construction, and a document lives in localStorage.
+incompressible by construction, and the whole document is rewritten on every
+edit.
 
 The split follows the usual line. `effects.ts` is pure: what the effects are,
 what each offers to set, and where each may be applied — noise is a layer's
@@ -774,20 +780,61 @@ in event handlers, and spell string-valued SVG attributes like `focusable` as
 
 ## State, and where it lives
 
-| State                 | Owner             | Persisted as                         |
-| --------------------- | ----------------- | ------------------------------------ |
-| Drawings              | `usePaintStore`   | `paint:doc[:<ns>]` (JSON, versioned) |
-| Undo / redo history   | `usePaintStore`   | in memory only                       |
-| App settings          | `useAppSettings`  | `paint:settings`                     |
-| Namespaces            | `useNamespaces`   | `paint:namespaces` + `:active`       |
-| Theme appearance      | `App` + framework | the framework's own key              |
-| Sync backend / tokens | `useSyncEngine`   | `paint:sync:*`                       |
-| Language              | framework i18n    | `paint:language`                     |
+| State                 | Owner             | Persisted as                                        |
+| --------------------- | ----------------- | --------------------------------------------------- |
+| Drawings              | `usePaintStore`   | IndexedDB `paint:doc[:<ns>]` (JSON, versioned)      |
+| Undo / redo history   | `usePaintStore`   | in memory only                                      |
+| App settings          | `useAppSettings`  | `paint:settings`, plus `settings.json` on a backend |
+| Namespaces            | `useNamespaces`   | `paint:namespaces` + `:active`                      |
+| Theme appearance      | `App` + framework | the framework's own key                             |
+| Sync backend / tokens | `useSyncEngine`   | `paint:sync:*`                                      |
+| Language              | framework i18n    | `paint:language`                                    |
+
+Everything but the drawings is a localStorage key. The drawings are not, and
+that is the one interesting row.
 
 The document carries a **version** only on the bytes at rest; the in-memory
 model is version-free, and `migrations.ts` runs stored bytes forward on read.
 The same bytes travel to a sync backend, so a document written by an older build
 upgrades wherever it comes back from.
+
+### The drawings are in IndexedDB; the store is still synchronous
+
+localStorage was the right home while a document was pure geometry — a page of
+strokes is a few kilobytes, and a synchronous `getItem` is the simplest possible
+boot. Dropped pictures ended that. A photo is inlined as a `data:` URL, base64
+is a third bigger than the bytes it carries, and the **whole origin** gets about
+5 MB of localStorage — shared between every namespace, every quarantined copy
+and every cloud cache. Two photos and a sketchbook is over.
+
+So the working copy lives in IndexedDB ([`docDb.ts`](../src/app/docDb.ts)),
+whose quota is a share of free disk rather than a fixed 5 MB. It is also the one
+large-storage API Safari and Firefox both implement, so the headroom is not
+Chromium-only — unlike the picked folder, which is.
+
+What did **not** change is `usePaintStore`, which reads the document during
+render and undoes by popping an array. Making that async to reach a database
+would be a rewrite of the store for no user-visible gain. Instead `docDb.ts` is
+a synchronous in-memory cache with a database tail, and `DocBackend` splits the
+read in two:
+
+- `peek` answers from the cache, immediately, or `null` for "not read yet".
+- `hydrate` fills the cache. [`main.tsx`](../src/main.tsx) awaits it for the
+  namespace the app opens on, _before_ the first render, so the canvas paints
+  the real document rather than a blank page that fills in a frame later.
+- `save` updates the cache synchronously and schedules the write, coalescing a
+  burst of strokes into one transaction.
+
+The distinction that carries the safety is "not read yet" (`undefined`) versus
+"empty" (`null`). Collapse them and a starter document gets persisted over a
+sketchbook that simply hadn't loaded — which is why an edit also marks the state
+authoritative, so a read that lands a moment later can't undo the mark you just
+made.
+
+An install upgrading from the localStorage era migrates on first read, once, and
+the old key is freed **only after** the IndexedDB write is confirmed: a
+migration interrupted by a refused write leaves the document exactly where the
+previous build will still find it.
 
 ## Sync
 

@@ -52,7 +52,7 @@ swaps when nothing is holding the old one open.
 
 Most likely a half-installed service worker. Hard-reload (`Ctrl/Cmd + Shift +
 R`), or unregister the worker in your browser's devtools → Application →
-Service workers, and reload. Your drawings are in localStorage and survive
+Service workers, and reload. Your drawings are in IndexedDB and survive
 either.
 
 ## Storage is full

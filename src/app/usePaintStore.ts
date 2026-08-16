@@ -1,9 +1,14 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { DEFAULT_NAMESPACE_SLUG } from "@niclaslindstedt/oss-framework/namespaces";
-
 import { pageFitting, strokeBounds, unionBox, type Box } from "./bounds.ts";
+import {
+  blankDrawing,
+  freshId,
+  localDocBackend,
+  starterDoc,
+  type DocBackend,
+} from "./docBackend.ts";
 import {
   handOffDrawing,
   handOffFolder,
@@ -22,11 +27,10 @@ import {
   strokesExcept,
 } from "./layers.ts";
 import { turnBitmap } from "./images.ts";
-import { parseDoc, serializeDoc } from "./migrations.ts";
+import { parseDoc } from "./migrations.ts";
 import { translateStroke } from "./selection.ts";
 import type { BitmapTurn, PageEdit } from "./transform.ts";
 import {
-  DEFAULT_CANVAS,
   liveDrawings,
   nextActiveId,
   type AppData,
@@ -38,117 +42,35 @@ import {
 import type { DraftStroke } from "./plugins/types.ts";
 import * as output from "../output.ts";
 
-// The app's data store. Holds one namespace's document in state, persists it to
-// a per-namespace localStorage key, and exposes the edit actions the screens
-// drive — adding strokes, adding / renaming / clearing drawings, switching the
-// active page — over an undo / redo history. This is the framework's "store
-// stays in the app" seam: the framework owns storage adapters, namespaces, and
-// the UI kit; this hook owns where each namespace's document lives and how
-// edits stack up.
+// The app's data store. Holds one namespace's document in state, persists it
+// through a `DocBackend`, and exposes the edit actions the screens drive —
+// adding strokes, adding / renaming / clearing drawings, switching the active
+// page — over an undo / redo history. This is the framework's "store stays in
+// the app" seam: the framework owns storage adapters, namespaces, and the UI
+// kit; this hook owns where each namespace's document lives and how edits stack
+// up.
 //
 // Every mark is one undo step. That is the whole reason the document is vector:
 // undo is `pop()`, not a bitmap snapshot per stroke.
+//
+// The document is kept in IndexedDB (see `docDb.ts`), which is why the backend
+// below has both a synchronous `peek` and an asynchronous `hydrate`: the store
+// itself is synchronous — it reads the document during render and undoes by
+// popping an array — so the database is reached through a cache that is filled
+// before first paint rather than awaited in the middle of a gesture.
 
-const DOC_KEY_PREFIX = "paint:doc";
-
-/** localStorage key for a namespace's document. The default namespace keeps the
- *  un-suffixed key; every other namespace gets a per-slug suffix. */
-export function docKey(slug: string): string {
-  return slug === DEFAULT_NAMESPACE_SLUG
-    ? DOC_KEY_PREFIX
-    : `${DOC_KEY_PREFIX}:${slug}`;
-}
-
-/** Mint a unique id for a drawing or a stroke. A random suffix makes the id
- *  unique across sessions (and namespaces), so it can never collide with one
- *  already on disk; the prefix keeps ids legible while debugging. */
-export function freshId(prefix: string): string {
-  return `${prefix}-${crypto.randomUUID()}`;
-}
-
-/** A blank page. It pins no background, so it follows the canvas theme until
- *  someone chooses a colour for it (see `canvas.ts`). */
-export function blankDrawing(
-  name: string,
-  folderId: string | null = null,
-): Drawing {
-  return {
-    id: freshId("drawing"),
-    name,
-    width: DEFAULT_CANVAS.width,
-    height: DEFAULT_CANVAS.height,
-    strokes: [],
-    ...(folderId ? { folderId } : {}),
-    createdAt: new Date().toISOString(),
-  };
-}
-
-/** The document a first-run app opens on: one empty page, ready to draw. */
-export function starterDoc(): AppData {
-  const first = blankDrawing("");
-  return { folders: [], drawings: [first], activeDrawingId: first.id };
-}
-
-/** The document storage seam. The store never touches `localStorage` directly —
- *  it reads and writes a namespace's document through a `DocBackend`, so a
- *  different backend can take over storage without the store changing. */
-export type DocBackend = {
-  readonly id: "local" | "memory";
-  /** The namespace's current document, or a starter document when empty. */
-  load(slug: string): AppData;
-  /** Persist a namespace's document. A best-effort sink — it must not throw. */
-  save(slug: string, doc: AppData): void;
-};
-
-/** The real backend: one JSON document per namespace in localStorage, run
- *  through the migration pipeline on the way in and out.
- *
- *  Both directions are *non-destructive*. A document that exists but this build
- *  can't read — most often one a NEWER build already upgraded, then read by a
- *  stale (service-worker-cached) build after an app update — is left on disk
- *  untouched rather than silently replaced with a blank starter, so it comes
- *  back on its own once the update finishes. */
-export const localDocBackend: DocBackend = {
-  id: "local",
-  load(slug) {
-    let raw: string | null;
-    try {
-      raw = localStorage.getItem(docKey(slug));
-    } catch {
-      // Storage unavailable — nothing to read; boot a fresh document.
-      return starterDoc();
-    }
-    if (!raw) return starterDoc();
-    try {
-      return parseDoc(raw);
-    } catch (err) {
-      // Bytes exist but can't be parsed / migrated (corrupt, or written by a
-      // newer build). Keep the original on disk — the caller must NOT persist
-      // the starter we return here over it (see the store's persist guard) —
-      // and quarantine a copy so it stays recoverable.
-      output.error(
-        `Couldn't read the drawings saved on this device — ${
-          err instanceof Error ? err.message : String(err)
-        }. The stored copy is left untouched and should reappear once the app finishes updating.`,
-      );
-      try {
-        localStorage.setItem(`${docKey(slug)}:unreadable`, raw);
-      } catch {
-        // No room to quarantine — the live key is still left intact.
-      }
-      return starterDoc();
-    }
-  },
-  save(slug, doc) {
-    try {
-      localStorage.setItem(docKey(slug), serializeDoc(doc));
-    } catch {
-      output.error(
-        "Couldn't save the drawing to this device's storage (it may be full). Your work stays in memory and in any connected cloud copy.",
-      );
-    }
-  },
-};
+// The storage seam and the document constructors live in `docBackend.ts` — the
+// bytes are a separate concern from the edits. Re-exported here because this
+// module is the store's front door and every screen already imports them from
+// it.
+export {
+  blankDrawing,
+  docKey,
+  freshId,
+  localDocBackend,
+  starterDoc,
+  type DocBackend,
+} from "./docBackend.ts";
 
 /** The constructors the hand-off module needs to mint arriving copies and to
  *  leave a page behind when the last live one is given away. */
@@ -177,11 +99,16 @@ export function usePaintStore(
 ) {
   // The active slug and the backend travel *with* the document in state, so the
   // persist effect can never write one namespace's data under another's key.
-  const [state, setState] = useState(() => ({
-    slug,
-    backend,
-    data: backend.load(slug),
-  }));
+  //
+  // `hydrated` says whether `data` is the stored document or a placeholder
+  // standing in until storage answers. `main.tsx` pre-loads the namespace the
+  // app opens on, so the common path is hydrated on the very first render and
+  // there is no placeholder to see; only switching to a sketchbook not yet read
+  // this session goes through one, for as long as an IndexedDB read takes.
+  const [state, setState] = useState(() => {
+    const at = backend.peek(slug);
+    return { slug, backend, data: at ?? starterDoc(), hydrated: at !== null };
+  });
   // Edit history. `setActive` replaces the present without pushing, so
   // navigation never clutters undo; every content edit goes through `commit`.
   const past = useRef<AppData[]>([]);
@@ -198,16 +125,51 @@ export function usePaintStore(
     persistPending.current = true;
   }, []);
 
+  // The live state, for the callbacks that must reach it without being rebuilt
+  // on every edit — `reload` and the hand-off verbs, which travel down to
+  // buttons and drop targets that would otherwise re-render with each stroke.
+  const stateRef = useRef(state);
+  stateRef.current = state;
+
   // Namespace switch — or a backend swap — adopts the matching document and
   // resets history. Adjusting state during render (rather than in an effect) is
   // React's blessed way to respond to a changed input with no stale-doc flash.
   if (state.slug !== slug || state.backend !== backend) {
     past.current = [];
     future.current = [];
-    setState({ slug, backend, data: backend.load(slug) });
+    const at = backend.peek(slug);
+    setState({
+      slug,
+      backend,
+      data: at ?? starterDoc(),
+      hydrated: at !== null,
+    });
   }
 
   const data = state.data;
+
+  // Fill in a document the switch above could only guess at. Adopting it is a
+  // *load*, not an edit: history stays clear and nothing is marked to persist,
+  // so the placeholder can never be written over the real document.
+  useEffect(() => {
+    if (state.hydrated) return;
+    let cancelled = false;
+    void state.backend.hydrate(state.slug).then((loaded) => {
+      if (cancelled) return;
+      setState((cur) => {
+        // Not just "same namespace" but "still waiting": drawing on the
+        // placeholder makes it the real document (`commit` flips the flag), and
+        // a read that lands a moment later must not undo that mark.
+        if (cur.hydrated || cur.slug !== state.slug) return cur;
+        if (cur.backend !== state.backend) return cur;
+        return { ...cur, data: loaded, hydrated: true };
+      });
+      setVersion((v) => v + 1);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [state.hydrated, state.slug, state.backend]);
 
   useEffect(() => {
     if (!persistPending.current) return;
@@ -221,7 +183,9 @@ export function usePaintStore(
       setState((prev) => {
         past.current.push(prev.data);
         future.current = [];
-        return { ...prev, data: next };
+        // An edited document is the real one, whatever storage was about to
+        // say — see the hydrate effect above.
+        return { ...prev, data: next, hydrated: true };
       });
       setVersion((v) => v + 1);
     },
@@ -253,10 +217,20 @@ export function usePaintStore(
   /** Re-read the persisted document, picking up edits made in another tab.
    *  Replaces the present without touching the undo history (a refresh isn't an
    *  edit you'd undo) and never marks the state to persist — writing it straight
-   *  back would defeat the non-destructive load guard. */
+   *  back would defeat the non-destructive load guard.
+   *
+   *  Goes past the cache deliberately: the whole question being asked is what
+   *  *another tab* wrote, and this tab's cache is by definition ignorant of it. */
   const reload = useCallback(() => {
-    setState((cur) => ({ ...cur, data: cur.backend.load(cur.slug) }));
-    setVersion((v) => v + 1);
+    const { slug: at, backend: from } = stateRef.current;
+    void from.refetch(at).then((fresh) => {
+      setState((now) =>
+        now.slug === at && now.backend === from
+          ? { ...now, data: fresh, hydrated: true }
+          : now,
+      );
+      setVersion((v) => v + 1);
+    });
   }, []);
 
   /** Adopt a document that arrived from a sync backend: make it the present and
@@ -275,7 +249,9 @@ export function usePaintStore(
       setState((cur) => {
         past.current = [];
         future.current = [];
-        return { ...cur, data: doc };
+        // An adopted remote copy is authoritative for the same reason an edit
+        // is: a slower local read must not land on top of it.
+        return { ...cur, data: doc, hydrated: true };
       });
       setVersion((v) => v + 1);
     },
@@ -766,20 +742,29 @@ export function usePaintStore(
    *  throwing (see `DocBackend`) — so "it didn't throw" is not evidence the
    *  bytes are there. Reading the destination back and looking for the ids the
    *  hand-off minted is; only then is this side committed without the item.
-   *  Returns whether the move went through. */
+   *  Resolves to whether the move went through.
+   *
+   *  Asynchronous because the storage is: `deliver` writes to the database and
+   *  waits for it to confirm, then reads the record back past the cache. Both
+   *  waits are the guarantee — a cached read would only be the write agreeing
+   *  with itself. */
   const deliver = useCallback(
-    (targetSlug: string, moved: Handoff | null): boolean => {
+    async (targetSlug: string, moved: Handoff | null): Promise<boolean> => {
       if (!moved) return false;
       let landed = false;
       try {
-        state.backend.save(targetSlug, moved.target);
-        const written = state.backend.load(targetSlug);
-        const drawings = new Set(written.drawings.map((d) => d.id));
-        const folders = new Set(written.folders.map((f) => f.id));
-        landed =
-          moved.arrived.drawings.every((id) => drawings.has(id)) &&
-          (moved.arrived.folder === undefined ||
-            folders.has(moved.arrived.folder));
+        const written = await stateRef.current.backend.deliver(
+          targetSlug,
+          moved.target,
+        );
+        if (written) {
+          const drawings = new Set(written.drawings.map((d) => d.id));
+          const folders = new Set(written.folders.map((f) => f.id));
+          landed =
+            moved.arrived.drawings.every((id) => drawings.has(id)) &&
+            (moved.arrived.folder === undefined ||
+              folders.has(moved.arrived.folder));
+        }
       } catch {
         landed = false;
       }
@@ -792,24 +777,29 @@ export function usePaintStore(
       commit(moved.source);
       return true;
     },
-    [commit, state.backend],
+    [commit],
   );
 
   /** Hand a drawing to another sketchbook — the menu's "drop it onto a
    *  namespace row" gesture. It lands at that sketchbook's top level: the
    *  folder it was filed in is this one's, and doesn't exist over there. */
   const moveDrawingToNamespace = useCallback(
-    (id: string, targetSlug: string) => {
-      if (targetSlug === state.slug) return;
+    async (id: string, targetSlug: string) => {
+      const { slug: from, backend: store } = stateRef.current;
+      if (targetSlug === from) return;
       let moved: Handoff | null;
       try {
-        moved = handOffDrawing(data, state.backend.load(targetSlug), id, MINT);
+        // The destination isn't the open sketchbook, so it is very likely not
+        // in hand — hydrate it rather than reading a cache that would answer
+        // "empty" and hand the drawing to a document that wipes the rest.
+        const target = await store.hydrate(targetSlug);
+        moved = handOffDrawing(stateRef.current.data, target, id, MINT);
       } catch {
         return; // The destination's storage wouldn't even read — leave it be.
       }
-      deliver(targetSlug, moved);
+      await deliver(targetSlug, moved);
     },
-    [data, deliver, state.slug, state.backend],
+    [deliver],
   );
 
   /** Hand a folder — and the drawings filed in it — to another sketchbook. The
@@ -817,17 +807,19 @@ export function usePaintStore(
    *  drawings are re-filed inside it, so it arrives as a group rather than as
    *  loose pages. */
   const moveFolderToNamespace = useCallback(
-    (id: string, targetSlug: string) => {
-      if (targetSlug === state.slug) return;
+    async (id: string, targetSlug: string) => {
+      const { slug: from, backend: store } = stateRef.current;
+      if (targetSlug === from) return;
       let moved: Handoff | null;
       try {
-        moved = handOffFolder(data, state.backend.load(targetSlug), id, MINT);
+        const target = await store.hydrate(targetSlug);
+        moved = handOffFolder(stateRef.current.data, target, id, MINT);
       } catch {
         return;
       }
-      deliver(targetSlug, moved);
+      await deliver(targetSlug, moved);
     },
-    [data, deliver, state.slug, state.backend],
+    [deliver],
   );
 
   /** Hold a drawing in the archive, or bring it back out. Archiving the open

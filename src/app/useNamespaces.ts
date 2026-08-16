@@ -15,18 +15,21 @@ import {
 } from "@niclaslindstedt/oss-framework/namespaces";
 import { useLocalStorageState } from "@niclaslindstedt/oss-framework/hooks";
 
-import { docKey } from "./usePaintStore.ts";
+import { ACTIVE_NAMESPACE_KEY, deleteDoc } from "./docDb.ts";
 
 // The app's namespace registry — the "store stays in the app" seam for the
 // `namespaces` module. The framework owns the `Namespace` shape and the pure
 // list transforms; this hook owns *where* the list and the active-namespace
-// pointer live (two localStorage keys) and how a slug maps to a document key
-// (delegated to `usePaintStore`'s `docKey`). Switching a namespace just changes
+// pointer live (two localStorage keys — the registry is a short list of names,
+// not a document) and where each slug's drawings are kept (delegated to
+// `docDb.ts`, which is IndexedDB). Switching a namespace just changes
 // the active slug — the document store keys off it and swaps the whole set of
 // drawings, undo history included.
 
 const LIST_KEY = "paint:namespaces";
-const ACTIVE_KEY = "paint:namespace:active";
+// Shared with the boot preload in `docDb.ts`, which reads this pointer to know
+// which sketchbook to pull out of IndexedDB before the first render.
+const ACTIVE_KEY = ACTIVE_NAMESPACE_KEY;
 
 // First-run registry: a sketchbook (the reserved `default` slug) plus a
 // teaching one, so the switcher is meaningful out of the box. Both boot from
@@ -94,11 +97,9 @@ export function useNamespaces() {
   const remove = useCallback(
     (slug: string) => {
       setList((cur) => removeNamespace(cur, slug));
-      try {
-        localStorage.removeItem(docKey(slug));
-      } catch {
-        // Storage unavailable — the registry edit above still stands.
-      }
+      // Best-effort and unawaited: the registry edit above is what the user
+      // sees, and `deleteDoc` swallows a storage that won't cooperate.
+      void deleteDoc(slug);
       setActiveSlug((cur) => (cur === slug ? DEFAULT_NAMESPACE_SLUG : cur));
     },
     [setList, setActiveSlug],

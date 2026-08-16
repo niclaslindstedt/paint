@@ -5,7 +5,7 @@
 // A dropped image is stored inline as a data URL on the stroke that places it
 // (see `Shape`'s `image` kind), which keeps the working copy one self-contained
 // JSON document — it exports and undoes as one thing. The price is bytes, and
-// the document lives in localStorage, so an import is *downscaled* on the way in
+// the whole document is re-serialized on every edit, so an import is *downscaled* on the way in
 // rather than stored at whatever a phone camera produced. On the way *out* to a
 // remote backend the bytes are split off into a real image file beside the
 // document (see `imageStore.ts`); nothing in this module has to know that.
@@ -21,7 +21,7 @@ import type { Drawing } from "./types.ts";
 
 /** The longest edge an imported bitmap is kept at, in document pixels. Roughly
  *  a retina laptop's screen — big enough that a placed photo still looks sharp
- *  zoomed in, small enough that a handful of them fit in localStorage beside
+ *  zoomed in, small enough that a handful of them stay cheap to serialize beside
  *  the drawings. */
 export const MAX_IMPORT_EDGE = 2000;
 

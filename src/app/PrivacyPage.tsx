@@ -53,6 +53,7 @@ export function PrivacyPage() {
         <Section title="What the app stores">
           <p>
             On your device, inside your browser&apos;s{" "}
+            <code className="text-meta">IndexedDB</code> and{" "}
             <code className="text-meta">localStorage</code> for the origin{" "}
             <span className="text-path">paint.niclaslindstedt.se</span>, the app
             keeps:
@@ -94,7 +95,7 @@ export function PrivacyPage() {
             <li>
               <strong className="text-fg-bright">This device</strong> (the
               default) — your drawings stay in your browser&apos;s{" "}
-              <code className="text-meta">localStorage</code> and are never
+              <code className="text-meta">IndexedDB</code> and are never
               transmitted anywhere.
             </li>
             <li>
@@ -148,6 +149,7 @@ export function PrivacyPage() {
         <Section title="Cookies">
           <p>
             The app sets no cookies. All persistence uses{" "}
+            <code className="text-meta">IndexedDB</code> and{" "}
             <code className="text-meta">localStorage</code>.
           </p>
         </Section>
