@@ -353,8 +353,6 @@ export function SettingsModal({
               settings={settings}
               setPluginEnabled={setPluginEnabled}
               moveTool={moveTool}
-              update={updateLive}
-              appearance={appearance}
             />
           )}
           {activeTab === "download" && (

@@ -4,13 +4,10 @@ import {
   ChevronUpIcon,
   Section,
 } from "@niclaslindstedt/oss-framework/components";
-import type { ThemeAppearance } from "@niclaslindstedt/oss-framework/theme";
 
-import { isDarkAppearance, resolvePageColor } from "../canvas.ts";
 import { useT } from "../i18n/index.ts";
 import { orderedEntries, type ToolbarEntry } from "../plugins/registry.ts";
 import type { AppSettings } from "../useAppSettings.ts";
-import { WashEngineSection } from "./wash.tsx";
 
 // Settings → Tools: the plugin switchboard, and the whole user-facing plugin
 // story. When externally-loaded plugins land they list here beside the
@@ -45,8 +42,6 @@ export function ToolsTab({
   settings,
   setPluginEnabled,
   moveTool,
-  update,
-  appearance,
 }: {
   settings: AppSettings;
   setPluginEnabled: (id: string, enabled: boolean) => void;
@@ -54,17 +49,10 @@ export function ToolsTab({
    *  permutation of, because a list of ids means nothing without the list of
    *  entries it reorders — see `moveTool` in `useAppSettings.ts`. */
   moveTool: (order: readonly string[], from: number, to: number) => void;
-  /** Applied live, like the switchboard: this page is device state, not a
-   *  staged draft (see `SettingsModal`). */
-  update: <K extends keyof AppSettings>(key: K, value: AppSettings[K]) => void;
-  appearance: ThemeAppearance;
 }) {
   const t = useT();
   const entries = orderedEntries(settings.toolOrder);
   const order = entries.map((entry) => entry.id);
-  // The page the watercolour samples below are painted on, so they are *this*
-  // sheet rather than a stranger's — the same call the surface swatches make.
-  const dark = isDarkAppearance(appearance);
 
   return (
     <div>
@@ -97,15 +85,6 @@ export function ToolsTab({
           ))}
         </ul>
       </Section>
-
-      {/* Which watercolour engine paints a wash. It is here rather than in
-          Canvas because it is a property of the brush and not of the page. */}
-      <WashEngineSection
-        engine={settings.washEngine}
-        onChange={(next) => update("washEngine", next)}
-        pageColor={resolvePageColor(undefined, dark)}
-        dark={dark}
-      />
     </div>
   );
 }

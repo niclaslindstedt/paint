@@ -3,11 +3,18 @@ import { FloatingPanel } from "@niclaslindstedt/oss-framework/components";
 
 import { useT } from "../i18n/index.ts";
 import type { ToolPresetOption } from "../plugins/presets.ts";
-import type { PaintPlugin, ToolDial, ToolSwatch } from "../plugins/types.ts";
+import type { ToolOptionValue } from "../plugins/options.ts";
+import type {
+  PaintPlugin,
+  ToolDial,
+  ToolOption,
+  ToolSwatch,
+} from "../plugins/types.ts";
 import type { PresetSettings } from "../presets.ts";
 import { PressPreview } from "./PressPreview.tsx";
 import { ShippedPresets } from "./PresetBar.tsx";
 import { ToolDials } from "./ToolDials.tsx";
+import { ToolOptions } from "./ToolOptions.tsx";
 import { ToolSwatches } from "./ToolSwatches.tsx";
 
 // The cog panel: what a tool with no width has to set.
@@ -60,6 +67,12 @@ type Props = {
   dials: readonly ToolDial[];
   values: Readonly<Record<string, number>>;
   onDialChange: (id: string, value: number | null) => void;
+  /** The app-wide settings this tool declares, and where they sit — the same
+   *  section the size panel puts under its dials (see `plugins/options.ts`).
+   *  Empty for every widthless tool today, and then there is no such section. */
+  options: readonly ToolOption[];
+  optionValues: Readonly<Record<string, ToolOptionValue>>;
+  onOptionChange: (id: string, value: ToolOptionValue) => void;
   /** The inks this tool carries of its own, in the order it declared them.
    *  Empty for every tool but the gradient today, and then there is no swatch
    *  row and no preview. */
@@ -90,6 +103,9 @@ export function DialPicker({
   dials,
   values,
   onDialChange,
+  options,
+  optionValues,
+  onOptionChange,
   swatches,
   colors,
   onColorChange,
@@ -164,6 +180,21 @@ export function DialPicker({
             tuned={tuned}
           />
         </div>
+
+        {/* …and the tool's app-wide settings under them, exactly as in the size
+            panel: same section, same rows, only the width taken away. */}
+        {options.length > 0 && (
+          <div className="border-t border-line pt-2">
+            <ToolOptions
+              title={t("options.title")}
+              options={options}
+              values={optionValues}
+              onChange={onOptionChange}
+              color={color}
+              background={background}
+            />
+          </div>
+        )}
       </div>
     </FloatingPanel>
   );

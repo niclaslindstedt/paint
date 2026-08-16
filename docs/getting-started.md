@@ -101,6 +101,14 @@ own to tune. Every width in the panel is the same press at that width, so the ro
 reads as marks rather than as numbers, and turning a dial redraws them under your
 thumb.
 
+A tool can also have a setting that is not about the next mark but about how its
+marks are _painted_, and those sit above Advanced under **Rendering**. The
+watercolour brush is the one that has any: which of the two wash engines is
+painting — shown as two swatches of the same stroke, so you press the picture
+rather than the word — and, under the pigment simulation, how finely it is
+worked out. Both apply to every wash on every drawing, including the ones already
+made; see [Paper and paint](features/surface.md).
+
 Tools with nothing to set by width say so: the **paint bucket** shows a **cog**
 in that slot, opening its wash and its feathered edge directly, and the hand, the
 dropper and the selection tools show nothing there at all.

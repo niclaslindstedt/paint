@@ -124,6 +124,7 @@ function screen() {
       showGrid: false,
       checker: ["#eee", "#ddd"],
       washEngine: "simple",
+      washDetail: 1,
       decodedAt: 0,
       preview: null,
       draft: null,

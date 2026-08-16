@@ -17,6 +17,7 @@ import {
   toolbarEntries,
   type ToolbarEntry,
 } from "./plugins/registry.ts";
+import type { ToolOptionValue } from "./plugins/options.ts";
 import type { PaintPlugin } from "./plugins/types.ts";
 import type { PresetSettings, ToolPreset } from "./presets.ts";
 import {
@@ -74,10 +75,11 @@ import { SizePicker } from "./toolbar/SizePicker.tsx";
 // have chosen. The row that is left is tools, and it can afford to be.
 //
 // **The second of those two buttons belongs to the tool, not to the width.**
-// The size button is also where a tool's own settings live — its dials, under
-// an Advanced heading in the same panel (see `toolbar/SizePicker.tsx`) — and a
-// tool with no width to set gets a **cog** in the same slot, opening the same
-// dials with nothing above them. A tool with neither gets no button at all,
+// The size button is also where a tool's own settings live — its dials under an
+// Advanced heading, and above them the settings that are about how its marks are
+// *painted* rather than about the next one (see `toolbar/SizePicker.tsx` and
+// `plugins/options.ts`) — and a tool with no width to set gets a **cog** in the
+// same slot, opening the same sections with nothing above them. A tool with neither gets no button at all,
 // where it used to get a dimmed one that opened a panel of widths it ignored.
 // Which of the three it is comes off the descriptor (`plugins/controls.ts`), so
 // the toolbar hands the picker a list it never reads and never asks which tool
@@ -140,6 +142,12 @@ type Props = {
    *  either. */
   colorValues: Readonly<Record<string, string>>;
   onToolColorChange: (id: string, color: string | null) => void;
+  /** …and the same pair for the tool's **app-wide** settings, the section under
+   *  the dials (see `plugins/options.ts`). Which options those are comes off the
+   *  descriptor too, so the toolbar learns no more about a wash engine than it
+   *  does about a hair gauge. */
+  optionValues: Readonly<Record<string, ToolOptionValue>>;
+  onOptionChange: (id: string, value: ToolOptionValue) => void;
   onResetDials: () => void;
   /** Whether any of them — dial or ink — is off what the tool ships with. */
   dialsTuned: boolean;
@@ -183,6 +191,8 @@ export function Toolbar({
   onDialChange,
   colorValues,
   onToolColorChange,
+  optionValues,
+  onOptionChange,
   onResetDials,
   dialsTuned,
   filled,
@@ -619,6 +629,9 @@ export function Toolbar({
           swatches={active?.swatches ?? []}
           colors={colorValues}
           onColorChange={onToolColorChange}
+          options={active?.options ?? []}
+          optionValues={optionValues}
+          onOptionChange={onOptionChange}
           customColors={customColors}
           onResetDials={onResetDials}
           tuned={dialsTuned}
@@ -641,6 +654,9 @@ export function Toolbar({
           swatches={active?.swatches ?? []}
           colors={colorValues}
           onColorChange={onToolColorChange}
+          options={active?.options ?? []}
+          optionValues={optionValues}
+          onOptionChange={onOptionChange}
           customColors={customColors}
           onResetDials={onResetDials}
           tuned={dialsTuned}

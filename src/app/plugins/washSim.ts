@@ -47,7 +47,7 @@ import {
 } from "./washField.ts";
 import { HAIRLINE, PIXEL, trace } from "./grain.ts";
 
-/** How much page one cell of the field stands for, at 1:1.
+/** How much page one cell of the field stands for, at 1:1 and at full detail.
  *
  *  Coarser than a device pixel on purpose: the field is the *wet* part of the
  *  picture, and wet has no fine detail in it — the fine detail is the sheet's
@@ -58,10 +58,68 @@ import { HAIRLINE, PIXEL, trace } from "./grain.ts";
  *  to dry rather than several. */
 const PITCH = mm(0.17);
 
-/** The most cells one mark will ever be simulated at. A page-wide sweep would
- *  otherwise ask for millions; past this the field is coarsened instead, which
- *  costs the wash some fineness and keeps the page at frame rate. */
+/** The most cells one mark will ever be simulated at, at full detail. A
+ *  page-wide sweep would otherwise ask for millions; past this the field is
+ *  coarsened instead, which costs the wash some fineness and keeps the page at
+ *  frame rate. */
 const BUDGET = 12_000;
+
+/** How much of the field to actually run, as a share of the two numbers above:
+ *  1 is the whole of it, 0.1 a tenth of the resolution in each direction.
+ *
+ *  It is the one wash setting that changes nothing about *what a wash is* — only
+ *  how finely it is worked out. What a coarser grid costs is the fine half of
+ *  the picture: the rim thins, the mottle broadens, and a small brush stops
+ *  being worth a field at all and falls through to the stroke model. What it
+ *  buys is the square of itself, which is why it is worth a slider at all — the
+ *  simulation is the expensive engine, and this is the one control that decides
+ *  how expensive.
+ *
+ *  A tenth is the floor because a field coarser than that is not a wash being
+ *  simulated badly, it is a handful of cells the size of the brush. */
+export const MIN_WASH_DETAIL = 0.1;
+export const MAX_WASH_DETAIL = 1;
+
+/** What it resolves at untouched: all of it. Anything less is a trade the user
+ *  has to have made — a build that quietly painted a coarser wash than the one
+ *  its own sample showed would be lying about its picture. */
+export const DEFAULT_WASH_DETAIL = MAX_WASH_DETAIL;
+
+/** A stored detail pulled into range. A blob written by another build (or by
+ *  hand) is the only way a bad one gets here, and the slider cannot recover
+ *  from a value off its own track. */
+export function clampWashDetail(value: unknown): number {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return DEFAULT_WASH_DETAIL;
+  }
+  return Math.max(MIN_WASH_DETAIL, Math.min(MAX_WASH_DETAIL, value));
+}
+
+/** Both of the numbers above, at the detail the setting is turned to.
+ *
+ *  Detail is a share of the field's *resolution*, and that is what the pitch
+ *  takes: half detail, cells twice as wide across the page. An ordinary mark
+ *  then costs a quarter as much, because a grid coarsened in both directions
+ *  holds a quarter as many cells over the same paper — which is what makes the
+ *  setting worth a slider at all. It is quadratic in the thing that costs, so a
+ *  small step down is a large step down the bill.
+ *
+ *  **The budget comes down more slowly than that, and deliberately.** It is the
+ *  cap on the worst case rather than a second resolution, and it binds only for
+ *  the big marks — a page-wide sweep. Bringing it down as the square too would
+ *  coarsen those a second time, past the point where a head is a few cells
+ *  across, and the mark would fall through to the stroke model: the bottom of
+ *  the slider would quietly be an off switch rather than a coarse simulation,
+ *  which is not what it says on it. Linear keeps a big wash simulated — blockily,
+ *  which is what was asked for — and still a tenth of the cost at a tenth of the
+ *  detail.
+ *
+ *  At 1 both are exactly the constants above, which is what keeps a wash painted
+ *  by a build that had no such setting painting the same today. */
+function grid(detail: number): { pitch: number; budget: number } {
+  const share = Math.max(MIN_WASH_DETAIL, Math.min(1, detail));
+  return { pitch: PITCH / share, budget: BUDGET * share };
+}
 
 /** How many cells the brush has to be across before a field is worth running.
  *  Below it the simulation has nothing to resolve — the head is a cell wide —
@@ -149,6 +207,7 @@ type Dried = {
   granulation: number;
   ground: GroundProfile;
   color: string;
+  detail: number;
   x: number;
   y: number;
   width: number;
@@ -173,6 +232,7 @@ function sameMark(
     a.pigment === b.pigment &&
     a.granulation === b.granulation &&
     a.color === b.color &&
+    a.detail === b.detail &&
     a.ground.absorbency === b.ground.absorbency &&
     a.ground.tooth === b.ground.tooth &&
     a.ground.bite === b.ground.bite &&
@@ -222,6 +282,7 @@ export function paintSimulatedWash(
   granulation = 0.6,
   ground: GroundProfile = SOLID_GROUND,
   color = "#000000",
+  detail = DEFAULT_WASH_DETAIL,
 ): boolean {
   if (points.length === 0 || size <= 0) return false;
   // The same mark a second time — the renderer painting a wet one twice, once
@@ -236,6 +297,7 @@ export function paintSimulatedWash(
     granulation,
     ground,
     color,
+    detail,
   };
   if (dried && sheet && sameMark(dried, asked)) {
     place(ctx, sheet, dried);
@@ -252,16 +314,19 @@ export function paintSimulatedWash(
   if (reach * 2 * scale < HAIRLINE) return false;
 
   // How coarse to work: never finer than the device can show, never so fine
-  // that the field blows the budget.
+  // that the field blows the budget — and both of those measured at the detail
+  // the setting is turned to, so turning it down coarsens the grid rather than
+  // running a finer one fewer times.
+  const { pitch, budget } = grid(detail);
   const box = bounds(points);
-  let cell = Math.max(PITCH, PIXEL / scale);
+  let cell = Math.max(pitch, PIXEL / scale);
   const margin = () => reach + MARGIN_CELLS * cell;
   for (let tries = 0; tries < 8; tries++) {
     const pad = margin();
     const wide = Math.ceil((box.width + pad * 2) / cell);
     const tall = Math.ceil((box.height + pad * 2) / cell);
-    if (wide * tall <= BUDGET) break;
-    cell *= Math.sqrt((wide * tall) / BUDGET);
+    if (wide * tall <= budget) break;
+    cell *= Math.sqrt((wide * tall) / budget);
   }
   // A head no wider than a few cells has nothing for a field to resolve.
   if (half / cell < LEAST_HEAD / 2) return false;
@@ -271,7 +336,7 @@ export function paintSimulatedWash(
   const y = box.y - pad;
   const width = Math.ceil((box.width + pad * 2) / cell);
   const height = Math.ceil((box.height + pad * 2) / cell);
-  if (width < 4 || height < 4 || width * height > BUDGET * 2) return false;
+  if (width < 4 || height < 4 || width * height > budget * 2) return false;
 
   const surface = sheetFor(width, height);
   if (!surface) return false;

@@ -26,6 +26,7 @@
 // panel of widths, and dimming is a promise that the control works *sometimes*.
 // For these tools there is no sometimes.
 
+import { hasOptions } from "./options.ts";
 import { hasSwatches } from "./swatches.ts";
 import type { PaintPlugin } from "./types.ts";
 
@@ -95,11 +96,13 @@ export function hasDials(plugin: PaintPlugin | undefined): boolean {
   return (plugin?.dials?.length ?? 0) > 0;
 }
 
-/** Whether the tool has *settings* at all — knobs, inks, or both. What decides
- *  whether a widthless tool gets the cog: a tool whose only setting is the
- *  colours it pours still needs somewhere to pour them from. */
+/** Whether the tool has *settings* at all — knobs, inks, app-wide options, or
+ *  any mix of them. What decides whether a widthless tool gets the cog: a tool
+ *  whose only setting is the colours it pours still needs somewhere to pour them
+ *  from, and one whose only setting is how its marks are painted needs somewhere
+ *  to say so (see `options.ts`). */
 export function hasSettings(plugin: PaintPlugin | undefined): boolean {
-  return hasDials(plugin) || hasSwatches(plugin);
+  return hasDials(plugin) || hasSwatches(plugin) || hasOptions(plugin);
 }
 
 /** Which button the toolbar puts beside the ink for this tool.
