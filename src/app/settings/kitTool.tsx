@@ -53,6 +53,16 @@ import { Switch } from "./toolRow.tsx";
 //     you saved, the widths it is made in, its own knobs. Nothing here is a
 //     second way to set a tool up.
 //
+// **They are two answers and not one.** Settings are kept per tool id, so
+// *every* member of a family can have its own on the same page — a kneaded
+// rubber and a block eraser, three shapes each at their own width — whichever
+// one the button happens to open on. So the row at the head of the settings
+// section is a **selector**, not a choice the page keeps: it says which tool the
+// controls under it belong to, and pressing it changes nothing about the page.
+// Only the default-tool row above writes a default. (It moves the selector as
+// well, because pressing a tool to say "this one" and then pressing it again to
+// set it up would be the same press twice.)
+//
 // **Off by default, and per tool.** A kit that pinned every tool's width would
 // be a page that fought you; the honest default is that a tool stays however the
 // person drawing has it, and pinning is the thing you opt into for the two or
@@ -88,10 +98,13 @@ export function KitToolEditor({
   const members = entry.kind === "group" ? entry.members : [entry.plugin];
   const pinnedMember =
     entry.kind === "group" ? kitGroupTool(kit, entry.id) : undefined;
-  // Which member the settings below are about. It follows the default-tool row
-  // — pressing a member is how you reach its settings — but it survives
-  // "whichever you had last", so a family can be set up without its default
-  // being pinned.
+  // Which member the settings below are about — a *view*, not an answer. Every
+  // member of a family keeps its own settings on this page (they are stored by
+  // tool id), so which one you are looking at has to be free of which one the
+  // page opens on: setting the eraser up must not make the eraser the default,
+  // and a page can perfectly well carry a kneaded rubber *and* a block eraser.
+  // The default-tool row still moves it, because pressing a tool to say "this
+  // one" and then pressing it again to set it up would be the same press twice.
   const [focus, setFocus] = useState<string>(
     () => pinnedMember ?? shownMember(settings, entry) ?? members[0]?.id ?? "",
   );
@@ -166,11 +179,12 @@ export function KitToolEditor({
       {plugin && (
         <KitToolSettings
           plugin={plugin}
+          members={members}
           kit={kit}
           settings={settings}
           ink={ink}
           pageColor={pageColor}
-          family={entry.kind === "group"}
+          onFocus={setFocus}
           onChange={onChange}
         />
       )}
@@ -178,24 +192,32 @@ export function KitToolEditor({
   );
 }
 
-/** How one tool is set on this page: nothing at all, or a whole tool. */
+/** How one tool is set on this page: nothing at all, or a whole tool.
+ *
+ *  A family gets a row of its members at the head of the section, and it is a
+ *  *selector rather than an answer*: settings are kept per tool, so a page can
+ *  carry a kneaded rubber and a block eraser at once and open on whichever of
+ *  them it likes. A member that is already set up wears a dot, so the row also
+ *  says which of the family this page has an opinion about. */
 function KitToolSettings({
   plugin,
+  members,
   kit,
   settings,
   ink,
   pageColor,
-  family,
+  onFocus,
   onChange,
 }: {
+  /** The member being set up. */
   plugin: PaintPlugin;
+  /** The whole family — one entry for a lone tool, and then no selector. */
+  members: readonly PaintPlugin[];
   kit: CanvasKit;
   settings: AppSettings;
   ink: string;
   pageColor: string;
-  /** Whether this tool is one of a family — then the section says which member
-   *  it is setting up, because the row above chose it. */
-  family: boolean;
+  onFocus: (tool: string) => void;
   onChange: (next: CanvasKit) => void;
 }) {
   const t = useT();
@@ -227,6 +249,30 @@ function KitToolSettings({
 
   return (
     <Section title={t("settings.canvas.kitToolTitle")}>
+      {/* Which of the family you are setting up. Nothing about this row is an
+          answer the page keeps — it only says which tool the controls under it
+          belong to — so setting the eraser up leaves the rubber the page opens
+          on exactly where it was. */}
+      {members.length > 1 && (
+        <>
+          <p className="text-xs text-muted">
+            {t("settings.canvas.kitToolEach")}
+          </p>
+          <div className="flex flex-wrap gap-1">
+            {members.map((member) => (
+              <MemberChip
+                key={member.id}
+                label={t(member.nameKey)}
+                icon={member.icon}
+                active={member.id === plugin.id}
+                marked={kit.toolSettings?.[member.id] !== undefined}
+                onClick={() => onFocus(member.id)}
+              />
+            ))}
+          </div>
+        </>
+      )}
+
       <div className="flex items-center gap-3">
         <span className="min-w-0 flex-1">
           <span className="block text-sm text-fg-bright">
@@ -256,12 +302,6 @@ function KitToolSettings({
           }
         />
       </div>
-
-      {family && (
-        <p className="text-xs text-muted">
-          {t("settings.canvas.kitToolFocus", { name })}
-        </p>
-      )}
 
       {pinned && (
         <>
@@ -323,38 +363,52 @@ function KitToolSettings({
   );
 }
 
-/** One answer in the default-tool row: a tool with its own glyph, or the one
- *  answer that is not a tool at all. */
+/** One tool in either row: the family member the page opens on, the one you are
+ *  setting up, or — in the default row only — the answer that is not a tool at
+ *  all. */
 function MemberChip({
   label,
   icon: Icon,
   active,
+  marked = false,
   onClick,
 }: {
   label: string;
   icon?: (props: { className?: string }) => ReactNode;
   active: boolean;
+  /** Whether this page already sets this tool up — the same dot the row in the
+   *  kit list wears, so "which of these have I set up" is answerable without
+   *  pressing all of them. */
+  marked?: boolean;
   onClick: () => void;
 }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={active}
-      title={label}
-      className={`inline-flex max-w-[16rem] cursor-pointer items-center gap-1.5 rounded border px-2 py-1 text-xs ${
-        active
-          ? "border-accent bg-accent/15 text-accent"
-          : "border-line text-fg hover:bg-surface-2"
-      }`}
-    >
-      {Icon && (
-        <span aria-hidden="true" className="inline-flex shrink-0">
-          <Icon className="h-4 w-4" />
-        </span>
+    <span className="relative inline-flex">
+      <button
+        type="button"
+        onClick={onClick}
+        aria-pressed={active}
+        title={label}
+        className={`inline-flex max-w-[16rem] cursor-pointer items-center gap-1.5 rounded border px-2 py-1 text-xs ${
+          active
+            ? "border-accent bg-accent/15 text-accent"
+            : "border-line text-fg hover:bg-surface-2"
+        }`}
+      >
+        {Icon && (
+          <span aria-hidden="true" className="inline-flex shrink-0">
+            <Icon className="h-4 w-4" />
+          </span>
+        )}
+        <span className="truncate">{label}</span>
+      </button>
+      {marked && (
+        <span
+          aria-hidden="true"
+          className="absolute -top-0.5 -right-0.5 h-1.5 w-1.5 rounded-full bg-accent"
+        />
       )}
-      <span className="truncate">{label}</span>
-    </button>
+    </span>
   );
 }
 

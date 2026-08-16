@@ -290,6 +290,25 @@ describe("a page that comes set up", () => {
     expect(opened.toolDials.rubber).toEqual({ pressure: 0.5 });
   });
 
+  it("sets up every member of a family, not only the one it opens on", () => {
+    // A page opens on one of them and is worked with both: the kneaded rubber
+    // for lifting a highlight, the block eraser for clearing a passage. The
+    // settings are kept per tool, so which one the button opens on is a
+    // separate answer from how each of them is set.
+    const eraser = pluginById("eraser")!;
+    const block = toolPresets(eraser).find((p) => p.id === "block")!;
+    const opened = withKit(defaultSettings(), {
+      ...kit,
+      toolSettings: {
+        rubber: { size: kneaded.size, dials: kneaded.dials },
+        eraser: { size: block.size, dials: block.dials },
+      },
+    });
+    expect(opened.groupTools.eraser).toBe("rubber");
+    expect(toolSize(opened, "rubber")).toBe(kneaded.size);
+    expect(toolSize(opened, "eraser")).toBe(block.size);
+  });
+
   it("leaves the tools it says nothing about alone", () => {
     const tuned = withPreset(
       defaultSettings(),

@@ -74,11 +74,18 @@ A preset always carries a size, and it can carry three more things:
     starts from how you have the tool right now. Leave it off and the tool stays
     however you have it, which is the default for every tool.
 
-  A row wears a dot when the page says something of its own about it. Opening a
-  page made on the preset puts those settings in your hand — as if you had
-  pressed the presets yourself — and then leaves you alone: fatten the rubber
-  this afternoon and it stays fat until the next time you open a page made on
-  that preset.
+  These are two separate answers, and a family is not limited to one of them:
+  **every member keeps its own settings on the page**, whichever one the button
+  opens on. A sketchbook can carry a kneaded rubber _and_ a block eraser, or
+  three shapes each at their own width. The row at the head of the settings
+  picks which one you are looking at and says nothing about which the page opens
+  on.
+
+  A dot — on a row in the tool list, or on one of those chips — means the page
+  says something of its own about that tool. Opening a page made on the preset
+  puts those settings in your hand, as if you had pressed the presets yourself,
+  and then leaves you alone: fatten the rubber this afternoon and it stays fat
+  until the next time you open a page made on that preset.
 
 - **Its own canvas type.** Picking the preset puts that sheet in the picker
   below. Only a suggestion — the sheet is painted into every mark made on it (see

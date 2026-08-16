@@ -733,8 +733,8 @@ export const sv: Catalog = {
       kitOwnTool: "Egen {name}",
       kitOwnToolHint:
         "En sida som skapats på den här förinställningen öppnas med {name} inställt som du ställer det här — bredden och varje ratt — i stället för hur du senast lämnade det. Slår du på det utgår det från hur du har det nu.",
-      kitToolFocus:
-        "Ställer i ordning {name}. Välj ett annat ovan för att ställa i ordning det också.",
+      kitToolEach:
+        "Var och en av dem har sina egna inställningar på den här sidan — välj den du ställer i ordning. Det säger ingenting om vilken sidan öppnas på.",
       ownSheet: "Egen typ av rityta",
       ownSheetHint:
         "Väljer du den här förinställningen i Ny bild ligger det här arket redan i väljaren. Bara ett förslag: arket målas in i varje streck som görs på det, så det är ditt att ändra innan du trycker Skapa.",

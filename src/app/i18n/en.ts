@@ -790,8 +790,8 @@ export const en = {
       kitOwnTool: "Its own {name}",
       kitOwnToolHint:
         "A page made on this preset opens with {name} set the way you set it here — the width and every knob — instead of however you last left it. Switch it on and it starts from how you have it now.",
-      kitToolFocus:
-        "Setting up {name}. Pick another one above to set that one up too.",
+      kitToolEach:
+        "Each of them keeps its own settings on this page — pick the one you are setting up. It says nothing about which the page opens on.",
       ownSheet: "Its own canvas type",
       ownSheetHint:
         "Picking this preset in New image puts this sheet in the picker. Only a suggestion: the sheet is painted into every mark made on it, so it stays yours to change before you press Create.",
