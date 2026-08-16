@@ -27,7 +27,12 @@ import { type ThemeAppearance } from "@niclaslindstedt/oss-framework/theme";
 import { ToolboxIcon } from "./icons.tsx";
 import { useT } from "./i18n/index.ts";
 import { APP_LOOK } from "./look.ts";
-import { defaultSettings, type AppSettings } from "./useAppSettings.ts";
+import {
+  LIVE_SETTINGS,
+  defaultSettings,
+  withLiveSettings,
+  type AppSettings,
+} from "./useAppSettings.ts";
 import type { PaintStore } from "./usePaintStore.ts";
 import type { SyncEngine } from "./useSyncEngine.ts";
 import {
@@ -164,12 +169,11 @@ export function SettingsModal({
   function save() {
     // The Tools tab writes straight through to the committed settings — a tool
     // you switch on has to reach the toolbar immediately — so the draft's copy
-    // of that field is the stale one this dialog opened with. Carry the live
-    // value across, or saving any other tab would silently revert it.
-    commitSettings({
-      ...draft,
-      enabledPlugins: settings.enabledPlugins,
-    });
+    // of those fields is the stale one this dialog opened with. Carry every
+    // live value across, or saving any other tab would silently revert them —
+    // which is `LIVE_SETTINGS`, not a list written out here, so a live setting
+    // added later cannot be forgotten by this line.
+    commitSettings(withLiveSettings(draft, settings));
     onClose();
   }
   function cancel() {
@@ -188,12 +192,13 @@ export function SettingsModal({
       if (!wanted.has(id)) setPluginEnabled(id, false);
     }
     for (const id of wanted) setPluginEnabled(id, true);
-    // …and so does the order they sit in: back to the one their plugins
-    // registered in.
-    updateLive("toolOrder", fresh.toolOrder);
-    // …and the watercolour engine, which lives on the same live-applied page
-    // as the switchboard above it.
-    updateLive("washEngine", fresh.washEngine);
+    // …and so does everything else that applies live — the toolbar's order, the
+    // watercolour engine. Driven off the same list Save reads, so "defaults"
+    // here means the same set of settings in both directions.
+    for (const key of LIVE_SETTINGS) {
+      if (key === "enabledPlugins") continue; // done above, switch by switch
+      updateLive(key, fresh[key]);
+    }
     setDraft(fresh);
   }
 
