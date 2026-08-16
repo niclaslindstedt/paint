@@ -482,7 +482,16 @@ be much less than a full render:
   the one mark under your hand, where a pinch simulates the lot. Keeping them is
   only sound because the field is worked out on the _page_ rather than on the
   screen, so a mark is the same picture at every zoom; those two are one
-  decision, and neither works without the other.
+  decision, and neither works without the other. The store is sized for a whole
+  painting, and when a page outgrows it anyway it **holds what it has** rather
+  than churning — a repaint asks for every wash in paint order, and an
+  evict-the-oldest store one mark too small would forget each one moments
+  before it was asked for again, turning every repaint from all blits to all
+  simulations at once. Marks whose strokes are gone for good (undone and drawn
+  past, or on a page since closed) are detected by holding each mark's path
+  through a `WeakRef` — the store matches paths by identity, so a collected
+  path is a mark no repaint can ever name — and swept out when a new mark
+  wants the room.
 
 The cache holds no state the document doesn't: every path into it goes through
 `renderDrawing`, and where there is no DOM to build it in the canvas paints the

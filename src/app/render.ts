@@ -57,7 +57,7 @@ import { applyInk, paintPath, paintRect, paintSegment } from "./plugins/ink.ts";
 import { leadDetail, leadEngine, type LeadEngine } from "./plugins/lead.ts";
 import { washDetail, washEngine, type WashEngine } from "./plugins/wash.ts";
 import { FULL_DETAIL, type PaintDetail } from "./plugins/types.ts";
-import { createSurface, type Surface } from "./surface.ts";
+import { createSurface, resizeSurface, type Surface } from "./surface.ts";
 import type { Drawing, Ground, Stroke } from "./types.ts";
 import { liftUnder } from "./wet.ts";
 
@@ -611,6 +611,36 @@ function paintStack(
   }
 }
 
+/** The one surface layers are lifted onto, held between repaints.
+ *
+ *  A layer painted apart needs a canvas the size of the one being painted, and
+ *  on a sheet that soaks it needs one on **every full repaint** — which during
+ *  a pan of a wet page is twice a frame, once per strip (see `cache.ts`).
+ *  Minting a screen-sized canvas that often spends more time in the allocator
+ *  and the collector than in the rasteriser, so one is kept and resized to fit
+ *  instead, exactly as the wet painter keeps its scratch (see `wet.ts`). One
+ *  slot is enough: layers are painted apart one at a time, each composited
+ *  onto the page before the next begins, and nothing inside `paintLayerApart`
+ *  can reach it again while it is in use. */
+let apartHeld: Surface | null = null;
+
+/** That surface, sized to `width`×`height` and cleared — or `null` where there
+ *  is no DOM to make one in, which is `createSurface`'s own answer. */
+function apartSurface(width: number, height: number): Surface | null {
+  const held = apartHeld ?? createSurface(width, height);
+  if (!held) return null;
+  apartHeld = held;
+  resizeSurface(held, width, height);
+  // Resizing only clears when the size actually changed (see `surface.ts`), so
+  // the slate is wiped explicitly — under a fresh identity transform, because
+  // the last use left its view transform behind.
+  held.ctx.setTransform(1, 0, 0, 1, 0, 0);
+  held.ctx.globalAlpha = 1;
+  held.ctx.globalCompositeOperation = "source-over";
+  held.ctx.clearRect(0, 0, held.canvas.width, held.canvas.height);
+  return held;
+}
+
 /** One layer painted apart: its marks onto a surface of their own, an effect
  *  over that if one is being previewed, and the result composited onto the page.
  *
@@ -650,7 +680,7 @@ function paintLayerApart(
   const canvas = ctx.canvas;
   const surface =
     canvas && canvas.width > 0 && canvas.height > 0
-      ? createSurface(canvas.width, canvas.height)
+      ? apartSurface(canvas.width, canvas.height)
       : null;
   if (!surface) {
     paintStrokes(ctx, strokes, options);
