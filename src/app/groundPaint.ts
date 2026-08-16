@@ -14,15 +14,31 @@
 //
 // Three rules keep it honest:
 //
-//   - **It is anchored to the page.** The pattern is filled in document
-//     coordinates, so the grain sits at a fixed place on the sheet: panning
-//     moves the paper with the drawing rather than sliding the drawing over a
-//     stationary texture, and two marks that overlap agree about where the sheet
-//     is low. The same rule the painters' own grain follows (see `grain.ts`).
+//   - **It is anchored to the page, and the anchor beats everything.** A tile
+//     is a fixed number of cells of *this sheet* (`CELLS`), laid down at the
+//     sheet's own pitch in document coordinates. So a dip in the paper is at a
+//     place on the paper: panning moves the sheet with the drawing, zooming
+//     magnifies it with the drawing, and two marks that overlap agree about
+//     where the sheet is low. The same rule the painters' own grain follows
+//     (see `grain.ts`).
 //
-//   - **It is drawn at device resolution.** The tile's pixels are mapped one
-//     for one onto the screen's, so the grain stays crisp at any zoom instead
-//     of being a blurred bitmap magnified with the page.
+//     It is worth saying what this rules *out*, because the obvious thing to do
+//     instead is to size the tile in whole device pixels so its lattice lands
+//     one-for-one on the screen's. That buys a little crispness and it costs
+//     the anchor: rounding the cell to a whole screen pixel stretches the tile
+//     by up to half a pixel in every cell, and stretching a pattern pinned at
+//     the page's corner walks every dip in it towards that corner. You see it
+//     the moment you zoom — the marks hold still and the paper under them
+//     crawls diagonally, like a slide moving under a microscope. Paper does not
+//     do that. A resample does not show.
+//
+//   - **Its resolution follows the zoom, its layout does not.** Which tile gets
+//     built is chosen from how big a cell currently is on screen, so the sheet
+//     is drawn at about the detail the screen can take. That choice is safe to
+//     make per zoom *only* because the layout is hashed off the cell lattice
+//     (`hashedRandom(gx, gy, …)`) and not off the pixels: the same sheet at two
+//     resolutions is the same dips in the same places, drawn finer. Rebuilding
+//     as you zoom therefore sharpens the paper without moving it.
 //
 //   - **It fades out when it gets too fine to see.** A sheet whose grain has
 //     shrunk below a device pixel is a sheet with no visible grain, and drawing
@@ -56,10 +72,25 @@ const FINEST = 0.7;
 /** …and it is at full strength from here up. */
 const CLEAR = 1.6;
 
-/** How wide a tile is allowed to get, in device pixels. Big enough that the
- *  repeat is hard to find on the coarsest sheet, small enough that half a dozen
- *  of them cached cost less than one screen. */
-const TILE_BUDGET = 448;
+/** How many cells of the sheet one tile is, across and down.
+ *
+ *  Fixed, and that is the point: it is what makes a tile a piece of *paper* —
+ *  `CELLS × tooth` document pixels of it, the same patch of sheet whatever the
+ *  zoom — rather than a screenful of noise whose repeat changes size under you.
+ *  Big enough that the repeat is hard to find; the eye picks a tiling out of
+ *  random dips at around a couple of dozen. */
+const CELLS = 64;
+
+/** The most device pixels a cell is ever *drawn* at. Past it the tile is
+ *  stretched rather than built bigger, because `CELLS²` cells at a large cell
+ *  is a large bitmap — at 8 it is already 512 × 512, a megabyte, and every step
+ *  up squares.
+ *
+ *  Stretching is cheap here in a way it would not be for most textures: a dip
+ *  is a soft radial fade and a thread is a linear one, so magnifying the tile
+ *  magnifies gradients and there is no detail in it to lose. Paper zoomed past
+ *  its own grain *is* high ground and low ground with nothing between them. */
+const MAX_CELL = 8;
 
 /** How strongly the sheet's grain shows at this zoom, 0–1.
  *
@@ -72,12 +103,47 @@ export function graininess(cellPx: number): number {
   return (cellPx - FINEST) / (CLEAR - FINEST);
 }
 
+/** How a sheet's tile is laid on the page at this zoom.
+ *
+ *  The whole of the anchoring, in two numbers and no canvas, so the thing that
+ *  has to be true of it can be *tested* rather than looked at: `perPixel` is a
+ *  function of the sheet alone past the rounding, so `cell × perPixel` is the
+ *  sheet's own tooth at every zoom there is and a dip drawn at cell 30 is at the
+ *  same place on the page at every zoom there is. Get that wrong and the paper
+ *  slides under the drawing as it is magnified. */
+export type GrainTile = {
+  /** Tile pixels per cell — the resolution the tile is drawn at. */
+  cell: number;
+  /** Document pixels per tile pixel — the scale it is laid down at. */
+  perPixel: number;
+};
+
+/** Which tile a sheet of this pitch wants at this zoom, and how big to lay it. */
+export function grainTile(tooth: number, scale: number): GrainTile {
+  // About one tile pixel per device pixel, in whole pixels so the tile is a
+  // whole number of cells across and its repeat lands the lattice exactly where
+  // the next copy of it continues. Capped, because past `MAX_CELL` the bitmap
+  // costs more than the detail is worth.
+  const cell = Math.max(1, Math.min(MAX_CELL, Math.round(tooth * scale)));
+  // …and laid down at the *sheet's* pitch rather than the screen's, which is
+  // what pins the grain to the page: one cell of the tile is one tooth of the
+  // paper, so the tile covers the same `CELLS × tooth` of page however far it
+  // is zoomed. Rounding `cell` above therefore costs a slight resample and
+  // nothing else; dividing by the zoom here instead is what makes paper crawl.
+  return { cell, perPixel: tooth / cell };
+}
+
 /** One built tile, keyed by what it was built from. Held across repaints
- *  because a tile is the same tile until the zoom changes — and thrown away
- *  wholesale when the map grows past a handful, which is all the eviction a
- *  cache holding at most a few hundred kilobytes needs. */
+ *  because a tile is the same tile until the zoom crosses into the next
+ *  resolution — and thrown away wholesale when the map grows past a handful,
+ *  which is all the eviction a cache this size needs.
+ *
+ *  Sized to `MAX_CELL`, so one sheet's whole ladder of resolutions fits and a
+ *  zoom swept end to end builds each rung once rather than rebuilding the coarse
+ *  ones on the way back. That is eight tiles of `(cell × CELLS)²`, a little over
+ *  three megabytes with the largest of them in it. */
 const tiles = new Map<string, HTMLCanvasElement>();
-const TILE_CACHE = 8;
+const TILE_CACHE = MAX_CELL;
 
 /** Paint the sheet's grain over `page`, in document coordinates.
  *
@@ -101,17 +167,12 @@ export function paintGroundTexture(
   const showing = graininess(cellPx);
   if (showing <= 0) return;
 
-  // Whole device pixels per cell, which is what keeps a tile seamless: the tile
-  // is a whole number of cells across, so the rasteriser's repeat lands the
-  // lattice exactly where the next copy of it continues.
-  const cell = Math.max(1, Math.round(cellPx));
+  const { cell, perPixel } = grainTile(ground.tooth, scale);
   const tile = tileFor(ground.pattern, cell);
   if (!tile) return;
   const pattern = ctx.createPattern(tile, "repeat");
   if (!pattern) return;
-  // Device pixels back into document units, so one pixel of the tile is one
-  // pixel of the screen however far the page is zoomed.
-  pattern.setTransform(new DOMMatrix([1 / scale, 0, 0, 1 / scale, 0, 0]));
+  pattern.setTransform(new DOMMatrix([perPixel, 0, 0, perPixel, 0, 0]));
 
   ctx.save();
   ctx.globalAlpha = ctx.globalAlpha * Math.min(1, ground.bite) * showing;
@@ -136,18 +197,23 @@ function tileFor(
 }
 
 /** Draw one tile at full strength — the caller turns it down to the sheet's own
- *  bite, so the same tile serves a hot-pressed sheet and a rough one. */
+ *  bite, so the same tile serves a hot-pressed sheet and a rough one.
+ *
+ *  `cell` is the only thing that varies with zoom, and it is a *resolution*:
+ *  the lattice below is walked in cell indices and hashed off them, so the tile
+ *  built at 3 pixels a cell and the tile built at 6 are the same sheet, one of
+ *  them drawn twice as finely. That is what lets the zoom pick a tile without
+ *  the paper changing. */
 function buildTile(
   pattern: GroundPattern,
   cell: number,
 ): HTMLCanvasElement | null {
-  const cells = Math.max(6, Math.min(64, Math.round(TILE_BUDGET / cell)));
-  const span = cell * cells;
+  const span = cell * CELLS;
   const surface = createSurface(span, span);
   if (!surface) return null;
   const ctx = surface.ctx;
-  if (pattern === "cloth") weave(ctx, cell, cells);
-  else tooth(ctx, cell, cells);
+  if (pattern === "cloth") weave(ctx, cell, CELLS);
+  else tooth(ctx, cell, CELLS);
   return surface.canvas;
 }
 
