@@ -14,10 +14,14 @@ import { groundProfile } from "../src/app/ground.ts";
 import { paintWash } from "../src/app/plugins/aquarelle.ts";
 import { paintSimulatedWash } from "../src/app/plugins/washSim.ts";
 import {
+  DEFAULT_WASH_DETAIL,
   DEFAULT_WASH_ENGINE,
+  MIN_WASH_DETAIL,
   isWashEngine,
   paintWashWith,
+  setWashDetail,
   setWashEngine,
+  washDetail,
   washEngine,
   WASH_ENGINES,
 } from "../src/app/plugins/wash.ts";
@@ -82,6 +86,41 @@ describe("the watercolour engine setting", () => {
     expect(
       parseSettings(JSON.stringify({ washEngine: "simulation" })).washEngine,
     ).toBe("simulation");
+  });
+
+  it("opens at the whole of the simulation's field", () => {
+    // Anything less would be a build quietly painting a coarser wash than its
+    // own sample shows. Turning it down is the user's trade to make.
+    expect(DEFAULT_WASH_DETAIL).toBe(1);
+    expect(defaultSettings().washDetail).toBe(1);
+  });
+
+  it("pulls a stored detail back onto the slider's own track", () => {
+    expect(parseSettings(JSON.stringify({ washDetail: 0.5 })).washDetail).toBe(
+      0.5,
+    );
+    // A tenth is the floor: below it a "field" is a handful of cells the size
+    // of the brush. Above one there is nothing more to resolve.
+    expect(parseSettings(JSON.stringify({ washDetail: 0 })).washDetail).toBe(
+      MIN_WASH_DETAIL,
+    );
+    expect(parseSettings(JSON.stringify({ washDetail: 4 })).washDetail).toBe(1);
+    expect(
+      parseSettings(JSON.stringify({ washDetail: "half" })).washDetail,
+    ).toBe(1);
+  });
+
+  it("holds one detail in force beside the engine", () => {
+    try {
+      setWashDetail(0.4);
+      expect(washDetail()).toBe(0.4);
+      // Clamped on the way in as well, so nothing downstream has to re-check.
+      setWashDetail(0);
+      expect(washDetail()).toBe(MIN_WASH_DETAIL);
+    } finally {
+      setWashDetail(DEFAULT_WASH_DETAIL);
+    }
+    expect(washDetail()).toBe(1);
   });
 
   it("holds one engine in force for the whole app", () => {

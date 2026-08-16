@@ -688,6 +688,29 @@ their width, so re-tuning a dial never re-draws work you already did. And a dial
 left alone is recorded nowhere at all — a drawing made without touching one is
 exactly the document it would have been.
 
+## Some settings are about the painting, not the next mark
+
+A dial tunes the mark you are about to make. A tool can also declare an
+**option**, and that is a different animal: it says how marks of its kind are
+_painted_, for every drawing you own, including the ones already made. The
+watercolour brush is the only tool with any today — which of the two wash
+engines is painting, and how finely the heavier one resolves — and they sit in
+the same panel as its dials, under **Rendering**, above them.
+
+They are in the brush's panel because that is where the answer is: a wash engine
+is a property of the brush rather than of the app, and it is a choice nobody can
+make by reading about it. So the two engines are shown rather than described —
+each is a swatch of the same stroke, on the same paper, in the ink you are
+holding, painted by the engine it names. Press one and the page behind repaints
+with it. (They used to be a section of Settings → Tools.)
+
+Nothing about an option is recorded on a mark, and that is the point: a setting
+kept per stroke would mean changing it orphaned everything drawn before. It is a
+way of looking at the page, like the canvas theme — so a wash drawn with one
+engine paints with whichever is in force when the page is next painted, and a
+phone that cannot afford the simulation still opens a page painted with it on a
+desktop.
+
 ## The fills and the dropper read the page
 
 Some tools need to know what is actually painted, not what was drawn — the
@@ -753,7 +776,8 @@ Three steps, none of which touch the canvas, the store, or the toolbar:
    range, the five buttons, and the trade's name for each), `dials` if it has
    anything of its own to tune, `swatches` if it mixes inks of its own rather
    than drawing with the toolbar's (or `fixedInk` if its colour is what it is
-   made of and no palette can reach it), `presets` if its medium has more than one
+   made of and no palette can reach it), `options` if it has a setting about how
+   its marks are painted rather than about the next one (see above), `presets` if its medium has more than one
    way of being held (and if it has exactly one, make that its defaults instead
    of a row of one chip), and `group` if it belongs to a family
    that already has a button (a twelfth shape is one line in the `SHAPES`
@@ -761,7 +785,9 @@ Three steps, none of which touch the canvas, the store, or the toolbar:
    size button; one whose mark cannot picture itself says
    `sizePreview: "circle"`.
 3. Add those two strings to `src/app/i18n/en.ts` (and `sv.ts`) — plus one per
-   preset, under `presets.<tool id>`.
+   preset, under `presets.<tool id>`. Keep the panel's own copy short: a control
+   that has to be explained in the panel every time it is opened belongs in
+   `docs/` with a label on it.
 
 Externally-loaded plugins are not implemented yet. When they land they register
 through this same interface rather than a second, parallel one — which is the

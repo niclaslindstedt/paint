@@ -436,6 +436,9 @@ export function sameFrame(a: CacheSpec, b: CacheSpec): boolean {
     // wash on the page without touching a stroke — the third of the edits this
     // comparison would otherwise be blind to.
     a.options.washEngine === b.options.washEngine &&
+    // …and how finely it is working, which changes the same washes without
+    // touching a stroke either.
+    a.options.washDetail === b.options.washDetail &&
     // The sheet: change the paper and every mark on the page is painted
     // differently — the grain under them, and how the wet ones mix with what
     // they are over.

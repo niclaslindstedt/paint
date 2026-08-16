@@ -171,6 +171,7 @@ import {
   TYPE_GAUGE,
   WASH_GAUGE,
 } from "./gauges.ts";
+import { WASH_OPTIONS } from "../washOptions.ts";
 import { dropperBehaviour } from "./dropper.ts";
 import { fillBehaviour } from "./fill.ts";
 import {
@@ -543,6 +544,12 @@ export function registerBuiltinPlugins(): void {
     // paints exactly as it always has.
     wetness: 1,
     dials: [OPACITY, WATER, PIGMENT, GRANULATION],
+    // …and the two settings that are about the *painting* rather than about the
+    // next mark: which of the two watercolours this build paints with, and how
+    // finely the heavier one resolves. They live under the widths with the
+    // dials, because they are judged by painting with them (see
+    // `plugins/washOptions.ts`).
+    options: WASH_OPTIONS,
     // Wet-in-wet, glaze and dry brush: the techniques those three dials are the
     // controls for, under the names a watercolourist already uses.
     presets: WASH_PRESETS,

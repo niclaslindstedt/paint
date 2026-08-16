@@ -128,6 +128,91 @@ export type ToolDial = {
   choices?: readonly { value: number; label: string }[];
 };
 
+/** A picture of what one answer to a `ToolOption` does, painted by the tool that
+ *  offers it.
+ *
+ *  The context arrives already scaled so that the option's `sample` box fills
+ *  it, and the ink and the page are the ones the toolbar is holding — so a
+ *  preview is the mark this answer would make, on your page, in your colour,
+ *  the way the width row's presses are (see `toolbar/PressPreview.tsx`).
+ *
+ *  It is a callback rather than a declaration because a picture of an answer is
+ *  the tool's own business: the panel that draws it must not learn what a wash
+ *  engine is to show one. */
+export type ToolOptionPreview = (
+  ctx2d: CanvasRenderingContext2D,
+  look: { color: string; background: string },
+) => void;
+
+/** One answer to a `ToolOption` — a value, what to call it, and (where there is
+ *  one worth painting) a picture of what it does. */
+export type ToolOptionAnswer = {
+  /** What is stored when this answer is picked. */
+  value: string;
+  nameKey: TKey;
+  /** The line under the name saying what this answer is for — including what it
+   *  costs, which is the honest half of a choice between a cheap way and an
+   *  expensive one. */
+  hintKey: TKey;
+  preview?: ToolOptionPreview;
+};
+
+/** One app-wide setting a tool offers — shown in the tool's own panel, beside
+ *  its dials, and stored in the app settings rather than on a stroke.
+ *
+ *  A dial is *how this mark is made* and rides on the stroke for good; an option
+ *  is **how marks of this kind are painted**, for every drawing, including the
+ *  ones already made. The watercolour engine is the case that made the seam:
+ *  which of the two watercolours a build paints with is a rendering choice, not
+ *  a property of any wash, so recording it on a stroke would mean changing it
+ *  orphaned every wash drawn before (see `plugins/wash.ts`).
+ *
+ *  It used to live on a page in Settings, and that was the wrong place twice
+ *  over: it is a property of the brush rather than of the app, and it is judged
+ *  by *painting with it* — which means it belongs where your hand already is
+ *  when you are painting, under the widths.
+ *
+ *  The value lives in the settings blob under this option's `id`, which is a
+ *  settings key by construction (see `plugins/options.ts`). That is the whole of
+ *  the wiring: a tool declares its options, the panel renders whatever it
+ *  declared, and nothing outside `plugins/` learns one by name. */
+export type ToolOption = ToolOptionChoice | ToolOptionRange;
+
+type ToolOptionCommon = {
+  /** Stable id, and the settings key the value is kept under — so renaming one
+   *  forgets the choice. */
+  id: string;
+  /** Catalog key for the label above the control. A range interpolates
+   *  `{value}` with its percentage, the way a dial's does. */
+  nameKey: TKey;
+  /** Shown only while another option is on a given value — how a setting that
+   *  belongs to *one answer* stays out of the way of the rest. The wash detail
+   *  is one: it says how finely the simulation resolves, and there is nothing
+   *  for it to say while the stroke engine is painting. */
+  shownWhen?: { option: string; is: string };
+};
+
+export type ToolOptionChoice = ToolOptionCommon & {
+  kind: "choice";
+  /** The answers, in the order the panel lays them out: the default first. */
+  answers: readonly ToolOptionAnswer[];
+  default: string;
+  /** The page a preview paints on, in document pixels. Big enough that a real
+   *  width and a real paper grain are both themselves at the size the swatch is
+   *  drawn at; the panel scales it down to fit. */
+  sample?: { width: number; height: number };
+};
+
+export type ToolOptionRange = ToolOptionCommon & {
+  kind: "range";
+  min: number;
+  max: number;
+  step: number;
+  default: number;
+  /** Catalog key for the line under the slider. */
+  hintKey: TKey;
+};
+
 /** One ink a tool mixes for **itself**, past the one the toolbar holds — what
  *  the tool's own settings panel offers as a row of swatches.
  *
@@ -265,6 +350,11 @@ export type PaintDetail = {
    *  Absent is the simple engine, which is what every painter called directly
    *  gets and what this app has always painted. */
   wash?: WashEngine;
+  /** …and how finely that engine resolves, where it resolves anything at all
+   *  (see `MIN_WASH_DETAIL`). Handed down beside the engine and for the same
+   *  reason: it changes the picture, so every surface painting the same document
+   *  has to be told the same number. Absent is all of it. */
+  washDetail?: number;
   /** The only part of the page this paint will be **kept**, in document
    *  coordinates — the window, a strip of it coming into view under a drag, or
    *  the patch a gesture has just grown into (see `trail.ts`). Absent means all
@@ -607,6 +697,14 @@ export type PaintPlugin = {
    *  the tool's settings panel and dims the toolbar's ink button, because a tool
    *  that carries its own colours does not draw with that one. */
   swatches?: readonly ToolSwatch[];
+  /** The app-wide settings this tool offers — see `ToolOption`. They sit in the
+   *  same panel as the dials, under a heading of their own, because they are a
+   *  different kind of thing: a dial tunes the *next* mark, an option changes
+   *  how every mark of this kind is painted, on every drawing.
+   *
+   *  The watercolour brush is the only tool with any today: which of the two
+   *  engines paints a wash, and how finely the heavier one resolves. */
+  options?: readonly ToolOption[];
   /** The settings this tool is actually used at — the "must haves" of the
    *  medium, offered as chips above the ones the user saved (see
    *  `BuiltinPreset` for the rules, and `plugins/builtin/presets.ts` for the

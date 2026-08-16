@@ -54,7 +54,7 @@ import {
 import { paintRegion } from "./plugins/brushes.ts";
 import { pluginById } from "./plugins/registry.ts";
 import { applyInk, paintPath, paintRect, paintSegment } from "./plugins/ink.ts";
-import { washEngine, type WashEngine } from "./plugins/wash.ts";
+import { washDetail, washEngine, type WashEngine } from "./plugins/wash.ts";
 import { FULL_DETAIL, type PaintDetail } from "./plugins/types.ts";
 import { createSurface, type Surface } from "./surface.ts";
 import type { Drawing, Ground, Stroke } from "./types.ts";
@@ -336,6 +336,12 @@ export type RenderOptions = InkContext & {
    *  *see* it change (see `frame.ts`), and the settings page, which paints a
    *  sample of each engine side by side. */
   washEngine?: WashEngine;
+  /** …and how finely that engine resolves (see `MIN_WASH_DETAIL`). Absent means
+   *  the detail the app has in force, for the same reason the engine's absence
+   *  does — and it is set by the same caller for the same reason: the canvas
+   *  passes the value it read so the mark cache can see it change, because a
+   *  coarser field is a different picture of the same document. */
+  washDetail?: number;
   /** Marks to leave off this repaint, by stroke id.
    *
    *  One caller: the canvas, while a selection is being dragged. The marks in
@@ -1040,6 +1046,7 @@ function detailFor(
     scale: options.scale ?? renderScale(ctx),
     ground: groundProfile(options.ground),
     wash: options.washEngine ?? washEngine(),
+    washDetail: options.washDetail ?? washDetail(),
     // The same box the stroke cull uses, handed down so a painter can skip the
     // stamps that cannot reach it as well (see `PaintDetail.clip`). A mark that
     // covers the window is one stroke to the cull and three hundred cones to

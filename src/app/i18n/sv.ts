@@ -333,6 +333,17 @@ export const sv: Catalog = {
       hint: "Hur tungt pigmentet sjunker ner i papperets gropar. Grovt papper och jordfärger granulerar mest.",
     },
   },
+  options: {
+    title: "Återgivning",
+    washEngine: "Lavering",
+    washSimple: "Drag",
+    washSimpleHint: "Snabb, och likadan på alla enheter.",
+    washSimulation: "Pigment",
+    washSimulationHint:
+      "Vatten på papper som torkar steg för steg. Mycket långsammare.",
+    washDetail: "Detaljnivå: {value} %",
+    washDetailHint: "Lägre är snabbare och grövre.",
+  },
   presets: {
     pencil: {
       liner: "Kontur",
@@ -679,15 +690,6 @@ export const sv: Catalog = {
       shortcut: "Kortkommando: {key}",
       moveUp: "Flytta {name} tidigare i verktygsfältet",
       moveDown: "Flytta {name} senare i verktygsfältet",
-      washTitle: "Akvarell",
-      washHint:
-        "Två sätt att måla en lavering. Båda läser samma tre rattar och samma papper, så det här ändrar hur en lavering ritas och inget av det du ställt in — varje lavering i varje teckning, även de du redan gjort.",
-      washSimple: "Drag",
-      washSimpleHint:
-        "En lavering är en form med torkad kant och skvättig ytstruktur. Snabb, och likadan på alla enheter.",
-      washSimulation: "Pigment",
-      washSimulationHint:
-        "Vatten och pigment på papper som torkar steg för steg: blomningar, bakslag och en kant som lägger sig där den torkar. Mycket långsammare — märks på en stor sida eller en äldre telefon.",
     },
     download: {
       intro:

@@ -98,6 +98,10 @@ export type Frame = {
    *  see it change — switching engine repaints the page rather than blitting
    *  the picture the other one left. */
   washEngine: WashEngine;
+  /** …and how finely it resolves, for the same reason: turning the detail down
+   *  repaints every wash on the page without touching a stroke, so the cache
+   *  has to be able to see it move (see `MIN_WASH_DETAIL`). */
+  washDetail: number;
   /** Bumped whenever a bitmap finishes decoding — see `CacheSpec`. */
   decodedAt: number;
   /** An effect the dialog is setting up, shown on the layers it would land on
@@ -142,6 +146,7 @@ export function paintFrame(frame: Frame): void {
     grid: frame.showGrid ? GRID_STEP : undefined,
     checker: frame.checker,
     washEngine: frame.washEngine,
+    washDetail: frame.washDetail,
     // The effect being set up, if a dialog is open on one. It goes through the
     // renderer rather than being composited over the finished frame, because an
     // effect lands on *layers*: what the preview shows has to be the same

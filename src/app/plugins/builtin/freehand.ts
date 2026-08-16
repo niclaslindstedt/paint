@@ -22,7 +22,11 @@ import { extraDials, strokeDial } from "../dials.ts";
 import { paintGraphite } from "../graphite.ts";
 import { applyInk, distance, paintPath, strokeColor } from "../ink.ts";
 import { paintRubbing } from "../rubber.ts";
-import { DEFAULT_WASH_ENGINE, paintWashWith } from "../wash.ts";
+import {
+  DEFAULT_WASH_DETAIL,
+  DEFAULT_WASH_ENGINE,
+  paintWashWith,
+} from "../wash.ts";
 import {
   FULL_DETAIL,
   type DraftStroke,
@@ -209,6 +213,10 @@ export function freehandBehaviour(ink: FreehandInk = {}): ToolBehaviour {
             // the colour as a value: what it lays down is a *density*, and the
             // colour is what light has to get through (see `washSim.ts`).
             strokeColor(stroke),
+            // …and how finely the simulation is set to resolve, which is the
+            // one of these that is about the *cost* of the mark rather than
+            // about the mark (see `MIN_WASH_DETAIL`).
+            detail.washDetail ?? DEFAULT_WASH_DETAIL,
           );
           return;
         case "spray":

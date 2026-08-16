@@ -31,21 +31,46 @@
 // reads, and the exported PNG. A setting passed from hand to hand is a setting
 // one of those forgets to pass, and a dropper sampling a page painted by the
 // other engine is a bug nobody would find. `RenderOptions.washEngine` overrides
-// it where a caller genuinely wants a named engine — the settings page paints a
-// sample of each, side by side.
+// it where a caller genuinely wants a named engine — the brush's own panel
+// paints a sample of each, side by side.
+//
+// Both of the settings here belong to the *tool*, and that is where they are
+// set: the watercolour plugin declares them as its **options**, and the panel
+// the size button opens renders them under the widths (see
+// `plugins/washOptions.ts` and `plugins/options.ts`). Picking an engine is
+// something you do with the brush in your hand, not on a page in a dialog.
 
 import { SOLID_GROUND, type GroundProfile } from "../ground.ts";
 import type { TKey } from "../i18n/index.ts";
 import type { Point } from "../types.ts";
 import { paintWash } from "./aquarelle.ts";
-import { paintSimulatedWash } from "./washSim.ts";
+import {
+  DEFAULT_WASH_DETAIL,
+  clampWashDetail,
+  paintSimulatedWash,
+} from "./washSim.ts";
 
 /** Which of the two is painting. */
 export type WashEngine = "simple" | "simulation";
 
-/** One engine as the settings page offers it. Named the way the stocks in
+/** How finely the simulation resolves a wash, as a share of the field it would
+ *  run at full detail — the second half of the choice this module holds, and
+ *  the simulation's alone (the stroke model has no field to coarsen).
+ *
+ *  Declared where the grid it coarsens is (`washSim.ts`) and re-exported here,
+ *  because this is the module everything outside `plugins/` reads the wash
+ *  settings from. */
+export {
+  MIN_WASH_DETAIL,
+  MAX_WASH_DETAIL,
+  DEFAULT_WASH_DETAIL,
+  clampWashDetail,
+} from "./washSim.ts";
+
+/** One engine as the brush's own panel offers it. Named the way the stocks in
  *  `ground.ts` are, and for the same reason: the picker renders whatever is
- *  declared here rather than knowing either engine by name. */
+ *  declared here rather than knowing either engine by name (see
+ *  `plugins/washOptions.ts`, which wraps these as the tool's options). */
 export type WashEngineDescriptor = {
   id: WashEngine;
   nameKey: TKey;
@@ -58,13 +83,13 @@ export type WashEngineDescriptor = {
 export const WASH_ENGINES: readonly WashEngineDescriptor[] = [
   {
     id: "simple",
-    nameKey: "settings.tools.washSimple",
-    hintKey: "settings.tools.washSimpleHint",
+    nameKey: "options.washSimple",
+    hintKey: "options.washSimpleHint",
   },
   {
     id: "simulation",
-    nameKey: "settings.tools.washSimulation",
-    hintKey: "settings.tools.washSimulationHint",
+    nameKey: "options.washSimulation",
+    hintKey: "options.washSimulationHint",
   },
 ];
 
@@ -78,6 +103,7 @@ export function isWashEngine(value: unknown): value is WashEngine {
 }
 
 let inForce: WashEngine = DEFAULT_WASH_ENGINE;
+let inForceDetail: number = DEFAULT_WASH_DETAIL;
 
 /** The engine every repaint uses unless it was told otherwise. */
 export function washEngine(): WashEngine {
@@ -90,6 +116,17 @@ export function setWashEngine(engine: WashEngine): void {
   inForce = engine;
 }
 
+/** How finely the simulation resolves, for a repaint that was told nothing. */
+export function washDetail(): number {
+  return inForceDetail;
+}
+
+/** Put a detail in force — the other half of `setWashEngine`, set from the same
+ *  place at the same time. */
+export function setWashDetail(detail: number): void {
+  inForceDetail = clampWashDetail(detail);
+}
+
 /** Paint a wash with the engine named.
  *
  *  The simulation answers whether it actually ran, and a `false` falls through
@@ -98,7 +135,12 @@ export function setWashEngine(engine: WashEngine): void {
  *  thing every caller has to remember. A browser with no canvas to simulate on,
  *  a mark too small to be worth a field, a page-wide sweep whose cells would be
  *  wider than the brush: all of them paint, and all of them paint the same mark
- *  this app has always painted. */
+ *  this app has always painted.
+ *
+ *  `detail` is the simulation's alone, which is why it is last: it says how much
+ *  of the field to run (see `MIN_WASH_DETAIL`), and turning it down is one more
+ *  way a mark falls through — a head only a couple of coarse cells across has
+ *  nothing left for a field to resolve. */
 export function paintWashWith(
   engine: WashEngine,
   ctx: CanvasRenderingContext2D,
@@ -110,6 +152,7 @@ export function paintWashWith(
   granulation = 0.6,
   ground: GroundProfile = SOLID_GROUND,
   color = "#000000",
+  detail = DEFAULT_WASH_DETAIL,
 ): void {
   if (engine === "simulation") {
     const painted = paintSimulatedWash(
@@ -122,6 +165,7 @@ export function paintWashWith(
       granulation,
       ground,
       color,
+      detail,
     );
     if (painted) return;
   }

@@ -83,12 +83,14 @@ nothing, and a loaded brush on a sealed page behaves exactly as it always has.
 
 ## Two watercolours
 
-There are two ways of painting a wash, and **Settings → Tools → Watercolour**
-picks between them. Both read the same three dials — water, pigment,
-granulation — and the same sheet, so switching is a change of how a wash is
-drawn and not of anything you have set. It applies to every wash on every
-drawing, including the ones already made: the engine is a way of looking at the
-page, not something recorded in the file.
+There are two ways of painting a wash, and the watercolour brush's own panel
+picks between them: take up the brush, press the size button, and the two are
+under **Rendering**, each shown as a swatch of the same stroke painted by the
+engine it names. Both read the same three dials — water, pigment, granulation —
+and the same sheet, so switching is a change of how a wash is drawn and not of
+anything you have set. It applies to every wash on every drawing, including the
+ones already made: the engine is a way of looking at the page, not something
+recorded in the file.
 
 **Stroke** is the default. A wash is a shape: it runs past the hair that laid
 it, both edges wander with the paper, the rim is drawn dark, and the pigment is
@@ -107,6 +109,15 @@ and you will feel it on a big page, on a page with many washes on it, and on an
 older phone. It is opt-in for that reason. If a browser cannot run it at all,
 or a mark is too small to be worth simulating, that mark is painted with the
 stroke engine instead: no drawing ever fails to open because of the setting.
+
+**Detail** is the dial that decides how much it costs, and it appears under the
+swatches as soon as the simulation is the one painting. It is how finely the
+water is worked out, from a tenth up to all of it, and what it buys is the
+square of itself: half the detail is a quarter of the work. What it costs is the
+fine half of the picture — the rim thins, the mottle broadens, and a small brush
+on a coarse enough setting is painted as a plain stroke instead. It is the
+control to reach for when the simulation is the picture you want and your device
+is not keeping up with it.
 
 ## Layers keep the water apart
 

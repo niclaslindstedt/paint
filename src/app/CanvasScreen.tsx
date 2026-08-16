@@ -49,6 +49,7 @@ import { initialPlacement, type Placement } from "./placement.ts";
 import { imageStroke } from "./plugins/builtin/image.ts";
 import { textStroke, TEXT_TOOL_ID } from "./plugins/builtin/text.ts";
 import { resolveDials, tunedDials } from "./plugins/dials.ts";
+import { resolveOptions, type ToolOptionValue } from "./plugins/options.ts";
 import {
   hasPicked,
   pickedSwatches,
@@ -298,6 +299,21 @@ export function CanvasScreen({
   const inking = settings.toolColors[tool];
   const colorValues = resolveSwatches(activePlugin, inking);
   const inkColors = pickedSwatches(activePlugin, inking);
+
+  // …and the tool's app-wide settings, which need only the one read: an option
+  // is not a property of the next mark, it is how marks of this kind are
+  // painted, so nothing about it reaches a stroke (see `plugins/options.ts`).
+  // They live in the settings blob under their own ids, which is why setting one
+  // is an ordinary `update` — an option *is* a setting, declared by the tool it
+  // is about. The cast is that contract: `tests/options_test.ts` holds every
+  // declared id to being a key of `AppSettings`, so nothing here has to know
+  // which settings the tools in the box happen to name.
+  const optionValues = resolveOptions(activePlugin, settings);
+  const setOption = useCallback(
+    (id: string, value: ToolOptionValue) =>
+      update(id as keyof AppSettings, value as AppSettings[keyof AppSettings]),
+    [update],
+  );
 
   // …and the same two reads for the *text* tool, whatever is in hand. A caption
   // is normally opened by the text tool, in which case these are the numbers
@@ -835,6 +851,7 @@ export function CanvasScreen({
             showGrid={settings.showGrid}
             checker={checker}
             washEngine={settings.washEngine}
+            washDetail={settings.washDetail}
             fitToken={fitToken}
             refitToken={refitToken}
             onScaleChange={setScale}
@@ -1065,6 +1082,8 @@ export function CanvasScreen({
         onToolColorChange={(swatch, color) =>
           palette.setColor(tool, swatch, color)
         }
+        optionValues={optionValues}
+        onOptionChange={setOption}
         onResetDials={() => palette.resetDials(tool)}
         // One reset for the panel, so one answer to "is this tool as it
         // ships?": a dial off its default, or an ink off the one the tool was
