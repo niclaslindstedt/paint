@@ -33,6 +33,7 @@
 import type { ReactNode } from "react";
 
 import type { GroundProfile } from "../ground.ts";
+import type { Rect } from "../geometry.ts";
 import type { Point, Stroke } from "../types.ts";
 import type { TKey } from "../i18n/index.ts";
 import type { SizeGauge } from "./gauge.ts";
@@ -264,6 +265,21 @@ export type PaintDetail = {
    *  Absent is the simple engine, which is what every painter called directly
    *  gets and what this app has always painted. */
   wash?: WashEngine;
+  /** The only part of the page this paint will be **kept**, in document
+   *  coordinates — the window, a strip of it coming into view under a drag, or
+   *  the patch a gesture has just grown into (see `trail.ts`). Absent means all
+   *  of it, which is what an export asks for.
+   *
+   *  The renderer already skips whole marks that cannot reach it
+   *  (`geometry.ts`); this hands the same box *down into* the painter, for the
+   *  ones that build a mark out of hundreds of small stamps. An airbrush stroke
+   *  across a page is a few hundred cones, and repainting a thumbnail-sized
+   *  patch of it should cost the cones in that patch rather than all of them.
+   *
+   *  It is a permission to skip, never an instruction to clip: a painter that
+   *  ignores it draws exactly what it always drew, and one that honours it must
+   *  only ever drop stamps that could not have landed inside the box anyway. */
+  clip?: Rect;
 };
 
 /** The detail a painter assumes when it is handed none — 1:1 onto a plain
@@ -452,6 +468,46 @@ export type PaintPlugin = {
    *  else. It is deliberately *not* on the stroke — the sheet a drawing is on
    *  can be changed, and when it is, every mark on it has to answer again. */
   wetness?: number;
+  /** True when this tool's mark **grows from the front**: every stamp in it
+   *  depends only on the path up to that stamp, so making the stroke longer
+   *  cannot change a pixel more than a nib's reach behind the new points.
+   *
+   *  It is a promise about the *painter*, and it is what lets the canvas repaint
+   *  a gesture in flight only where it has just grown instead of from the first
+   *  point every frame (see `trail.ts`). On a long airbrush stroke that is the
+   *  difference between a frame costing three hundred cones and costing five —
+   *  and the cost of getting it wrong is a stale patch of screen, so the default
+   *  is no and every tool that claims it has to be read for:
+   *
+   *   - the spray, the plain and soft lines, the felt tip and the broad nib all
+   *     qualify: each resamples the path forwards and stamps what it finds;
+   *   - the brush, the crayon, the pencil and the rubber do **not**. Their
+   *     texture is fitted to the mark as a whole — a grain that coarsens to stay
+   *     inside a budget, a run-out measured back from the end, a fade-in whose
+   *     length is a fraction of the total — so a longer stroke repaints
+   *     differently all the way back to its first point;
+   *   - watercolour does not either: a wash is a simulation over the whole path.
+   *
+   *  A tool that erases or that soaks into the sheet is excluded whatever it
+   *  says here, because both of those read the pixels they land on. */
+  grows?: boolean;
+  /** How far past its own path this tool's painter can reach, as a multiple of
+   *  the stroke's width. Absent means the generous default in `geometry.ts`,
+   *  which is what every tool that has not been read for this gets.
+   *
+   *  It is the number two things are decided by: whether a mark is far enough
+   *  off screen to skip entirely, and — while it is being drawn — how big a
+   *  patch of screen the samples that just arrived can have changed (see
+   *  `trail.ts`). The first only wants an *upper bound*, so being loose costs a
+   *  stroke painted that needn't have been; the second pays for slack in area,
+   *  which is why it is worth declaring honestly on the wide, soft tools. An
+   *  airbrush throws a cone 1.6 times its width, and a patch padded by four
+   *  times it instead is six times the pixels.
+   *
+   *  Being *wrong* the other way is a visible glitch — a mark culled with a
+   *  corner still on screen, or a stale patch of a stroke being drawn — so read
+   *  the painter before you write a number here, and leave a little slack. */
+  reach?: number;
   /** True when the tool honours the fill toggle. */
   supportsFill?: boolean;
   /** True when the tool's gesture *chooses marks* rather than leaving one — the

@@ -59,6 +59,7 @@
 // (This file was `layer.ts` until the drawing itself grew layers. The bitmap
 // gave the word back.)
 
+import type { Rect } from "./geometry.ts";
 import { backgroundHidden, visibleStrokes } from "./layers.ts";
 import { groundProfile } from "./ground.ts";
 import {
@@ -394,8 +395,12 @@ function remember(
 
 /** Whether two specs describe the same picture, ignoring the strokes (which are
  *  compared separately, because "the same plus a few more" is a case worth
- *  knowing about). */
-function sameFrame(a: CacheSpec, b: CacheSpec): boolean {
+ *  knowing about).
+ *
+ *  Exported for the one other thing that asks "is this the same frame as the
+ *  last one": the gesture trail (`trail.ts`), which repaints a patch of the
+ *  screen and has to be sure the rest of it is still current. */
+export function sameFrame(a: CacheSpec, b: CacheSpec): boolean {
   return (
     a.drawing.id === b.drawing.id &&
     a.drawing.width === b.drawing.width &&
@@ -472,8 +477,12 @@ function grewFrom(
 }
 
 /** The slice of the page the window is showing, in document coordinates — what
- *  the renderer culls against. */
-function windowOnPage(spec: CacheSpec) {
+ *  the renderer culls against.
+ *
+ *  Exported for the frame around this one (`frame.ts`), which paints the
+ *  gesture in flight and any marks being dragged over the top and wants them
+ *  culled against the same window. */
+export function windowOnPage(spec: CacheSpec): Rect {
   const { view, width, height, dpr } = spec;
   return {
     x: -view.tx / view.scale,

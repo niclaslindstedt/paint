@@ -422,13 +422,32 @@ be much less than a full render:
   compares the _painted_ strokes, so hiding or reordering a layer repaints, and
   a mark landing under something already on the pixels repaints rather than
   compositing itself on top of it.
+- `trail.ts` does the same thing one level in, for the one stroke that _is_
+  changing: the gesture under your finger. Almost none of it changed either —
+  two samples arrived and everything behind them is already on the screen — so
+  a frame repaints only the patch the gesture has just grown into and leaves
+  the rest standing. Without it a gesture costs its own length every frame,
+  which is quadratic in how long you have been drawing: an airbrush stroke
+  across a page is a few hundred full-radius gradient fills, and repainting all
+  of them per sample is what made a long spray crawl. The patch is repainted
+  from the document rather than composited over what was there, so it is what a
+  full frame would have painted, and it is only taken where it is provably safe
+  — the tool has to declare that its mark **grows from the front**
+  (`PaintPlugin.grows`), and marks that rub out or soak into the sheet are
+  refused whatever they declare, because both read the pixels they land on.
 - `geometry.ts` gives each stroke a box, and the renderer skips the marks that
-  cannot reach the window it is painting.
+  cannot reach the window it is painting. How far past its path a painter
+  spreads is the tool's to declare (`PaintPlugin.reach`) with a generous
+  default, because that box is also the patch a gesture repaints — and there
+  slack costs area.
 - `PaintDetail` tells each painter how big its mark is coming out on the device
   it is bound for, and the textured painters drop the dabs, hairs and specks
   that would land inside a single device pixel. The medium's own numbers stay
   written as the medium — only the screen takes away — so a mark looks the same
-  as you zoom into it and the PNG export (always 1:1) is unchanged.
+  as you zoom into it and the PNG export (always 1:1) is unchanged. It also
+  carries the **patch being painted**, so a painter built out of hundreds of
+  stamps can skip the ones that cannot reach it: repainting a corner of an
+  airbrush stroke costs the cones in that corner rather than all of them.
 
 The cache holds no state the document doesn't: every path into it goes through
 `renderDrawing`, and where there is no DOM to build it in the canvas paints the

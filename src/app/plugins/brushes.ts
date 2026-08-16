@@ -38,6 +38,7 @@
 // intended.
 
 import { withAlpha } from "../color.ts";
+import type { Rect } from "../geometry.ts";
 import type { Point, Stroke } from "../types.ts";
 import { HAIRLINE, PIXEL, hashedRandom, resample } from "./grain.ts";
 import { paintPath } from "./ink.ts";
@@ -104,12 +105,23 @@ export function paintSoftPath(
  *  about as fast as it blends a bitmap, and the sprite adds a texture upload per
  *  colour the drawing uses. The dabs are cheap; there are simply a lot of them.)
  *
- *  So the saving that matters is drawing fewer of them: the dabs **thin out with
- *  the zoom**. The medium wants one every fifth of a radius; the screen can only
- *  show one per pixel, and past that point the extra dabs are invisible.
- *  Dropping them would fade the mark, so the ones that remain are darkened to
- *  stand for the ones that went — the coverage a stack of faint dabs builds is
- *  `1-(1-a)^n`, and that inverts exactly. */
+ *  So the saving that matters is drawing fewer of them, and there are two ways
+ *  to draw fewer.
+ *
+ *  The dabs **thin out with the zoom**. The medium wants one every fifth of a
+ *  radius; the screen can only show one per pixel, and past that point the extra
+ *  dabs are invisible. Dropping them would fade the mark, so the ones that
+ *  remain are darkened to stand for the ones that went — the coverage a stack of
+ *  faint dabs builds is `1-(1-a)^n`, and that inverts exactly.
+ *
+ *  And the dabs **outside the patch being painted are not drawn at all**. This
+ *  is the one that decides whether a long stroke is usable: repainting a mark
+ *  that covers the screen used to cost every cone in it however little of the
+ *  screen the caller actually wanted, so a gesture in flight cost its whole
+ *  length every frame and grew quadratically as you drew. A cone can only land
+ *  within its own radius of its centre, so the ones further than that from the
+ *  clip are skipped before the gradient is filled — and skipped from the grain
+ *  too, which is the larger half of the saving in path building. */
 export function paintSpray(
   ctx: CanvasRenderingContext2D,
   points: readonly Point[],
@@ -118,6 +130,7 @@ export function paintSpray(
   color: string,
   scale = 1,
   flow = 1,
+  clip?: Rect,
 ): void {
   const radius = Math.max(3, size * 1.6);
   const hard = Math.max(0, Math.min(1, hardness));
@@ -165,6 +178,9 @@ export function paintSpray(
 
   const along = resample(points, step);
   if (along.length === 0) return;
+  // Where a dab's centre has to be for any of its cone to land in the patch
+  // being painted: the patch, grown by the cone's own radius.
+  const reach = clip ? grown(clip, radius) : null;
 
   const cone = ctx.createRadialGradient(0, 0, 0, 0, 0, radius);
   cone.addColorStop(0, withAlpha(color, dab * alpha));
@@ -186,6 +202,7 @@ export function paintSpray(
   let atX = 0;
   let atY = 0;
   for (const p of along) {
+    if (reach && !inside(reach, p)) continue;
     ctx.translate(p.x - atX, p.y - atY);
     atX = p.x;
     atY = p.y;
@@ -207,6 +224,9 @@ export function paintSpray(
   ctx.beginPath();
   for (const [index, p] of along.entries()) {
     if (index % 2 === 1) continue;
+    // Skipped on the *position*, so which dabs carry grain is a property of the
+    // stroke and not of what the caller asked to repaint.
+    if (reach && !inside(reach, p)) continue;
     for (let n = 0; n < grains; n++) {
       const angle = hashedRandom(p.x, p.y, n * 2 + 1) * Math.PI * 2;
       // Biased outwards: the specks that read are the ones past the core,
@@ -227,6 +247,26 @@ export function paintSpray(
  *  is worth drawing. Below it the specks are sub-pixel arcs — a lot of path
  *  building for a texture the screen cannot show. */
 const GRAIN_FLOOR = 4;
+
+/** A box grown by `by` on every side. */
+function grown(box: Rect, by: number): Rect {
+  return {
+    x: box.x - by,
+    y: box.y - by,
+    width: box.width + by * 2,
+    height: box.height + by * 2,
+  };
+}
+
+/** Whether a point is in a box, edges included. */
+function inside(box: Rect, p: Point): boolean {
+  return (
+    p.x >= box.x &&
+    p.y >= box.y &&
+    p.x <= box.x + box.width &&
+    p.y <= box.y + box.height
+  );
+}
 
 // The crayon used to live here — five jittered passes of a plain line, with
 // a wobble scaled off the stroke's own width. It has moved to `crayon.ts` and

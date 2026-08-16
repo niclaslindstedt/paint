@@ -308,6 +308,20 @@ it crossed into its own wet edge, and runs further past the nib than the tool
 would on its own. A new medium declares how wet it is and gets all three; the
 renderer never learns what watercolour is called.
 
+`grows` and `reach` are the two flags nobody looking at the app can see, and
+they are what keeps a long stroke drawable. `reach` says how far past its own
+path a painter can spread, as a multiple of the width — 1.6 for an airbrush's
+cone, half a width for a plain line — and `grows` promises that every stamp in
+the mark depends only on the path up to it, so making the stroke longer cannot
+change anything more than a nib's reach behind the new samples. A tool that
+declares both is repainted **only where it has just been** while you draw it,
+instead of from its first point on every frame. Most tools cannot declare
+`grows` and should not: a brush whose run-out is measured back from the end, a
+crayon whose grain coarsens as the mark grows, and a wash that is simulated over
+the whole path all repaint differently all the way back when you add a sample.
+The default for both is the safe answer, and the honest thing to do with a new
+tool is leave them alone until someone has read its painter.
+
 `selects` is the flag for the tool that chooses marks rather than making one.
 The **selection** tool drags an ordinary two-corner draft — so it inherits the
 whole gesture pipeline, down to abandoning itself when a second finger lands —

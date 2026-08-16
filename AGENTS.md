@@ -93,6 +93,10 @@ The app owns the domain and the stores ("store stays in the app"):
 - `src/app/render.ts` — paints a drawing onto a 2D context by dispatching each
   stroke to the plugin that drew it. The screen, the in-flight gesture, and the
   PNG export all go through it, so there is one painting path.
+- `src/app/cache.ts` / `src/app/trail.ts` — what a _frame_ is allowed to skip:
+  the committed marks kept as pixels, and the gesture in flight repainted only
+  where it has just grown. Both are pure optimisations over `render.ts` and
+  both fall back to painting the document when they cannot be sure.
 - `src/app/press.ts` — what a press with a tool leaves behind, built by driving
   the plugin contract (`start` / `move` / `end`) rather than by knowing any tool.
   It is what the size button and the size panel preview, painted through

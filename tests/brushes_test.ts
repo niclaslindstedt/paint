@@ -14,6 +14,7 @@ import {
   paintCalligraphy,
   paintNib,
   paintRegion,
+  paintSpray,
 } from "../src/app/plugins/brushes.ts";
 import type { Point } from "../src/app/types.ts";
 
@@ -284,5 +285,51 @@ describe("a feathered fill", () => {
     paintRegion(ctx, square, 8, 0.02);
     expect(ctx.strokes).toHaveLength(0);
     expect(ctx.calls.fill).toBe(1);
+  });
+});
+
+// The airbrush is the one painter whose cost is *hundreds* of full-width fills
+// rather than one path, so it is the one that has to be able to skip them. What
+// it may skip is decided by geometry alone — a cone reaches its own radius and
+// no further — and the test that matters is that skipping never changes the
+// mark: painting with a clip that covers the page has to be the same picture as
+// painting with none.
+
+describe("the airbrush", () => {
+  const across: Point[] = [
+    { x: 0, y: 100 },
+    { x: 1000, y: 100 },
+  ];
+
+  /** How many dabs went down: one `fill` per cone, plus one for the grain. */
+  function fills(clip?: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  }): number {
+    const ctx = createFakeContext();
+    paintSpray(ctx, across, 20, 0.5, "#f00", 1, 1, clip);
+    return ctx.calls.fill ?? 0;
+  }
+
+  it("stamps a cone every fraction of a radius along the path", () => {
+    // A thousand pixels of path at a cone every fifth of its 32-pixel radius.
+    expect(fills()).toBeGreaterThan(100);
+  });
+
+  it("skips the cones that cannot reach the patch being painted", () => {
+    // A hundred pixels of the path, in the middle of a stroke ten times that.
+    const patch = { x: 450, y: 50, width: 100, height: 100 };
+    expect(fills(patch)).toBeLessThan(fills() / 4);
+    // …and it is not skipping everything: what is left is the cones over the
+    // patch, plus the ones within a radius either side of it.
+    expect(fills(patch)).toBeGreaterThan(5);
+  });
+
+  it("skips nothing when the patch is the whole page", () => {
+    expect(fills({ x: -500, y: -500, width: 3000, height: 2000 })).toBe(
+      fills(),
+    );
   });
 });

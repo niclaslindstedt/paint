@@ -4,6 +4,7 @@ import { join, posix, relative, sep } from "node:path";
 
 import type { HtmlTagDescriptor, Plugin, ResolvedConfig } from "vite";
 
+import { APP_NAME, CHANNEL_NAMES } from "./brand.ts";
 import { cacheIdForBase } from "./src/app/pwa.ts";
 
 // Hand-rolls the app's service worker at build time so the deployed app is an
@@ -54,17 +55,13 @@ const PUBLIC_SKIP = new Set([
 
 // Per-release-channel PWA display name. The three Pages channels share one
 // origin, so a channel-specific name installs the preview/branch builds as
-// visibly separate home-screen tiles instead of three identical "Paint" icons
-// that are impossible to tell apart once installed.
+// visibly separate home-screen tiles instead of three identical app icons that
+// are impossible to tell apart once installed. All three are the app's one
+// name plus a suffix — see `brand.ts`, which is the only place it is written.
 function channelName(base: string): { name: string; short_name: string } {
-  if (base === "/preview/")
-    return { name: "Paint (preview)", short_name: "Paint pre" };
-  if (base === "/branch/")
-    return { name: "Paint (branch)", short_name: "Paint br" };
-  return {
-    name: "Paint — a local-first sketchpad",
-    short_name: "Paint",
-  };
+  const channel = CHANNEL_NAMES[base];
+  if (channel) return { name: channel.name, short_name: channel.short };
+  return { name: APP_NAME, short_name: APP_NAME };
 }
 
 // Build the web app manifest for a given deploy base. Emitted per build rather
@@ -252,65 +249,78 @@ export function appPwa({
       config = resolved;
     },
 
-    // Wire the manifest, theme color, and apple-touch metadata into the shell.
-    // Done here (not in index.html) so the hrefs stay base-correct from one
-    // source of truth regardless of the configured `base`.
-    transformIndexHtml(): HtmlTagDescriptor[] {
-      return [
-        {
-          tag: "link",
-          attrs: { rel: "manifest", href: `${base}manifest.webmanifest` },
-          injectTo: "head",
-        },
-        // The raster fallback first: engines that don't honour the SVG favicon
-        // (Safari, crawlers) and the implicit /favicon.ico probe pick this up,
-        // while modern browsers prefer the typed SVG below.
-        {
-          tag: "link",
-          attrs: { rel: "icon", href: `${base}favicon.ico`, sizes: "32x32" },
-          injectTo: "head",
-        },
-        {
-          tag: "link",
-          attrs: {
-            rel: "icon",
-            type: "image/svg+xml",
-            href: `${base}icons/icon.svg`,
+    // Wire the app's name, the manifest, the theme color and the apple-touch
+    // metadata into the shell. Done here (not in index.html) so the hrefs stay
+    // base-correct from one source of truth regardless of the configured
+    // `base` — and so the *title* comes from one source of truth too: the tab,
+    // the manifest and iOS's home-screen label are three spellings of one name,
+    // and this is where they are all given it (see `brand.ts`).
+    transformIndexHtml(html: string): {
+      html: string;
+      tags: HtmlTagDescriptor[];
+    } {
+      const titled = html.replace(
+        /<title>[^<]*<\/title>/,
+        `<title>${APP_NAME}</title>`,
+      );
+      return {
+        html: titled,
+        tags: [
+          {
+            tag: "link",
+            attrs: { rel: "manifest", href: `${base}manifest.webmanifest` },
+            injectTo: "head",
           },
-          injectTo: "head",
-        },
-        {
-          tag: "link",
-          attrs: {
-            rel: "apple-touch-icon",
-            href: `${base}icons/apple-touch-icon-180.png`,
+          // The raster fallback first: engines that don't honour the SVG favicon
+          // (Safari, crawlers) and the implicit /favicon.ico probe pick this up,
+          // while modern browsers prefer the typed SVG below.
+          {
+            tag: "link",
+            attrs: { rel: "icon", href: `${base}favicon.ico`, sizes: "32x32" },
+            injectTo: "head",
           },
-          injectTo: "head",
-        },
-        {
-          tag: "meta",
-          attrs: { name: "theme-color", content: "#0b0d10" },
-          injectTo: "head",
-        },
-        {
-          tag: "meta",
-          attrs: { name: "apple-mobile-web-app-capable", content: "yes" },
-          injectTo: "head",
-        },
-        {
-          tag: "meta",
-          attrs: {
-            name: "apple-mobile-web-app-status-bar-style",
-            content: "black-translucent",
+          {
+            tag: "link",
+            attrs: {
+              rel: "icon",
+              type: "image/svg+xml",
+              href: `${base}icons/icon.svg`,
+            },
+            injectTo: "head",
           },
-          injectTo: "head",
-        },
-        {
-          tag: "meta",
-          attrs: { name: "apple-mobile-web-app-title", content: "Paint" },
-          injectTo: "head",
-        },
-      ];
+          {
+            tag: "link",
+            attrs: {
+              rel: "apple-touch-icon",
+              href: `${base}icons/apple-touch-icon-180.png`,
+            },
+            injectTo: "head",
+          },
+          {
+            tag: "meta",
+            attrs: { name: "theme-color", content: "#0b0d10" },
+            injectTo: "head",
+          },
+          {
+            tag: "meta",
+            attrs: { name: "apple-mobile-web-app-capable", content: "yes" },
+            injectTo: "head",
+          },
+          {
+            tag: "meta",
+            attrs: {
+              name: "apple-mobile-web-app-status-bar-style",
+              content: "black-translucent",
+            },
+            injectTo: "head",
+          },
+          {
+            tag: "meta",
+            attrs: { name: "apple-mobile-web-app-title", content: APP_NAME },
+            injectTo: "head",
+          },
+        ],
+      };
     },
 
     // After the bundle is built, collect every emitted asset plus the public

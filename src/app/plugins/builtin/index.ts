@@ -398,6 +398,11 @@ export function registerBuiltinPlugins(): void {
     // newsprint — which is exactly what this number times an absorbency comes
     // out saying (see `PaintPlugin.wetness`).
     wetness: 0.18,
+    // A line: every point of it is drawn where the path goes and nowhere else,
+    // so a longer stroke repaints as the shorter one plus its new end (see
+    // `PaintPlugin.grows`) and it reaches half its width past the path.
+    grows: true,
+    reach: 1,
     dials: [OPACITY],
     // The three lines a drawing pen is actually asked for — see `./presets.ts`
     // for what a preset is and for why several tools below have none.
@@ -565,6 +570,16 @@ export function registerBuiltinPlugins(): void {
     // Atomised: it has crossed a foot of air before it lands and most of the
     // solvent is gone by then, so it dries almost on contact.
     wetness: 0.15,
+    // Cones stamped along the path, each one a function of where it sits and
+    // of nothing that comes after it — so the canvas repaints a spray in flight
+    // only where the hand has just been (see `PaintPlugin.grows`). It is the
+    // tool that most needs it: a spray covering the screen is a few hundred
+    // full-radius gradient fills, and it used to pay all of them every frame.
+    grows: true,
+    // The cone is 1.6 times the width, and the grain lands inside it. The
+    // slack is deliberate and small: this is the number that decides how much
+    // screen one frame of a spray repaints (see `PaintPlugin.reach`).
+    reach: 2,
     dials: [HARDNESS, FLOW],
     presets: SPRAY_PRESETS,
     behaviour: freehandBehaviour({
@@ -597,6 +612,11 @@ export function registerBuiltinPlugins(): void {
     // Spirit ink, and the reason a marker on newsprint is a fat furry line and
     // a marker on layout paper is a crisp one.
     wetness: 0.5,
+    // A nib stamped along the path — one more stamp on the end, and nothing
+    // behind it moves (see `PaintPlugin.grows`) — and it is an ellipse half the
+    // width across, whichever way it is turned.
+    grows: true,
+    reach: 1,
     dials: [OPACITY, CHISEL],
     presets: MARKER_PRESETS,
     behaviour: freehandBehaviour({
@@ -621,6 +641,8 @@ export function registerBuiltinPlugins(): void {
     gauge: HIGHLIGHTER_GAUGE,
     defaultSize: mm(5),
     wetness: 0.45,
+    grows: true,
+    reach: 1,
     dials: [OPACITY, CHISEL_FLAT],
     presets: HIGHLIGHTER_PRESETS,
     behaviour: freehandBehaviour({
@@ -676,6 +698,10 @@ export function registerBuiltinPlugins(): void {
     // A broad nib carries a bead of ink and puts most of it on the page at
     // once, which is why writing on the wrong paper feathers.
     wetness: 0.5,
+    // The nib is drawn a full width either side of the path (the tool halves
+    // what the button says, so the edge is the number on the button).
+    grows: true,
+    reach: 1.5,
     dials: [OPACITY, ANGLE],
     // The three hands anyone is taught. A calligrapher changes the nib and the
     // angle they hold it at, and that is the whole difference between them.
