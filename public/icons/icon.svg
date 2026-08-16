@@ -1,27 +1,21 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" role="img" aria-label="Paint">
-  <!-- The app mark: a bristle brush — handle, ferrule, splayed head — held at
-       45° and painted solid in the amber gradient on the app surface. The same
-       object the toolbar's brush glyph draws, at the weight the sibling notes /
-       checklist marks wear, with the seam between the pieces cut out of the
-       silhouette rather than drawn on it. The shapes are filled *and* stroked
-       with a round-joined stroke, which is what softens their corners. Kept in
-       lockstep with scripts/generate-icons.mjs, which rasterises these very
-       points into the PWA install icons, the favicon, and og.png. -->
-  <defs>
-    <linearGradient id="paint-brush" x1="0" y1="14" x2="0" y2="86" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#fde047" />
-      <stop offset="1" stop-color="#f97316" />
-    </linearGradient>
-  </defs>
+  <!-- The app mark: a stylized pen — barrel, collar, nib — held at 45° and
+       painted solid in the sibling apps' green on the app surface, at the
+       weight the sibling notes / checklist marks wear, with the seams between
+       the pieces cut out of the silhouette rather than drawn on it. The shapes
+       are filled *and* stroked with a round-joined stroke, which is what
+       softens their corners and blunts the nib. Kept in lockstep with
+       scripts/generate-icons.mjs, which rasterises these very points into the
+       PWA install icons, the favicon, and og.png. -->
   <rect width="100" height="100" rx="20" fill="#0b0d10" />
   <!-- The outer group is the install icons' safe zone: the generator insets the
        mark by 12% of the tile (its `pad`), and this keeps the vector twin
        framed the same way. -->
   <g transform="translate(50 50) scale(0.76) translate(-50 -50)">
-    <g transform="translate(3 -3) rotate(45 50 50)" fill="url(#paint-brush)" stroke="url(#paint-brush)" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M50 6V52" fill="none" stroke-width="13" />
-      <path d="M34 54H66V68H34Z" stroke-width="6" />
-      <path d="M37 78H63L56 106H44Z" stroke-width="6" />
+    <g transform="translate(1.4 -1.4) rotate(45 50 50)" fill="#6ee7a7" stroke="#6ee7a7" stroke-width="6" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M38 2H62L64 50H36Z" />
+      <path d="M33 60H67V72H33Z" />
+      <path d="M38 82H62L50 114Z" />
     </g>
   </g>
 </svg>
