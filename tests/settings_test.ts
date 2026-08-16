@@ -6,6 +6,7 @@ import { allPlugins, pluginById } from "../src/app/plugins/registry.ts";
 import { gaugeSizes } from "../src/app/plugins/gauge.ts";
 import { formatMm, mm, toMm, toPt } from "../src/app/units.ts";
 import {
+  LIVE_SETTINGS,
   MAX_SIZE,
   PX_PER_MM,
   SETTINGS_VERSION,
@@ -16,6 +17,7 @@ import {
   presetsFor,
   sizesFor,
   toolSize,
+  withLiveSettings,
 } from "../src/app/useAppSettings.ts";
 
 // The settings blob is the one thing an install carries across every upgrade,
@@ -361,5 +363,60 @@ describe("groupMemberFor", () => {
   it("ignores a remembered member this build no longer ships", () => {
     const settings = { ...defaultSettings(), groupTools: { shapes: "blob" } };
     expect(groupMemberFor(settings, entry, "pencil")?.id).toBe("rectangle");
+  });
+});
+
+describe("withLiveSettings", () => {
+  // What the Settings dialog commits when Save is pressed. Two kinds of setting
+  // live in that dialog: the ones it stages in a draft until Save, and the ones
+  // it writes straight through because they have to be *seen* to be judged — a
+  // tool appearing in the toolbar behind the dialog, the page repainting, a
+  // watercolour engine you can only pick by looking at it.
+  //
+  // The draft is seeded when the dialog opens, so its copy of a live setting is
+  // whatever it was before the control was touched. Committing the draft whole
+  // is therefore how a change the user watched happen gets silently undone by
+  // pressing Save — which is exactly what the watercolour engine did.
+
+  it("keeps the draft's staged settings", () => {
+    const live = defaultSettings();
+    const draft = { ...live, menuMode: "swipe" as const, devMode: true };
+    const saved = withLiveSettings(draft, live);
+    expect(saved.menuMode).toBe("swipe");
+    expect(saved.devMode).toBe(true);
+  });
+
+  it("takes every live-applied setting from the committed blob", () => {
+    // The draft holds the values the dialog opened with; `live` holds what the
+    // user has since done to the switchboard, the page and the brush.
+    const draft = defaultSettings();
+    const live: typeof draft = {
+      ...draft,
+      enabledPlugins: [...draft.enabledPlugins, "watercolor"],
+      toolOrder: ["eraser", "pencil"],
+      canvasTheme: "dark",
+      showGrid: !draft.showGrid,
+      showToolName: !draft.showToolName,
+      washEngine: "simulation",
+    };
+    const saved = withLiveSettings(draft, live);
+    for (const key of LIVE_SETTINGS) expect(saved[key]).toEqual(live[key]);
+  });
+
+  it("does not revert the watercolour engine", () => {
+    // The bug this exists for, on its own: pick the pigment simulation in
+    // Settings → Tools, press Save, and the engine has to still be the one you
+    // picked rather than the one the dialog opened with.
+    const draft = { ...defaultSettings(), washEngine: "simple" as const };
+    const live = { ...draft, washEngine: "simulation" as const };
+    expect(withLiveSettings(draft, live).washEngine).toBe("simulation");
+  });
+
+  it("changes neither of the blobs it was handed", () => {
+    const draft = defaultSettings();
+    const live = { ...draft, washEngine: "simulation" as const };
+    withLiveSettings(draft, live);
+    expect(draft.washEngine).toBe("simple");
+    expect(live.washEngine).toBe("simulation");
   });
 });
