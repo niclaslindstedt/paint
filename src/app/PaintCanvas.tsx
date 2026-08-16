@@ -159,9 +159,15 @@ type Props = {
    *  still move the view, so you can look around before deciding. */
   placing?: boolean;
   onPlacingPress?: () => void;
+  /** The screen edge the sidebar's open-swipe is currently armed on, or `null`
+   *  when nothing is watching an edge (a docked sidebar, a pointer that can't
+   *  fire the gesture, a drawer that is already open). A touch that lands in
+   *  that strip is held rather than drawn — see `gestures.ts`. */
+  menuSwipeEdge?: MenuEdge | null;
   /** The screen edge an inward swipe opens the layers panel from, or `null`
-   *  when it isn't armed. A touch that lands in that strip is held rather than
-   *  drawn, and measured before it is either — see `gestures.ts`. */
+   *  when it isn't armed. Held and measured exactly like the sidebar's swipe —
+   *  the difference is only whose it is: the framework opens the drawer itself,
+   *  where this one is fired back through `onPanelSwipe`. */
   panelSwipeEdge?: MenuEdge | null;
   onPanelSwipe?: () => void;
   ariaLabel: string;
@@ -194,6 +200,7 @@ export function PaintCanvas({
   onViewChange,
   placing = false,
   onPlacingPress,
+  menuSwipeEdge = null,
   panelSwipeEdge = null,
   onPanelSwipe,
   ariaLabel,
@@ -623,11 +630,17 @@ export function PaintCanvas({
   };
 
   /** Which swipe, if any, a press landing at `x` (in viewport coordinates)
-   *  could still turn out to be. */
+   *  could still turn out to be. The sidebar is asked first: it is the
+   *  framework's gesture and it is already listening whatever we decide, so on
+   *  the one edge both could want, holding it for anything else would open two
+   *  things at once. */
   const edgeWatching = (
     x: number,
   ): { edge: MenuEdge; open?: () => void } | undefined => {
     const width = window.innerWidth;
+    if (menuSwipeEdge && inEdgeZone(x, width, menuSwipeEdge)) {
+      return { edge: menuSwipeEdge };
+    }
     if (panelSwipeEdge && inEdgeZone(x, width, panelSwipeEdge)) {
       return { edge: panelSwipeEdge, open: onPanelSwipe };
     }

@@ -108,12 +108,16 @@ the same [`oss-framework`](https://github.com/niclaslindstedt/oss-framework).
   at five different widths.
 - **Paper, canvas, or a plain sheet.** The page has a material as well as a
   colour, and **New image** asks for all three at once — size, page colour, and
-  canvas type: a solid digital sheet, one of four papers (hot-pressed,
-  cold-pressed, rough, cartridge) or primed cotton duck, each stock drawn on the
-  colour you picked so you compare them as the page they will be, with a grain
-  slider that repaints the whole shelf as you drag it. The colour opens on **no
-  colour** — a chequer, and a PNG or SVG of that image downloads with nothing
-  behind it. Like the size they stay put afterwards, since a mark is painted
+  canvas type: a solid digital sheet, one of four papers (cartridge,
+  cold-pressed, rough, hot-pressed) or primed cotton duck, in the order they get
+  used rather than by how coarse they are, each stock drawn on the colour you
+  picked so you compare them as the page they will be, with a grain slider that
+  repaints the whole shelf as you drag it and opens where that sheet is reached
+  for — rough with its tooth up, hot-pressed with barely any. The colour opens on
+  **no colour** — a chequer, and a PNG or SVG of that image downloads with
+  nothing behind it — and whichever you pick is named under the row. Sizes stand
+  the way your screen does, so a phone offers four upright pages, and one **Flip**
+  turns the whole shelf over. Like the size they stay put afterwards, since a mark is painted
   _into_ the sheet it was made on. That grain is painted
   _under_ the marks, so it shows through a wash and not through an opaque line —
   and on a sheet that drinks, the wet tools start behaving like it. A wash mixes
@@ -210,7 +214,8 @@ Draw on the page. `P` the pen, `E` the eraser, `G` the pencil, `W` watercolour,
 `F` the paint bucket, `Y` the gradient, `R` / `O` / `L` / `A` the rectangle, ellipse, line and
 arrow, `V` the selection marquee, `T` text, `I` the colour dropper, `D` the hand
 (drag the page around) — left to right in the order a hand uses them;
-`Ctrl/Cmd + Z` undoes a mark. The hamburger top left opens the drawings, the panel on the right
+`Ctrl/Cmd + Z` undoes a mark. The hamburger top left opens the drawings — so
+does a swipe in from that edge, on anything with a touch screen — the panel on the right
 resizes, flips and mirrors the page, and Settings → Tools switches the rest of
 the media on and puts the toolbar in another order.
 
@@ -245,7 +250,9 @@ npm run preview
   drawing (which asks for the page size first), new folder, the archive, and the
   cloud sync glyph, in one row; the
   footer below it (foldable behind a chevron) holds Donate, About — What's new,
-  the source, the privacy policy — check for updates, and Settings.
+  the source, the privacy policy — and Settings. Checking for updates by hand is
+  on Settings → Developer; the service worker finds a new build without being
+  asked.
 - **Toolbar** — two bands: the enabled tools fill the left, wrapping over two
   rows (three on a narrow phone), and everything that is not a tool sits in a
   fixed block against the right edge, divided off by a rule — colour and the

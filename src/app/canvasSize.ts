@@ -41,8 +41,9 @@ export type CanvasPreset = { id: CanvasPresetId; size: CanvasSize };
 const NAMED_PRESETS: readonly CanvasPreset[] = [
   { id: "hd", size: { width: 1920, height: 1080 } },
   { id: "uhd", size: { width: 3840, height: 2160 } },
-  // A4 — the one preset that is a piece of paper rather than a display, and the
-  // only portrait one.
+  // A4 — the one preset that is a piece of paper rather than a display. Written
+  // down the way a sheet of paper is quoted, portrait; the shelf stands it
+  // whichever way round the rest of the shelf is facing (see `Orientation`).
   //
   // **300 dpi, which is a photo printer's resolution rather than the page's
   // own.** The two are different questions and this preset answers the second:
@@ -57,6 +58,43 @@ const NAMED_PRESETS: readonly CanvasPreset[] = [
   // looking at the glass or at the print.
   { id: "print", size: { width: 2480, height: 3508 } },
 ];
+
+/** Which way round a page stands.
+ *
+ *  Every named size below is written down in one orientation — two displays on
+ *  their sides, one sheet of paper on its end — and that is an accident of how
+ *  each is quoted rather than a claim about the page you want. A phone held
+ *  upright wants an upright page from all four of them, so the orientation is a
+ *  property of the *shelf* and the sizes are turned to face it (see
+ *  `canvasPresets`). It opens on whichever way the screen itself is being held.
+ *
+ *  A square is landscape by convention: it is the same rectangle either way, so
+ *  it has to answer *something* and neither answer changes it. */
+export type Orientation = "portrait" | "landscape";
+
+/** Which way round a size stands. */
+export function orientationOf(size: CanvasSize): Orientation {
+  return size.height > size.width ? "portrait" : "landscape";
+}
+
+/** The other one. */
+export function flipOrientation(orientation: Orientation): Orientation {
+  return orientation === "portrait" ? "landscape" : "portrait";
+}
+
+/** The same page, stood the way round the shelf is facing. The two sides are
+ *  swapped rather than recomputed, so a turned preset is exactly the preset —
+ *  A4 on its side is still A4, and nothing is lost by turning it back. */
+export function orientSize(
+  size: CanvasSize,
+  orientation: Orientation,
+): CanvasSize {
+  const long = Math.max(size.width, size.height);
+  const short = Math.min(size.width, size.height);
+  return orientation === "portrait"
+    ? { width: short, height: long }
+    : { width: long, height: short };
+}
 
 /** Round a side to a whole pixel and hold it inside the supported range. */
 export function clampSide(side: number): number {
@@ -120,14 +158,31 @@ export function currentScreenCanvasSize(): CanvasSize {
 /** The full list of offered sizes: this screen first — it is the default, and
  *  the one that needs no explanation — then the named ones.
  *
+ *  Every one of them is stood the same way round, and by default that is
+ *  whichever way the screen is. A phone is held upright and offers four upright
+ *  pages; a laptop is not and offers four wide ones. Nobody picking a size on a
+ *  phone means "and lying on its side", so the shelf stops asking them to say
+ *  so — and the dialog's flip turns the whole shelf at once for the times they
+ *  do (see `Orientation`).
+ *
  *  A named size that *is* the screen size is dropped rather than listed twice:
  *  on a 1080p monitor "Full HD" and "This screen" are the same page, and two
- *  rows reading `1920 × 1080` only make the list longer. */
-export function canvasPresets(screen: CanvasSize): CanvasPreset[] {
-  const first: CanvasPreset = { id: "screen", size: clampCanvasSize(screen) };
+ *  rows reading `1920 × 1080` only make the list longer. Compared *after* both
+ *  have been turned, because that is when they are the same page. */
+export function canvasPresets(
+  screen: CanvasSize,
+  orientation: Orientation = orientationOf(screen),
+): CanvasPreset[] {
+  const first: CanvasPreset = {
+    id: "screen",
+    size: orientSize(clampCanvasSize(screen), orientation),
+  };
   return [
     first,
-    ...NAMED_PRESETS.filter((p) => !sameCanvasSize(p.size, first.size)),
+    ...NAMED_PRESETS.map((p) => ({
+      ...p,
+      size: orientSize(p.size, orientation),
+    })).filter((p) => !sameCanvasSize(p.size, first.size)),
   ];
 }
 

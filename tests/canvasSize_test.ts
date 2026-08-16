@@ -8,7 +8,10 @@ import {
   clampCanvasSize,
   clampSide,
   currentScreenCanvasSize,
+  flipOrientation,
   matchPreset,
+  orientSize,
+  orientationOf,
   previewScale,
   sameCanvasSize,
   screenCanvasSize,
@@ -95,7 +98,79 @@ describe("currentScreenCanvasSize", () => {
   });
 });
 
+describe("orientation", () => {
+  it("reads which way round a page stands, and calls a square landscape", () => {
+    expect(orientationOf({ width: 1920, height: 1080 })).toBe("landscape");
+    expect(orientationOf({ width: 1179, height: 2556 })).toBe("portrait");
+    expect(orientationOf({ width: 2048, height: 2048 })).toBe("landscape");
+  });
+
+  it("stands a page the way it is asked to, whichever way it started", () => {
+    const wide = { width: 1920, height: 1080 };
+    const tall = { width: 1080, height: 1920 };
+    expect(orientSize(wide, "portrait")).toEqual(tall);
+    expect(orientSize(tall, "landscape")).toEqual(wide);
+    // …and asking for the way it already is changes nothing.
+    expect(orientSize(wide, "landscape")).toEqual(wide);
+    expect(orientSize(tall, "portrait")).toEqual(tall);
+  });
+
+  it("turns a page and turns it back to exactly where it started", () => {
+    // What lets the dialog's flip be a toggle: the cell that was lit before is
+    // the cell that is lit after, because the size is the same size again.
+    const size = { width: 2480, height: 3508 };
+    const there = orientSize(size, flipOrientation(orientationOf(size)));
+    expect(orientSize(there, orientationOf(size))).toEqual(size);
+  });
+});
+
 describe("canvasPresets", () => {
+  it("stands every size the way the screen is being held", () => {
+    // A phone is held upright, and nobody picking A4 or 4K on one means "and
+    // lying on its side". So the shelf faces the way the screen does, and every
+    // rectangle on it — the named ones included — is turned to match.
+    const portrait = canvasPresets({ width: 1179, height: 2556 });
+    for (const preset of portrait) {
+      expect(preset.size.height, preset.id).toBeGreaterThan(preset.size.width);
+    }
+    const landscape = canvasPresets({ width: 2560, height: 1440 });
+    for (const preset of landscape) {
+      expect(preset.size.width, preset.id).toBeGreaterThan(preset.size.height);
+    }
+  });
+
+  it("turns the whole shelf when it is asked for the other way round", () => {
+    // The dialog's flip: one answer for the shelf, not one per cell.
+    const flipped = canvasPresets({ width: 2560, height: 1440 }, "portrait");
+    expect(flipped.map((p) => p.size)).toEqual([
+      { width: 1440, height: 2560 },
+      { width: 1080, height: 1920 },
+      { width: 2160, height: 3840 },
+      { width: 2480, height: 3508 },
+    ]);
+  });
+
+  it("keeps a turned size the same page, so nothing is lost by turning it", () => {
+    const a4 = canvasPresets({ width: 2560, height: 1440 }).find(
+      (p) => p.id === "print",
+    );
+    // A4 is quoted portrait and drawn landscape on a landscape shelf — still
+    // 2480 × 3508 of paper, just on its side.
+    expect(a4?.size).toEqual({ width: 3508, height: 2480 });
+  });
+
+  it("still lists a named size that is the screen size only once, once both are turned", () => {
+    // The screen is quoted portrait here and Full HD landscape: they are the
+    // same page, and the shelf may only find that out after it has stood them
+    // the same way up.
+    const presets = canvasPresets({ width: 1080, height: 1920 });
+    const hd = presets.filter((p) =>
+      sameCanvasSize(p.size, { width: 1080, height: 1920 }),
+    );
+    expect(hd).toHaveLength(1);
+    expect(hd[0]?.id).toBe("screen");
+  });
+
   it("offers this screen first — it is the default answer", () => {
     const presets = canvasPresets({ width: 2560, height: 1440 });
     expect(presets[0]).toEqual({

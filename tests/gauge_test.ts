@@ -74,7 +74,10 @@ describe("the page's scale", () => {
     // consumer inkjets want 300 ppi of image data — the 1440 and 5760 dpi on
     // the box are ink droplets — so A4 is 2480 × 3508 however the page itself
     // is scaled (see `canvasSize.ts`).
-    const a4 = canvasPresets({ width: 1000, height: 1000 }).find(
+    // Asked for upright, because that is how a sheet of paper is quoted — the
+    // shelf stands every size whichever way the screen is, and turning A4 on
+    // its side is still 2480 × 3508 of paper (see `canvasSize.ts`).
+    const a4 = canvasPresets({ width: 1000, height: 1000 }, "portrait").find(
       (p) => p.id === "print",
     )!;
     expect(a4.size).toEqual({ width: 2480, height: 3508 });

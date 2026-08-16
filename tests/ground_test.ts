@@ -16,6 +16,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import {
+  defaultGrain,
   GROUNDS,
   groundById,
   groundProfile,
@@ -117,6 +118,43 @@ describe("the catalog", () => {
       // A stock with a pattern has a grain, and one without has none — a
       // "tooth" nothing draws would be a number that lies.
       expect(profile.tooth > 0, id).toBe(profile.pattern !== "none");
+    }
+  });
+
+  // The shelf is ordered by how often a stock is actually reached for, not by
+  // how coarse it is: sorting six sheets smoothest-to-roughest is a physical
+  // property nobody chooses by, and it buried the two sheets most real pages
+  // are made on in the middle of the row.
+  it("puts the sheets people actually use at the front", () => {
+    expect(GROUNDS.map((g) => g.id)).toEqual([
+      "solid",
+      "cartridge",
+      "cold",
+      "rough",
+      "hot",
+      "cotton",
+    ]);
+  });
+
+  // The grain dial opens where the stock is reached *for*: rough is bought for
+  // its tooth and hot-pressed to be smooth, so opening both at their own full
+  // weight sells one as a lesser rough and the other as a fine one.
+  it("opens the grain dial where each stock is bought for", () => {
+    expect(defaultGrain("rough")).toBeGreaterThan(1);
+    expect(defaultGrain("hot")).toBeLessThan(1);
+    expect(defaultGrain("cotton")).toBeLessThan(1);
+    // The workhorses are the sheet as it is sold, which is also what a page
+    // that says nothing about its grain is on.
+    expect(defaultGrain("cold")).toBe(1);
+    expect(defaultGrain("cartridge")).toBe(1);
+    expect(defaultGrain(undefined)).toBe(1);
+    expect(defaultGrain("papyrus")).toBe(1);
+  });
+
+  it("keeps every opening grain inside the range the dial offers", () => {
+    for (const ground of GROUNDS) {
+      expect(defaultGrain(ground.id), ground.id).toBeGreaterThanOrEqual(0);
+      expect(defaultGrain(ground.id), ground.id).toBeLessThanOrEqual(2);
     }
   });
 

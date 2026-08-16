@@ -763,25 +763,56 @@ export function SidePanelIcon({ className }: IconProps) {
 // an arrow curling over it turns, a sheet split by an axis with one half
 // shaded mirrors across that axis. At 18 pixels the shaded half is what makes a
 // mirror read as a mirror rather than as a divided rectangle.
+//
+// **An arrowhead on a curve is built from the chord, not the tangent, and it is
+// solid.** Both turn arrows spent a year with the head's vertex a fraction off
+// the ring and its wings at different angles to it, which nobody can name from
+// the source and everybody sees on the screen — the head reads as a wedge stuck
+// onto the circle. Two things fix it, and the second is the one that is easy to
+// get wrong twice:
+//
+//   - The vertex is *exactly* the arc's own endpoint, and the head is symmetric
+//     about the **chord** running back along the arc, not about the tangent. A
+//     tangent is straight and the stroke is not: over a head's length the arc
+//     falls half a unit away from it, so a head squared to the tangent still
+//     reads as rotated. That is a rotation of about half the angle the head's
+//     length subtends — `L / 2r` — and it is the difference between "on the
+//     line" and "nearly on the line".
+//   - The head is **filled**, because an open chevron this small is exactly the
+//     detail the note above says closes up: two 1.75-wide legs 3 units long
+//     merge into a lump against the ring they end. Widening the legs instead
+//     drives one of them through the ring and into the sheet.
+//
+// The heads sit at the *top* of the ring so the wings stay inside the box; at
+// the east point they push it out to x=21.5.
 
 /** Turn the page a quarter to the left — the sheet, and the arrow going round
- *  it anticlockwise. */
+ *  it anticlockwise, its head on the ring at the top pointing back the way it
+ *  came. */
 export function TurnLeftIcon({ className }: IconProps) {
   return (
     <svg {...base} className={className} aria-hidden="true">
-      <path d="M4 12.5a8 8 0 1 1 2.6 5.9" />
-      <path d="M3.4 8.2 4 12.9l4.7-.6" />
+      <path d="M7.4 5.9A8 8 0 1 0 12 4.5" />
+      <path
+        d="M16.35 3.87 12 4.5l3.38 2.81Z"
+        fill="currentColor"
+        strokeWidth={0.8}
+      />
       <rect x="9.5" y="9.5" width="6" height="6" rx="1" />
     </svg>
   );
 }
 
-/** …and to the right. */
+/** …and to the right — the same ring and the same head, mirrored. */
 export function TurnRightIcon({ className }: IconProps) {
   return (
     <svg {...base} className={className} aria-hidden="true">
-      <path d="M20 12.5a8 8 0 1 0-2.6 5.9" />
-      <path d="M20.6 8.2 20 12.9l-4.7-.6" />
+      <path d="M16.6 5.9A8 8 0 1 1 12 4.5" />
+      <path
+        d="M7.65 3.87 12 4.5l-3.38 2.81Z"
+        fill="currentColor"
+        strokeWidth={0.8}
+      />
       <rect x="8.5" y="9.5" width="6" height="6" rx="1" />
     </svg>
   );
@@ -806,6 +837,36 @@ export function MirrorVerticalIcon({ className }: IconProps) {
       <path d="M3 12h18" strokeDasharray="2.6 2.4" />
       <path d="M6.4 9.6 12 4l5.6 5.6Z" />
       <path d="M6.4 14.4 12 20l5.6-5.6Z" fill="currentColor" opacity=".55" />
+    </svg>
+  );
+}
+
+/** Stand the page the other way up — a sheet on its end beside a sheet on its
+ *  side, and nothing else.
+ *
+ *  Deliberately **not** the quarter-turn glyph, which this cell borrowed at
+ *  first: an arrow curling round a page says "turn the drawing", and this
+ *  button turns neither a drawing nor one page — it stands a whole shelf of
+ *  sizes the other way up. What it has to say is *the two ways round*, and two
+ *  pages saying it is the shortest sentence there is.
+ *
+ *  No arrow between them, and none was cheap to add: the pair carries the
+ *  meaning on its own, the cell under it names the orientation in words, and
+ *  every version drawn with an arc in the gap measured wide and dense
+ *  (`aspect` 1.19, `fill` 44) because the arc has to leave the pair's own
+ *  bounding box to be seen at all.
+ *
+ *  The two rectangles are pushed as far apart in shape as the small size
+ *  allows — 6.5 × 17 against 8 × 5.5 — because a "landscape" page only a
+ *  little wider than it is high reads as a square, and then the glyph is two
+ *  boxes rather than one page twice. Both interiors clear twice the stroke, so
+ *  neither closes up at 18 px, and the gap between them is 2.5 units so they
+ *  stay two pages rather than merging into one mark. */
+export function FlipIcon({ className }: IconProps) {
+  return (
+    <svg {...base} className={className} aria-hidden="true">
+      <rect x="3.5" y="3.5" width="6.5" height="17" rx="1" />
+      <rect x="12.5" y="9.25" width="8" height="5.5" rx="1" />
     </svg>
   );
 }

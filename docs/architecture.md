@@ -501,8 +501,10 @@ marks are on the page before it fires. Restricting the gesture to a tool that
 draws nothing is what makes it dependable.
 
 Two things want an inward edge swipe: the sidebar (the framework's own hook,
-which opens the drawer itself) and the layers panel (the app's, fired back
-through a callback). The canvas arbitrates by **holding** a touch that lands in a
+which opens the drawer itself, armed whenever the drawer is the menu and the
+pointer is `coarse` — there is no setting, because a gesture a mouse can't fire
+costs a mouse nothing) and the layers panel (the app's, fired back through a
+callback). The canvas arbitrates by **holding** a touch that lands in a
 watched strip rather than drawing it — the sidebar's edge is asked first, since
 it is listening whatever the canvas decides — and replays the press from where it
 landed the moment it proves to be neither. `CanvasScreen` never arms the panel on

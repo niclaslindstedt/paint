@@ -51,10 +51,6 @@ export const en = {
     sourceCode: "Source",
     collapseFooter: "Hide the menu footer",
     expandFooter: "Show the menu footer",
-    checkUpdate: "Check for updates",
-    checking: "Checking…",
-    updateAvailable: "Update available",
-    upToDate: "Up to date",
     updating: "Updating…",
     deleteConfirm: "Delete “{name}”? This cannot be undone.",
   },
@@ -75,19 +71,20 @@ export const en = {
     },
     custom: "Custom",
     customEmpty: "Type a size",
+    flip: "Flip",
+    portrait: "Portrait",
+    landscape: "Landscape",
+    flipToPortrait: "Stand every size upright",
+    flipToLandscape: "Lay every size on its side",
     width: "Width",
     height: "Height",
     sizeHint: "Pixels, {min}–{max} on each side.",
     pageColorLabel: "Page colour",
-    pageColorTransparent: "No page — transparent",
-    pageColorHint:
-      "What is under the marks. The chequer means nothing at all, which is how a new image starts: it downloads as a PNG or an SVG with nothing behind it, ready to drop onto somebody else's page. Pick a colour instead and it travels with the image and syncs with it. Either way it is fixed here — the layers panel can still switch the sheet off and on again.",
+    pageColorTransparent: "Transparent",
     canvasTypeLabel: "Canvas type",
     canvasTypeHint:
       "Picked once, here — the sheet travels with the image and can't be changed afterwards. On a sheet that drinks, a wet tool mixes with what it is over instead of covering it, whatever the page is.",
     grainLabel: "Grain: {value}%",
-    grainHint:
-      "The grain is painted as part of the page, so it shows where the page has a colour and not on a transparent one — it changes what you see, never how much the sheet drinks.",
     chooseImage: "Choose an image or a paint file…",
     chooseImageHint:
       "Or drop one here. A picture cuts the page to its own size; a .pct opens with its layers and marks intact.",
@@ -492,6 +489,17 @@ export const en = {
   // paper merchant names them — these are stocks you can buy, not adjectives —
   // and the hint says what the sheet *does*, because that is the thing you are
   // actually choosing between.
+  // What each page colour is called. Printed under the swatch row in the
+  // new-image dialog, because a row of round swatches shows the colours and
+  // says nothing about which one you have got hold of.
+  pageColors: {
+    white: "White",
+    paper: "Paper white",
+    cream: "Cream",
+    charcoal: "Charcoal",
+    black: "Black",
+    slate: "Slate",
+  },
   grounds: {
     solid: {
       name: "Solid colour",
@@ -802,6 +810,12 @@ export const en = {
     },
     developer: {
       intro: "Diagnostics for when something looks wrong.",
+      updatesTitle: "Updates",
+      checkUpdate: "Check for updates",
+      checking: "Checking…",
+      updateAvailable: "Update available",
+      upToDate: "Up to date",
+      updatesUnavailable: "No service worker in this build.",
       loggingTitle: "Logging",
       captureLogs: "Capture logs",
       captureLogsHint:

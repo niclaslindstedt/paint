@@ -103,6 +103,10 @@ A namespace is a whole separate set of drawings: work, teaching, scratch. The
 switcher sits at the top of the sidebar; the cog beside it opens the manager,
 where namespaces are created, renamed, given a glyph and a colour, or deleted.
 
+You start with **one**, called _Default_, and that is deliberate — a second
+sketchbook is a room you have to find your way back out of, and nobody arrives
+needing two. Make the next one when you want it; it is one press in the manager.
+
 Each namespace keeps its own document, its own undo history, and its own synced
 file — switching one swaps all three. The active namespace's glyph also badges
 the browser tab, so a glance at the tab strip tells you which one you're in.
@@ -116,5 +120,10 @@ level; a folder arrives as a folder, its drawings still filed inside it.
 Below the island, a thin chevron rail folds the footer away when you want the
 extra room for the list — the choice is remembered across reloads. Unfolded, it
 holds **Donate**, an **About** dropdown (What's new, the source repository with
-this build's identifier beneath it, and the privacy policy), a **Check for
-updates** row, and **Settings** pinned last under the thumb.
+this build's identifier beneath it, and the privacy policy), and **Settings**
+pinned last under the thumb.
+
+There is no **Check for updates** row here any more. A new build installs itself
+in the background and raises its own prompt, so the row was a button for a job
+nobody has to do; forcing the check by hand now lives on Settings → **Developer**,
+beside the build stamp you would be comparing it against.

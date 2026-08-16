@@ -89,10 +89,30 @@ export type GroundDescriptor = {
   /** The one line under the name saying what this stock is for. */
   hintKey: TKey;
   profile: GroundProfile;
+  /** How far up the grain dial this stock opens, as the multiple of its own
+   *  weight a page made on it gets by default (see `Ground.texture`).
+   *
+   *  Not 1 for all six, because "the sheet as it is sold" is not what each of
+   *  them is *reached for*. A hot-pressed sheet is bought to be smooth, so
+   *  opening it with every last bit of its (already faint) tooth showing sells
+   *  it as a lesser rough; a rough sheet is bought for exactly the opposite
+   *  reason and wants its tooth up where you can see it. The stock's own
+   *  numbers are the physics and stay put — this is only where the dial starts,
+   *  and the dial is right there under the shelf to move.
+   *
+   *  Absent means 1, which is what the plain sheet and the two workhorses are:
+   *  a page that says nothing about its grain is on the sheet as it is sold. */
+  grainDefault?: number;
 };
 
+/** Where the grain dial opens for a stock — its own default, or the sheet as it
+ *  is sold for one that names none. */
+export function defaultGrain(id: string | undefined): number {
+  return groundById(id)?.grainDefault ?? 1;
+}
+
 /** The stocks this build ships, in the order the picker lays them out: the
- *  plain sheet first, then the papers from smoothest to roughest, then cloth.
+ *  plain sheet first, then **the order a working artist reaches for them in**.
  *
  *  It is a **short** shelf on purpose. The choice is made once, in the dialog
  *  that makes the drawing, and a page you can't change your mind about later is
@@ -103,6 +123,26 @@ export type GroundDescriptor = {
  *  paintings; cartridge is what a sketchbook is; cotton duck is what a
  *  stretched canvas is made of, and it is primed, which is why it is *less*
  *  thirsty than any of the papers rather than more.
+ *
+ *  The order is **use**, not roughness. Sorting six sheets smoothest-to-coarsest
+ *  is a physical property nobody chooses by, and it buried the two sheets almost
+ *  every real page is made on in the middle of the shelf. So:
+ *
+ *   1. **Solid** — the plain digital page. It heads the list because it is the
+ *      absence of a sheet rather than one of them, it is what every drawing made
+ *      before surfaces existed is on, and it is what most work here starts as.
+ *   2. **Cartridge** — sketchbook paper, and the single most-drawn-on surface
+ *      there is. Every sketchbook, every pad, every life-drawing class.
+ *   3. **Cold-pressed** — the default watercolour sheet by a distance; it is
+ *      most of what the mills sell, and what "watercolour paper" means unless
+ *      somebody says otherwise.
+ *   4. **Rough** — the next one a watercolourist owns, for the sparkle a dry
+ *      brush leaves across its peaks.
+ *   5. **Hot-pressed** — a specialist's sheet: botanical work, pen and wash,
+ *      anything where a hard line matters more than granulation.
+ *   6. **Cotton duck** — a real surface, and a painter's rather than a
+ *      draughtsman's; it is the one anybody reaching for it comes looking for
+ *      by name.
  *
  *  Numbers are in millimetres of real sheet (see `units.ts`), so the grain is
  *  the size it would be under a ruler at 1:1 rather than a value someone
@@ -116,17 +156,14 @@ export const GROUNDS: readonly GroundDescriptor[] = [
     profile: SOLID_GROUND,
   },
   {
-    id: "hot",
+    id: "cartridge",
     family: "paper",
-    nameKey: "grounds.hot.name",
-    hintKey: "grounds.hot.hint",
-    // Hot-pressed: rolled smooth between heated plates. It still drinks like
-    // paper — that is what makes it paper — it just has almost nothing for the
-    // pigment to settle into.
+    nameKey: "grounds.cartridge.name",
+    hintKey: "grounds.cartridge.hint",
     profile: {
-      absorbency: 0.5,
-      tooth: mm(0.18),
-      bite: 0.12,
+      absorbency: 0.4,
+      tooth: mm(0.3),
+      bite: 0.22,
       pattern: "tooth",
     },
   },
@@ -157,18 +194,27 @@ export const GROUNDS: readonly GroundDescriptor[] = [
       bite: 0.62,
       pattern: "tooth",
     },
+    // Opened above its own weight: the tooth *is* the reason for this sheet, and
+    // a rough page whose grain you have to look for is a cold-pressed one.
+    grainDefault: 1.25,
   },
   {
-    id: "cartridge",
+    id: "hot",
     family: "paper",
-    nameKey: "grounds.cartridge.name",
-    hintKey: "grounds.cartridge.hint",
+    nameKey: "grounds.hot.name",
+    hintKey: "grounds.hot.hint",
+    // Hot-pressed: rolled smooth between heated plates. It still drinks like
+    // paper — that is what makes it paper — it just has almost nothing for the
+    // pigment to settle into.
     profile: {
-      absorbency: 0.4,
-      tooth: mm(0.3),
-      bite: 0.22,
+      absorbency: 0.5,
+      tooth: mm(0.18),
+      bite: 0.12,
       pattern: "tooth",
     },
+    // …and opened below it, for the mirror-image reason: this sheet is bought to
+    // be smooth, so it starts as a hint of tooth rather than a fine rough.
+    grainDefault: 0.7,
   },
   {
     id: "cotton",
@@ -183,6 +229,9 @@ export const GROUNDS: readonly GroundDescriptor[] = [
       bite: 0.7,
       pattern: "cloth",
     },
+    // The deepest bite on the shelf already, and a weave rather than a random
+    // dip — at full weight it reads as sackcloth, so it opens a shade under.
+    grainDefault: 0.85,
   },
 ];
 

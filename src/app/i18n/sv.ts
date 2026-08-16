@@ -48,10 +48,6 @@ export const sv: Catalog = {
     sourceCode: "Källkod",
     collapseFooter: "Dölj menyns sidfot",
     expandFooter: "Visa menyns sidfot",
-    checkUpdate: "Sök efter uppdateringar",
-    checking: "Söker…",
-    updateAvailable: "Uppdatering finns",
-    upToDate: "Uppdaterad",
     updating: "Uppdaterar…",
     deleteConfirm: "Ta bort ”{name}”? Det går inte att ångra.",
   },
@@ -72,19 +68,20 @@ export const sv: Catalog = {
     },
     custom: "Egen",
     customEmpty: "Skriv en storlek",
+    flip: "Vänd",
+    portrait: "Stående",
+    landscape: "Liggande",
+    flipToPortrait: "Ställ alla storlekar stående",
+    flipToLandscape: "Lägg alla storlekar liggande",
     width: "Bredd",
     height: "Höjd",
     sizeHint: "Bildpunkter, {min}–{max} på varje sida.",
     pageColorLabel: "Sidfärg",
-    pageColorTransparent: "Ingen sida — genomskinlig",
-    pageColorHint:
-      "Vad som ligger under strecken. Rutmönstret betyder ingenting alls, och så börjar en ny bild: den laddas ner som PNG eller SVG utan något bakom sig, redo att läggas på någon annans sida. Väljer du en färg i stället följer den med bilden och synkas med den. Hur som helst bestäms det här — lagerpanelen kan fortfarande släcka och tända arket.",
+    pageColorTransparent: "Genomskinlig",
     canvasTypeLabel: "Typ av rityta",
     canvasTypeHint:
       "Väljs en gång, här — arket följer med bilden och kan inte ändras efteråt. På ett ark som suger blandar sig ett vått verktyg med det det ligger över i stället för att täcka det, oavsett vad sidan är.",
     grainLabel: "Struktur: {value}%",
-    grainHint:
-      "Strukturen målas som en del av sidan, så den syns där sidan har en färg och inte på en genomskinlig — den ändrar vad du ser, aldrig hur mycket arket suger.",
     chooseImage: "Välj en bild eller en paint-fil…",
     chooseImageHint:
       "Eller släpp en här. En bild gör sidan lika stor som bilden; en .pct öppnas med sina lager och streck kvar.",
@@ -444,6 +441,14 @@ export const sv: Catalog = {
     to: "Till",
     none: "Ingen {name}-färg",
   },
+  pageColors: {
+    white: "Vit",
+    paper: "Pappersvit",
+    cream: "Gräddvit",
+    charcoal: "Kolgrå",
+    black: "Svart",
+    slate: "Skiffer",
+  },
   grounds: {
     solid: {
       name: "Enfärgad",
@@ -755,6 +760,12 @@ export const sv: Catalog = {
     },
     developer: {
       intro: "Diagnostik för när något ser fel ut.",
+      updatesTitle: "Uppdateringar",
+      checkUpdate: "Sök efter uppdateringar",
+      checking: "Söker…",
+      updateAvailable: "Uppdatering finns",
+      upToDate: "Uppdaterad",
+      updatesUnavailable: "Inget service worker i det här bygget.",
       loggingTitle: "Loggning",
       captureLogs: "Spela in loggar",
       captureLogsHint:

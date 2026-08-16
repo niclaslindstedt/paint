@@ -32,10 +32,6 @@ import {
   useFileDrop,
   useLocalStorageState,
 } from "@niclaslindstedt/oss-framework/hooks";
-import {
-  CheckForUpdatesItem,
-  type PwaUpdateCheckResult,
-} from "@niclaslindstedt/oss-framework/pwa";
 import { NamespaceSwitcher } from "@niclaslindstedt/oss-framework/namespaces";
 import type {
   Namespace,
@@ -153,9 +149,6 @@ type Props = {
    *  Absent on the on-device backend, which has no remote to sync against — the
    *  island then holds three cells instead of four. */
   syncSlot?: ReactNode;
-  checkingUpdate: boolean;
-  updateAvailable: boolean;
-  onCheckUpdate: () => Promise<PwaUpdateCheckResult>;
 };
 
 export function SideMenuContent({
@@ -172,9 +165,6 @@ export function SideMenuContent({
   onShowArchive,
   onShowCanvas,
   syncSlot,
-  checkingUpdate,
-  updateAvailable,
-  onCheckUpdate,
 }: Props) {
   const t = useT();
   const [pendingDelete, setPendingDelete] = useState<string | null>(null);
@@ -673,8 +663,11 @@ export function SideMenuContent({
       />
 
       {/* The footer: Donate, an About dropdown that folds away the project
-          links, the framework's "check for updates" row, and Settings pinned
-          last under the thumb. The panel's own bottom reserve is reclaimed
+          links, and Settings pinned last under the thumb. There is no "check
+          for updates" row: the service worker finds a new build on its own and
+          raises the toast, so the row was a button for a job nobody had to do —
+          it now lives on Settings → Developer, where a hand that wants to force
+          the check knows to look. The panel's own bottom reserve is reclaimed
           above, so the padding here is the whole gap around the block: the
           same `1.25rem - var(--density-row-py)` the reclaim is measured in, so
           a row's own padding plus the block's adds up to a constant 1.25rem
@@ -699,17 +692,6 @@ export function SideMenuContent({
           >
             {t("menu.about")}
           </FooterRow>
-          <CheckForUpdatesItem
-            checking={checkingUpdate}
-            updateAvailable={updateAvailable}
-            onCheck={onCheckUpdate}
-            labels={{
-              idle: t("menu.checkUpdate"),
-              checking: t("menu.checking"),
-              updateAvailable: t("menu.updateAvailable"),
-              upToDate: t("menu.upToDate"),
-            }}
-          />
           <FooterRow
             icon={<CogIcon className="h-5 w-5" />}
             onClick={onOpenSettings}

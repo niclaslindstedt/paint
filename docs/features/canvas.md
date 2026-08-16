@@ -109,8 +109,10 @@ Putting a second finger down mid-stroke abandons that stroke rather than
 committing it — you meant to zoom, and half a line you didn't want is worse than
 none.
 
-If you open the sidebar by swiping in from the screen edge (Settings → General),
-that swipe crosses the page — and it leaves nothing behind. A touch that lands in
+On a touch screen the sidebar opens on an **inward swipe from the edge it lives
+on**, as well as from the header's hamburger — there is no setting for it, and a
+mouse never fires it. That swipe crosses the page, and it leaves nothing behind.
+A touch that lands in
 the narrow strip the sidebar watches is **held** rather than drawn: swipe inward
 and the drawer opens with the page untouched; do anything else — draw downward,
 draw back out, lift your finger where it landed — and the mark appears from the
