@@ -28,6 +28,7 @@ import {
 } from "@niclaslindstedt/oss-framework/namespaces";
 
 import { isDarkAppearance } from "./app/canvas.ts";
+import { toolbarFor } from "./app/canvasPresets.ts";
 import { CanvasScreen } from "./app/CanvasScreen.tsx";
 import { SideMenuContent } from "./app/SideMenuContent.tsx";
 import { useT } from "./app/i18n/index.ts";
@@ -183,10 +184,32 @@ export function App() {
     "paint:menu-position",
   );
 
+  // The toolbar this drawing gets. Usually the app's own — but a page made on a
+  // canvas preset that carries a kit opens with *that* kit instead, in the order
+  // it was put in (see `canvasPresets.ts`): a sketchbook page comes back with the
+  // pencil and the eraser, and the photo beside it comes back with everything.
+  // Applied by handing the screen a settings object with those two fields
+  // swapped, so the toolbar, the shortcuts and the active tool resolve through
+  // exactly the code they always did and nothing below here knows a canvas preset
+  // exists.
+  const kit = toolbarFor(settings, store.activeDrawing?.canvasPreset);
+  const canvasSettings =
+    kit.tools === settings.enabledPlugins
+      ? settings
+      : {
+          ...settings,
+          enabledPlugins: [...kit.tools],
+          toolOrder: [...kit.order],
+        };
+
   // The tool the canvas draws with, resolved against what the toolbar actually
-  // offers — a tool switched off in Settings (or one from a stale settings
-  // blob) can never leave the canvas holding a tool with no button.
-  const tool = resolveActiveTool(settings.activeTool, settings.enabledPlugins);
+  // offers — a tool switched off in Settings (or one this page's canvas preset
+  // doesn't carry, or one from a stale settings blob) can never leave the canvas
+  // holding a tool with no button.
+  const tool = resolveActiveTool(
+    settings.activeTool,
+    canvasSettings.enabledPlugins,
+  );
 
   // Whether a page that has pinned no colour of its own is a dark sheet — the
   // app's own appearance, and nothing else. Derived once here so the screen,
@@ -356,7 +379,7 @@ export function App() {
         ) : (
           <CanvasScreen
             store={store}
-            settings={settings}
+            settings={canvasSettings}
             update={update}
             // The toolbar's pickers keep what the user mixes and adds.
             palette={{
@@ -407,6 +430,10 @@ export function App() {
               store.data.folders.find((f) => f.id === pendingDrawing.folderId)
                 ?.name
             }
+            // The shelf the dialog offers: the pages set up in Settings →
+            // Canvas, and the shipped sizes that have not been taken off it.
+            canvasPresets={settings.canvasPresets}
+            hiddenSizes={settings.hiddenCanvasSizes}
             dark={darkCanvas}
             onCancel={() => setPendingDrawing(null)}
             // The size, the colour and the sheet are all part of making the

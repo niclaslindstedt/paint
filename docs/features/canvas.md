@@ -17,6 +17,11 @@ questions you answer by looking. The custom cell is drawn too — type a size an
 its rectangle takes its place on the shelf beside the named ones. It opens on
 2048 × 2048, the big square nobody offers by name.
 
+Any of the named sizes you never reach for can be **taken off that shelf** in
+Settings → Canvas — a size you don't use is one rectangle in the way of the ones
+you do. Nothing you have already drawn changes: a page's size is fixed when it
+is made.
+
 "This screen" is the resolution the display actually has, pixel ratio included,
 so a page made on a retina laptop exports at its native size rather than at half
 of it. A size that is already on the list — Full HD on a 1080p monitor — is
@@ -38,6 +43,37 @@ Because the size is fixed rather than reflowed, a sketch made on a laptop looks
 the same on a phone — you just see less of it at once. The page also grows on
 its own in one case: a picture dropped past its edge takes the sheet with it
 (see [images](images.md)).
+
+## Canvas presets
+
+A **canvas preset** is a page you have set up once and named — a sketchbook, a
+phone wallpaper, a comic panel. It stands on the New image shelf beside the sizes
+above, drawn to the same scale, and it is picked exactly like one. Settings →
+**Canvas** is where you make them.
+
+A preset always carries a size, and it can carry two more things:
+
+- **Its own tools.** A page made on the preset opens with that toolbar instead
+  of your usual one — the tools you switched on, in the order you put them in —
+  and it does so every time it is opened, not just the first. That is the
+  sketchbook case: a pencil, an eraser and nothing else, while the photo you are
+  retouching in the next drawing still has the whole toolbox. Switching it on
+  starts from the toolbar you have now, so it is a list to prune rather than one
+  to build; the list itself is the same rack as Settings → Tools. A preset cell
+  on the shelf wears a small toolbox mark when it carries one.
+- **Its own canvas type.** Picking the preset puts that sheet in the picker
+  below. Only a suggestion — the sheet is painted into every mark made on it (see
+  [the surface you draw on](surface.md)), so it stays yours to change right up
+  until you press Create.
+
+Unlike the shipped sizes, a preset stands the way you set it up: type 1600 ×
+2000 because a sketchbook is upright and it stays upright, whichever way round
+the rest of the shelf is facing. **Flip** still turns the page in your hand.
+
+Editing a preset — renaming it, resizing it, changing its tools — leaves the
+drawings already made on it alone, except that they pick up the new toolbar next
+time they are opened. Deleting one leaves them alone too: they keep their size,
+and they go back to your usual toolbar.
 
 ## Changing the page afterwards
 
@@ -82,7 +118,8 @@ wrong way.
 ## What the page is made of
 
 The page also has a **material**, picked beside the page size and the page
-colour under **Canvas type** in the New image dialog: a solid digital sheet, one
+colour under **Canvas type** in the New image dialog (a canvas preset can put one
+there for you): a solid digital sheet, one
 of four papers, or primed cotton duck. It is not a texture laid over the drawing
 — the sheet's grain is painted under the marks, and on a sheet that drinks, a wet
 tool mixes with what it is painted over instead of covering it. Watercolour is

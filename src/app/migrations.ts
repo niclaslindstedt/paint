@@ -114,6 +114,11 @@ const migrations = {
   // carrying none reads as the plain solid sheet, which is the page every
   // drawing was already on, so there are no old bytes to change — see
   // `tests/migrations_test.ts`.
+  //
+  // …and for the canvas preset one was made on (`Drawing.canvasPreset`): a document
+  // carrying none reads as a page made at a size off the shelf, which is what
+  // every drawing until now is, and the id it would hold names something in the
+  // *settings* blob rather than anything in the document.
 } as const;
 
 export const migrator = createMigrator({

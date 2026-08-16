@@ -149,6 +149,20 @@ holding a shape and a panel opens over the page with the other ten — rounded
 rectangle, triangle, diamond, pentagon, hexagon, star and a double-headed arrow
 among them — and, under those, the toggle that draws them hollow or solid.
 
+## Pages you set up yourself
+
+Settings → **Canvas** is the New image shelf from the other end. It hides the
+shipped sizes you never reach for, and it is where you make a **canvas preset**:
+a page you have named — a sketchbook, a phone wallpaper — that stands on that
+shelf beside them.
+
+A preset can bring **its own tools**, which is the point of it: a page made on
+your sketchbook opens with a pencil, an eraser and nothing else, in the order you
+put them in, while the drawing beside it still has the whole toolbox. It can also
+suggest a **canvas type**, which lands in the picker when you choose the preset
+and is still yours to change before you press Create.
+[More](features/canvas.md).
+
 ## Picking marks up again
 
 The **selection** tool (`V`) drags a box over marks you have already drawn.

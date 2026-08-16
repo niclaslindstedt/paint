@@ -24,6 +24,7 @@ index.html → src/main.tsx ─┬─ src/App.tsx
 
 stores:   usePaintStore · useAppSettings · useNamespaces · useSyncEngine
 domain:   types · layers · render · plugins/* · migrations · canvas · export
+          canvasSize / canvasPresets (what page a drawing is made on)
           transform (mirror / turn / resize) · handoff (between namespaces)
           sidebarDnd (which drops are legal)
 platform: @niclaslindstedt/oss-framework (UI kit, storage, theme, i18n, PWA)
@@ -469,6 +470,29 @@ and node-testable; `NewImageModal.tsx` is only the dialog around them, and the
 size reaches the document as the `init` patch `addDrawing` already took — along
 with the page's colour and its sheet, which the same dialog collects as one
 `PageMakeup` because all three are answers to what the page _is_.
+
+A page can also be made on a **canvas preset** — a named page the user set up in
+Settings → Canvas: a size, optionally a kit of tools, and optionally the sheet it
+is usually on (`canvasPresets.ts`, pure and node-testable). Two halves of it are
+worth separating:
+
+- **The size and the sheet are answers, not rules.** They land in the same
+  `PageMakeup` every other answer does, and after Create nothing distinguishes a
+  page made on a preset from one typed by hand.
+- **The kit is read for as long as the drawing exists.** The preset's id is
+  written onto the drawing (`Drawing.canvasPreset`), and `App` resolves the
+  toolbar through `toolbarFor` before handing the screen its settings — with
+  `enabledPlugins` and `toolOrder` swapped for the preset's. So the toolbar, the
+  keyboard shortcuts and the active-tool fallback all resolve through exactly the
+  code they always did, and nothing below `App` knows a canvas preset exists.
+  A kit is the same pair of lists the app-wide toolbar is, which is why one
+  `toolbarEntries` call answers for both, and why Settings → Canvas and Settings
+  → Tools render the same row (`settings/toolRow.tsx`).
+
+An id naming a preset that has since been deleted falls back to the app-wide
+toolbar; the page itself is untouched, because its size was baked in when it was
+made. The field is additive and needs no migration step, for the same reason the
+ground did.
 
 `transform.ts` is the other half of that story: mirroring, quarter turns,
 scaling, and resizing the sheet alone. All four are one map from a point on the

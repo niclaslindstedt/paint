@@ -401,7 +401,13 @@ export function SidePanel({
           says **Apply…** rather than showing a value, and that is the whole
           difference from what this section used to be: there is no "on" state
           to read back, because an effect that has been applied is simply part
-          of the picture. */}
+          of the picture.
+
+          Nothing under the rows explains that. A paragraph about flattening sat
+          there for a while and it was three lines of a 224-pixel column saying
+          what the dialog one press away says at the moment it matters — with the
+          layer it is about to land on named, and a preview of what it will
+          do. */}
       <div className="shrink-0 border-b border-line">
         <SectionHeading
           title={t("effects.title")}
@@ -429,12 +435,6 @@ export function SidePanel({
                 </span>
               </button>
             ))}
-            {/* Said once, under the rows, rather than on every one of them:
-                this section changes the drawing, where everything above it
-                changes how the drawing is arranged. */}
-            <p className="px-0.5 pt-0.5 text-[11px] leading-snug text-muted">
-              {t("effects.hint")}
-            </p>
           </div>
         )}
       </div>

@@ -106,6 +106,15 @@ the same [`oss-framework`](https://github.com/niclaslindstedt/oss-framework).
   The marker and the highlighter are two shapes of felt tip — a round bullet and
   a flat wedge that draws a band one way and a hairline the other. Not one pen
   at five different widths.
+- **Canvas presets.** A page you set up once and named — a sketchbook, a phone
+  wallpaper, a comic panel — standing on the New image shelf beside the sizes the
+  app ships with, and drawn to the same scale. A preset can carry **its own
+  toolbar**: a page made on your sketchbook opens with a pencil, an eraser and
+  nothing else, in the order you put them in, every time you open it, while the
+  photo in the next drawing still has the whole toolbox. It can suggest a canvas
+  type too, which lands in the picker and stays yours to change. Settings →
+  **Canvas** makes them, and hides the shipped sizes you never reach for.
+
 - **Paper, canvas, or a plain sheet.** The page has a material as well as a
   colour, and **New image** asks for all three at once — size, page colour, and
   canvas type: a solid digital sheet, one of four papers (cartridge,
