@@ -120,5 +120,10 @@ level; a folder arrives as a folder, its drawings still filed inside it.
 Below the island, a thin chevron rail folds the footer away when you want the
 extra room for the list — the choice is remembered across reloads. Unfolded, it
 holds **Donate**, an **About** dropdown (What's new, the source repository with
-this build's identifier beneath it, and the privacy policy), a **Check for
-updates** row, and **Settings** pinned last under the thumb.
+this build's identifier beneath it, and the privacy policy), and **Settings**
+pinned last under the thumb.
+
+There is no **Check for updates** row here any more. A new build installs itself
+in the background and raises its own prompt, so the row was a button for a job
+nobody has to do; forcing the check by hand now lives on Settings → **Developer**,
+beside the build stamp you would be comparing it against.

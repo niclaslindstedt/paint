@@ -336,9 +336,6 @@ export function App() {
           onShowArchive={() => setView("archive")}
           onShowCanvas={() => setView("canvas")}
           syncSlot={syncSlot}
-          checkingUpdate={pwa.checking}
-          updateAvailable={pwa.needRefresh}
-          onCheckUpdate={pwa.checkForUpdate}
         />
       </Sidebar>
 
@@ -476,6 +473,7 @@ export function App() {
             darkCanvas={darkCanvas}
             store={store}
             sync={sync}
+            pwa={pwa}
           />
         </Suspense>
       )}

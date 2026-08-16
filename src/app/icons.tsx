@@ -763,25 +763,35 @@ export function SidePanelIcon({ className }: IconProps) {
 // an arrow curling over it turns, a sheet split by an axis with one half
 // shaded mirrors across that axis. At 18 pixels the shaded half is what makes a
 // mirror read as a mirror rather than as a divided rectangle.
+//
+// **An arrowhead sits on the line it ends, and square to it.** Both turn arrows
+// were drawn with the head's vertex a fraction off the ring and its two wings at
+// different angles to the tangent, which is not a thing anyone can name from the
+// source and is the first thing anyone sees on the screen: the head reads as a
+// wedge stuck on the circle rather than as the end of the stroke. So each head's
+// vertex is exactly the arc's own endpoint and its wings are mirror images
+// across the tangent there — which is why the heads are at the *top* of the ring,
+// where that tangent is horizontal and the wings stay inside the box.
 
 /** Turn the page a quarter to the left — the sheet, and the arrow going round
- *  it anticlockwise. */
+ *  it anticlockwise, its head on the ring at the top pointing back the way it
+ *  came. */
 export function TurnLeftIcon({ className }: IconProps) {
   return (
     <svg {...base} className={className} aria-hidden="true">
-      <path d="M4 12.5a8 8 0 1 1 2.6 5.9" />
-      <path d="M3.4 8.2 4 12.9l4.7-.6" />
+      <path d="M7.4 5.9A8 8 0 1 0 12 4.5" />
+      <path d="M14.7 2.8 12 4.5l2.7 1.7" />
       <rect x="9.5" y="9.5" width="6" height="6" rx="1" />
     </svg>
   );
 }
 
-/** …and to the right. */
+/** …and to the right — the same ring and the same head, mirrored. */
 export function TurnRightIcon({ className }: IconProps) {
   return (
     <svg {...base} className={className} aria-hidden="true">
-      <path d="M20 12.5a8 8 0 1 0-2.6 5.9" />
-      <path d="M20.6 8.2 20 12.9l-4.7-.6" />
+      <path d="M16.6 5.9A8 8 0 1 1 12 4.5" />
+      <path d="M9.3 2.8 12 4.5 9.3 6.2" />
       <rect x="8.5" y="9.5" width="6" height="6" rx="1" />
     </svg>
   );
@@ -806,6 +816,36 @@ export function MirrorVerticalIcon({ className }: IconProps) {
       <path d="M3 12h18" strokeDasharray="2.6 2.4" />
       <path d="M6.4 9.6 12 4l5.6 5.6Z" />
       <path d="M6.4 14.4 12 20l5.6-5.6Z" fill="currentColor" opacity=".55" />
+    </svg>
+  );
+}
+
+/** Stand the page the other way up — a sheet on its end beside a sheet on its
+ *  side, and nothing else.
+ *
+ *  Deliberately **not** the quarter-turn glyph, which this cell borrowed at
+ *  first: an arrow curling round a page says "turn the drawing", and this
+ *  button turns neither a drawing nor one page — it stands a whole shelf of
+ *  sizes the other way up. What it has to say is *the two ways round*, and two
+ *  pages saying it is the shortest sentence there is.
+ *
+ *  No arrow between them, and none was cheap to add: the pair carries the
+ *  meaning on its own, the cell under it names the orientation in words, and
+ *  every version drawn with an arc in the gap measured wide and dense
+ *  (`aspect` 1.19, `fill` 44) because the arc has to leave the pair's own
+ *  bounding box to be seen at all.
+ *
+ *  The two rectangles are pushed as far apart in shape as the small size
+ *  allows — 6.5 × 17 against 8 × 5.5 — because a "landscape" page only a
+ *  little wider than it is high reads as a square, and then the glyph is two
+ *  boxes rather than one page twice. Both interiors clear twice the stroke, so
+ *  neither closes up at 18 px, and the gap between them is 2.5 units so they
+ *  stay two pages rather than merging into one mark. */
+export function FlipIcon({ className }: IconProps) {
+  return (
+    <svg {...base} className={className} aria-hidden="true">
+      <rect x="3.5" y="3.5" width="6.5" height="17" rx="1" />
+      <rect x="12.5" y="9.25" width="8" height="5.5" rx="1" />
     </svg>
   );
 }

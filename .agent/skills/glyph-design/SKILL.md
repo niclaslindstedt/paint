@@ -22,6 +22,13 @@ Use it when:
 Every claim about a glyph — too heavy, too small, off-centre, wrong shape — is
 a number you can produce in about ten seconds. Produce it.
 
+The corollary, and it has cost real ship-time: **the table cannot see joinery.**
+It measures how much ink there is and what shape the box is; it has no column
+for _where two shapes meet_, so a head glued crookedly onto its line, a cross
+line that misses the barrel, a join that overshoots, all measure perfectly
+in-set. Any glyph whose parts touch gets an `ascii` read as well as a row —
+"measures in-set" is not the same claim as "is drawn correctly".
+
 ## Setup
 
 Everything lives in `scripts/` here and needs nothing installed: `png.mjs`

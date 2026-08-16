@@ -51,10 +51,6 @@ export const en = {
     sourceCode: "Source",
     collapseFooter: "Hide the menu footer",
     expandFooter: "Show the menu footer",
-    checkUpdate: "Check for updates",
-    checking: "Checking…",
-    updateAvailable: "Update available",
-    upToDate: "Up to date",
     updating: "Updating…",
     deleteConfirm: "Delete “{name}”? This cannot be undone.",
   },
@@ -84,7 +80,7 @@ export const en = {
     height: "Height",
     sizeHint: "Pixels, {min}–{max} on each side.",
     pageColorLabel: "Page colour",
-    pageColorTransparent: "No page — transparent",
+    pageColorTransparent: "Transparent",
     canvasTypeLabel: "Canvas type",
     canvasTypeHint:
       "Picked once, here — the sheet travels with the image and can't be changed afterwards. On a sheet that drinks, a wet tool mixes with what it is over instead of covering it, whatever the page is.",
@@ -802,6 +798,12 @@ export const en = {
     },
     developer: {
       intro: "Diagnostics for when something looks wrong.",
+      updatesTitle: "Updates",
+      checkUpdate: "Check for updates",
+      checking: "Checking…",
+      updateAvailable: "Update available",
+      upToDate: "Up to date",
+      updatesUnavailable: "No service worker in this build.",
       loggingTitle: "Logging",
       captureLogs: "Capture logs",
       captureLogsHint:

@@ -232,7 +232,9 @@ of drawings, each with its own undo history and its own synced file.
 Below the buttons, a thin chevron folds the footer away when you want the room
 for your drawings — it remembers the choice. Unfolded it holds **Donate**,
 **About** (what's new, the source repository with this build's identifier, and
-the privacy policy), **check for updates**, and **Settings**.
+the privacy policy), and **Settings**. There is no update row: a new build
+installs itself and asks, so the button was one for a job nobody has to do. It
+is on Settings → Developer for the times you want to force the check.
 
 ## Making it look how you like
 

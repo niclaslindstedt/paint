@@ -21,5 +21,7 @@ queues its push until you're back online.
 
 Deploys never swap the app under your hands mid-stroke. A new build installs in
 the background and parks; the app then raises a "new version is ready" prompt
-and applies it when you accept. The sidebar's **Check for updates** row asks for
-one on demand.
+and applies it when you accept. Nothing has to be pressed for that to happen —
+which is why there is no update button in the sidebar. Settings → **Developer**
+holds a **Check for updates** row for forcing the check by hand, next to the
+build stamp it is usually being compared against.

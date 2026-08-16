@@ -14,7 +14,11 @@ import {
   type ThemeAppearance,
 } from "@niclaslindstedt/oss-framework/theme";
 import { LogViewer } from "@niclaslindstedt/oss-framework/logging";
-import { useStandaloneMobile } from "@niclaslindstedt/oss-framework/pwa";
+import {
+  useStandaloneMobile,
+  type PwaUpdate,
+  type PwaUpdateCheckResult,
+} from "@niclaslindstedt/oss-framework/pwa";
 import {
   downloadBlob,
   downloadText,
@@ -459,18 +463,79 @@ export function StorageTab({
 
 // --- Developer -------------------------------------------------------------
 
+/** Forcing the update check, as a button you press and a line that answers.
+ *
+ *  The framework's `CheckForUpdatesItem` is a *menu row* — a glyph, a label, and
+ *  everything left-aligned under the row above it — which is what it was
+ *  built for and exactly wrong on a settings tab: indented text that happens to
+ *  be clickable reads as a caption, and the one thing this control has to look
+ *  like is a button. So it is one, centred in its section, with the outcome
+ *  under it rather than replacing the label — a button whose text changes to
+ *  "Up to date" has thrown away the thing you press to ask again. */
+function UpdateCheck({ pwa }: { pwa: PwaUpdate }) {
+  const t = useT();
+  const [result, setResult] = useState<PwaUpdateCheckResult | null>(null);
+  return (
+    <div className="flex flex-col items-center gap-2">
+      <Button
+        variant="secondary"
+        disabled={pwa.checking}
+        onClick={() => {
+          setResult(null);
+          void pwa.checkForUpdate().then(setResult);
+        }}
+      >
+        {pwa.checking
+          ? t("settings.developer.checking")
+          : t("settings.developer.checkUpdate")}
+      </Button>
+      {/* What the last look found. `unavailable` is a real answer — a dev build
+          registers no worker at all — and saying so is better than a button
+          that appears to do nothing. */}
+      {!pwa.checking && (result || pwa.needRefresh) && (
+        <p className="text-xs text-muted">
+          {t(
+            pwa.needRefresh || result === "update-found"
+              ? "settings.developer.updateAvailable"
+              : result === "unavailable"
+                ? "settings.developer.updatesUnavailable"
+                : "settings.developer.upToDate",
+          )}
+        </p>
+      )}
+    </div>
+  );
+}
+
 export function DeveloperTab({
   settings,
   update,
+  pwa,
 }: {
   settings: AppSettings;
   update: Update;
+  /** The live PWA update lifecycle, threaded down from `App` rather than
+   *  started again here: `usePwaUpdate` owns a service-worker registration, and
+   *  a second one in a dialog would be a second machine arguing with the first
+   *  about which build is waiting. */
+  pwa: PwaUpdate;
 }) {
   const t = useT();
   const standalone = useStandaloneMobile();
   return (
     <div>
       <p className="mb-3 text-xs text-muted">{t("settings.developer.intro")}</p>
+
+      {/* Forcing the update check by hand. It used to sit in the sidebar
+          footer, which put a button in everyone's way for a job the service
+          worker already does on its own — it finds a new build and raises the
+          toast without being asked. What is left is the case the row was
+          actually useful for: standing in front of a deploy wanting to know
+          whether this tab has seen it yet. That is a developer's question, so
+          it is on the developer's tab. */}
+      <Section title={t("settings.developer.updatesTitle")}>
+        <UpdateCheck pwa={pwa} />
+      </Section>
 
       <Section title={t("settings.developer.loggingTitle")}>
         <ToggleRow

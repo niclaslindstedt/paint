@@ -44,9 +44,10 @@ unreadable one, or delete the file from the drive and start again.
 ## The app won't update
 
 The service worker installs a new build in the background and prompts you before
-applying it. If the prompt never comes, use **Check for updates** in the
-sidebar. Failing that, close every tab of the app and reopen it — a worker only
-swaps when nothing is holding the old one open.
+applying it. If the prompt never comes, switch developer mode on in Settings →
+General and use **Check for updates** on the **Developer** tab. Failing that,
+close every tab of the app and reopen it — a worker only swaps when nothing is
+holding the old one open.
 
 ## Nothing loads after an update
 

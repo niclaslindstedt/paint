@@ -48,10 +48,6 @@ export const sv: Catalog = {
     sourceCode: "Källkod",
     collapseFooter: "Dölj menyns sidfot",
     expandFooter: "Visa menyns sidfot",
-    checkUpdate: "Sök efter uppdateringar",
-    checking: "Söker…",
-    updateAvailable: "Uppdatering finns",
-    upToDate: "Uppdaterad",
     updating: "Uppdaterar…",
     deleteConfirm: "Ta bort ”{name}”? Det går inte att ångra.",
   },
@@ -81,7 +77,7 @@ export const sv: Catalog = {
     height: "Höjd",
     sizeHint: "Bildpunkter, {min}–{max} på varje sida.",
     pageColorLabel: "Sidfärg",
-    pageColorTransparent: "Ingen sida — genomskinlig",
+    pageColorTransparent: "Genomskinlig",
     canvasTypeLabel: "Typ av rityta",
     canvasTypeHint:
       "Väljs en gång, här — arket följer med bilden och kan inte ändras efteråt. På ett ark som suger blandar sig ett vått verktyg med det det ligger över i stället för att täcka det, oavsett vad sidan är.",
@@ -753,6 +749,12 @@ export const sv: Catalog = {
     },
     developer: {
       intro: "Diagnostik för när något ser fel ut.",
+      updatesTitle: "Uppdateringar",
+      checkUpdate: "Sök efter uppdateringar",
+      checking: "Söker…",
+      updateAvailable: "Uppdatering finns",
+      upToDate: "Uppdaterad",
+      updatesUnavailable: "Inget service worker i det här bygget.",
       loggingTitle: "Loggning",
       captureLogs: "Spela in loggar",
       captureLogsHint:

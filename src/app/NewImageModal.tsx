@@ -64,7 +64,7 @@ import {
 import { defaultGrain } from "./ground.ts";
 import { GroundPicker } from "./GroundPicker.tsx";
 import { useT } from "./i18n/index.ts";
-import { TurnRightIcon } from "./icons.tsx";
+import { FlipIcon } from "./icons.tsx";
 import {
   imageFileStem,
   importImageFile,
@@ -659,8 +659,17 @@ export function NewImageModal({
             own. */}
           {!openingPct && (
             <div className="flex flex-col gap-2 border-t border-line pt-4">
+              {/* The question, and the answer beside it. The name of the sheet
+                  in hand belongs *here* rather than under the row: a row of
+                  round swatches shows the colours and says nothing about which
+                  one you have got hold of — two of the three light sheets are a
+                  hair apart — and the heading is where the eye already is. */}
               <span className="text-sm text-fg-bright">
                 {t("newImage.pageColorLabel")}
+                <span className="text-muted">
+                  {" · "}
+                  {t(backgroundName ?? "newImage.pageColorTransparent")}
+                </span>
               </span>
               <div
                 className="flex flex-wrap items-center gap-2"
@@ -701,15 +710,6 @@ export function NewImageModal({
                   />
                 ))}
               </div>
-              {/* Which one is in hand, in words. A row of round swatches shows
-                  you the colours and says nothing about *which* — two of the
-                  three light sheets are a hair apart, and at swatch size the
-                  difference between them is only readable as a name. */}
-              <p className="text-xs text-muted">
-                {backgroundName
-                  ? t(backgroundName)
-                  : t("newImage.pageColorTransparent")}
-              </p>
             </div>
           )}
 
@@ -960,7 +960,7 @@ function SizeShelf({
           className="flex items-center justify-center"
           style={{ height: `${PREVIEW_BOX.height}px` }}
         >
-          <TurnRightIcon className="h-6 w-6 text-accent" />
+          <FlipIcon className="h-10 w-10 text-accent" />
         </span>
         <span className="text-xs whitespace-nowrap text-fg-bright">
           {t("newImage.flip")}

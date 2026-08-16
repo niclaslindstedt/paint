@@ -23,6 +23,7 @@ import {
   type IconProps,
 } from "@niclaslindstedt/oss-framework/components";
 import { type ThemeAppearance } from "@niclaslindstedt/oss-framework/theme";
+import { type PwaUpdate } from "@niclaslindstedt/oss-framework/pwa";
 
 import { ToolboxIcon } from "./icons.tsx";
 import { useT } from "./i18n/index.ts";
@@ -113,6 +114,9 @@ type Props = {
   darkCanvas: boolean;
   store: PaintStore;
   sync: SyncEngine;
+  /** The live PWA update lifecycle, for the Developer tab's "check for updates"
+   *  row. `App` owns the one registration; this is a window onto it. */
+  pwa: PwaUpdate;
 };
 
 export function SettingsModal({
@@ -128,6 +132,7 @@ export function SettingsModal({
   darkCanvas,
   store,
   sync,
+  pwa,
 }: Props) {
   const t = useT();
   const [tab, setTab] = useState<TabId>("general");
@@ -359,7 +364,7 @@ export function SettingsModal({
             <StorageTab store={store} sync={sync} darkCanvas={darkCanvas} />
           )}
           {activeTab === "developer" && (
-            <DeveloperTab settings={draft} update={update} />
+            <DeveloperTab settings={draft} update={update} pwa={pwa} />
           )}
           {activeTab === "logs" && <LogsTab />}
         </div>

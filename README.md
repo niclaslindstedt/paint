@@ -250,7 +250,9 @@ npm run preview
   drawing (which asks for the page size first), new folder, the archive, and the
   cloud sync glyph, in one row; the
   footer below it (foldable behind a chevron) holds Donate, About — What's new,
-  the source, the privacy policy — check for updates, and Settings.
+  the source, the privacy policy — and Settings. Checking for updates by hand is
+  on Settings → Developer; the service worker finds a new build without being
+  asked.
 - **Toolbar** — two bands: the enabled tools fill the left, wrapping over two
   rows (three on a narrow phone), and everything that is not a tool sits in a
   fixed block against the right edge, divided off by a rule — colour and the
