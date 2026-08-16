@@ -56,7 +56,13 @@ import { paintMarquee } from "./plugins/builtin/select.ts";
 import type { DraftStroke } from "./plugins/types.ts";
 import type { LeadEngine } from "./plugins/lead.ts";
 import type { WashEngine } from "./plugins/wash.ts";
-import { anyErases, paintStrokes, relayFixed, underlay } from "./render.ts";
+import {
+  anyErases,
+  onSheet,
+  paintStrokes,
+  relayFixed,
+  underlay,
+} from "./render.ts";
 import { translateStrokes } from "./selection.ts";
 import { trailAhead, trailPainted, type Trail } from "./trail.ts";
 import type { Drawing, Point, Stroke } from "./types.ts";
@@ -246,26 +252,37 @@ export function paintFrame(frame: Frame): void {
   // was: a mark being dragged half off the screen, or a spray whose cone is
   // mostly past the edge, should cost what is showing (see `PaintDetail.clip`).
   const onPage = windowOnPage(spec);
-  if (moving) {
-    paintStrokes(ctx, dragged, { ...options, clip: onPage, omit: undefined });
-  }
-
-  if (draft) paintStrokes(ctx, [draft], { ...options, clip: onPage });
-
-  // Both coats above landed on pixels that already have the sheet in them — the
-  // cache hands back a finished picture, page and all. A mark that rubs out
-  // therefore takes the page with it, so the sheet goes back under whatever the
-  // hole exposed (see `underlay`). Only when something actually erased: this is
-  // every frame of an eraser stroke, and no frame of anything else.
   const inFlight = draft ? [...dragged, draft] : dragged;
-  if (anyErases(inFlight)) {
-    // …and a rubbing out that only lifts what a rubber can lift took the ink
-    // with it too, for the same reason: those pixels are a finished picture and
-    // it cannot tell what made them. The marks it could not have lifted go back
-    // first, under nothing and over the hole (see `relayFixed`).
-    relayFixed(ctx, inFlight, options, visibleStrokes(drawing));
-    underlay(ctx, drawing, options);
-  }
+  // Both coats are held to the sheet as well, exactly as the page under them
+  // was (see `onSheet`): a gesture that wanders off the paper leaves nothing on
+  // the desk beside it, and the screen therefore shows what an export would.
+  onSheet(ctx, drawing, () => {
+    if (moving) {
+      paintStrokes(ctx, dragged, { ...options, clip: onPage, omit: undefined });
+    }
+
+    // The gesture in flight is the one coat in the app painted once per pointer
+    // sample rather than once per mark, so it is the one told so — the
+    // watercolour simulation works a live mark out on a smaller field and
+    // settles it into the full one when the brush lifts (see `PaintDetail.live`).
+    if (draft) {
+      paintStrokes(ctx, [draft], { ...options, clip: onPage, live: true });
+    }
+
+    // Both coats above landed on pixels that already have the sheet in them — the
+    // cache hands back a finished picture, page and all. A mark that rubs out
+    // therefore takes the page with it, so the sheet goes back under whatever the
+    // hole exposed (see `underlay`). Only when something actually erased: this is
+    // every frame of an eraser stroke, and no frame of anything else.
+    if (anyErases(inFlight)) {
+      // …and a rubbing out that only lifts what a rubber can lift took the ink
+      // with it too, for the same reason: those pixels are a finished picture and
+      // it cannot tell what made them. The marks it could not have lifted go back
+      // first, under nothing and over the hole (see `relayFixed`).
+      relayFixed(ctx, inFlight, options, visibleStrokes(drawing));
+      underlay(ctx, drawing, options);
+    }
+  });
 
   paintChrome(ctx, drawing, outline, view.scale, dpr);
   trailPainted(frame.trail, spec, draft, outline);
@@ -354,8 +371,11 @@ function paintPatch(
     dpr * view.ty,
   );
   // The whole gesture, culled: what the painters skip they skip because it
-  // could not have landed in the box, never because the box cut it off.
-  paintStrokes(ctx, [draft], { ...spec.options, clip: patch });
+  // could not have landed in the box, never because the box cut it off. Held to
+  // the sheet and marked live for the same reasons a full frame's is.
+  onSheet(ctx, frame.drawing, () => {
+    paintStrokes(ctx, [draft], { ...spec.options, clip: patch, live: true });
+  });
   paintChrome(ctx, frame.drawing, outline, view.scale, dpr);
   ctx.restore();
   return true;

@@ -70,6 +70,32 @@ export type FakeContext = CanvasRenderingContext2D & {
   strokes: FakeStroke[];
   /** Every call that painted, in order, with the compositing it painted with. */
   painted: PaintedCall[];
+  /** Each `clip()`, in order.
+   *
+   *  A clip leaves no mark of its own — its whole effect is on paint that
+   *  happens afterwards, which a recording context does not rasterise. So what
+   *  there is to assert on is the *box* it was taken from and *when* it was
+   *  taken, and both are the whole of what the clip that matters here claims:
+   *  the sheet's own rectangle, established before the first mark goes down
+   *  (see `onSheet`). */
+  clips: FakeClip[];
+};
+
+/** One `clip()`: the rectangle it was taken from — `null` where the path was
+ *  not a plain rectangle — and how much had already been painted when it was. */
+export type FakeClip = {
+  box: FakeRect | null;
+  /** The length of `painted` at the moment of the clip, so "before the ink" is
+   *  a comparison rather than an assumption. */
+  after: number;
+};
+
+/** A rectangle a clip was taken from. */
+export type FakeRect = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
 };
 
 /** Whether a fake context's `filter` actually does anything.
@@ -79,17 +105,15 @@ export type FakeContext = CanvasRenderingContext2D & {
  *  trusts the property paints nothing at all there. "inert" is that browser. */
 export type FilterSupport = "honoured" | "inert";
 
-const METHODS = [
+const METHODS = ["scale", "strokeRect", "translate"] as const;
+
+/** …and the ones that put something on the path that is not a rectangle, so a
+ *  clip taken off it afterwards is not a box (see `FakeContext.clips`). */
+const PATH_METHODS = [
   "arc",
-  "beginPath",
-  "clip",
   "closePath",
   "ellipse",
   "quadraticCurveTo",
-  "rect",
-  "scale",
-  "strokeRect",
-  "translate",
 ] as const;
 
 /** The calls that put something on the pixels — recorded with the state they
@@ -118,6 +142,14 @@ export function createFakeContext(
   const draws: FakeDraw[] = [];
   const strokes: FakeStroke[] = [];
   const painted: PaintedCall[] = [];
+  const clips: FakeClip[] = [];
+  // The rectangle the path was given, and whether that is *all* it was given —
+  // between them, what a `clip()` arriving now would be clipping to.
+  let boxed: FakeRect | null = null;
+  let onlyBoxed = true;
+  const spoil = () => {
+    onlyBoxed = false;
+  };
   let transform = { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 };
   const tick = (name: string) => {
     calls[name] = (calls[name] ?? 0) + 1;
@@ -143,6 +175,7 @@ export function createFakeContext(
     draws,
     strokes,
     painted,
+    clips,
     globalAlpha: 1,
     globalCompositeOperation: "source-over",
     lineWidth: 1,
@@ -214,13 +247,31 @@ export function createFakeContext(
       tick("createLinearGradient");
       return { addColorStop() {} };
     },
+    beginPath() {
+      tick("beginPath");
+      boxed = null;
+      onlyBoxed = true;
+    },
+    // Only a lone rectangle counts: a path that got one and then anything else
+    // is not a box, and a clip taken off it is not one either.
+    rect(x: number, y: number, width: number, height: number) {
+      tick("rect");
+      if (boxed) spoil();
+      else boxed = { x, y, width, height };
+    },
+    clip() {
+      tick("clip");
+      clips.push({ box: onlyBoxed ? boxed : null, after: painted.length });
+    },
     moveTo(x: number, y: number) {
       tick("moveTo");
+      spoil();
       atX = x;
       atY = y;
     },
     lineTo(x: number, y: number) {
       tick("lineTo");
+      spoil();
       pending.push([atX, atY, x, y]);
       atX = x;
       atY = y;
@@ -251,6 +302,12 @@ export function createFakeContext(
     },
   };
   for (const name of METHODS) ctx[name] = () => tick(name);
+  for (const name of PATH_METHODS) {
+    ctx[name] = () => {
+      tick(name);
+      spoil();
+    };
+  }
   for (const name of PAINTS) ctx[name] = () => record(name);
   return ctx as unknown as FakeContext;
 }

@@ -145,7 +145,12 @@ export function setWashDetail(detail: number): void {
  *  it picks `multiply` or `screen` for the mark. `detail` says how much of the
  *  field to run (see `MIN_WASH_DETAIL`), and turning it down is one more way a
  *  mark falls through — a head only a couple of coarse cells across has nothing
- *  left for a field to resolve. */
+ *  left for a field to resolve.
+ *
+ *  `live` says the mark is still under the hand, which the simulation reads as
+ *  a smaller field: it is re-run from its first point on every pointer sample,
+ *  so it is the one mark whose cost is paid per frame rather than per mark (see
+ *  `BUDGET`). */
 export function paintWashWith(
   engine: WashEngine,
   ctx: CanvasRenderingContext2D,
@@ -159,6 +164,7 @@ export function paintWashWith(
   color = "#000000",
   page = "#ffffff",
   detail = DEFAULT_WASH_DETAIL,
+  live = false,
 ): void {
   if (engine === "simulation") {
     const painted = paintSimulatedWash(
@@ -173,6 +179,7 @@ export function paintWashWith(
       color,
       page,
       detail,
+      live,
     );
     if (painted) return;
   }

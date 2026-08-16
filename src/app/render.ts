@@ -371,7 +371,47 @@ export type RenderOptions = InkContext & {
    *  it by identity, so a fresh set each frame would repaint the whole page each
    *  frame (see `cache.ts`). */
   omit?: ReadonlySet<string>;
+  /** These marks are the gesture still under the hand (see `PaintDetail.live`).
+   *
+   *  One caller: the canvas's in-flight coat (`frame.ts`), which is the only
+   *  paint in the app that happens once per pointer sample rather than once per
+   *  mark. It buys the expensive painters a cheaper setting for that coat and
+   *  nothing else. */
+  live?: boolean;
 };
+
+/** Paint `marks` with the context held to the sheet — nothing outside the page's
+ *  own rectangle lands.
+ *
+ *  **A mark belongs to the page, not to the desk it is lying on.** The canvas
+ *  element is a window onto a page that is usually smaller than it (see
+ *  `PaintCanvas.tsx`), so a gesture that begins or wanders past the sheet's edge
+ *  used to paint on the grey around it: ink floating off the paper on screen,
+ *  which then vanished on export, because an export rasterises the page and
+ *  nothing else. The screen and the file disagreed about the drawing, and the
+ *  screen was the one that was wrong.
+ *
+ *  So the clip is here rather than in the pointer handling, and it is the same
+ *  clip for every surface that paints marks: the screen, the mark cache, the
+ *  thumbnails and the export all cut at the same edge, so they cannot disagree.
+ *  Held marks are unchanged — a stroke that runs off the page is still the whole
+ *  stroke in the document, and moving it back on brings all of it back.
+ *
+ *  Not the sheet itself, which is laid *under* the marks afterwards and is
+ *  already the page's own rectangle (see `underlay`), and not the chrome, whose
+ *  whole job is to draw where the page ends. */
+export function onSheet(
+  ctx: CanvasRenderingContext2D,
+  drawing: { width: number; height: number },
+  marks: () => void,
+): void {
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(0, 0, drawing.width, drawing.height);
+  ctx.clip();
+  marks();
+  ctx.restore();
+}
 
 /** The grid's ink. Deliberately a fixed translucent grey rather than a theme
  *  colour: it has to read as a faint guide on a white sheet and on a black one,
@@ -496,23 +536,27 @@ export function renderDrawing(
     !options.flat &&
     (preview !== undefined ||
       anyStains(strokes, groundProfile(options.ground)));
-  if (apart) {
-    // The stack does its own relaying — a rubbing out on a layer composited by
-    // itself is scoped to that layer's surface, so what it owes is scoped to it
-    // too.
-    paintStack(ctx, drawing, scope, options, preview);
-  } else {
-    paintStrokes(ctx, strokes, options);
-    // A rubbing out that only lifts what a rubber can lift took everything for
-    // the length of one composite; this puts the rest back.
-    relayFixed(ctx, strokes, options);
-  }
-  if (draft) {
-    paintStroke(ctx, draft, options, detailFor(ctx, options));
-    // The gesture in flight, over everything already on the page — which is the
-    // order it was painted in, so it is the order it owes ink back in.
-    relayFixed(ctx, [draft], options, strokes);
-  }
+  // Every mark below is held to the sheet: what is off the page is not on the
+  // drawing (see `onSheet`).
+  onSheet(ctx, drawing, () => {
+    if (apart) {
+      // The stack does its own relaying — a rubbing out on a layer composited by
+      // itself is scoped to that layer's surface, so what it owes is scoped to it
+      // too.
+      paintStack(ctx, drawing, scope, options, preview);
+    } else {
+      paintStrokes(ctx, strokes, options);
+      // A rubbing out that only lifts what a rubber can lift took everything for
+      // the length of one composite; this puts the rest back.
+      relayFixed(ctx, strokes, options);
+    }
+    if (draft) {
+      paintStroke(ctx, draft, options, detailFor(ctx, options));
+      // The gesture in flight, over everything already on the page — which is the
+      // order it was painted in, so it is the order it owes ink back in.
+      relayFixed(ctx, [draft], options, strokes);
+    }
+  });
 
   underlay(ctx, drawing, options);
 }
@@ -1075,6 +1119,9 @@ function detailFor(
     // covers the window is one stroke to the cull and three hundred cones to
     // the painter, and only the painter can drop the other two hundred.
     ...(options.clip ? { clip: options.clip } : {}),
+    // …and whether these marks are the gesture in flight, which is the other
+    // thing a painter may spend differently on (see `PaintDetail.live`).
+    ...(options.live ? { live: true } : {}),
   };
 }
 

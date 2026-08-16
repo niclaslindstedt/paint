@@ -227,7 +227,39 @@ export type WashField = {
   /** Scratch, held rather than allocated per step. */
   nextWater: Float32Array;
   nextSuspended: Float32Array;
+  /** The box of cells the water has reached, inclusive — `right` below `left`
+   *  while the sheet is still dry (see `damp`). */
+  left: number;
+  top: number;
+  right: number;
+  bottom: number;
 };
+
+/** How far water can travel in one step: transport moves it to a neighbour, and
+ *  the capillary creep that runs after it moves that on again. Two cells, so
+ *  that is how far the damp box is opened before a step runs. */
+const REACH = 2;
+
+/** Note that a patch of cells has water in it, so the passes below visit it.
+ *
+ *  It is a bound and not a mask: everything inside it is stepped whether it is
+ *  wet or dry, and the arithmetic is exactly what stepping the whole sheet
+ *  would have done — every cell outside is dry, holds nothing, and neither
+ *  gives nor takes. What it buys is the sheet a mark *hasn't* reached, which on
+ *  a diagonal sweep is most of the field's own bounding box, and on the first
+ *  steps of any mark is nearly all of it. */
+function damp(
+  field: WashField,
+  left: number,
+  top: number,
+  right: number,
+  bottom: number,
+): void {
+  if (left < field.left) field.left = left;
+  if (top < field.top) field.top = top;
+  if (right > field.right) field.right = right;
+  if (bottom > field.bottom) field.bottom = bottom;
+}
 
 /** One octave of the sheet's grain: the hashed lattice, read *between* its
  *  points rather than at them.
@@ -346,6 +378,11 @@ export function createField(o: {
     absorbency: Math.max(0, Math.min(1, o.ground.absorbency)),
     nextWater: new Float32Array(cells),
     nextSuspended: new Float32Array(cells),
+    // Empty: nothing is wet yet, so the box is the one no cell is inside.
+    left: o.width,
+    top: o.height,
+    right: -1,
+    bottom: -1,
   };
 }
 
@@ -391,6 +428,7 @@ export function charge(
       field.suspended[at] += pigment * load;
     }
   }
+  damp(field, left, from, right, to);
 }
 
 /** One step of drying.
@@ -399,6 +437,16 @@ export function charge(
  *  changes the picture: water cannot carry pigment it has not picked up, and
  *  pigment cannot strand at an edge the water has not yet left. */
 export function step(field: WashField): void {
+  // Open the box by however far this step can carry water, then work inside it
+  // and nowhere else (see `damp`).
+  if (field.right < field.left) return;
+  damp(
+    field,
+    Math.max(0, field.left - REACH),
+    Math.max(0, field.top - REACH),
+    Math.min(field.width - 1, field.right + REACH),
+    Math.min(field.height - 1, field.bottom + REACH),
+  );
   expose(field);
   accelerate(field);
   transport(field);
@@ -416,8 +464,8 @@ export function step(field: WashField): void {
  *  so it is measured once a step rather than twice. */
 function expose(field: WashField): void {
   const { width, height, water, exposure } = field;
-  for (let y = 0; y < height; y++) {
-    for (let x = 0; x < width; x++) {
+  for (let y = field.top; y <= field.bottom; y++) {
+    for (let x = field.left; x <= field.right; x++) {
       const at = y * width + x;
       if (water[at]! <= DRY) {
         exposure[at] = 1;
@@ -459,8 +507,8 @@ function expose(field: WashField): void {
  *  two cells either side of it, and the chequerboard has nowhere to hide. */
 function accelerate(field: WashField): void {
   const { width, height, water, bed, vx, vy, flow } = field;
-  for (let y = 0; y < height; y++) {
-    for (let x = 0; x < width; x++) {
+  for (let y = field.top; y <= field.bottom; y++) {
+    for (let x = field.left; x <= field.right; x++) {
       const at = y * width + x;
       const held = water[at]!;
       const here = bed[at]! * BED_DEPTH + held;
@@ -495,11 +543,13 @@ function accelerate(field: WashField): void {
  *  water came from — that is the whole of "the pigment only goes where the
  *  water took it". */
 function transport(field: WashField): void {
-  const { width, height, water, suspended, bed, vx, vy, flow } = field;
+  const { width, water, suspended, bed, vx, vy, flow } = field;
   const nextWater = field.nextWater;
   const nextSuspended = field.nextSuspended;
-  nextWater.set(water);
-  nextSuspended.set(suspended);
+  const from0 = spanFrom(field);
+  const to0 = spanTo(field);
+  copySpan(nextWater, water, from0, to0);
+  copySpan(nextSuspended, suspended, from0, to0);
 
   const exposure = field.exposure;
   // One face of the lattice: however much water wants to cross it, bounded by
@@ -511,6 +561,11 @@ function transport(field: WashField): void {
   const cross = (from: number, to: number, drop: number, drift: number) => {
     const here = water[from]!;
     const there = water[to]!;
+    // Two dry cells have nothing to exchange, however the paper tilts between
+    // them: whichever way the flow would go, the side it would come off holds
+    // no water and the transfer is refused below. Saying so here rather than
+    // there is the same arithmetic and skips the rest of it.
+    if (here <= DRY && there <= DRY) return;
     // Water running out to the perimeter to replace what evaporated there.
     // This is the coffee-ring, and it is what makes a wash dry darkest at its
     // edge: the rim is where the water is leaving, so the rim is where the
@@ -542,8 +597,8 @@ function transport(field: WashField): void {
     nextSuspended[sink]! += carried;
   };
 
-  for (let y = 0; y < height; y++) {
-    for (let x = 0; x < width; x++) {
+  for (let y = field.top; y <= field.bottom; y++) {
+    for (let x = field.left; x <= field.right; x++) {
       const at = y * width + x;
       const here = bed[at]! * BED_DEPTH + water[at]!;
       if (x < width - 1) {
@@ -552,14 +607,37 @@ function transport(field: WashField): void {
         // the water is already crossing it at.
         cross(at, to, here - (bed[to]! * BED_DEPTH + water[to]!), vx[at]!);
       }
-      if (y < height - 1) {
+      if (y < field.height - 1) {
         const to = at + width;
         cross(at, to, here - (bed[to]! * BED_DEPTH + water[to]!), vy[at]!);
       }
     }
   }
-  water.set(nextWater);
-  suspended.set(nextSuspended);
+  copySpan(water, nextWater, from0, to0);
+  copySpan(suspended, nextSuspended, from0, to0);
+}
+
+/** The run of cells the damp box covers, as one contiguous slice of the arrays
+ *  — whole rows, with a row of margin either side so a transfer off the box's
+ *  own edge lands inside the copy rather than outside it.
+ *
+ *  The scratch arrays are only ever right within it, which is why every copy in
+ *  and out of them goes through the same pair of numbers. */
+function spanFrom(field: WashField): number {
+  return Math.max(0, field.top - 1) * field.width;
+}
+
+function spanTo(field: WashField): number {
+  return Math.min(field.height, field.bottom + 2) * field.width;
+}
+
+function copySpan(
+  into: Float32Array,
+  from: Float32Array,
+  at: number,
+  to: number,
+): void {
+  into.set(from.subarray(at, to), at);
 }
 
 /** Capillary creep: water wicking sideways into paper that is merely damp,
@@ -571,14 +649,16 @@ function transport(field: WashField): void {
  *  nothing, there is no creep and the edge stays where the water put it. */
 function creep(field: WashField): void {
   if (field.absorbency <= 0) return;
-  const { width, height, water, suspended, bed } = field;
+  const { width, water, suspended, bed } = field;
   const nextWater = field.nextWater;
   const nextSuspended = field.nextSuspended;
-  nextWater.set(water);
-  nextSuspended.set(suspended);
+  const from0 = spanFrom(field);
+  const to0 = spanTo(field);
+  copySpan(nextWater, water, from0, to0);
+  copySpan(nextSuspended, suspended, from0, to0);
   const rate = CAPILLARY * field.absorbency;
-  for (let y = 0; y < height; y++) {
-    for (let x = 0; x < width; x++) {
+  for (let y = field.top; y <= field.bottom; y++) {
+    for (let x = field.left; x <= field.right; x++) {
       const at = y * width + x;
       const held = water[at]!;
       if (held <= DRY) continue;
@@ -608,11 +688,11 @@ function creep(field: WashField): void {
       if (x > 0) wick(at - 1);
       if (x < width - 1) wick(at + 1);
       if (y > 0) wick(at - width);
-      if (y < height - 1) wick(at + width);
+      if (y < field.height - 1) wick(at + width);
     }
   }
-  water.set(nextWater);
-  suspended.set(nextSuspended);
+  copySpan(water, nextWater, from0, to0);
+  copySpan(suspended, nextSuspended, from0, to0);
 }
 
 /** Pigment out of the water and onto the sheet, and a little of it back again.
@@ -629,15 +709,17 @@ function creep(field: WashField): void {
 function settle(field: WashField): void {
   const { width, height, water, suspended, deposit, bed, pigment } = field;
   const next = field.nextSuspended;
-  next.set(suspended);
+  const from0 = spanFrom(field);
+  const to0 = spanTo(field);
+  copySpan(next, suspended, from0, to0);
   const spread = pigment.diffusion * 0.25;
   // Pigment drifting through still water, written as an exchange between
   // neighbouring pairs for the reason the flow above is: whatever one cell
   // loses the cell beside it gains, so a wash cannot quietly gain or lose
   // colour over the dozens of steps it takes to dry.
   if (spread > 0) {
-    for (let y = 0; y < height; y++) {
-      for (let x = 0; x < width; x++) {
+    for (let y = field.top; y <= field.bottom; y++) {
+      for (let x = field.left; x <= field.right; x++) {
         const at = y * width + x;
         if (water[at]! <= DRY) continue;
         if (x < width - 1 && water[at + 1]! > DRY) {
@@ -663,8 +745,8 @@ function settle(field: WashField): void {
   // bottom of a sheet of paper is its valleys.
   const roll = pigment.granulation * ROLLING;
   if (roll > 0) {
-    for (let y = 0; y < height; y++) {
-      for (let x = 0; x < width; x++) {
+    for (let y = field.top; y <= field.bottom; y++) {
+      for (let x = field.left; x <= field.right; x++) {
         const at = y * width + x;
         if (water[at]! <= DRY) continue;
         if (x < width - 1 && water[at + 1]! > DRY) {
@@ -684,7 +766,7 @@ function settle(field: WashField): void {
       }
     }
   }
-  for (let at = 0; at < next.length; at++) {
+  for (let at = from0; at < to0; at++) {
     const held = water[at]!;
     if (held <= DRY) continue;
     // Low ground holds what settles; a ridge sheds it. At `granulation = 0`
@@ -711,7 +793,7 @@ function settle(field: WashField): void {
     next[at]! += up - down;
     deposit[at]! += down - up;
   }
-  suspended.set(next);
+  copySpan(suspended, next, from0, to0);
 }
 
 /** The water leaving: into the air at the edges, into the fibre everywhere.
@@ -722,9 +804,19 @@ function settle(field: WashField): void {
  *  happens to be shaped. When a cell finally goes dry, whatever it was still
  *  carrying is stranded there, which is what puts the pigment at the edge. */
 function dry(field: WashField): void {
-  const { width, height, water, suspended, deposit } = field;
-  for (let y = 0; y < height; y++) {
-    for (let x = 0; x < width; x++) {
+  const { width, water, suspended, deposit } = field;
+  // …and, on the way past, where the water still *is*. Drying is the one pass
+  // that visits every damp cell and knows which of them survived it, so it is
+  // the one that can hand the next step a box drawn round what is left rather
+  // than round everywhere the wash has ever been (see `damp`). A sweep that has
+  // dried behind itself then costs its wet edge instead of its whole bounding
+  // box, and a mark that has dried out entirely costs nothing at all.
+  let stillLeft = width;
+  let stillTop = field.height;
+  let stillRight = -1;
+  let stillBottom = -1;
+  for (let y = field.top; y <= field.bottom; y++) {
+    for (let x = field.left; x <= field.right; x++) {
       const at = y * width + x;
       const held = water[at]!;
       if (held <= DRY) {
@@ -745,6 +837,10 @@ function dry(field: WashField): void {
       const left = held - gone;
       if (left > DRY) {
         water[at] = left;
+        if (x < stillLeft) stillLeft = x;
+        if (x > stillRight) stillRight = x;
+        if (y < stillTop) stillTop = y;
+        if (y > stillBottom) stillBottom = y;
         continue;
       }
       // Dry. What the water was still holding has nowhere to go.
@@ -753,6 +849,10 @@ function dry(field: WashField): void {
       suspended[at] = 0;
     }
   }
+  field.left = stillLeft;
+  field.top = stillTop;
+  field.right = stillRight;
+  field.bottom = stillBottom;
 }
 
 /** Run the field to dryness and hand back what is on the sheet.
