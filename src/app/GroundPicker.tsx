@@ -4,6 +4,8 @@ import { useEffect, useRef } from "react";
 import { defaultInk } from "./canvas.ts";
 import { GROUNDS, groundById, type GroundDescriptor } from "./ground.ts";
 import { useT } from "./i18n/index.ts";
+import { leadDetail, leadEngine } from "./plugins/lead.ts";
+import { washDetail, washEngine } from "./plugins/wash.ts";
 import { renderDrawing } from "./render.ts";
 import { mm } from "./units.ts";
 import type { Drawing, Ground } from "./types.ts";
@@ -77,6 +79,148 @@ function sampleMarks(ink: string, wash: string) {
   ];
 }
 
+/** Swatches already painted, keyed by everything that decides their pixels —
+ *  stock, grain, page colour, theme, and the device's pixel ratio.
+ *
+ *  A swatch is not cheap: the wash on it goes through the real watercolour
+ *  engine, and six of them painted in one effect flush held the new-image
+ *  dialog's thread for the better part of a second. Painted pixels never go
+ *  stale — the same key is the same picture — so they are kept for the life of
+ *  the tab, and reopening the dialog blits six bitmaps instead of running six
+ *  simulations. Capped because a drag of the grain slider mints a shelf's worth
+ *  of entries per step; the oldest go first, and repainting an evicted swatch
+ *  costs what it always cost. */
+const painted = new Map<string, HTMLCanvasElement>();
+const PAINTED_MAX = 60;
+
+/** Everything a swatch's pixels are a function of, folded into its cache key.
+ *  The engines in force are in it too: they are read as globals by the
+ *  renderer (see `plugins/wash.ts`), so two swatches painted either side of an
+ *  engine change are two different pictures under the same props. */
+function swatchKey(
+  stock: string | undefined,
+  texture: number,
+  pageColor: string,
+  dark: boolean,
+  dpr: number,
+): string {
+  return [
+    stock ?? "solid",
+    texture,
+    pageColor,
+    dark,
+    dpr,
+    washEngine(),
+    washDetail(),
+    leadEngine(),
+    leadDetail(),
+  ].join("|");
+}
+
+function remember(key: string, swatch: HTMLCanvasElement): void {
+  if (painted.size >= PAINTED_MAX) {
+    const oldest = painted.keys().next().value;
+    if (oldest !== undefined) painted.delete(oldest);
+  }
+  painted.set(key, swatch);
+}
+
+/** Swatches waiting to be painted, taken one per animation frame.
+ *
+ *  One per frame rather than all at once, because the queue's whole reason to
+ *  exist is that a swatch is worth a real slice of a frame: painting the shelf
+ *  in one go blocks the thread until the last one is done, and the dialog that
+ *  just opened sits frozen behind it. Spread out, the dialog paints first and
+ *  stays interactive while the shelf fills in — and a swatch whose answer is no
+ *  longer wanted (the grain slider has moved on) is pulled back off the queue by
+ *  its effect's cleanup instead of being painted and thrown away. */
+const queue: Array<() => void> = [];
+let pumping = false;
+
+function pump(): void {
+  const job = queue.shift();
+  if (!job) {
+    pumping = false;
+    return;
+  }
+  job();
+  requestAnimationFrame(pump);
+}
+
+/** Put a paint job in line. Returns the way to take it back out. */
+function enqueue(job: () => void): () => void {
+  queue.push(job);
+  if (!pumping) {
+    pumping = true;
+    requestAnimationFrame(pump);
+  }
+  return () => {
+    const at = queue.indexOf(job);
+    if (at >= 0) queue.splice(at, 1);
+  };
+}
+
+/** One swatch, painted onto a canvas of its own — the cache's currency. `null`
+ *  where a 2D context is not to be had. */
+function paintSwatch(
+  stock: string | undefined,
+  texture: number,
+  pageColor: string,
+  dark: boolean,
+  dpr: number,
+): HTMLCanvasElement | null {
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.round(SWATCH.width * dpr);
+  canvas.height = Math.round(SWATCH.height * dpr);
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return null;
+  const ink = defaultInk(dark);
+  const ground: Ground | undefined = stock
+    ? { stock, ...(texture === 1 ? {} : { texture }) }
+    : undefined;
+  const drawing: Drawing = {
+    id: "swatch",
+    name: "",
+    width: SAMPLE.width,
+    height: SAMPLE.height,
+    strokes: sampleMarks(ink, dark ? "#7dd3fc" : "#2563eb"),
+    ...(ground ? { ground } : {}),
+  };
+  const scale = canvas.width / SAMPLE.width;
+  ctx.setTransform(scale, 0, 0, scale, 0, 0);
+  // The whole page, through the app's own renderer: same painters, same
+  // grain, same mixing. A swatch that drew its own idea of paper would be
+  // free to be wrong about it.
+  renderDrawing(ctx, drawing, null, { pageColor, defaultInk: ink });
+  return canvas;
+}
+
+/** Paint the shelf a fresh dialog opens on, before anyone opens it.
+ *
+ *  The first swatch ever painted costs two orders of magnitude more than every
+ *  one after — the painters are compiled and the grain tiles built on that
+ *  first run, and the *pixels* were never the bill: the same six swatches cost
+ *  ~120 ms cold and ~1 ms warm, at any resolution, which is why the answer to
+ *  a slow shelf is warming it rather than shrinking it. Called at idle from the
+ *  app with the page a fresh dialog will actually show — no colour, grain at 1
+ *  — so the bill is paid where nobody is waiting, one swatch per frame through
+ *  the same queue, and the dialog's own shelf is six blits. Calling it warm
+ *  costs six map lookups. */
+export function warmSwatches(pageColor: string, dark: boolean): void {
+  if (typeof document === "undefined" || typeof window === "undefined") return;
+  const dpr = Math.min(window.devicePixelRatio || 1, 3);
+  for (const { id, family } of GROUNDS) {
+    const stock = family === "solid" ? undefined : id;
+    const key = swatchKey(stock, 1, pageColor, dark, dpr);
+    if (painted.has(key)) continue;
+    enqueue(() => {
+      if (painted.has(key)) return;
+      const swatch = paintSwatch(stock, 1, pageColor, dark, dpr);
+      if (swatch) remember(key, swatch);
+    });
+  }
+}
+
 /** One stock, painted as the page it is. */
 export function GroundSwatch({
   stock,
@@ -96,34 +240,40 @@ export function GroundSwatch({
     const canvas = ref.current;
     if (!canvas) return;
     const dpr = Math.min(window.devicePixelRatio || 1, 3);
-    canvas.width = Math.round(SWATCH.width * dpr);
-    canvas.height = Math.round(SWATCH.height * dpr);
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-    const ink = defaultInk(dark);
-    const ground: Ground | undefined = stock
-      ? { stock, ...(texture === 1 ? {} : { texture }) }
-      : undefined;
-    const drawing: Drawing = {
-      id: "swatch",
-      name: "",
-      width: SAMPLE.width,
-      height: SAMPLE.height,
-      strokes: sampleMarks(ink, dark ? "#7dd3fc" : "#2563eb"),
-      ...(ground ? { ground } : {}),
+    const key = swatchKey(stock, texture, pageColor, dark, dpr);
+    const show = (source: HTMLCanvasElement) => {
+      canvas.width = source.width;
+      canvas.height = source.height;
+      canvas.getContext("2d")?.drawImage(source, 0, 0);
     };
-    const scale = canvas.width / SAMPLE.width;
-    ctx.setTransform(scale, 0, 0, scale, 0, 0);
-    // The whole page, through the app's own renderer: same painters, same
-    // grain, same mixing. A swatch that drew its own idea of paper would be
-    // free to be wrong about it.
-    renderDrawing(ctx, drawing, null, { pageColor, defaultInk: ink });
+    // Seen before: a blit, on the spot. The queue is only for pixels that have
+    // to be worked out.
+    const kept = painted.get(key);
+    if (kept) {
+      show(kept);
+      return;
+    }
+    return enqueue(() => {
+      // Looked up again inside the job: a warming pass may have painted this
+      // very swatch while ours stood in the queue.
+      const swatch =
+        painted.get(key) ?? paintSwatch(stock, texture, pageColor, dark, dpr);
+      if (!swatch) return;
+      remember(key, swatch);
+      show(swatch);
+    });
   }, [stock, texture, pageColor, dark]);
 
   return (
     <canvas
       ref={ref}
-      style={{ width: SWATCH.width, height: SWATCH.height }}
+      // The page's own colour behind the canvas, so a swatch still in the queue
+      // reads as a blank page rather than a hole in the shelf.
+      style={{
+        width: SWATCH.width,
+        height: SWATCH.height,
+        backgroundColor: pageColor,
+      }}
       className="block rounded-sm"
     />
   );

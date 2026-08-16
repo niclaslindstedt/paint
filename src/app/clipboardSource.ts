@@ -14,14 +14,18 @@
 //   there. A look the user asked for may **not** — a tab that vanishes under the
 //   thumb that just pressed it reads as a broken button, so an empty answer to a
 //   deliberate paste stays on screen and says so.
-// - The tab is only ever dim while a free look is in flight, which is a second
-//   at most. Asking is a thing you press, not a thing you wait out.
+// - The tab is **absent** while a free look is in flight, not dim. It used to be
+//   there and greyed, and where the look came back empty the tab then vanished a
+//   second after it appeared — a dialog visibly changing its mind under the eye
+//   reading it. So the tab only ever joins the row once it is something you can
+//   press: appearing is a fine thing for a tab to do, disappearing is not.
 
 import type { ImportedImage } from "./images.ts";
 
 /** Where the clipboard tab is in its short life. */
 export type ClipboardSource =
-  /** A free look is in flight. The tab is there but dim. */
+  /** A free look is in flight. No tab yet — it joins the row if the look finds
+   *  a picture, and was never there to take away if it doesn't. */
   | { kind: "looking" }
   /** We may not look unasked. The tab offers a button that does. */
   | { kind: "ask" }
@@ -47,12 +51,16 @@ export function afterPaste(image: ImportedImage | null): ClipboardSource {
   return image ? { kind: "image", image } : { kind: "nothing" };
 }
 
-/** Whether the clipboard is offered as a source at all. */
+/** Whether the clipboard is offered as a source at all. Not while a free look
+ *  is still out: a tab that appeared and then vanished when the look came back
+ *  empty read as the dialog changing its mind. */
 export function tabShown(source: ClipboardSource): boolean {
-  return source.kind !== "hidden";
+  return source.kind !== "hidden" && source.kind !== "looking";
 }
 
-/** Whether the tab can be pressed. Only a free look in flight holds it back. */
+/** Whether the tab can be pressed. Every state the tab is shown in is one it
+ *  can be pressed in; the check keeps its own answer for the states that are
+ *  never shown, so the two cannot drift apart. */
 export function tabEnabled(source: ClipboardSource): boolean {
   return source.kind !== "looking" && source.kind !== "hidden";
 }

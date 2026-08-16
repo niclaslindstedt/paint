@@ -22,9 +22,11 @@ import type { Stroke } from "../src/app/types.ts";
 const image = { src: "data:image/png;base64,AA", width: 640, height: 480 };
 
 describe("the clipboard tab", () => {
-  it("is dim, but there, while a free look is in flight", () => {
+  it("is not offered while a free look is in flight", () => {
+    // Not dim — absent. A dim tab that the look then took away vanished a
+    // second after it appeared; one that is not there yet can only arrive.
     const source: ClipboardSource = { kind: "looking" };
-    expect(tabShown(source)).toBe(true);
+    expect(tabShown(source)).toBe(false);
     expect(tabEnabled(source)).toBe(false);
     expect(looking(source)).toBe(true);
   });
