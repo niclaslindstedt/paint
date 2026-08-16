@@ -36,6 +36,10 @@ the over-and-under of cotton duck. The grain is painted under the marks, which i
 why it shows _through_ a wash in proportion to how transparent the wash is and
 not at all through an opaque line — the thing that makes paper look like paper.
 Pull the page away far enough and it fades out rather than turning into static.
+It belongs to the **page** rather than to the screen, so a dip in the sheet is at
+a place on the sheet: zooming magnifies the tooth along with the marks sitting in
+it, and panning carries the two together. The paper and the drawing are one
+thing, and neither slides under the other.
 **Grain**, the slider under the shelf in New image, turns how much of it shows up
 or down — the whole shelf repaints as you drag, so you watch the tooth come up
 rather than taking a number on trust. It **opens where the stock you picked is

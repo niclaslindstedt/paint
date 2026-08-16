@@ -27,7 +27,7 @@ import {
   stains,
   wetting,
 } from "../src/app/ground.ts";
-import { graininess } from "../src/app/groundPaint.ts";
+import { graininess, grainTile } from "../src/app/groundPaint.ts";
 import { en } from "../src/app/i18n/en.ts";
 import { registerBuiltinPlugins } from "../src/app/plugins/builtin/index.ts";
 import { pluginById, resetPlugins } from "../src/app/plugins/registry.ts";
@@ -351,6 +351,66 @@ describe("the grain at a distance", () => {
     const far = graininess(0.9);
     expect(near).toBeGreaterThan(far);
     expect(far).toBeGreaterThan(0);
+  });
+});
+
+describe("the grain under a zoom", () => {
+  // Every zoom worth checking and then some: either side of each whole-pixel
+  // cell the tile is rounded to, and out past the cap where it is stretched.
+  const ZOOMS = [
+    0.05, 0.1, 0.2, 0.3, 0.35, 0.4, 0.45, 0.5, 0.66, 0.75, 0.9, 1, 1.5, 2, 3, 4,
+    8, 16,
+  ];
+
+  it("holds a dip at one place on the page however far it is magnified", () => {
+    // The bug this pins down: the tile used to be scaled by 1/zoom, so rounding
+    // the cell to a whole *device* pixel stretched the pattern against the page
+    // and walked every dip in it towards the page's corner — the paper crawling
+    // diagonally under a drawing that was holding still.
+    for (const stock of GROUNDS) {
+      const { tooth } = stock.profile;
+      if (tooth <= 0) continue;
+      const places = ZOOMS.map((zoom) => {
+        const { cell, perPixel } = grainTile(tooth, zoom);
+        // Where the 30th cell of the tile lands on the page, in document pixels.
+        return 30 * cell * perPixel;
+      });
+      for (const at of places) expect(at).toBeCloseTo(places[0]!, 9);
+      // …and it is the sheet's own pitch that put it there, not a coincidence.
+      expect(places[0]!).toBeCloseTo(30 * tooth, 9);
+    }
+  });
+
+  it("draws the sheet finer as it is zoomed in, up to a ceiling", () => {
+    const { tooth } = GROUNDS.find((g) => g.id === "cold")!.profile;
+    const cells = ZOOMS.map((zoom) => grainTile(tooth, zoom).cell);
+    for (let i = 1; i < cells.length; i++) {
+      expect(cells[i]!).toBeGreaterThanOrEqual(cells[i - 1]!);
+    }
+    // A whole tile pixel at the least, so there is always a tile to build…
+    expect(Math.min(...cells)).toBeGreaterThanOrEqual(1);
+    // …and a ceiling on it, so a page zoomed right in doesn't ask for a bitmap
+    // the size of a wall.
+    expect(Math.max(...cells)).toBeLessThanOrEqual(8);
+  });
+
+  it("draws it at about one tile pixel per device pixel between the two", () => {
+    let checked = 0;
+    for (const stock of GROUNDS) {
+      const { tooth } = stock.profile;
+      if (tooth <= 0) continue;
+      for (const zoom of ZOOMS) {
+        const onScreen = tooth * zoom;
+        // Below the fade the sheet isn't painted at all, and above the ceiling
+        // it is stretched on purpose; in between, a tile pixel is a screen one.
+        if (graininess(onScreen) <= 0) continue;
+        const { cell } = grainTile(tooth, zoom);
+        if (cell >= 8) continue;
+        expect(Math.abs(cell - onScreen)).toBeLessThanOrEqual(0.5);
+        checked++;
+      }
+    }
+    expect(checked).toBeGreaterThan(10);
   });
 });
 
