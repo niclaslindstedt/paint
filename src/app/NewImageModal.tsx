@@ -1,5 +1,11 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+} from "react";
 
 import {
   Button,
@@ -21,17 +27,22 @@ import {
   canvasPresets,
   currentScreenCanvasSize,
   CUSTOM_CANVAS,
+  flipOrientation,
   MAX_CANVAS_SIDE,
   MIN_CANVAS_SIDE,
+  orientationOf,
+  orientSize,
   parseCanvasSize,
   previewScale,
   type CanvasPreset,
   type CanvasSize,
+  type Orientation,
 } from "./canvasSize.ts";
 import {
   CHECKER_SQUARE,
   checkerColors,
   isDarkColor,
+  pageColorName,
   PAGE_SWATCHES,
   resolvePageColor,
 } from "./canvas.ts";
@@ -50,8 +61,10 @@ import {
   tabShown,
   type ClipboardSource,
 } from "./clipboardSource.ts";
+import { defaultGrain } from "./ground.ts";
 import { GroundPicker } from "./GroundPicker.tsx";
 import { useT } from "./i18n/index.ts";
+import { TurnRightIcon } from "./icons.tsx";
 import {
   imageFileStem,
   importImageFile,
@@ -129,6 +142,16 @@ import * as output from "../output.ts";
 // rectangle takes its place on the shelf at the same scale as the rest, so a
 // typed page is compared the way a named one is rather than being a number you
 // have to imagine. It opens on a big square — the page nobody offers by name.
+//
+// **The shelf faces the way the screen does**, and **Flip** is the sixth cell.
+// Each named size is written down in whichever orientation it is quoted in —
+// two displays on their sides, a sheet of paper on its end — and that is an
+// accident of the quoting rather than an answer to what page you want. A phone
+// held upright wants an upright page from all four of them, so the orientation
+// is one answer for the whole shelf and the sizes are turned to face it (see
+// `canvasSize.ts`). Flip turns the shelf, the typed page, and the cell already
+// lit, all at once — so it is a toggle rather than a choice you can lose your
+// place in: flip and flip back and you are exactly where you started.
 //
 // **It is a full-screen sheet on a phone and a card on a desktop** (the
 // framework `Modal`'s uncentered shape), because four questions and two shelves
@@ -223,7 +246,18 @@ export function NewImageModal({
   const t = useT();
   // The screen is read once, when the dialog opens: it is the default answer,
   // and it can't change while the dialog is in front of you.
-  const [presets] = useState(() => canvasPresets(currentScreenCanvasSize()));
+  const [screen] = useState(currentScreenCanvasSize);
+  // …and which way round the shelf stands, which starts as which way round that
+  // screen is. Every size is turned to face it, so a phone held upright offers
+  // four upright pages instead of asking for the one it is obviously being
+  // asked for (see `canvasSize.ts`).
+  const [orientation, setOrientation] = useState<Orientation>(() =>
+    orientationOf(screen),
+  );
+  const presets = useMemo(
+    () => canvasPresets(screen, orientation),
+    [screen, orientation],
+  );
   const [source, setSource] = useState<Source>("blank");
   const [size, setSize] = useState<CanvasSize>(
     () => presets[0]?.size ?? { width: 1920, height: 1080 },
@@ -351,6 +385,18 @@ export function NewImageModal({
       take(files.find(isPctFile) ?? firstFileOfType(files, "image/")),
   });
 
+  /** Turn the shelf, and everything standing on it: the presets (through
+   *  `canvasPresets`), the page currently lit, and the typed one. The lit page
+   *  is turned rather than reset because it is one of the rectangles on the
+   *  shelf and it stays the same one — flip and flip back and you are where you
+   *  started, with the same cell still chosen. */
+  const flip = () => {
+    const next = flipOrientation(orientation);
+    setOrientation(next);
+    setSize((current) => orientSize(current, next));
+    setCustom((c) => ({ width: c.height, height: c.width }));
+  };
+
   const customSize = parseCanvasSize(custom.width, custom.height);
   // The page a blank drawing would be made at: the typed one when Custom is the
   // cell in hand, otherwise whichever rectangle is lit.
@@ -387,6 +433,9 @@ export function NewImageModal({
   // ink on it.
   const pageColor = resolvePageColor(background, dark);
   const pageIsDark = isDarkColor(pageColor);
+  // What the chosen page is called — the swatch row is printed under, not
+  // guessed at. `undefined` is the chequer, which has a name of its own.
+  const backgroundName = pageColorName(background);
   const [checkerEven, checkerOdd] = checkerColors(dark);
 
   const create = () => {
@@ -481,6 +530,8 @@ export function NewImageModal({
                 value={blankSize}
                 custom={customSize}
                 typed={typedSize}
+                orientation={orientation}
+                onFlip={flip}
                 onPick={(next) => {
                   setTypedSize(false);
                   setSize(next);
@@ -634,22 +685,30 @@ export function NewImageModal({
                 />
                 {PAGE_SWATCHES.map((swatch) => (
                   <button
-                    key={swatch}
+                    key={swatch.color}
                     type="button"
                     role="radio"
-                    aria-checked={swatch === background}
-                    aria-label={swatch}
-                    title={swatch}
-                    onClick={() => setBackground(swatch)}
+                    aria-checked={swatch.color === background}
+                    aria-label={t(swatch.nameKey)}
+                    title={t(swatch.nameKey)}
+                    onClick={() => setBackground(swatch.color)}
                     className={`h-7 w-7 cursor-pointer rounded-full border-2 ${
-                      swatch === background ? "border-accent" : "border-line"
+                      swatch.color === background
+                        ? "border-accent"
+                        : "border-line"
                     }`}
-                    style={{ backgroundColor: swatch }}
+                    style={{ backgroundColor: swatch.color }}
                   />
                 ))}
               </div>
+              {/* Which one is in hand, in words. A row of round swatches shows
+                  you the colours and says nothing about *which* — two of the
+                  three light sheets are a hair apart, and at swatch size the
+                  difference between them is only readable as a name. */}
               <p className="text-xs text-muted">
-                {t("newImage.pageColorHint")}
+                {backgroundName
+                  ? t(backgroundName)
+                  : t("newImage.pageColorTransparent")}
               </p>
             </div>
           )}
@@ -662,9 +721,17 @@ export function NewImageModal({
               <GroundPicker
                 value={stock}
                 texture={texture}
-                onChange={(next) =>
-                  setStock(next.family === "solid" ? undefined : next.id)
-                }
+                // Picking a stock takes its own grain with it: a rough sheet
+                // opens with its tooth up where you can see it and a
+                // hot-pressed one with barely any, because that is what each is
+                // reached for (see `grainDefault`). The dial under the shelf
+                // then moves it from there — it is a starting point, not a
+                // ceiling, and switching stock is what re-answers it.
+                onChange={(next) => {
+                  const picked = next.family === "solid" ? undefined : next.id;
+                  setStock(picked);
+                  setTexture(defaultGrain(picked));
+                }}
                 pageColor={pageColor}
                 dark={pageIsDark}
                 label={t("newImage.canvasTypeLabel")}
@@ -697,7 +764,6 @@ export function NewImageModal({
               )}
               <p className="text-xs text-muted">
                 {t("newImage.canvasTypeHint")}
-                {stock ? ` ${t("newImage.grainHint")}` : ""}
               </p>
             </div>
           )}
@@ -737,12 +803,15 @@ function checkerStyle(even: string, odd: string): CSSProperties {
 }
 
 /** The page sizes, drawn to one shared scale so they can be compared rather than
- *  read — the four named ones and the one you type. */
+ *  read — the four named ones, the one you type, and the button that stands the
+ *  whole shelf the other way up. */
 function SizeShelf({
   presets,
   value,
   custom,
   typed,
+  orientation,
+  onFlip,
   onPick,
   onPickCustom,
   dimensions,
@@ -754,6 +823,9 @@ function SizeShelf({
   custom: CanvasSize | null;
   /** Whether the typed cell is the one in hand. */
   typed: boolean;
+  /** Which way round every page on the shelf is standing. */
+  orientation: Orientation;
+  onFlip: () => void;
   onPick: (size: CanvasSize) => void;
   onPickCustom: () => void;
   dimensions: (size: CanvasSize) => string;
@@ -767,7 +839,7 @@ function SizeShelf({
   );
   return (
     <div
-      className="grid grid-cols-3 gap-2 sm:grid-cols-5"
+      className="grid grid-cols-3 gap-2 sm:grid-cols-6"
       role="radiogroup"
       aria-label={t("newImage.sizeLabel")}
     >
@@ -862,6 +934,42 @@ function SizeShelf({
         </span>
         <span className="text-[10px] whitespace-nowrap text-muted tabular-nums">
           {custom ? dimensions(custom) : t("newImage.customEmpty")}
+        </span>
+      </button>
+
+      {/* Stand the whole shelf the other way up — every named size, the typed
+          one, and the page currently chosen, all at once.
+
+          It is the last cell of the shelf rather than a control above it
+          because it is an answer about the same thing the shelf is: a page is a
+          shape, and which way round that shape stands is half of the shape. A
+          button and not a sixth radio, though — it doesn't compete with them
+          for the selection, it turns whichever one is already lit. */}
+      <button
+        type="button"
+        onClick={onFlip}
+        aria-label={t(
+          orientation === "portrait"
+            ? "newImage.flipToLandscape"
+            : "newImage.flipToPortrait",
+        )}
+        className="flex cursor-pointer flex-col items-center gap-1.5 rounded-lg border border-line p-2 hover:bg-surface-2"
+      >
+        <span
+          aria-hidden="true"
+          className="flex items-center justify-center"
+          style={{ height: `${PREVIEW_BOX.height}px` }}
+        >
+          <TurnRightIcon className="h-6 w-6 text-accent" />
+        </span>
+        <span className="text-xs whitespace-nowrap text-fg-bright">
+          {t("newImage.flip")}
+        </span>
+        {/* Which way the shelf is standing now — the state, not the promise,
+            so the cell says what you are looking at rather than what pressing
+            it would give you. */}
+        <span className="text-[10px] whitespace-nowrap text-muted">
+          {t(`newImage.${orientation}`)}
         </span>
       </button>
     </div>

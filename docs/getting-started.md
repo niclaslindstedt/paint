@@ -5,7 +5,8 @@ into and nothing to configure — start drawing.
 
 The **hamburger** in the top left, beside the drawing's name, shows and hides the
 list of drawings. On a wide screen that list is docked; on a phone it slides
-over the page.
+over the page — and there a **swipe inward from the edge it lives on** opens it
+too, which is the gesture your thumb is already making.
 
 ## The canvas
 
@@ -193,17 +194,26 @@ every drawing app installed to an iPhone home screen — the tab holds a **Paste
 from clipboard** button, and the browser puts up its own Paste to confirm. An empty one asks how big it
 is, and the sizes are drawn rather than listed: this screen, Full HD, 4K, A4 and
 one you type, all at one shared scale, so you can see how much bigger 4K is
-before you pick it. The page can still be resized afterwards, from the
-right-hand panel.
+before you pick it. They all stand **the way your screen does** — hold a phone
+upright and every one of them is upright, A4 included — and **Flip**, the last
+cell of the shelf, turns the whole row over at once, the one you have already
+picked with it. The page can still be resized afterwards, from the right-hand
+panel.
 
 Every page that starts here is also asked its **page colour** and its **canvas
 type**. The colour opens on the chequer, which means no page at all: the marks
 land on nothing, and a PNG or an SVG of the image downloads with nothing behind
-it. Pick one of the six sheets instead and it travels with the image. The canvas
-type is a solid digital sheet, one of four papers, or primed canvas, drawn as
-swatches — each a real page with a wash laid across an ink line on it, painted on
-the colour you just picked, so a black page is compared as a black page — with a
-**Grain** slider under them for how strongly that sheet's tooth shows. None of it
+it. Pick one of the six sheets instead and it travels with the image; whichever
+is in hand is **named under the row**, because two of the light sheets are a
+hair apart and at swatch size the difference between them is only readable as a
+name. The canvas type is a solid digital sheet, one of four papers, or primed
+canvas, drawn as swatches — each a real page with a wash laid across an ink line
+on it, painted on the colour you just picked, so a black page is compared as a
+black page — with a **Grain** slider under them for how strongly that sheet's
+tooth shows. The slider opens where each stock is reached for rather than at one
+number for all of them: rough starts with its tooth up where you can see it,
+hot-pressed with barely any, since that is what each sheet is bought to be. None
+of it
 changes afterwards: a wet mark is painted _into_ the sheet it was made on, so all
 of it is part of building the page rather than settings to find later.
 [More](features/surface.md).

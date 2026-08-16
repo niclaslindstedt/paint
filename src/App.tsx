@@ -7,6 +7,7 @@ import {
 } from "@niclaslindstedt/oss-framework/theme";
 import {
   Sidebar,
+  useEdgeSwipeOpen,
   usePersistentMenuPosition,
   useSidebarInset,
 } from "@niclaslindstedt/oss-framework/sidebar";
@@ -157,6 +158,13 @@ export function App() {
   // on a phone it opens the drawer, and `toggleMenu` below is the one place that
   // knows which of the two it is doing.
   const wide = useMediaQuery("(min-width: 768px)");
+  // Whether the hand on this device is a finger. It decides one thing: whether
+  // an inward swipe from the screen edge opens the drawer as well as the
+  // header's hamburger. There is no setting for it, and there shouldn't be —
+  // the gesture is the one every phone app has, it costs a mouse nothing
+  // because a mouse never fires it, and a preference for it was a switch that
+  // could only ever turn something good off.
+  const touch = useMediaQuery("(pointer: coarse)");
   const [menuFolded, setMenuFolded] = useState(false);
   const pinned = wide && !menuFolded;
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -193,6 +201,17 @@ export function App() {
     base: import.meta.env.BASE_URL,
     cacheId: cacheIdForBase(import.meta.env.BASE_URL),
     enabled: !import.meta.env.DEV,
+  });
+
+  // The drawer's open-swipe: an inward drag from the edge the menu lives on,
+  // on a screen where the drawer is what the menu *is* and a finger is what is
+  // holding it. The header button opens it too — this is the gesture beside the
+  // button, not instead of it.
+  const swipeToOpen = !pinned && touch;
+  useEdgeSwipeOpen({
+    side: position.side,
+    enabled: swipeToOpen && !drawerOpen,
+    onOpen: () => setDrawerOpen(true),
   });
 
   // Keyboard undo/redo over the same history the sidebar buttons drive
@@ -366,6 +385,11 @@ export function App() {
                   }
                 : null
             }
+            // The edge the drawer's open-swipe is watching, so the canvas can
+            // hold that swipe back instead of drawing it. `null` whenever
+            // nothing is listening — a docked sidebar, a pointer that can't
+            // fire the gesture, or a drawer that is already open.
+            menuSwipeEdge={swipeToOpen && !drawerOpen ? position.side : null}
           />
         )}
       </main>

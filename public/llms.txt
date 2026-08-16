@@ -34,8 +34,8 @@ connect a storage backend yourself.
   into the paper's valleys. Both read the same dials and the same paper; a
   browser that cannot run the simulation paints with the first one instead.
 - Choose what the page is made of when the drawing is made, alongside its size:
-  a solid digital sheet, four papers (hot-pressed, cold-pressed, rough,
-  cartridge) or primed cotton duck. The sheet stays with the drawing and cannot
+  a solid digital sheet, four papers (cartridge, cold-pressed, rough,
+  hot-pressed) or primed cotton duck. The sheet stays with the drawing and cannot
   be swapped afterwards, because a mark is painted into the sheet it was made
   on. Its grain is painted under the marks, and how wet a tool is times how
   thirsty the sheet is decides whether a mark covers what it is over or mixes
@@ -84,7 +84,8 @@ connect a storage backend yourself.
 - Start a drawing from an empty page, an image file, or an image on the
   clipboard. An empty one asks its canvas size up front — this screen, Full HD,
   4K, A4 or a size you type, drawn to one shared scale so they can be compared
-  at a glance.
+  at a glance. Every size stands the way the screen is being held, so a phone
+  offers four upright pages, and one Flip turns the whole shelf over.
 - Resize, flip (a quarter turn either way) and mirror a whole drawing from the
   right-hand panel; resizing can scale the drawing or change only the sheet,
   which is how a page is cropped or given more room. The resize dialog draws the
@@ -117,7 +118,11 @@ connect a storage backend yourself.
   actions live behind a right-click menu, and rows drag with the mouse.
 - Keep several namespaces (separate sketchbooks), each with its own document,
   and move a drawing (or a whole folder, drawings and all) between them by
-  dragging it onto another sketchbook's row.
+  dragging it onto another sketchbook's row. You start with one, called Default;
+  the rest are made when you want them.
+- Open the sidebar on a touch screen with an inward swipe from the edge it lives
+  on, as well as from the header's hamburger. The canvas holds a touch that
+  lands in that strip rather than drawing it, so the gesture leaves no mark.
 - Drop an image file onto the canvas to add it to a drawing — move and scale it
   before settling it, and the page grows if the picture is bigger than the sheet
   — or onto the drawings list to start a new drawing named after the file.

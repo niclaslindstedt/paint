@@ -28,12 +28,17 @@ import { docKey } from "./usePaintStore.ts";
 const LIST_KEY = "paint:namespaces";
 const ACTIVE_KEY = "paint:namespace:active";
 
-// First-run registry: a sketchbook (the reserved `default` slug) plus a
-// teaching one, so the switcher is meaningful out of the box. Both boot from
-// the empty starter document.
+// First-run registry: **one** sketchbook, on the reserved `default` slug.
+//
+// One rather than a shelf of samples, because a namespace is a whole separate
+// sketchbook — its own drawings, its own undo history — and nobody arrives
+// needing two of them. A second one seeded here is a room the user never asked
+// for that they then have to find the switcher to get out of; the switcher is
+// there for when they *do* want one, and creating it is one press. It is named
+// for what it is rather than given a theme of its own, so it reads as "the
+// place your drawings are" instead of as one option among several.
 const SEED_NAMESPACES: Namespace[] = normalizeNamespaces([
-  { slug: DEFAULT_NAMESPACE_SLUG, name: "Sketchbook" },
-  { slug: "teaching", name: "Teaching", glyph: "sparkles", color: "#fbbf24" },
+  { slug: DEFAULT_NAMESPACE_SLUG, name: "Default" },
 ]);
 
 export type NamespacesStore = ReturnType<typeof useNamespaces>;

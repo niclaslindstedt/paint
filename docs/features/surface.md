@@ -19,6 +19,13 @@ glance, and they are the ones an artist reaches for and nothing else: the three
 surfaces watercolour paper is actually sold in, the sketchbook sheet, canvas, and
 the plain page.
 
+They are laid out **in the order they get used**, not smoothest to roughest: the
+plain sheet, then cartridge (every sketchbook there has ever been), cold-pressed
+(what "watercolour paper" means unless someone says otherwise), rough,
+hot-pressed, and cotton duck. Coarseness is a property nobody picks a sheet by,
+and sorting on it buried the two sheets most pages are actually made on in the
+middle of the row.
+
 It matters because the sheet is not a backdrop. **Watercolour on paper is a
 different mark from watercolour on glass**, and so is a marker on rough. So the
 surface does three things, and only the first is decoration.
@@ -31,7 +38,12 @@ not at all through an opaque line — the thing that makes paper look like paper
 Pull the page away far enough and it fades out rather than turning into static.
 **Grain**, the slider under the shelf in New image, turns how much of it shows up
 or down — the whole shelf repaints as you drag, so you watch the tooth come up
-rather than taking a number on trust. It is the one thing about a sheet that
+rather than taking a number on trust. It **opens where the stock you picked is
+reached for**, not at one number for all six: rough starts a shade above its own
+weight because the tooth is the whole reason to buy that sheet, hot-pressed a
+good deal below it because being smooth is, and cotton duck just under, since at
+full weight the weave reads as sackcloth. Picking a different stock re-answers
+it; the slider then moves it from there. It is the one thing about a sheet that
 changes what you see and never how the sheet behaves, and because the grain is
 painted as part of the page, it shows where the page has a colour and not on a
 transparent one.

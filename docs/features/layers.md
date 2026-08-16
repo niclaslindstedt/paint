@@ -36,9 +36,9 @@ closes it too, and so does the header button that opened it — **the panel has 
 close cross of its own**, because that button is the one switch for it and is
 where your hand goes back to.
 
-If you have set the sidebar to open from the **right** edge (Settings → General),
-that edge is already spoken for: the swipe opens the sidebar and the header
-button is the way into layers.
+If you have dragged the sidebar over to the **right** edge, that edge is already
+spoken for: the swipe opens the sidebar and the header button is the way into
+layers.
 
 ## What you can do
 

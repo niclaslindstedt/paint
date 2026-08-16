@@ -10,9 +10,11 @@ import {
   isDarkAppearance,
   isDarkColor,
   lightness,
+  pageColorName,
   resolveInk,
   resolvePageColor,
 } from "../src/app/canvas.ts";
+import { en } from "../src/app/i18n/en.ts";
 import {
   DEFAULT_CUSTOM_THEME_COLORS_DARK,
   DEFAULT_THEME_APPEARANCE,
@@ -92,16 +94,41 @@ describe("PAGE_SWATCHES", () => {
   // colour the ink rule can answer for — and the shelf has to carry both kinds
   // of page, or "pin a colour" would only ever mean "go lighter".
   it("are hex colours the ink rule can read", () => {
-    for (const swatch of PAGE_SWATCHES) {
-      expect(swatch).toMatch(/^#[0-9a-f]{6}$/);
-      expect(resolvePageColor(swatch, true)).toBe(swatch);
-      expect(resolvePageColor(swatch, false)).toBe(swatch);
+    for (const { color } of PAGE_SWATCHES) {
+      expect(color).toMatch(/^#[0-9a-f]{6}$/);
+      expect(resolvePageColor(color, true)).toBe(color);
+      expect(resolvePageColor(color, false)).toBe(color);
     }
   });
 
   it("offer both light and dark sheets", () => {
-    expect(PAGE_SWATCHES.some((s) => isDarkColor(s))).toBe(true);
-    expect(PAGE_SWATCHES.some((s) => !isDarkColor(s))).toBe(true);
+    expect(PAGE_SWATCHES.some((s) => isDarkColor(s.color))).toBe(true);
+    expect(PAGE_SWATCHES.some((s) => !isDarkColor(s.color))).toBe(true);
+  });
+
+  // The dialog prints the name of the sheet in hand under the swatch row, so
+  // every swatch needs one and it has to resolve in the catalog — a key that
+  // doesn't would print itself at the user.
+  it("each carry a name the catalog can resolve", () => {
+    for (const { color, nameKey } of PAGE_SWATCHES) {
+      const text = nameKey
+        .split(".")
+        .reduce<unknown>(
+          (at, part) => (at as Record<string, unknown>)?.[part],
+          en,
+        );
+      expect(typeof text, color).toBe("string");
+    }
+  });
+
+  it("has one name per colour, and none for a colour it doesn't offer", () => {
+    for (const swatch of PAGE_SWATCHES) {
+      expect(pageColorName(swatch.color)).toBe(swatch.nameKey);
+    }
+    // A page from an older build, or one that arrived inside somebody else's
+    // `.pct`, is a colour we can paint and cannot name.
+    expect(pageColorName("#123456")).toBeUndefined();
+    expect(pageColorName(undefined)).toBeUndefined();
   });
 });
 

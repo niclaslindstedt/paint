@@ -103,6 +103,10 @@ A namespace is a whole separate set of drawings: work, teaching, scratch. The
 switcher sits at the top of the sidebar; the cog beside it opens the manager,
 where namespaces are created, renamed, given a glyph and a colour, or deleted.
 
+You start with **one**, called _Default_, and that is deliberate — a second
+sketchbook is a room you have to find your way back out of, and nobody arrives
+needing two. Make the next one when you want it; it is one press in the manager.
+
 Each namespace keeps its own document, its own undo history, and its own synced
 file — switching one swaps all three. The active namespace's glyph also badges
 the browser tab, so a glance at the tab strip tells you which one you're in.

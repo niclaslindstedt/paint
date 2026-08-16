@@ -19,6 +19,8 @@ import {
   type ThemeAppearance,
 } from "@niclaslindstedt/oss-framework/theme";
 
+import type { TKey } from "./i18n/index.ts";
+
 /** The page a light canvas paints on, and the ink that reads on it. */
 export const LIGHT_PAGE = "#ffffff";
 export const LIGHT_INK = "#111827";
@@ -75,20 +77,37 @@ export function isDarkAppearance(appearance: ThemeAppearance): boolean {
     : window.matchMedia("(prefers-color-scheme: dark)").matches;
 }
 
+/** One page colour on offer: the colour itself, and what it is called.
+ *
+ *  It carries a name because a row of round swatches says which one is lit and
+ *  nothing about what it *is* — two of the three light sheets are within a
+ *  whisker of each other, and at a glance the difference between them is only
+ *  visible as a name. The dialog prints the name of the one in hand under the
+ *  row (see `NewImageModal`). */
+export type PageSwatch = { color: string; nameKey: TKey };
+
 /** The page colours a drawing can be given, beside no page at all.
  *
  *  Three light sheets and three dark ones: plain white, a cool paper, a warm
  *  cream, the app's own dark sheet, true black, and a slate. Short on purpose —
  *  the choice is made while a drawing is being created, and a page of swatches
  *  there is a catalogue rather than a decision. */
-export const PAGE_SWATCHES = [
-  "#ffffff",
-  "#f8fafc",
-  "#fef3c7",
-  "#161a20",
-  "#000000",
-  "#0f172a",
-] as const;
+export const PAGE_SWATCHES: readonly PageSwatch[] = [
+  { color: "#ffffff", nameKey: "pageColors.white" },
+  { color: "#f8fafc", nameKey: "pageColors.paper" },
+  { color: "#fef3c7", nameKey: "pageColors.cream" },
+  { color: "#161a20", nameKey: "pageColors.charcoal" },
+  { color: "#000000", nameKey: "pageColors.black" },
+  { color: "#0f172a", nameKey: "pageColors.slate" },
+];
+
+/** What to call a page of this colour: the swatch's name where it is one of the
+ *  six on offer, and nothing where it isn't — a page carrying a colour from an
+ *  older build, or one that arrived in a `.pct` somebody else made, has a
+ *  colour we can paint and no name we can honestly print for it. */
+export function pageColorName(color: string | undefined): TKey | undefined {
+  return PAGE_SWATCHES.find((s) => s.color === color)?.nameKey;
+}
 
 // --- Nothing at all ---------------------------------------------------------
 //
