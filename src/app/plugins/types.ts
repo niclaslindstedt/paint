@@ -436,6 +436,27 @@ export type PaintPlugin = {
    *  ever, by the flag rather than by the id: a charcoal or a pastel tool would
    *  declare it and need nothing else. */
   liftable?: boolean;
+  /** True when the tool's colour is a property of the **material** rather than
+   *  a choice — the pencil.
+   *
+   *  It is the third answer to "where does this tool's ink come from", and the
+   *  only one where the answer is *nowhere you can reach*. An ordinary tool
+   *  draws with the toolbar's ink; a tool with `swatches` mixes inks of its own
+   *  that you set on its panel; a tool with this mixes exactly one, out of what
+   *  it is made of. Graphite is a grey mineral — which grey depends on the lead
+   *  and on the sheet (see `graphiteInk`), and on nothing a palette can offer.
+   *
+   *  What it buys is honesty in the toolbar: the ink button is **struck through
+   *  and disabled** while the tool is in hand, the same treatment the eraser and
+   *  the gradient get, instead of opening a palette whose every swatch changes
+   *  nothing. Read off the descriptor like the rest of them (see
+   *  `plugins/controls.ts`), so a charcoal or a silverpoint that lands next year
+   *  declares it and needs no other line anywhere.
+   *
+   *  It says nothing about *how* the tool arrives at its colour: that is the
+   *  behaviour's business, and the two halves are wired together in the one
+   *  place a tool is registered. */
+  fixedInk?: boolean;
   /** True when the tool moves the *view* instead of leaving a mark — the hand.
    *  A one-finger drag then pans the page and a double-tap fits it, no stroke is
    *  ever begun, and the toolbar strikes out the ink it would not use. This is the flag

@@ -3,9 +3,9 @@
 //
 // Two claims about it are worth pinning down, and neither needs pixels:
 //
-//   - **It only ever draws grey**, and which grey depends on the sheet rather
-//     than on the toolbar. That is `graphiteInk`, and it is what makes the tool
-//     a pencil rather than a textured pen.
+//   - **It only ever draws grey**, and which grey depends on the lead and the
+//     sheet rather than on the toolbar. That is `graphiteInk`, and it is what
+//     makes the tool a pencil rather than a textured pen.
 //   - **The grade reaches the deposit and not the geometry.** A 6B is a blacker
 //     line, never a wider one — which is a statement about the numbers the
 //     painter emits, so it can be measured off a recording context the way the
@@ -13,7 +13,13 @@
 
 import { describe, expect, it } from "vitest";
 
-import { graphiteInk, paintGraphite } from "../src/app/plugins/graphite.ts";
+import {
+  HARDEST_LEAD,
+  HB_LEAD,
+  SOFTEST_LEAD,
+  graphiteInk,
+  paintGraphite,
+} from "../src/app/plugins/graphite.ts";
 import { hexToHsv } from "../src/app/color.ts";
 import type { Point } from "../src/app/types.ts";
 import { createFakeContext, type FakeContext } from "./support/fakeCanvas.ts";
@@ -70,10 +76,55 @@ describe("the graphite a pencil draws in", () => {
 
   it("is grey either way — a pencil has no colour to pick", () => {
     for (const page of ["#ffffff", "#111827", "#ef4444", "#22c55e"]) {
-      // Not literally r === g === b (graphite is a touch cool), but nowhere
-      // near a colour anyone would call one.
-      expect(hexToHsv(graphiteInk(page)).s).toBeLessThan(0.12);
+      for (const grade of [HARDEST_LEAD, 0.7, HB_LEAD, 1.5, SOFTEST_LEAD]) {
+        // Not literally r === g === b (graphite is a touch cool, and the soft
+        // end a touch warm), but nowhere near a colour anyone would call one —
+        // at every lead in the tin, on every sheet.
+        expect(hexToHsv(graphiteInk(page, grade)).s).toBeLessThan(0.12);
+      }
     }
+  });
+
+  it("is the lead's own grey: hard is pale, soft is nearly black", () => {
+    // The whole of what the user asked the pencil for. There is one colour in
+    // a pencil, it came in the lead, and this is it.
+    const onWhite = (grade: number) =>
+      hexToHsv(graphiteInk("#ffffff", grade)).v;
+    expect(onWhite(HARDEST_LEAD)).toBeGreaterThan(onWhite(HB_LEAD));
+    expect(onWhite(HB_LEAD)).toBeGreaterThan(onWhite(SOFTEST_LEAD));
+    // A 9B on white paper is a mark, not a suggestion.
+    expect(onWhite(SOFTEST_LEAD)).toBeLessThan(0.2);
+  });
+
+  it("runs the ladder the other way on a dark sheet", () => {
+    // Silverpoint sheen: on black paper it is the *soft* lead that shows up
+    // brightest, because there is more graphite catching the light.
+    const onBlack = (grade: number) =>
+      hexToHsv(graphiteInk("#111827", grade)).v;
+    expect(onBlack(SOFTEST_LEAD)).toBeGreaterThan(onBlack(HB_LEAD));
+    expect(onBlack(HB_LEAD)).toBeGreaterThan(onBlack(HARDEST_LEAD));
+    // …and every one of them still reads as a mark on a dark page.
+    expect(onBlack(HARDEST_LEAD)).toBeGreaterThan(0.5);
+  });
+
+  it("keeps the HB drawing in exactly the grey it always drew in", () => {
+    // The ladder is hinged on the HB rather than run end to end, so the grade
+    // every other one is named against is the one that did not move.
+    expect(graphiteInk("#ffffff", HB_LEAD)).toBe("#333338");
+    expect(graphiteInk("#111827", HB_LEAD)).toBe("#c8c8cf");
+    // …and an untuned dial resolves to it, which is what a pencil drawn with
+    // before any of this existed was toned as.
+    expect(graphiteInk("#ffffff")).toBe(graphiteInk("#ffffff", HB_LEAD));
+  });
+
+  it("holds still past the ends of the ladder", () => {
+    // A grade blob written by hand, or by a build with a longer tin in it.
+    expect(graphiteInk("#ffffff", 0)).toBe(
+      graphiteInk("#ffffff", HARDEST_LEAD),
+    );
+    expect(graphiteInk("#ffffff", 99)).toBe(
+      graphiteInk("#ffffff", SOFTEST_LEAD),
+    );
   });
 
   it("reads a page colour it cannot parse as a light sheet", () => {

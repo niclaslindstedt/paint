@@ -223,11 +223,11 @@ export function Toolbar({
   const settingsAnchor = useRef<HTMLButtonElement | null>(null);
 
   // A tool that lifts ink (the eraser), moves the view (the hand), chooses
-  // marks (the marquee) or pours colours of its own (the gradient) has no use
-  // for the ink button, so its swatch is dimmed — but the dropper's swatch is
-  // where a sampled colour *lands*, so it stays full strength. Read off
-  // descriptor flags (see `plugins/controls.ts`); nothing here knows a tool by
-  // name.
+  // marks (the marquee), pours colours of its own (the gradient) or is made of
+  // one colour already (the pencil) has no use for the ink button, so its
+  // swatch is dimmed — but the dropper's swatch is where a sampled colour
+  // *lands*, so it stays full strength. Read off descriptor flags (see
+  // `plugins/controls.ts`); nothing here knows a tool by name.
   const inkIrrelevant = !usesInk(active);
   // What the button beside the ink is for this tool: its width, its own
   // settings, or nothing (see `plugins/controls.ts`).
@@ -384,8 +384,9 @@ export function Toolbar({
             could mix a colour with the eraser in hand, watch the swatch change,
             and get exactly the rubbing out you would have got. The rule stays
             the descriptor's (`usesInk`) — the eraser lifts ink, the hand moves
-            the view, the marquee chooses marks, and the gradient pours colours
-            of its own — so a tool that lands next year is struck through
+            the view, the marquee chooses marks, the gradient pours colours of
+            its own, and the pencil draws in the grey its lead is made of — so a
+            tool that lands next year is struck through
             without this file learning its name. The dropper is the one tool
             that paints nothing and keeps the button, because this is where the
             colour it samples lands. */}

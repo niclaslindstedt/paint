@@ -63,15 +63,22 @@ export function usesSize(plugin: PaintPlugin | undefined): boolean {
  *  rule must not be able to take the swatch away from a tool whose whole job is
  *  to fill it (see `tests/controls_test.ts`).
  *
- *  **A tool that mixes its own inks is the fourth way**, and the newest: the
- *  gradient pours from the two or three colours on its own panel, so the
- *  toolbar's swatch is a control that changes nothing while it is in hand —
- *  which is exactly what a strike through it says. Read off `swatches`, so no
- *  id is recognised here either. */
+ *  **A tool that mixes its own inks is the fourth way**: the gradient pours from
+ *  the two or three colours on its own panel, so the toolbar's swatch is a
+ *  control that changes nothing while it is in hand — which is exactly what a
+ *  strike through it says. Read off `swatches`, so no id is recognised here
+ *  either.
+ *
+ *  **And a tool whose colour is what it is made of is the fifth**, and the
+ *  narrowest: the pencil has one grey, decided by the lead and the sheet, and
+ *  there is no swatch to set it with because there is no setting it (see
+ *  `PaintPlugin.fixedInk`). It used to keep a live palette that quietly changed
+ *  nothing — you could mix a red, watch the swatch turn, and draw the same grey
+ *  line — which is the exact dishonesty the strike-through exists to end. */
 export function usesInk(plugin: PaintPlugin | undefined): boolean {
   if (!plugin) return true;
   if (plugin.picksColor) return true;
-  if (hasSwatches(plugin)) return false;
+  if (plugin.fixedInk || hasSwatches(plugin)) return false;
   return !(plugin.erases || plugin.navigates || plugin.selects);
 }
 

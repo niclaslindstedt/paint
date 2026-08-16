@@ -134,6 +134,16 @@ describe("usesInk", () => {
     }
   });
 
+  it("strikes it out for the pencil, whose colour came in the lead", () => {
+    // A tool can be a marking tool, take no swatches, and still have nothing
+    // the palette can reach: graphite is a grey mineral. The palette used to
+    // open anyway and change nothing.
+    const graphite = pluginById("graphite")!;
+    expect(graphite.fixedInk).toBe(true);
+    expect(hasSwatches(graphite)).toBe(false);
+    expect(usesInk(graphite)).toBe(false);
+  });
+
   it("keeps the dropper's swatch at full strength", () => {
     // The dropper paints nothing, so by the rule above it would be struck out —
     // but the swatch is where the colour it samples lands, and it is the *only*

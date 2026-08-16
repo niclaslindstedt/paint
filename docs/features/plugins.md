@@ -134,6 +134,29 @@ box: a three-stop ramp is a deliberate thing, and a fill that quietly ran throug
 a third colour nobody asked for would be a puzzle. Nothing outside
 `plugins/builtin/gradient.ts` knows those names.
 
+## …or no ink you can pick at all
+
+The pencil is the other end of that. It carries no swatches, because there is
+nothing to set: **graphite is a grey mineral, and the one thing that decides
+which grey is which lead is in the pencil.** So the plugin declares `fixedInk`,
+and the toolbar's swatch is struck through exactly as the gradient's is — a
+palette that opened and changed nothing was the tool telling you it had a colour
+setting when it did not.
+
+The colour control it does have is already on its panel: the **grade**. It picks
+the grey the same way it picks how much of it goes down — an 8H is a pale, cool
+scratch you can see the sheet through, a 9B is nearly black and a touch warmer
+with it — and the sheet flips the whole ladder, so on dark paper it is the soft
+lead that shows brightest, silverpoint-style, rather than the hard one vanishing
+(see `graphiteInk`). The grey is mixed once, when you draw, and **recorded on the
+mark**, so re-papering a drawing later leaves the sketch in the tone it was made
+in.
+
+`fixedInk` says nothing about _how_ a tool arrives at its colour — that is its
+behaviour's business. It says only that no palette can reach it, which is why a
+charcoal or a silverpoint landing next year is one flag rather than a change to
+the toolbar.
+
 ## Four ways to select
 
 The selection tools are the same arrangement, for the same reason: which _shape_
@@ -193,8 +216,9 @@ painters in `src/app/plugins/brushes.ts`, `bristle.ts`, `crayon.ts` and
   finer because a sharp lead reaches into tooth a blunt wax face rides over, and
   the tool mixes its own grey rather than taking the ink you picked — because a
   pencil that drew in red would be a textured pen. The lead's **grade** is its
-  one axis: hard and pale at the H end, soft and dark at the B end, reaching the
-  deposit and never the width;
+  one axis, and it is both halves of what a lead is: hard and pale at the H end,
+  soft and dark at the B end, picking the grey it draws in as well as how much
+  of it sticks, and reaching the deposit and never the width;
 - the **marker** and the **highlighter** are two shapes of felt tip, not one
   painter at two widths. The nib is an ellipse stamped along the path, and how
   far it is squashed is the **chisel** dial: a marker rests mostly round and
@@ -728,7 +752,8 @@ Three steps, none of which touch the canvas, the store, or the toolbar:
    for the sizes it is really made in (see `plugins/builtin/gauges.ts` — the
    range, the five buttons, and the trade's name for each), `dials` if it has
    anything of its own to tune, `swatches` if it mixes inks of its own rather
-   than drawing with the toolbar's, `presets` if its medium has more than one
+   than drawing with the toolbar's (or `fixedInk` if its colour is what it is
+   made of and no palette can reach it), `presets` if its medium has more than one
    way of being held (and if it has exactly one, make that its defaults instead
    of a row of one chip), and `group` if it belongs to a family
    that already has a button (a twelfth shape is one line in the `SHAPES`

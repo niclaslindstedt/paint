@@ -19,6 +19,7 @@
 // a number nobody can see is worse than no slider.
 
 import { mm } from "../../units.ts";
+import { HARDEST_LEAD, SOFTEST_LEAD } from "../graphite.ts";
 import type { ToolDial } from "../types.ts";
 
 /** How much of the page shows through. The one dial nearly every marking tool
@@ -142,8 +143,11 @@ export const GRADE: ToolDial = {
   id: "grade",
   nameKey: "dials.grade.name",
   hintKey: "dials.grade.hint",
-  min: 0.38,
-  max: 1.9,
+  // The ends are the medium's rather than this table's: the same two numbers
+  // pick the grey the lead lays down (see `graphiteInk`), and a ladder that ran
+  // past them would be naming leads the tin does not hold.
+  min: HARDEST_LEAD,
+  max: SOFTEST_LEAD,
   step: 0.01,
   choices: [
     { value: 0.38, label: "8H" },

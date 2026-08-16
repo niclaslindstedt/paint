@@ -29,10 +29,12 @@ the ink nor the drawing.
 - **Pen** (`P`) draws a freehand line at the width you set it to.
 - **Eraser** (`E`) rubs marks off the page. Turn its **strength** down and one
   pass fades them instead of removing them.
-- **Pencil** (`G`) is for sketching: graphite on the paper's tooth, in grey
-  whatever colour the ink is set to. Pick the **lead** by name — 8H through 9B,
-  the grades a shop sells — and the widths are the ones a mechanical pencil
-  takes: 0.3, 0.5, 0.7, 0.9 and 2.0 mm.
+- **Pencil** (`G`) is for sketching: graphite on the paper's tooth. It has one
+  colour and it came in the lead, so the ink button is struck out while it is in
+  your hand — pick the **lead** by name instead, 8H through 9B, the grades a
+  shop sells. That is the colour control: a hard lead scratches a pale grey line
+  you can still see the sheet through, a soft one goes down nearly black. The
+  widths are the ones a mechanical pencil takes: 0.3, 0.5, 0.7, 0.9 and 2.0 mm.
 - **Watercolour** (`W`) is a wet wash on paper. It spreads past the brush that
   laid it, dries darkest at the rim, granulates into the sheet, and never
   covers what is under it — so a second pass over the first deepens it the way
