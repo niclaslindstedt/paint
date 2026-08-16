@@ -104,7 +104,7 @@ another layer is how you keep it out of the water — an ink drawing that must
 stay crisp goes above the washes, and a wash that should mix with everything
 goes on the same layer as it.
 
-The trade is the one a filtered layer already makes: a layer whose marks mix is
+The trade is the one an effect preview already makes: a layer whose marks mix is
 composited as a unit, so a rubbing out on it takes off that layer's ink and
 shows the layers below rather than cutting through to the sheet.
 

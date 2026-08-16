@@ -183,43 +183,6 @@ describe("scaleDrawing", () => {
     expect(edit.strokes[0]!.size).toBe(8);
   });
 
-  it("grows a filter's page distances with the sheet", () => {
-    const page = {
-      ...drawing(),
-      filters: [
-        { kind: "blur", radius: 4 },
-        { kind: "noise", amount: 0.3, grain: 2 },
-      ],
-    } satisfies Drawing;
-    const edit = scaleDrawing(page, { width: 1600, height: 1200 });
-    expect(edit.filters).toEqual([
-      { kind: "blur", radius: 8 },
-      // A strength is a fraction and means the same at any size; a speck is a
-      // distance on the page and grows with it.
-      { kind: "noise", amount: 0.3, grain: 4 },
-    ]);
-    // A page with no filters on it grows no field for them.
-    expect(scaleDrawing(drawing(), { width: 1600, height: 1200 }).filters).toBe(
-      undefined,
-    );
-  });
-
-  it("grows a layer's filters with the sheet too", () => {
-    const page = {
-      ...drawing(),
-      layers: [
-        { id: "base", name: "" },
-        { id: "photo", name: "Photo", filters: [{ kind: "blur", radius: 4 }] },
-      ],
-    } satisfies Drawing;
-    const edit = scaleDrawing(page, { width: 1600, height: 1200 });
-    // Or a page scaled up would come back with its layers softened by a
-    // different amount than the page they are on.
-    expect(edit.layers?.[1]?.filters).toEqual([{ kind: "blur", radius: 8 }]);
-    // An unfiltered layer is handed back untouched rather than grown a field.
-    expect(edit.layers?.[0]).toEqual({ id: "base", name: "" });
-  });
-
   it("rides the sampling choice onto the pictures and nothing else", () => {
     const page = drawing([
       stroke({

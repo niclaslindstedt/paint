@@ -28,11 +28,10 @@ import {
   strokesExcept,
   transparentLayers,
   visibleStrokes,
-  anyLayerFiltered,
-  layerFilters,
+  layerDisplayName,
   paintedLayers,
 } from "../src/app/layers.ts";
-import type { Drawing, Filter, Layer, Stroke } from "../src/app/types.ts";
+import type { Drawing, Layer, Stroke } from "../src/app/types.ts";
 
 let next = 0;
 
@@ -421,13 +420,11 @@ describe("naming a new layer", () => {
 });
 
 // The stack as a *repaint* walks it. Splitting the paint order into layers is
-// what lets a filtered one be composited on its own (see `Layer.filters`), and
-// the danger of having two ways to ask "what gets painted" is that they drift
-// into two different pictures — so the first thing pinned here is that they
-// cannot.
-
-const blur: Filter = { kind: "blur", radius: 6 };
-const noise: Filter = { kind: "noise", amount: 0.3, grain: 2 };
+// what lets one be composited on its own — a layer whose wet marks have to mix
+// among themselves, or one an effect is being previewed on (see `render.ts`) —
+// and the danger of having two ways to ask "what gets painted" is that they
+// drift into two different pictures, so the first thing pinned here is that
+// they cannot.
 
 describe("paintedLayers", () => {
   it("comes to exactly visibleStrokes when its layers are concatenated", () => {
@@ -471,9 +468,9 @@ describe("paintedLayers", () => {
       layers,
       strokes: [stroke(), stroke("gone")],
     };
-    // An empty layer still gets its turn: a filtered layer with nothing on it
-    // is the caller's no-op to spot, and a walk that skipped it would make
-    // "which layer is this" depend on what happened to be drawn.
+    // An empty layer still gets its turn: a layer with nothing on it is the
+    // caller's no-op to spot, and a walk that skipped it would make "which
+    // layer is this" depend on what happened to be drawn.
     expect(paintedLayers(d).map((entry) => entry.layer.id)).toEqual([
       BASE_LAYER_ID,
       "empty",
@@ -481,46 +478,24 @@ describe("paintedLayers", () => {
   });
 });
 
-describe("a filtered stack", () => {
-  const filtered = (filters?: Filter[]): Drawing => ({
-    id: "d",
-    name: "d",
-    width: 100,
-    height: 100,
-    strokes: [],
-    layers: [
-      { id: BASE_LAYER_ID, name: "" },
-      { id: "top", name: "Top", ...(filters ? { filters } : {}) },
-    ],
+describe("layerDisplayName", () => {
+  const names = { background: "Background", base: "Layer" };
+
+  it("uses the layer's own name whenever it has one", () => {
+    expect(layerDisplayName({ id: "x", name: "Photo" }, names)).toBe("Photo");
+    expect(layerDisplayName({ id: "x", name: "  Photo  " }, names)).toBe(
+      "Photo",
+    );
   });
 
-  it("is only filtered when a layer actually carries one", () => {
-    expect(anyLayerFiltered(filtered())).toBe(false);
-    expect(anyLayerFiltered(filtered([]))).toBe(false);
-    expect(anyLayerFiltered(filtered([blur]))).toBe(true);
-    // A drawing with no stack of its own can never be: there is nowhere to
-    // hang one, and this is the guard every fast path in the renderer and the
-    // cache is written behind.
-    expect(
-      anyLayerFiltered({
-        id: "d",
-        name: "d",
-        width: 100,
-        height: 100,
-        strokes: [],
-      }),
-    ).toBe(false);
-  });
-
-  it("reads a layer's filters back in the order they are applied", () => {
-    // Switched on the other way round; blur still comes first, so the grain
-    // sits on the softened layer rather than being smeared by it — the same
-    // order the page's own filters are read in.
-    expect(
-      layerFilters({ id: "l", name: "", filters: [noise, blur] }).map(
-        (f) => f.kind,
-      ),
-    ).toEqual(["blur", "noise"]);
-    expect(layerFilters({ id: "l", name: "" })).toEqual([]);
+  it("names the two layers every drawing starts with nameless", () => {
+    // The rule lives in one place so the panel and the effect dialog can never
+    // call the same sheet two different things.
+    expect(layerDisplayName({ id: BACKGROUND_LAYER_ID, name: "" }, names)).toBe(
+      "Background",
+    );
+    expect(layerDisplayName({ id: BASE_LAYER_ID, name: "" }, names)).toBe(
+      "Layer",
+    );
   });
 });

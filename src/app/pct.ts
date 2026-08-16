@@ -36,10 +36,10 @@
 // a whole container without a canvas.
 
 import { drawingSlug } from "./export.ts";
-import { drawingLayers, groupByLayer, layerFilters } from "./layers.ts";
+import { drawingLayers, groupByLayer } from "./layers.ts";
 import { parseDoc, serializeDoc } from "./migrations.ts";
 import type { InkContext } from "./render.ts";
-import type { Drawing, Filter, Ground, Layer, Stroke } from "./types.ts";
+import type { Drawing, Ground, Layer, Stroke } from "./types.ts";
 
 /** The file extension, and the name of the format. */
 export const PCT_EXTENSION = "pct";
@@ -140,20 +140,17 @@ export type PctManifest = {
  *  genuinely re-inks the pixels without touching a single stroke. Leave that out
  *  of the fingerprint and a theme flip would quietly serve stale layers.
  *
- *  The layer's own filters are here for exactly that reason. They change the
- *  pixels without changing a mark (see `Layer.filters`), so a layer whose blur
- *  was widened hashes the same as the one before it unless the filters are in
- *  the material — and a re-save would skip it and leave the old softening on
- *  the backend for good. */
+ *  Nothing else qualifies today. A layer's *effects* used to: they changed the
+ *  pixels without changing a mark, so they had to be in the material. They no
+ *  longer can — an effect is applied to the marks and is then gone (see
+ *  `effects.ts`), so a softened layer differs by its strokes like any other. */
 export type LayerRenderKey = InkContext & {
   width: number;
   height: number;
   /** Whether this layer carries the sheet — the background layer paints the
    *  page colour as part of itself (see `layers.ts`). */
   paintsPage: boolean;
-  /** The layer's own filters, in the order they are applied. */
-  filters?: readonly Filter[];
-  /** The sheet the marks were laid on. Here for the filters' reason exactly:
+  /** The sheet the marks were laid on. Here for the ink's reason exactly:
    *  changing the paper repaints every mark on it — the grain under them and
    *  the way the wet ones mix (see `ground.ts`) — without touching a single
    *  stroke, so a fingerprint blind to it would keep serving the old pixels. */
@@ -190,12 +187,11 @@ export function layerHash(
     key.pageColor,
     key.defaultInk,
     key.paintsPage,
-    // Empty and absent are the same layer and must hash the same. `planLayers`
-    // reads the filters off every layer, so most of them arrive as `[]` — and
-    // an `[]` that hashed differently from an `undefined` would change the
-    // fingerprint of every layer of every drawing already on a backend the
-    // moment this shipped, and re-upload the lot.
-    key.filters && key.filters.length > 0 ? key.filters : null,
+    // The slot a layer's filters used to occupy, kept as the `null` every
+    // unfiltered layer already hashed with. Dropping it outright would change
+    // the fingerprint of every layer of every drawing already on a backend and
+    // re-upload the lot for a field nothing writes any more.
+    null,
     // Absent and "the solid sheet" are the same page and must hash the same,
     // for the reason above: every drawing already on a backend is on the solid
     // sheet, and a fingerprint that changed for them would re-upload the lot.
@@ -263,7 +259,6 @@ export function planLayers(drawing: Drawing, ink: InkContext): PlannedLayer[] {
       width: drawing.width,
       height: drawing.height,
       paintsPage: paintsPage(drawing, layer),
-      filters: layerFilters(layer),
       ground: drawing.ground,
     });
     return {

@@ -2,7 +2,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { exportRegion } from "../src/app/export.ts";
-import { svgFilter } from "../src/app/filters.ts";
 import { primeImageCache, resetImageCache } from "../src/app/images.ts";
 import { registerBuiltinPlugins } from "../src/app/plugins/builtin/index.ts";
 import { TEXT_LINE_HEIGHT } from "../src/app/plugins/builtin/text.ts";
@@ -389,104 +388,6 @@ describe("the SVG export", () => {
     // …and the line comes back after it, outside every mask in the file.
     const closes = svg.indexOf("</g>");
     expect(svg.indexOf('stroke="#ef4444"', closes)).toBeGreaterThan(closes);
-  });
-
-  it("wraps a filtered page in the filter, over a sheet of its own", () => {
-    const doc = drawing([
-      {
-        id: "s1",
-        tool: "pencil",
-        size: 4,
-        shape: {
-          kind: "path",
-          points: [
-            { x: 0, y: 0 },
-            { x: 50, y: 0 },
-          ],
-        },
-      },
-    ]);
-    const recorder = new SvgCanvas();
-    renderDrawing(asContext2D(recorder), doc, null, ink);
-    recorder.setPageFilter(svgFilter([{ kind: "blur", radius: 5 }]));
-    const svg = recorder.toSvg(exportRegion(doc, "page"));
-    expect(svg).toContain("<feGaussianBlur");
-    expect(svg).toContain('<g filter="url(#page-filter)">');
-    // The sheet is laid down twice: once unfiltered behind everything, so the
-    // blur's edge fades into the same colour rather than into transparency, and
-    // once inside the group, because the page is part of the picture the filter
-    // is applied to.
-    const sheet = /fill="#ffffff"/g;
-    expect(svg.match(sheet)).toHaveLength(2);
-  });
-
-  it("wraps a filtered layer in its own filter, and no more than it", () => {
-    const page: Drawing = {
-      ...drawing([]),
-      layers: [
-        { id: "base", name: "" },
-        { id: "photo", name: "Photo", filters: [{ kind: "blur", radius: 8 }] },
-        { id: "top", name: "Ink" },
-      ],
-      strokes: [
-        {
-          id: "s-soft",
-          tool: "pencil",
-          size: 20,
-          layer: "photo",
-          shape: {
-            kind: "path",
-            points: [
-              { x: 0, y: 40 },
-              { x: 200, y: 40 },
-            ],
-          },
-        },
-        {
-          id: "s-lift",
-          tool: "eraser",
-          size: 30,
-          layer: "photo",
-          shape: {
-            kind: "path",
-            points: [
-              { x: 80, y: 40 },
-              { x: 120, y: 40 },
-            ],
-          },
-        },
-        {
-          id: "s-sharp",
-          tool: "pencil",
-          size: 8,
-          layer: "top",
-          shape: {
-            kind: "path",
-            points: [
-              { x: 0, y: 100 },
-              { x: 200, y: 100 },
-            ],
-          },
-        },
-      ],
-    };
-    const svg = toSvg(page);
-    const group = /<g filter="url\(#(layer-filter-\d+)\)">([\s\S]*?)<\/g>/.exec(
-      svg,
-    );
-    expect(group).not.toBeNull();
-    // The filter is defined, and it is a blur.
-    expect(svg).toContain(`<filter id="${group![1]}"`);
-    expect(svg).toContain("feGaussianBlur");
-    // The layer's own erasing is scoped *inside* its group. That is the whole
-    // point of the group in a file: on the canvas the layer is composited on a
-    // surface of its own, so its eraser stops at the layer — and an SVG whose
-    // mask straddled the boundary would rub a hole through the sharp layer
-    // underneath instead.
-    expect(group![2]).toContain("mask=");
-    // …and the layer above it is outside the group, still sharp.
-    expect(group![2]).not.toContain('stroke-width="8"');
-    expect(svg).toContain('stroke-width="8"');
   });
 
   it("keeps a translucent mark translucent", () => {

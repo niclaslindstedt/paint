@@ -59,11 +59,7 @@
 // (This file was `layer.ts` until the drawing itself grew layers. The bitmap
 // gave the word back.)
 
-import {
-  anyLayerFiltered,
-  backgroundHidden,
-  visibleStrokes,
-} from "./layers.ts";
+import { backgroundHidden, visibleStrokes } from "./layers.ts";
 import { groundProfile } from "./ground.ts";
 import {
   anyErases,
@@ -150,29 +146,29 @@ export function paintCommitted(
   }
 
   const strokes = visibleStrokes(spec.drawing);
-  // A stack with filters on it gives up both shortcuts, and has to.
+  // An effect being previewed gives up both shortcuts, and has to.
   //
-  // Appending is the load-bearing one: a filtered layer is composited as a unit
-  // (see `Layer.filters`), so a mark landing on it does not go *on top of* the
-  // pixels the cache is holding — the whole layer has to be softened again with
-  // the new mark inside it, and a stroke painted over the finished blur would
-  // sit sharp on a page that is not. Scrolling is a correctness no-op but a
-  // performance one: each strip would re-filter a canvas-sized surface, so two
-  // strips a frame costs more than the single repaint it is avoiding.
+  // Appending is the load-bearing one: a layer under a preview is composited as
+  // a unit (see `render.ts`), so a mark landing on it does not go *on top of*
+  // the pixels the cache is holding — the whole layer has to be softened again
+  // with the new mark inside it, and a stroke painted over the finished blur
+  // would sit sharp on a page that is not. Scrolling is a correctness no-op but
+  // a performance one: each strip would re-run the effect over a canvas-sized
+  // surface, so two strips a frame costs more than the single repaint it is
+  // avoiding.
   //
-  // Both are guarded on the drawing rather than on the layer that changed,
-  // because paint order is what makes the difference and a mark can land under
-  // a filtered layer as easily as on it. Drawings with no filtered layer —
-  // which is all of them until someone asks — take neither branch and pay
-  // nothing for this.
-  const layered = anyLayerFiltered(spec.drawing);
+  // This is a *dialog being open*, which is the whole reason it is affordable:
+  // an effect that has been applied is a bitmap on the page and the cache
+  // absorbs marks landing on it exactly as it does anywhere else. Every drawing
+  // with no dialog open on it takes neither branch and pays nothing for this.
+  const previewing = spec.options.preview !== undefined;
   const usable =
     cache.painted !== null &&
     sameFrame(cache.painted, spec) &&
     cache.surface.canvas.width === spec.width &&
     cache.surface.canvas.height === spec.height &&
     grewFrom(cache.strokes, cache.count, strokes) &&
-    (!layered || strokes.length === cache.count);
+    (!previewing || strokes.length === cache.count);
 
   // A mark that soaks into the sheet mixes with what is under it (see
   // `render.ts`), and on these pixels "what is under it" is a *finished*
@@ -180,8 +176,8 @@ export function paintCommitted(
   // with all of that, where a repaint mixes it only with its own layer, and the
   // two would show a different picture the next time anything forced a full
   // one. So a wet mark landing on a thirsty sheet repaints, exactly as a mark
-  // landing on a filtered stack does. It costs one repaint per finished stroke
-  // and only on the drawings that asked for paper.
+  // landing on a layer under an effect preview does. It costs one repaint per
+  // finished stroke and only on the drawings that asked for paper.
   const landed = usable ? strokes.slice(cache.count) : [];
   if (usable && !anyStains(landed, groundProfile(spec.options.ground))) {
     const added = landed.length;
@@ -213,7 +209,7 @@ export function paintCommitted(
     return added > 0 ? "appended" : "blitted";
   }
 
-  if (!layered && scroll(ctx, cache, spec, strokes)) {
+  if (!previewing && scroll(ctx, cache, spec, strokes)) {
     capture(cache, canvas, spec);
     remember(cache, spec, strokes);
     return "scrolled";
@@ -408,11 +404,13 @@ function sameFrame(a: CacheSpec, b: CacheSpec): boolean {
     // without changing a stroke — one of the two document edits the stroke
     // comparison below cannot see.
     backgroundHidden(a.drawing) === backgroundHidden(b.drawing) &&
-    // …and a layer's filters are the other. Moving one repaints the layer
-    // without adding, removing or reordering a single mark, so a cache that
-    // asked only about strokes would blit the picture from before the slider
-    // moved and go on doing it until something else forced a repaint.
-    layerFilterSignature(a.drawing) === layerFilterSignature(b.drawing) &&
+    // …and an effect being previewed is the other. Moving its slider repaints
+    // the layers it names without adding, removing or reordering a single mark,
+    // so a cache that asked only about strokes would blit the picture from
+    // before the slider moved and go on doing it until something else forced a
+    // repaint. Compared by identity, like `omit`: the screen keeps one object
+    // for as long as the setting holds, and mints a new one when it changes.
+    a.options.preview === b.options.preview &&
     a.view.scale === b.view.scale &&
     a.view.tx === b.view.tx &&
     a.view.ty === b.view.ty &&
@@ -448,29 +446,6 @@ function sameFrame(a: CacheSpec, b: CacheSpec): boolean {
 /** Whether two drawings are on the same stock, at the same weight of grain. */
 function sameGround(a: Ground | undefined, b: Ground | undefined): boolean {
   return a?.stock === b?.stock && a?.texture === b?.texture;
-}
-
-/** The stack's filters as one string, which changes whenever any of them does.
- *
- *  Cheap where it matters: a drawing with nothing filtered — every drawing
- *  until someone asks — walks a stack of two or three layers, touches no
- *  filter, and hands back the empty string it started with. Only the layers
- *  actually carrying filters are ever serialised, and there are never many of
- *  them (one of each kind, on the layers someone chose).
- *
- *  A string rather than an identity check on `layers`, because identity would
- *  also fire on hiding, locking, renaming and reordering — all of which the
- *  stroke comparison already catches — and would turn every one of them into a
- *  full repaint on a drawing that has no filters at all. */
-function layerFilterSignature(drawing: Drawing): string {
-  const layers = drawing.layers;
-  if (!layers) return "";
-  let signature = "";
-  for (const layer of layers) {
-    if (!layer.filters || layer.filters.length === 0) continue;
-    signature += `${layer.id}:${JSON.stringify(layer.filters)};`;
-  }
-  return signature;
 }
 
 /** Whether `next` is `painted` with more on the end — the shape of a committed

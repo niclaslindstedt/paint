@@ -237,14 +237,15 @@ describe("parseDoc", () => {
     expect(parseDoc(serializeDoc(doc))).toEqual(doc);
   });
 
-  // The page filters were purely additive — an optional field on a drawing, no
-  // step, no version bump (see the note in `migrations.ts`). What has to hold is
-  // that they survive the round trip, and that a page without them still writes
-  // exactly the bytes it always did.
-  it("round-trips a page's filters, and adds nothing to a page without any", () => {
+  // Filters became effects: a drawing (and any layer of it) could carry a
+  // `filters` array, and nothing reads it any more (see `effects.ts`). The v3
+  // step drops it, which is the one step in the chain that loses something a
+  // user could see — so what has to hold is that it loses *only* that: every
+  // mark, every layer and every other field come through untouched.
+  it("drops the filters a v2 document carried, and keeps everything else", () => {
     const doc = parseDoc(
       JSON.stringify({
-        version: LATEST_VERSION,
+        version: 2,
         folders: [],
         drawings: [
           {
@@ -252,7 +253,23 @@ describe("parseDoc", () => {
             name: "sketch",
             width: 400,
             height: 300,
-            strokes: [],
+            strokes: [
+              {
+                id: "s1",
+                tool: "pencil",
+                size: 4,
+                shape: { kind: "path", points: [] },
+              },
+            ],
+            layers: [
+              { id: "base", name: "" },
+              {
+                id: "photo",
+                name: "Photo",
+                locked: true,
+                filters: [{ kind: "blur", radius: 12 }],
+              },
+            ],
             filters: [
               { kind: "blur", radius: 6 },
               { kind: "noise", amount: 0.35, grain: 2, color: true },
@@ -263,9 +280,17 @@ describe("parseDoc", () => {
         activeDrawingId: "d1",
       }),
     );
-    expect(doc.drawings[0]!.filters).toHaveLength(2);
-    expect(doc.drawings[1]!.filters).toBeUndefined();
-    expect(serializeDoc(doc)).not.toContain('"filters":[]');
+    const page = doc.drawings[0]!;
+    expect((page as unknown as { filters?: unknown }).filters).toBeUndefined();
+    expect(
+      (page.layers![1] as unknown as { filters?: unknown }).filters,
+    ).toBeUndefined();
+    // The marks were never what a filter changed, so none of them may go with
+    // it — and neither may anything else on the layer.
+    expect(page.strokes).toHaveLength(1);
+    expect(page.layers![1]!.name).toBe("Photo");
+    expect(page.layers![1]!.locked).toBe(true);
+    expect(serializeDoc(doc)).not.toContain('"filters"');
     expect(parseDoc(serializeDoc(doc))).toEqual(doc);
   });
 

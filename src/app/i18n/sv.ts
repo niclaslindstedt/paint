@@ -116,32 +116,43 @@ export const sv: Catalog = {
     horizontal: "Vågrätt",
     vertical: "Lodrätt",
   },
-  filters: {
-    title: "Filter",
-    off: "Av",
-    open: "Inställningar för {name}",
-    openOnLayer: "Inställningar för {name} på {layer}",
-    hint: "Ett filter ändrar hur sidan ses — inget streck ritas om, och stänger du av det ligger teckningen kvar precis som den var.",
-    layerHint:
-      "Det här lagret ses genom filtret; resten av stapeln gör det inte. Suddgummit går igenom resultatet, så du kan sudda ett hål i ett mjukat lager och visa vad som ligger under.",
+  effects: {
+    title: "Effekter",
     apply: "Använd",
-    remove: "Stäng av",
+    open: "Använd {name}",
+    action: "Använd\u2026",
+    hint: "En effekt används en gång och är sedan en del av bilden. Den plattar ut lagren den läggs på till en bild; streck du drar efteråt påverkas inte.",
+    scopeLabel: "Använd på",
+    scopeLayer: "Det här lagret",
+    scopeDrawing: "Alla lager",
+    scopeLayerHint:
+      "Bara {layer} plattas ut. Alla andra lager lämnas precis som de är.",
+    scopeDrawingHint:
+      "Varje lager som visas och är olåst plattas ut, ett i taget. Dolda och låsta lager lämnas i fred.",
+    warning:
+      "Strecken på {target} ersätts av en bild av dem med effekten pålagd. Ångra tar tillbaka dem; en omladdning gör det inte.",
+    targetLayers: "{n} lager",
+    empty: "Det finns ingenting på {target} att lägga den på.",
     previewHint:
-      "Sidan bakom visar inställningen medan du drar i den. Ingenting läggs på teckningen förrän du använder den.",
+      "Sidan bakom visar effekten medan du ställer in den. Ingenting läggs på teckningen förrän du använder den.",
     blur: {
       name: "Oskärpa",
-      hint: "Gör hela sidan mjuk, som om teckningen vore ur fokus.",
+      hint: "Gör det som redan finns mjukt, som om det vore ur fokus. Gör det igen och du gör oskärpan oskarp.",
       radius: "Radie: {value} px",
     },
     noise: {
       name: "Brus",
-      hint: "Strör fina korn över sidan, så som grynighet ligger på film.",
+      hint: "Strör fina korn över det som redan finns, så som grynighet ligger på film.",
       amount: "Styrka: {value} %",
       grain: "Kornstorlek: {value} px",
       color: "Färgade korn",
       colorHint:
         "Låt kornen färga och inte bara ljusa upp. Av ger det grå korn film ger.",
     },
+  },
+  panel: {
+    collapse: "Dölj {name}",
+    expand: "Visa {name}",
   },
   resize: {
     title: "Ändra storlek",

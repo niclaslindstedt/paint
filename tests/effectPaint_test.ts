@@ -2,7 +2,7 @@
 // How a blur reaches the pixels — and, more to the point, that it reaches them
 // on a browser whose `ctx.filter` does nothing.
 //
-// `filters_test.ts` covers what a filter *is*; this covers the one thing about
+// `effects_test.ts` covers what an effect *is*; this covers the one thing about
 // painting one that a pure test can still see. `ctx.filter` is the obvious way
 // to blur a canvas and is unavailable in Safari — where it is not missing but
 // **inert**: the property takes a value, hands it back, and changes nothing
@@ -17,15 +17,15 @@
 // those is enough to tell the two apart without any pixels.
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { forgetFilterSupport, paintFilters } from "../src/app/filterPaint.ts";
-import type { Filter } from "../src/app/types.ts";
+import { forgetFilterSupport, paintEffect } from "../src/app/effectPaint.ts";
+import type { Effect } from "../src/app/effects.ts";
 import {
   withFakeDocument,
   type FakeContext,
   type FilterSupport,
 } from "./support/fakeCanvas.ts";
 
-const blur: Filter = { kind: "blur", radius: 12 };
+const blur: Effect = { kind: "blur", radius: 12 };
 
 const paint = {
   page: { x: 0, y: 0, width: 800, height: 600 },
@@ -48,7 +48,7 @@ const shrunken = (draw: { width?: number }) =>
  *  The shrinking happens on the working surfaces rather than on the screen, so
  *  `offscreen` gathers every draw made anywhere — that is where the fallback's
  *  climb is visible. */
-function paintBlurOn(filter: FilterSupport, filters: Filter[] = [blur]) {
+function paintBlurOn(filter: FilterSupport, effect: Effect | null = blur) {
   dom = withFakeDocument(filter);
   const mint = (
     document as unknown as {
@@ -57,7 +57,7 @@ function paintBlurOn(filter: FilterSupport, filters: Filter[] = [blur]) {
   ).createElement;
   const screen = mint("canvas");
   const ctx = screen.ctx;
-  paintFilters(ctx, filters, paint);
+  if (effect) paintEffect(ctx, effect, paint);
   return {
     ctx,
     /** Every draw onto a surface that is not the screen. */
@@ -105,15 +105,15 @@ describe("a browser whose ctx.filter is inert (Safari)", () => {
     expect(lastDraw(ctx).filter).not.toContain("blur(");
   });
 
-  it("leaves the page alone when there is no blur to paint", () => {
-    const { ctx } = paintBlurOn("inert", []);
+  it("leaves the page alone when there is no effect to paint", () => {
+    const { ctx } = paintBlurOn("inert", null);
     expect(ctx.draws).toHaveLength(0);
   });
 
   it("asks the browser once, however many frames it paints", () => {
     const { ctx } = paintBlurOn("inert");
     const asked = ctx.calls.getImageData ?? 0;
-    for (let frame = 0; frame < 5; frame += 1) paintFilters(ctx, [blur], paint);
+    for (let frame = 0; frame < 5; frame += 1) paintEffect(ctx, blur, paint);
     // The probe costs a `getImageData`, which is the one thing in this file
     // that stalls the GPU. Once per session, not once per frame.
     expect(ctx.calls.getImageData ?? 0).toBe(asked);

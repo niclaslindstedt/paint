@@ -17,6 +17,7 @@ import {
   type MenuEdge,
 } from "./gestures.ts";
 import { paintFrame } from "./frame.ts";
+import type { EffectPreview } from "./render.ts";
 import { onImageDecoded } from "./images.ts";
 import type { MarkCache } from "./cache.ts";
 import { cursorFor, usePointerRing } from "./PointerRing.tsx";
@@ -132,6 +133,11 @@ type Props = {
    *  when the setting changes, and what lets the mark cache tell the two
    *  engines' pixels apart. */
   washEngine?: WashEngine;
+  /** An effect the sidebar's dialog is setting up, shown on the layers it would
+   *  land on and never kept (see `effects.ts`). A render input like the wash
+   *  engine, and for the same reason: it is what makes the page repaint when a
+   *  slider moves, and what the mark cache compares to know it must. */
+  preview?: EffectPreview | null;
   /** Bumped by the zoom pill to toggle between fitting the page and 1:1. */
   fitToken?: number;
   /** Bumped when the *page itself* changed shape — a turn, a resize. The view
@@ -181,6 +187,7 @@ export function PaintCanvas({
   showGrid = false,
   checker,
   washEngine = DEFAULT_WASH_ENGINE,
+  preview = null,
   fitToken = 0,
   refitToken = 0,
   onScaleChange,
@@ -282,6 +289,7 @@ export function PaintCanvas({
     showGrid,
     checker,
     washEngine,
+    preview,
     decodedAt,
     selection,
   });
@@ -292,6 +300,7 @@ export function PaintCanvas({
     showGrid,
     checker,
     washEngine,
+    preview,
     decodedAt,
     selection,
   };
@@ -490,6 +499,7 @@ export function PaintCanvas({
     showGrid,
     checker,
     washEngine,
+    preview,
     decodedAt,
     selection,
     requestPaint,

@@ -121,34 +121,46 @@ export const en = {
     horizontal: "Horizontal",
     vertical: "Vertical",
   },
-  // The page filters — what the drawing is seen *through*, rather than what is
-  // on it. One section of the right-hand panel and one dialog per filter.
-  filters: {
-    title: "Filters",
-    off: "Off",
-    open: "{name} options",
-    openOnLayer: "{name} options for {layer}",
-    hint: "A filter changes how the page is seen — no mark is redrawn, and switching it off leaves the drawing exactly as it was.",
-    layerHint:
-      "This layer is seen through the filter; the rest of the stack is not. The eraser cuts through the result, so you can rub a hole in a softened layer and show what is under it.",
+  // The effects — a change made *to* the marks, once. One section of the
+  // right-hand panel and one dialog per effect.
+  effects: {
+    title: "Effects",
     apply: "Apply",
-    remove: "Turn off",
+    open: "Apply {name}",
+    action: "Apply\u2026",
+    hint: "An effect is applied once and is then part of the picture. It flattens the layers it lands on into an image; marks you make afterwards are unaffected.",
+    scopeLabel: "Apply to",
+    scopeLayer: "This layer",
+    scopeDrawing: "All layers",
+    scopeLayerHint:
+      "Only {layer} is flattened. Every other layer is left exactly as it is.",
+    scopeDrawingHint:
+      "Every layer that is showing and unlocked is flattened, each one on its own. Hidden and locked layers are left alone.",
+    warning:
+      "The marks on {target} are replaced by a picture of them with the effect applied. Undo puts them back; a reload will not.",
+    targetLayers: "{n} layers",
+    empty: "There is nothing on {target} to apply it to.",
     previewHint:
-      "The page behind is showing the setting as you move it. Nothing lands on the drawing until you apply it.",
+      "The page behind is showing the effect as you set it. Nothing lands on the drawing until you apply it.",
     blur: {
       name: "Blur",
-      hint: "Softens the whole page, as though the drawing were out of focus.",
+      hint: "Softens what is already there, as though it were out of focus. Blur it again and you blur the blur.",
       radius: "Radius: {value} px",
     },
     noise: {
       name: "Noise",
-      hint: "Scatters fine specks across the page, the way grain sits on film.",
+      hint: "Scatters fine specks over what is already there, the way grain sits on film.",
       amount: "Strength: {value}%",
       grain: "Speck size: {value} px",
       color: "Coloured specks",
       colorHint:
         "Speckle the colours as well as the light. Off leaves the grey grain film does.",
     },
+  },
+  // The right-hand panel's own chrome — the section headings you can fold away.
+  panel: {
+    collapse: "Hide {name}",
+    expand: "Show {name}",
   },
   resize: {
     title: "Resize",

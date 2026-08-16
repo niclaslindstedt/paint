@@ -558,15 +558,20 @@ describe("dragging the page", () => {
   });
 });
 
-// A layer's filters are the second document edit the cache cannot see in the
-// strokes (the first is the sheet's eye). Moving one repaints a layer without
-// adding, removing or reordering a mark — and a filtered layer cannot take an
-// appended stroke at all, because it is composited as a unit and the whole of
-// it has to be softened again with the new mark inside. Both are invisible in
-// pixels and in the document, so this is the only place they are pinned.
+// An effect being previewed is the second document edit the cache cannot see in
+// the strokes (the first is the sheet's eye) — and it isn't a document edit at
+// all, which is exactly why it needs pinning. Moving the dialog's slider
+// repaints a layer without adding, removing or reordering a mark; and a layer
+// under a preview cannot take an appended stroke, because it is composited as a
+// unit and the whole of it has to be softened again with the new mark inside.
+//
+// The point of it being a *preview* rather than something on the layer is that
+// this is the only time the cache gives up its shortcuts. An effect that has
+// been applied is a bitmap on the page and appends exactly like anything else,
+// which is the whole reason rubbing out on a softened layer stopped being slow.
 
-describe("a stack with filters on it", () => {
-  const filtered = (strokes: Stroke[], radius?: number): Drawing => ({
+describe("a stack with an effect being previewed on it", () => {
+  const page = (strokes: Stroke[]): Drawing => ({
     id: "d",
     name: "d",
     width: 400,
@@ -574,70 +579,105 @@ describe("a stack with filters on it", () => {
     strokes,
     layers: [
       { id: "base", name: "" },
-      {
-        id: "top",
-        name: "Top",
-        ...(radius === undefined
-          ? {}
-          : { filters: [{ kind: "blur" as const, radius }] }),
-      },
+      { id: "top", name: "Top" },
     ],
   });
 
-  it("repaints when a filter moves, though not a mark changed", () => {
+  /** A spec whose options carry a preview at `radius`. One object per radius,
+   *  because the cache compares it by identity — which is the contract the
+   *  screen keeps too (see `CanvasScreen`). */
+  const previewing = (
+    d: Drawing,
+    radius: number | null,
+    over: Partial<CacheSpec> = {},
+  ): CacheSpec =>
+    spec(d, {
+      ...over,
+      options: {
+        pageColor: "#fff",
+        defaultInk: "#000",
+        ...(radius === null
+          ? {}
+          : {
+              preview: {
+                effect: { kind: "blur" as const, radius },
+                layerIds: new Set(["top"]),
+              },
+            }),
+      },
+    });
+
+  it("repaints when the slider moves, though not a mark changed", () => {
     const marks = [stroke()];
     const { ctx, canvas } = screen();
     const cache = createCache(400, 300);
-    expect(paintCommitted(ctx, canvas, cache, spec(filtered(marks, 6)))).toBe(
+    expect(paintCommitted(ctx, canvas, cache, previewing(page(marks), 6))).toBe(
       "repainted",
     );
     // The very same marks, in the very same order — only the radius differs.
-    expect(paintCommitted(ctx, canvas, cache, spec(filtered(marks, 24)))).toBe(
-      "repainted",
-    );
-    // …and switching it off is a change too.
-    expect(paintCommitted(ctx, canvas, cache, spec(filtered(marks)))).toBe(
-      "repainted",
-    );
+    expect(
+      paintCommitted(ctx, canvas, cache, previewing(page(marks), 24)),
+    ).toBe("repainted");
+    // …and closing the dialog is a change too.
+    expect(
+      paintCommitted(ctx, canvas, cache, previewing(page(marks), null)),
+    ).toBe("repainted");
   });
 
   it("blits when nothing at all changed", () => {
-    const d = filtered([stroke()], 6);
+    const d = page([stroke()]);
+    const held = previewing(d, 6);
     const { ctx, canvas } = screen();
     const cache = createCache(400, 300);
-    paintCommitted(ctx, canvas, cache, spec(d));
-    expect(paintCommitted(ctx, canvas, cache, spec(d))).toBe("blitted");
+    paintCommitted(ctx, canvas, cache, held);
+    expect(paintCommitted(ctx, canvas, cache, { ...held })).toBe("blitted");
   });
 
   it("repaints rather than appending a landed stroke", () => {
     const first = stroke();
     const { ctx, canvas } = screen();
     const cache = createCache(400, 300);
-    paintCommitted(ctx, canvas, cache, spec(filtered([first], 6)));
-    // On an unfiltered stack this is the append the whole module exists for.
+    const held = previewing(page([first]), 6);
+    paintCommitted(ctx, canvas, cache, held);
+    // On a page with no dialog open this is the append the whole module exists
+    // for.
     expect(
-      paintCommitted(ctx, canvas, cache, spec(filtered([first, stroke()], 6))),
+      paintCommitted(ctx, canvas, cache, {
+        ...held,
+        drawing: page([first, stroke()]),
+      }),
     ).toBe("repainted");
   });
 
-  it("still appends when no layer is filtered", () => {
+  it("still appends when no effect is being previewed", () => {
     const first = stroke();
     const { ctx, canvas } = screen();
     const cache = createCache(400, 300);
-    paintCommitted(ctx, canvas, cache, spec(filtered([first])));
+    paintCommitted(ctx, canvas, cache, previewing(page([first]), null));
     expect(
-      paintCommitted(ctx, canvas, cache, spec(filtered([first, stroke()]))),
+      paintCommitted(
+        ctx,
+        canvas,
+        cache,
+        previewing(page([first, stroke()]), null),
+      ),
     ).toBe("appended");
   });
 
   it("repaints rather than scrolling a pan", () => {
-    const d = filtered([stroke()], 6);
+    const d = page([stroke()]);
+    const held = previewing(d, 6);
     const { ctx, canvas } = screen();
     const cache = createCache(400, 300);
-    paintCommitted(ctx, canvas, cache, spec(d));
-    const panned = spec(d, { view: { scale: 1, tx: 20, ty: 0 } });
-    // Correct either way — but each strip would re-filter a canvas-sized
-    // surface, so two strips a frame costs more than the repaint it avoids.
-    expect(paintCommitted(ctx, canvas, cache, panned)).toBe("repainted");
+    paintCommitted(ctx, canvas, cache, held);
+    // Correct either way — but each strip would re-run the effect over a
+    // canvas-sized surface, so two strips a frame costs more than the repaint
+    // it avoids.
+    expect(
+      paintCommitted(ctx, canvas, cache, {
+        ...held,
+        view: { scale: 1, tx: 20, ty: 0 },
+      }),
+    ).toBe("repainted");
   });
 });

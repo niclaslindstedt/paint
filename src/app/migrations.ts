@@ -25,7 +25,7 @@ import {
 
 /** The current persisted-document version. Bump it and add a step below when
  *  the on-disk shape changes — every shipped step stays forever. */
-export const LATEST_VERSION = 2;
+export const LATEST_VERSION = 3;
 
 const migrations = {
   // v0 (pre-versioning / blank) → v1: the bootstrap step. Guarantee the
@@ -69,6 +69,36 @@ const migrations = {
     ...doc,
     version: 2,
     folders: Array.isArray(doc.folders) ? doc.folders : [],
+  }),
+  // v2 → v3: filters became effects. A drawing (and any layer of it) could carry
+  // a `filters` array — a blur or a grain the picture was composited through on
+  // every frame, forever. Nothing reads that field any more: the same two
+  // operations are now applied *to* the marks, once, and the drawing holds the
+  // result (see `effects.ts`). So the field is dropped rather than left to rot
+  // as a key nothing writes and nothing honours.
+  //
+  // The softening itself cannot be carried forward, and this is the one step in
+  // the chain that loses something a user could see: baking it would need a
+  // canvas, and a migration runs on bytes with no DOM in reach. A drawing that
+  // was blurred therefore opens sharp — with every mark intact, because the
+  // marks were never what the filter changed — and the effect is one press away
+  // in the panel. That is a better trade than an upgrade that quietly flattens
+  // a document's strokes into a bitmap nobody asked it to.
+  2: (doc: Versioned): Versioned => ({
+    ...doc,
+    version: 3,
+    drawings: (Array.isArray(doc.drawings) ? doc.drawings : []).map((raw) => {
+      const d = { ...(raw as Record<string, unknown>) };
+      delete d.filters;
+      if (Array.isArray(d.layers)) {
+        d.layers = d.layers.map((layer) => {
+          const next = { ...(layer as Record<string, unknown>) };
+          delete next.filters;
+          return next;
+        });
+      }
+      return d;
+    }),
   }),
   // Not every model change needs a step. Dropped images added a new *shape kind*
   // (`image`, holding its bitmap as a data URL) and a new plugin id to paint it

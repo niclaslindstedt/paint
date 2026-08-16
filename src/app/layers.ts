@@ -27,8 +27,7 @@
 // Pure and DOM-free, so the panel, the renderer and the store all read the same
 // answers and a node test can drive the lot.
 
-import { orderedFilters } from "./filters.ts";
-import type { Drawing, Filter, Layer, Stroke } from "./types.ts";
+import type { Drawing, Layer, Stroke } from "./types.ts";
 
 /** The id the implicit first layer takes when a drawing first grows a stack.
  *
@@ -93,6 +92,22 @@ export function transparentLayers(): Layer[] {
 export function drawingLayers(drawing: Drawing): Layer[] {
   const layers = drawing.layers;
   return layers && layers.length > 0 ? layers : defaultLayers();
+}
+
+/** What a layer is called on screen.
+ *
+ *  Two layers can be nameless, and they are the two every drawing starts with:
+ *  the sheet at the bottom, and the layer above it that holds the marks of a
+ *  drawing nobody has added a layer to. The words are the caller's — this module
+ *  is DOM- and catalog-free — but the *rule* lives here, so the panel and the
+ *  effect dialog can never call the same sheet two different things. */
+export function layerDisplayName(
+  layer: Pick<Layer, "id" | "name">,
+  names: { background: string; base: string },
+): string {
+  const own = layer.name.trim();
+  if (own) return own;
+  return layer.id === BACKGROUND_LAYER_ID ? names.background : names.base;
 }
 
 /** Whether a layer refuses marks (see `Layer.locked`). */
@@ -190,9 +205,9 @@ export function visibleStrokes(
 /** One layer's turn in a repaint: the layer, and the marks that go down for it.
  *
  *  What `renderDrawing` folds over when the stack is painted sheet by sheet
- *  rather than as one run of marks — which it has to be as soon as any layer
- *  carries filters of its own, because a filtered layer is composited as a unit
- *  (see `Layer.filters`). */
+ *  rather than as one run of marks — which it has to be as soon as some layer
+ *  has to be composited as a unit: one carrying wet marks that mix among
+ *  themselves, or one an effect is being previewed on (see `render.ts`). */
 export type PaintedLayer = {
   layer: Layer;
   strokes: readonly Stroke[];
@@ -206,10 +221,10 @@ export type PaintedLayer = {
  *  `visibleStrokes`, and a test pins that so the two can never drift into two
  *  different paint orders.
  *
- *  A layer whose marks are all culled still appears here. It has to: a filtered
- *  layer with nothing on it is a no-op, but the caller decides that, and a walk
- *  that silently skipped empty layers would make "which layer is this" depend
- *  on what happened to be drawn. */
+ *  A layer whose marks are all culled still appears here. It has to: a layer
+ *  with nothing on it is a no-op, but the caller decides that, and a walk that
+ *  silently skipped empty layers would make "which layer is this" depend on
+ *  what happened to be drawn. */
 export function paintedLayers(
   drawing: Drawing,
   scope: PaintScope = {},
@@ -224,25 +239,6 @@ export function paintedLayers(
     walk.push({ layer, strokes: buckets[index]! });
   });
   return walk;
-}
-
-/** The filters on one layer, in the order they are applied — `filters.ts` owns
- *  the order, and this is the layer-shaped door to it. */
-export function layerFilters(layer: Layer): readonly Filter[] {
-  return orderedFilters(layer.filters);
-}
-
-/** Whether any layer in the stack carries filters of its own.
- *
- *  Asked before anything expensive is decided, because the answer is *no* for
- *  every drawing that has never used the feature and the paths it guards are
- *  the ones that make a busy page fast: the renderer's flat fold, and the mark
- *  cache's append and scroll (see `cache.ts`). A drawing with a filtered layer
- *  gives those up; one without must not pay a thing for their existence. */
-export function anyLayerFiltered(drawing: Drawing): boolean {
-  const layers = drawing.layers;
-  if (!layers) return false;
-  return layers.some((layer) => (layer.filters?.length ?? 0) > 0);
 }
 
 /** A flat stroke list, with the background layer's marks dropped if they are

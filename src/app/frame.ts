@@ -22,12 +22,8 @@
 //      something out. Coats 2 and 3 land on a finished picture rather than on
 //      bare canvas, so an erasing mark takes the page away with the ink; this
 //      puts it back (see `underlay`). Skipped entirely unless something erased.
-//   5. **the page's filters**, if it carries any — a composite over the
-//      finished picture rather than over any part of it, which is why they are
-//      applied here and not in the renderer (see `filterPaint.ts`). The
-//      context is handed back exactly as they found it.
-//   6. **the chrome** — the selection's marching ants and the sheet's edge.
-//      Above the filters on purpose: the outline of what you have selected is
+//   5. **the chrome** — the selection's marching ants and the sheet's edge.
+//      Above everything on purpose: the outline of what you have selected is
 //      the one thing on screen that must stay sharp.
 //
 // The chrome is painted last and deliberately *after* the cache has taken its
@@ -37,13 +33,12 @@
 
 import type { Box } from "./bounds.ts";
 import { createCache, paintCommitted, type MarkCache } from "./cache.ts";
-import { activeFilters } from "./filters.ts";
-import { paintFilters } from "./filterPaint.ts";
-import { activeLayerId, backgroundHidden, visibleStrokes } from "./layers.ts";
+import type { EffectPreview } from "./render.ts";
+import { visibleStrokes } from "./layers.ts";
 import { paintMarquee } from "./plugins/builtin/select.ts";
 import type { DraftStroke } from "./plugins/types.ts";
 import type { WashEngine } from "./plugins/wash.ts";
-import { anyErases, paintDetached, relayFixed, underlay } from "./render.ts";
+import { anyErases, paintStrokes, relayFixed, underlay } from "./render.ts";
 import { translateStrokes } from "./selection.ts";
 import type { Drawing, Point, Stroke } from "./types.ts";
 import type { CanvasView } from "./viewport.ts";
@@ -87,6 +82,10 @@ export type Frame = {
   washEngine: WashEngine;
   /** Bumped whenever a bitmap finishes decoding — see `CacheSpec`. */
   decodedAt: number;
+  /** An effect the dialog is setting up, shown on the layers it would land on
+   *  and never kept (see `render.ts`). Pass the *same object* for as long as the
+   *  setting holds: the mark cache compares it by identity. */
+  preview: EffectPreview | null;
   /** The gesture in flight, or `null`. */
   draft: DraftStroke | null;
   /** The settled selection's outline, or `null`. Ignored while `moving` is set:
@@ -121,6 +120,11 @@ export function paintFrame(frame: Frame): void {
     grid: frame.showGrid ? GRID_STEP : undefined,
     checker: frame.checker,
     washEngine: frame.washEngine,
+    // The effect being set up, if a dialog is open on one. It goes through the
+    // renderer rather than being composited over the finished frame, because an
+    // effect lands on *layers*: what the preview shows has to be the same
+    // composite the bake will rasterise (see `bake.ts`).
+    ...(frame.preview ? { preview: frame.preview } : {}),
     // Marks being dragged are left out of the page and painted below instead.
     // The set is the caller's and lives as long as the drag, because the cache
     // compares it by identity (see `cache.ts`).
@@ -173,15 +177,11 @@ export function paintFrame(frame: Frame): void {
     ? translateStrokes(moving.strokes, moving.offset.x, moving.offset.y)
     : [];
   if (moving) {
-    paintDetached(ctx, drawing, dragged, { ...options, omit: undefined });
+    paintStrokes(ctx, dragged, { ...options, omit: undefined });
   }
 
   const draft = frame.draft ? { ...frame.draft, id: "draft" } : null;
-  // The draft carries no layer of its own until the store commits it, so it is
-  // painted through the filters of the layer it is about to land on.
-  if (draft) {
-    paintDetached(ctx, drawing, [draft], options, activeLayerId(drawing));
-  }
+  if (draft) paintStrokes(ctx, [draft], options);
 
   // Both coats above landed on pixels that already have the sheet in them — the
   // cache hands back a finished picture, page and all. A mark that rubs out
@@ -196,27 +196,6 @@ export function paintFrame(frame: Frame): void {
     // first, under nothing and over the hole (see `relayFixed`).
     relayFixed(ctx, inFlight, options, visibleStrokes(drawing));
     underlay(ctx, drawing, options);
-  }
-
-  // The page's filters, over the finished picture and under the chrome. They
-  // are applied here rather than inside the renderer because they are a
-  // composite over *everything* — the committed marks the cache blitted, the
-  // gesture in flight, the sheet — and because the cache must go on holding the
-  // unfiltered picture: moving a slider then costs one composite instead of a
-  // repaint of the document (see `filterPaint.ts`).
-  const filters = activeFilters(drawing);
-  if (filters.length > 0) {
-    paintFilters(ctx, filters, {
-      page: {
-        x: snapped.tx * dpr,
-        y: snapped.ty * dpr,
-        width: drawing.width * snapped.scale * dpr,
-        height: drawing.height * snapped.scale * dpr,
-      },
-      scale: snapped.scale * dpr,
-      pageColor: frame.pageColor,
-      transparent: backgroundHidden(drawing),
-    });
   }
 
   // The selection's outline: the same marching ants the marquee was dragged

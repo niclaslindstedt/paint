@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DEFAULT_NAMESPACE_SLUG } from "@niclaslindstedt/oss-framework/namespaces";
 
 import { pageFitting, strokeBounds, unionBox, type Box } from "./bounds.ts";
-import { withFilter, withoutFilter, type FilterKind } from "./filters.ts";
 import {
   handOffDrawing,
   handOffFolder,
@@ -33,7 +32,6 @@ import {
   type AppData,
   type Drawing,
   type Folder,
-  type Filter,
   type Layer,
   type Stroke,
 } from "./types.ts";
@@ -151,21 +149,6 @@ export const localDocBackend: DocBackend = {
     }
   },
 };
-
-/** A layer carrying `filters`, or the same layer without the field at all when
- *  nothing is left. `withoutFilter` already hands back `undefined` rather than
- *  an empty array, and this is the other half of that promise on a layer: a
- *  sheet that was filtered and then wasn't must serialise as the sheet it was,
- *  or every drawing anyone ever experimented on carries a dead key for good. */
-function withoutLayerFilter(
-  layer: Layer,
-  filters: Filter[] | undefined,
-): Layer {
-  if (filters && filters.length > 0) return { ...layer, filters };
-  const next = { ...layer };
-  delete next.filters;
-  return next;
-}
 
 /** The constructors the hand-off module needs to mint arriving copies and to
  *  leave a page behind when the last live one is given away. */
@@ -476,75 +459,23 @@ export function usePaintStore(
       layers: undefined,
       activeLayerId: undefined,
       background: undefined,
-      filters: undefined,
     });
   }, [activeDrawing, patchActive]);
 
-  /** Put a page filter on the drawing, or move the one that is already there —
-   *  one of each kind, in the order `filters.ts` applies them.
+  /** Land a baked effect: the drawing's marks, with the layers an effect was
+   *  applied to replaced by pictures of themselves (see `bake.ts`).
    *
-   *  An ordinary page edit: one undo step, one `updatedAt`, one push to the
-   *  cloud. Nothing is rasterised and no mark is touched — a filter is a number
-   *  saying how the page is looked at (see `types.ts`), which is why switching
-   *  one off is a delete rather than an unpicking. */
-  const setFilter = useCallback(
-    (filter: Filter) => {
-      const active = activeDrawing;
-      if (!active) return;
-      patchActive({ filters: withFilter(active.filters, filter) });
-    },
-    [activeDrawing, patchActive],
-  );
-
-  /** Take a filter off the drawing. */
-  const clearFilter = useCallback(
-    (kind: FilterKind) => {
-      const active = activeDrawing;
-      if (!active) return;
-      patchActive({ filters: withoutFilter(active.filters, kind) });
-    },
-    [activeDrawing, patchActive],
-  );
-
-  /** Put a filter on one layer of the stack, or move the one already there.
+   *  An ordinary page edit — one undo step, one `updatedAt`, one push to the
+   *  cloud — and deliberately nothing more than "here is the new stroke list".
+   *  Rasterising needs a canvas, so it happens in the screen where the canvas
+   *  is; what reaches the store is a list of strokes like any other.
    *
-   *  The same edit `setFilter` makes, scoped to a sheet: one of each kind, in
-   *  the order `filters.ts` applies them, one undo step, nothing rasterised.
-   *  What differs is only *what it is seen through* — a layer's filters are
-   *  applied to that layer's own marks before they reach the page, which is
-   *  what lets the eraser cut through the softened result (see `Layer.filters`).
-   *
-   *  Setting one materialises the implicit stack, exactly as hiding or locking
-   *  a layer does: a drawing that has never had layers of its own is written
-   *  with `defaultLayers` the moment one of them is asked to carry something. */
-  const setLayerFilter = useCallback(
-    (id: string, filter: Filter) => {
-      const active = activeDrawing;
-      if (!active) return;
-      patchActive({
-        layers: drawingLayers(active).map((layer) =>
-          layer.id === id
-            ? { ...layer, filters: withFilter(layer.filters, filter) }
-            : layer,
-        ),
-      });
-    },
-    [activeDrawing, patchActive],
-  );
-
-  /** Take a filter off one layer. The field goes with the last one, so a layer
-   *  that has been filtered and unfiltered serialises as the layer it was. */
-  const clearLayerFilter = useCallback(
-    (id: string, kind: FilterKind) => {
-      const active = activeDrawing;
-      if (!active) return;
-      patchActive({
-        layers: drawingLayers(active).map((layer) =>
-          layer.id === id
-            ? withoutLayerFilter(layer, withoutFilter(layer.filters, kind))
-            : layer,
-        ),
-      });
+   *  Undo puts the marks back, which is the whole safety net an effect has: it
+   *  is destructive by design, and the panel says so before it is pressed. */
+  const applyEffect = useCallback(
+    (strokes: Stroke[]) => {
+      if (!activeDrawing) return;
+      patchActive({ strokes });
     },
     [activeDrawing, patchActive],
   );
@@ -1000,15 +931,12 @@ export function usePaintStore(
     deleteStrokes,
     moveStrokes,
     resetActive,
-    setFilter,
-    clearFilter,
+    applyEffect,
     transformActive,
     renameActive,
     setAppearance,
     addLayer,
     selectLayer,
-    setLayerFilter,
-    clearLayerFilter,
     setLayerHidden,
     setLayerLocked,
     moveLayer,

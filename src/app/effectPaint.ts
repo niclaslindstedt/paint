@@ -1,46 +1,39 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-// Painting the page's filters — the pixels half of `filters.ts`.
+// Painting an effect — the pixels half of `effects.ts`.
 //
-// It runs *after* everything else has been painted, on whatever context the
-// picture landed on: the screen's canvas at the end of a frame (`frame.ts`), and
-// the export's off-screen one at its document size (`export.ts`). Both hand in
+// It runs *after* the marks have been painted, on whatever context they landed
+// on: the off-screen surface a bake rasterises a layer onto (`bake.ts`), and the
+// screen while the dialog's sliders are still moving (`render.ts`). Both hand in
 // the same three things — where the page is on that canvas, how many canvas
-// pixels one document pixel is worth, and what colour the sheet is — so a
-// filter means the same thing at any zoom and in a file.
+// pixels one document pixel is worth, and what colour the sheet is — so an
+// effect means the same thing at any zoom and at document size.
 //
-// Two rules keep it out of the way of the rest of the renderer:
-//
-//   - **It never touches the document.** Every call is a composite over pixels
-//     that are already finished. Nothing here can change what a stroke is, and
-//     turning a filter off simply stops this from running.
-//   - **It is never cached.** The mark cache (`cache.ts`) holds the *unfiltered*
-//     picture and this is applied to the screen after the blit, so moving a
-//     slider costs a composite rather than a repaint of the document — and the
-//     cache can go on absorbing a committed stroke without knowing filters
-//     exist.
+// One rule keeps it out of the way of the rest of the renderer: **it never
+// touches the document.** Every call is a composite over pixels that are already
+// finished. What makes an effect permanent is what `bake.ts` does with the
+// pixels afterwards, not anything here.
 //
 // Both effects are composited rather than computed per pixel, which is what
-// makes them affordable on every frame of a stroke: the blur is one filtered
-// `drawImage`, and the grain is two coats of a speck tile laid across the page
-// as a pattern. A `getImageData` pass over the window would be several million
-// pixels of arithmetic per frame; this is three draws.
+// makes them cheap enough to preview on every pointer sample of a slider drag:
+// the blur is one filtered `drawImage`, and the grain is two coats of a speck
+// tile laid across the page as a pattern. A `getImageData` pass over the window
+// would be several million pixels of arithmetic per frame; this is three draws.
 //
 // The blur has a second painter behind it, because `ctx.filter` — the whole of
 // how it used to work — is unavailable in Safari and fails *silently* there.
 // See "Softening without `ctx.filter`" below.
 
-import { BLUR_TAIL, GRAIN_CEILING } from "./filters.ts";
+import { BLUR_TAIL, GRAIN_CEILING, type Effect } from "./effects.ts";
 import { createSurface, type Surface } from "./surface.ts";
-import type { Filter } from "./types.ts";
 
 /** Where the page is on the canvas being painted, and what it is being painted
  *  against. All in *canvas* pixels — device pixels on screen, document pixels
  *  in an export. */
-export type FilterPaint = {
+export type EffectPaint = {
   /** The page's rectangle on this canvas. It may hang off any edge: on screen
    *  it is wherever the view has scrolled the sheet to. */
   page: { x: number; y: number; width: number; height: number };
-  /** Canvas pixels per document pixel — a filter's distances are set in
+  /** Canvas pixels per document pixel — an effect's distances are set in
    *  document pixels, so they scale with the zoom exactly as a nib does. */
   scale: number;
   /** The sheet's colour, which is what a blur reaches for past the edge of what
@@ -62,23 +55,20 @@ export type FilterPaint = {
  *  coat, whatever the grain and whatever the zoom. */
 const TILE_SPECKS = 512;
 
-/** Paint a drawing's filters over the picture already on `ctx`.
+/** Paint one effect over the picture already on `ctx`.
  *
- *  A no-op with no filters, and a no-op where there is no DOM to make a working
- *  surface in — the picture is then simply unfiltered, which is the same
- *  fallback the mark cache takes. */
-export function paintFilters(
+ *  A no-op where there is no DOM to make a working surface in — the picture is
+ *  then simply left as it was, which is the same fallback the mark cache takes
+ *  and which the bake reads as "nothing happened" (see `bake.ts`). */
+export function paintEffect(
   ctx: CanvasRenderingContext2D,
-  filters: readonly Filter[],
-  paint: FilterPaint,
+  effect: Effect,
+  paint: EffectPaint,
 ): void {
-  if (filters.length === 0) return;
   const region = onCanvas(ctx, paint.page);
   if (!region) return;
-  for (const filter of filters) {
-    if (filter.kind === "blur") blur(ctx, region, filter.radius, paint);
-    else grain(ctx, region, filter, paint);
-  }
+  if (effect.kind === "blur") blur(ctx, region, effect.radius, paint);
+  else grain(ctx, region, effect, paint);
 }
 
 type Region = { x: number; y: number; width: number; height: number };
@@ -86,11 +76,11 @@ type Region = { x: number; y: number; width: number; height: number };
 /** The part of the page that is actually on this canvas, in whole canvas
  *  pixels — `null` when the sheet is entirely off it. Everything below works on
  *  this rather than on the page: on screen the page is usually far bigger than
- *  the window, and filtering the whole of it would mean allocating a surface
- *  the size of a sheet nobody is looking at. */
+ *  the window, and running the effect over the whole of it would mean
+ *  allocating a surface the size of a sheet nobody is looking at. */
 function onCanvas(
   ctx: CanvasRenderingContext2D,
-  page: FilterPaint["page"],
+  page: EffectPaint["page"],
 ): Region | null {
   const x = Math.max(0, Math.floor(page.x));
   const y = Math.max(0, Math.floor(page.y));
@@ -118,7 +108,7 @@ function blur(
   ctx: CanvasRenderingContext2D,
   region: Region,
   radius: number,
-  paint: FilterPaint,
+  paint: EffectPaint,
 ): void {
   const sigma = radius * paint.scale;
   if (!(sigma > 0)) return;
@@ -188,7 +178,7 @@ function blur(
 // to rely on outright. It is also **not available in Safari** — not on the Mac,
 // not on iOS, and not in any shipped version: WebKit has the property behind a
 // flag that is off by default. An assignment to it there is silently ignored,
-// which is the worst possible failure for a filter: `drawImage` puts the sharp
+// which is the worst possible failure for a blur: `drawImage` puts the sharp
 // picture straight back and the page looks exactly as it did, so a blur set to
 // its maximum reads as a blur that does nothing at all.
 //
@@ -372,12 +362,12 @@ function stepToward(at: number, to: number): number {
 function grain(
   ctx: CanvasRenderingContext2D,
   region: Region,
-  filter: Extract<Filter, { kind: "noise" }>,
-  paint: FilterPaint,
+  effect: Extract<Effect, { kind: "noise" }>,
+  paint: EffectPaint,
 ): void {
-  const speck = Math.max(1, filter.grain * paint.scale);
-  const strength = Math.min(1, Math.max(0, filter.amount)) * GRAIN_CEILING;
-  const color = filter.color === true;
+  const speck = Math.max(1, effect.grain * paint.scale);
+  const strength = Math.min(1, Math.max(0, effect.amount)) * GRAIN_CEILING;
+  const color = effect.color === true;
   for (const coat of COATS) {
     const tile = grainTile(coat.seed, color);
     if (!tile) continue;
@@ -431,9 +421,9 @@ const COATS = [
 const tiles = new Map<string, Surface | null>();
 
 /** A square of specks, one pixel each: half of them lighter than what they land
- *  on, half darker, most of them faint. Deterministic, so the screen and the
- *  exported file are speck-for-speck the same picture — a filter that resolves
- *  at paint time may not paint differently each time it is asked. */
+ *  on, half darker, most of them faint. Deterministic, so the preview and the
+ *  bake it approves are speck-for-speck the same picture — an effect may not
+ *  scatter different dust each time it is asked. */
 function grainTile(seed: number, color: boolean): Surface | null {
   const key = `${seed}:${color}`;
   const held = tiles.get(key);
