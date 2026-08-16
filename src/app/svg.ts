@@ -104,9 +104,9 @@ class SvgGradient {
  * text (with the one baseline the text tool sets), images, radial-gradient
  * fills, a translation, the two composite modes the renderer sets, and the ink
  * properties `applyInk` sets. Calls it has no meaning for (`clearRect` — an SVG
- * starts transparent; `clip` — used only by the screen's grid, which never
- * exports) are accepted and ignored, so a caller can hand it to the shared
- * renderer unchanged.
+ * starts transparent; `clip` — whose two callers are both answered by the
+ * file's own `viewBox`, see below) are accepted and ignored, so a caller can
+ * hand it to the shared renderer unchanged.
  *
  * The two composite modes are the interesting part, because SVG has no
  * compositing operator and both have an exact structural equivalent:
@@ -448,8 +448,16 @@ export class SvgCanvas {
   /** An SVG is transparent to begin with, so there is nothing to clear. */
   clearRect(): void {}
 
-  /** Clipping is a screen-only affordance (the grid), and the grid never
-   *  exports — so the export never needs to honour one. */
+  /** Clipping is accepted and dropped, and the two clips that reach here are
+   *  both already answered by the file's shape.
+   *
+   *  The grid's is screen-only and the grid never exports. The sheet's — the
+   *  page rectangle every mark is held inside (see `onSheet` in `render.ts`) —
+   *  is the `viewBox` this recorder frames the file with, and an SVG's root
+   *  viewport clips to that on its own. So the picture is the same picture;
+   *  what an exported file carries that a rasterised one does not is the
+   *  geometry of a stroke that ran off the page, which is exactly what the
+   *  document itself carries. */
   clip(): void {}
 
   /** The masks the erasing runs left, as defs. Written here because a mask has

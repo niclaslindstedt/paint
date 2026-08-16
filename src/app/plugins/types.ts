@@ -395,6 +395,19 @@ export type PaintDetail = {
    *  ignores it draws exactly what it always drew, and one that honours it must
    *  only ever drop stamps that could not have landed inside the box anyway. */
   clip?: Rect;
+  /** Whether this mark is the gesture still under the hand rather than one that
+   *  has landed on the page.
+   *
+   *  It is a **budget**, not a look. A committed mark is painted once and its
+   *  pixels are kept (by the mark cache, and — for the one painter that works
+   *  one out rather than drawing it — by the wash simulation's own store); the
+   *  gesture in flight is repainted from its first point on every pointer
+   *  sample. So a painter expensive enough to care is told which it is, and may
+   *  spend less on the one that is charged per frame, as long as what it draws
+   *  is the same mark. The watercolour simulation is the only one that does
+   *  (see `plugins/washSim.ts`); every other painter ignores it, and absent —
+   *  which is every caller but the canvas's in-flight coat — means landed. */
+  live?: boolean;
 };
 
 /** The detail a painter assumes when it is handed none — 1:1 onto a plain

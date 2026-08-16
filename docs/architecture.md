@@ -405,6 +405,27 @@ recorder emits a baked layer as an `<image>` exactly as it emits a dropped
 photograph. The `<filter>` primitives the old page- and layer-scoped filters
 needed are gone with them.
 
+### The marks belong to the sheet
+
+The canvas element is a **window** onto a page that is usually smaller than it,
+so there is desk around the paper — and a gesture that begins or wanders out
+there is still a gesture. It used to paint on the desk: ink floating off the
+sheet on screen, which then vanished from the exported file, because an export
+rasterises the page and nothing else. The screen and the file disagreed about
+what the drawing was, and the screen was the one that was wrong.
+
+So every surface that paints marks holds them to the page's own rectangle first
+(`onSheet` in `render.ts`): the screen, the mark cache's append, the layer
+thumbnails and the export all cut at the same edge and cannot disagree. It is a
+clip rather than a rule about pointers, which matters twice over — a stroke that
+runs off the page is still the whole stroke in the document, so dragging it back
+on brings all of it back, and a drawing made before the clip existed loses
+nothing that was ever on its page.
+
+The sheet itself is not clipped, because it is laid _under_ the marks afterwards
+and is already the page's rectangle; nor is the chrome, whose whole job is to
+draw where the page ends.
+
 ### A repaint is a fold; a frame is not
 
 `renderDrawing` remains a fold over the whole document, and that is what keeps
@@ -448,7 +469,20 @@ be much less than a full render:
   as you zoom into it and the PNG export (always 1:1) is unchanged. It also
   carries the **patch being painted**, so a painter built out of hundreds of
   stamps can skip the ones that cannot reach it: repainting a corner of an
-  airbrush stroke costs the cones in that corner rather than all of them.
+  airbrush stroke costs the cones in that corner rather than all of them — and
+  whether the mark is **still under the hand** (`PaintDetail.live`), which is a
+  budget rather than a look: a landed mark is painted once and kept, where the
+  gesture in flight is repainted from its first point every pointer sample, so a
+  painter expensive enough to care may spend less on the one that is charged per
+  frame. One painter does (the wash simulation, below); every other ignores it.
+- `washSim.ts` keeps the marks it has **dried**, with their pixels. Drying a
+  wash is the most expensive thing this app does, and every full repaint used to
+  ask for all of them again — which is why zooming a heavy watercolour crawled
+  while painting one felt fine: a gesture blits the committed marks and simulates
+  the one mark under your hand, where a pinch simulates the lot. Keeping them is
+  only sound because the field is worked out on the _page_ rather than on the
+  screen, so a mark is the same picture at every zoom; those two are one
+  decision, and neither works without the other.
 
 The cache holds no state the document doesn't: every path into it goes through
 `renderDrawing`, and where there is no DOM to build it in the canvas paints the
@@ -646,7 +680,16 @@ lives by: **nothing outside it may branch on a tool id.**
   the simulation and is pure — no canvas, no colour; `washSim.ts` drives it from
   a gesture and turns the pigment it settled into pixels, subtractively
   (`colour ^ density`, so glazing deepens towards the colour rather than
-  towards grey).
+  towards grey). The grid is pitched in **document pixels** — a cell per pixel of
+  the page at full detail, which is as fine as the mark has anywhere to land —
+  and never in screen ones, so a wash is the same picture at every zoom and its
+  pixels can be kept rather than re-dried by every pan and pinch. Past a cell
+  budget the grid coarsens and the image is drawn up to the page instead, which
+  is why a sweep across a whole page still softens where a stroke the size of a
+  hand does not: at a cell per pixel that mark is millions of cells and a dozen
+  seconds, and no budget simulates it honestly. The field is stepped inside a box
+  drawn round the water rather than over the whole grid, so a mark costs its own
+  wet area and not its bounding box.
 - `wash.ts` — which of the two is painting, and how much of the simulation's
   field to run. Both read the same three dials (`water`, `pigment`,
   `granulation`) and the same sheet, so switching is a change of _rendering_ and

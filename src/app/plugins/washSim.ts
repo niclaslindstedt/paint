@@ -37,6 +37,15 @@
 // unmirrored, a white wash on a black page lets every channel through at every
 // density there is and the engine paints a mark nobody can see.
 //
+// **The field is worked out on the page, and a mark is worked out once.** The
+// grid's pitch is measured in document pixels rather than in screen ones (see
+// `PITCH`), so a wash is the same picture at every zoom — and *because* it is,
+// the pixels it dried into can be kept and put down again rather than
+// re-simulated by every pan, pinch and undo (see the store below `sameMark`).
+// Those two are one decision: a mark whose picture depended on the view could
+// not be kept, and a repaint of a page carrying twenty washes would go on
+// costing twenty simulations.
+//
 // **It can always say no.** No DOM, no canvas, a mark too small to be worth a
 // field, a page-wide sweep whose cells would be wider than the brush: every one
 // of those returns `false`, and the caller paints the mark with the simple
@@ -47,7 +56,6 @@ import { isDarkColor } from "../canvas.ts";
 import { SOLID_GROUND, type GroundProfile } from "../ground.ts";
 import { createSurface, resizeSurface, type Surface } from "../surface.ts";
 import type { Point } from "../types.ts";
-import { mm } from "../units.ts";
 import {
   charge,
   createField,
@@ -57,22 +65,43 @@ import {
 } from "./washField.ts";
 import { HAIRLINE, PIXEL, trace } from "./grain.ts";
 
-/** How much page one cell of the field stands for, at 1:1 and at full detail.
+/** How much page one cell of the field stands for, at full detail: **one
+ *  document pixel**.
  *
- *  Coarser than a device pixel on purpose: the field is the *wet* part of the
- *  picture, and wet has no fine detail in it — the fine detail is the sheet's
- *  own grain, which is painted at full resolution underneath and shows through
- *  (see `groundPaint.ts`). A sixth of a millimetre keeps a #8 round's mark
- *  about forty cells across — enough for a rim, a bloom and a mottle to be
- *  three separate things — and keeps a wash at roughly a hundredth of a second
- *  to dry rather than several. */
-const PITCH = mm(0.17);
+ *  The field is worked out on the *page*, not on the screen. That is the whole
+ *  of what "full detail" can honestly mean here — a drawing is a fixed grid of
+ *  document pixels (see `types.ts`), so a cell per document pixel is the finest
+ *  grid the mark has anywhere to land on, and the image the field hands back is
+ *  then placed pixel for pixel rather than blown up. It is also what makes a
+ *  wash **the same picture at every zoom**: the pitch used to be read off the
+ *  view, so pulling back re-simulated every mark on a coarser grid and pushing
+ *  in re-simulated it again on a finer one — a wash that changed its blooms
+ *  because you looked closer, and a repaint that could not be cached across a
+ *  pinch (see `kept`). */
+const PITCH = PIXEL;
 
-/** The most cells one mark will ever be simulated at, at full detail. A
- *  page-wide sweep would otherwise ask for millions; past this the field is
- *  coarsened instead, which costs the wash some fineness and keeps the page at
- *  frame rate. */
-const BUDGET = 12_000;
+/** The most cells one mark is simulated at, at full detail — a *landed* mark,
+ *  and one still under the hand.
+ *
+ *  A field is arithmetic on every cell, thirty-two times over, so the cell
+ *  count is the bill. Past the budget the grid is coarsened instead, and the
+ *  image is then drawn up to the patch of page it stands for: that upscaling is
+ *  exactly what the budget buys, and it is why a page-covering sweep still
+ *  softens where a stroke the size of a hand does not. At one cell per document
+ *  pixel a sweep across an A4 page is some eight million cells and a dozen
+ *  seconds — there is no setting of this number that simulates that mark at
+ *  full resolution, only settings that pretend to.
+ *
+ *  **A landed mark is worked out once and kept** (see `kept`), so it can afford
+ *  a bill a frame cannot. A mark still under the hand is re-simulated from its
+ *  first point on every pointer sample, which is the one place the cost is paid
+ *  per frame rather than per mark, so it gets a much smaller field — and then
+ *  settles into the full one the moment the brush lifts. Below the smaller of
+ *  the two the marks are identical: a field is only coarsened when it is over
+ *  budget, so anything under it resolves at the pitch either way, which is
+ *  every mark short of a sweep across the page. */
+const BUDGET = 120_000;
+const LIVE_BUDGET = 20_000;
 
 /** How much of the field to actually run, as a share of the two numbers above:
  *  1 is the whole of it, 0.1 a tenth of the resolution in each direction.
@@ -126,9 +155,15 @@ export function clampWashDetail(value: unknown): number {
  *
  *  At 1 both are exactly the constants above, which is what keeps a wash painted
  *  by a build that had no such setting painting the same today. */
-function grid(detail: number): { pitch: number; budget: number } {
+function grid(
+  detail: number,
+  live: boolean,
+): { pitch: number; budget: number } {
   const share = Math.max(MIN_WASH_DETAIL, Math.min(1, detail));
-  return { pitch: PITCH / share, budget: BUDGET * share };
+  return {
+    pitch: PITCH / share,
+    budget: (live ? LIVE_BUDGET : BUDGET) * share,
+  };
 }
 
 /** How many cells the brush has to be across before a field is worth running.
@@ -182,36 +217,15 @@ const MARGIN_CELLS = 10;
  *  channel there is nothing to see and the byte rounds to zero anyway. */
 const FAINT = 1 / 512;
 
-/** The field's canvas, held rather than allocated per mark: a page of fifty
- *  washes repaints fifty of these, and a fresh canvas each would spend more
- *  time in the allocator than in the simulation. */
-let sheet: Surface | null = null;
-
-function sheetFor(width: number, height: number): Surface | null {
-  const held = sheet ?? createSurface(width, height);
-  if (!held) return null;
-  sheet = held;
-  resizeSurface(held, width, height);
-  return held;
-}
-
-/** The wash the held canvas is currently holding, and where on the page it
- *  goes.
+/** What a mark asks the simulation for — everything that decides what it dries
+ *  into, and nothing that doesn't.
  *
- *  **A wet mark is painted twice.** The renderer lays it once onto a scratch
- *  surface to cut the colour it lifts to the mark's own shape, and once for
- *  real (see `wet.ts`), and the two are the same mark by construction — that is
- *  the whole point of them. Simulating it both times would double the cost of
- *  every wash on every sheet that soaks, which is every sheet anyone paints a
- *  watercolour on. So the last one is kept and, if the second call asks for the
- *  same mark, blitted again.
- *
- *  One deep, because the two calls are back to back with nothing between them:
- *  this is not a cache of the page, it is the same mark arriving twice. */
-type Dried = {
+ *  The zoom is not in here, and that is the point: the field is worked out on
+ *  the page (see `PITCH`), so the same mark at 40% and at 400% is the same
+ *  arithmetic and the same pixels. */
+type Ask = {
   points: readonly Point[];
   size: number;
-  scale: number;
   water: number;
   pigment: number;
   granulation: number;
@@ -219,26 +233,29 @@ type Dried = {
   color: string;
   page: string;
   detail: number;
+  /** Whether this is the mark under the hand rather than one that has landed —
+   *  which is the other half of how big a field it gets (see `BUDGET`). */
+  live: boolean;
+};
+
+/** A mark that has dried, the pixels it dried into, and where on the page they
+ *  go. */
+type Dried = Ask & {
   x: number;
   y: number;
   width: number;
   height: number;
   cell: number;
+  surface: Surface;
 };
 
-let dried: Dried | null = null;
-
-/** Whether the mark being asked for is the one the canvas is already holding —
- *  the points by identity, because a repaint hands the painter the document's
- *  own array and a second call for the same stroke hands it the same one. */
-function sameMark(
-  a: Dried,
-  b: Omit<Dried, "x" | "y" | "width" | "height" | "cell">,
-): boolean {
+/** Whether a held mark is the one being asked for — the points by identity,
+ *  because a repaint hands the painter the document's own array and every later
+ *  call for the same stroke hands it the same one. */
+function sameMark(a: Dried, b: Ask): boolean {
   return (
     a.points === b.points &&
     a.size === b.size &&
-    a.scale === b.scale &&
     a.water === b.water &&
     a.pigment === b.pigment &&
     a.granulation === b.granulation &&
@@ -248,6 +265,7 @@ function sameMark(
     // picture and must not be blitted from the last one.
     a.page === b.page &&
     a.detail === b.detail &&
+    a.live === b.live &&
     a.ground.absorbency === b.ground.absorbency &&
     a.ground.tooth === b.ground.tooth &&
     a.ground.bite === b.ground.bite &&
@@ -255,23 +273,125 @@ function sameMark(
   );
 }
 
+// --- The marks that have already dried ---------------------------------------
+//
+// **Drying a wash is the most expensive thing this app does, and a repaint asks
+// for it again every time.** A pan off the cache, a pinch, an undo, a layer
+// hidden, a window resized — every one of those is a full repaint (see
+// `cache.ts`), and a full repaint of a page carrying twenty washes used to be
+// twenty simulations. That is why zooming a heavy watercolour crawled while
+// *painting* one felt fine: painting a stroke blits the committed marks and
+// simulates the one under your hand, where zooming simulates all of them.
+//
+// So a dried mark is kept, with its pixels, and a repaint that asks for the same
+// mark again gets a blit. Nothing about the picture changes — the field is a
+// pure function of the ask (see `Ask`), so a held mark and a re-run one are the
+// same pixels by construction, which is what makes keeping them safe rather
+// than a second source of truth.
+//
+// It is bounded twice over, by count and by pixels, because the marks are not
+// all the same size: a page of small washes should not be evicted after four,
+// and a page of page-wide ones must not hold sixty megabytes of canvas. An
+// evicted mark's canvas is handed to the mark taking its place rather than
+// dropped, so a repaint that turns the whole set over allocates nothing.
+//
+// **The mark under the hand is held apart from them, one deep**, and that is
+// not tidiness. A gesture is a *different mark on every pointer sample* — one
+// more point on the path — so it would mint an entry a frame and evict the
+// whole page's worth of landed washes in the length of one stroke, leaving the
+// zoom after it as slow as the zoom before this file existed. One slot is all it
+// needs: what asks twice for the same live mark is the wet renderer painting it
+// once to cut its own bleed and once for real (see `wet.ts`), back to back.
+
+/** The most landed marks held, and the most cells between them (four bytes
+ *  each). */
+const KEPT = 32;
+const KEPT_CELLS = 2_000_000;
+
+/** The landed marks, most recently asked for first. */
+const kept: Dried[] = [];
+
+/** …and the one still under the hand. */
+let inHand: Dried | null = null;
+
+/** A held mark, moved to the front — or `null` if this one hasn't dried here
+ *  yet. */
+function heldMark(ask: Ask): Dried | null {
+  if (ask.live) return inHand && sameMark(inHand, ask) ? inHand : null;
+  for (let at = 0; at < kept.length; at++) {
+    const mark = kept[at]!;
+    if (!sameMark(mark, ask)) continue;
+    if (at > 0) {
+      kept.splice(at, 1);
+      kept.unshift(mark);
+    }
+    return mark;
+  }
+  return null;
+}
+
+/** A canvas for a field this size: the one the mark it is replacing was holding
+ *  where there is one, and a fresh one otherwise. */
+function surfaceFor(ask: Ask, width: number, height: number): Surface | null {
+  const spare = ask.live ? handSurface() : keptSurface(width, height);
+  if (!spare) return createSurface(width, height);
+  resizeSurface(spare, width, height);
+  return spare;
+}
+
+/** The live slot's canvas, freed by whatever was in it. */
+function handSurface(): Surface | null {
+  const held = inHand;
+  inHand = null;
+  return held?.surface ?? null;
+}
+
+/** …and the landed set's, once it has been brought back inside its bounds to
+ *  make room for one more. */
+function keptSurface(width: number, height: number): Surface | null {
+  let cells = width * height;
+  for (const mark of kept) cells += mark.width * mark.height;
+  let spare: Surface | null = null;
+  while (kept.length > 0 && (kept.length >= KEPT || cells > KEPT_CELLS)) {
+    const dropped = kept.pop()!;
+    cells -= dropped.width * dropped.height;
+    spare = dropped.surface;
+  }
+  return spare;
+}
+
+/** Hold a mark that has just dried. */
+function keep(mark: Dried): void {
+  if (mark.live) inHand = mark;
+  else kept.unshift(mark);
+}
+
+/** Let go of every mark held, so the next ask for one dries it again.
+ *
+ *  Changes no picture — a held mark and a re-run one are the same pixels — so
+ *  there is nothing in the app that has to call it. It exists so a test can ask
+ *  "how much did this cost", which is a question about work done rather than
+ *  about pixels and is otherwise unanswerable from outside. */
+export function forgetDriedWashes(): void {
+  kept.length = 0;
+  inHand = null;
+}
+
 /** Put the held canvas onto the page, at the patch of document it stands for.
  *
- *  The field is a good deal coarser than the screen, so the image is drawn *up*
- *  to the size of the patch it stands for and the browser's own resampling
- *  smooths it. That is the right way round: water has no hard detail in it, and
- *  the hard detail — the sheet's grain — is painted at full resolution
- *  underneath and reads through the wash. */
-function place(
-  ctx: CanvasRenderingContext2D,
-  surface: Surface,
-  at: Dried,
-): void {
+ *  At the pitch a mark that fits its budget is worked out at, one cell *is* one
+ *  document pixel and this places the image rather than stretching it. A mark
+ *  too big for its budget was coarsened (see `BUDGET`), and is then drawn *up*
+ *  to the patch it stands for with the browser's own resampling to smooth it —
+ *  which is the right way round for what is being upscaled: water has no hard
+ *  detail in it, and the hard detail, the sheet's grain, is painted at full
+ *  resolution underneath and reads through the wash. */
+function place(ctx: CanvasRenderingContext2D, at: Dried): void {
   ctx.save();
   ctx.imageSmoothingEnabled = true;
   if ("imageSmoothingQuality" in ctx) ctx.imageSmoothingQuality = "high";
   ctx.drawImage(
-    surface.canvas,
+    at.surface.canvas,
     0,
     0,
     at.width,
@@ -286,7 +406,14 @@ function place(
 
 /** Paint a wash by simulating it. `false` when this engine could not — the
  *  caller then paints the mark with the simple one, which is never a failure,
- *  only a different picture. */
+ *  only a different picture.
+ *
+ *  `scale` is read for one thing only: whether the mark is big enough on this
+ *  device to be worth a field at all. It decides nothing about the field
+ *  itself, which is worked out on the page (see `PITCH`).
+ *
+ *  `live` says this is the mark under the hand rather than one that has landed,
+ *  which is how large a field it is allowed (see `BUDGET`). */
 export function paintSimulatedWash(
   ctx: CanvasRenderingContext2D,
   points: readonly Point[],
@@ -299,15 +426,16 @@ export function paintSimulatedWash(
   color = "#000000",
   page = "#ffffff",
   detail = DEFAULT_WASH_DETAIL,
+  live = false,
 ): boolean {
   if (points.length === 0 || size <= 0) return false;
-  // The same mark a second time — the renderer painting a wet one twice, once
-  // to cut its bleed to its own shape and once for real. It dried the way it
-  // dried; put it down again.
-  const asked = {
+  // A mark that has already dried here — the renderer painting a wet one twice
+  // (once to cut its bleed to its own shape and once for real, see `wet.ts`),
+  // or any of the repaints a pan, a pinch or an undo asks for. It dried the way
+  // it dried; put it down again.
+  const asked: Ask = {
     points,
     size,
-    scale,
     water,
     pigment,
     granulation,
@@ -315,9 +443,11 @@ export function paintSimulatedWash(
     color,
     page,
     detail,
+    live,
   };
-  if (dried && sheet && sameMark(dried, asked)) {
-    place(ctx, sheet, dried);
+  const held = heldMark(asked);
+  if (held) {
+    place(ctx, held);
     return true;
   }
   const soak = Math.max(0, Math.min(1, ground.absorbency));
@@ -330,13 +460,14 @@ export function paintSimulatedWash(
   const reach = half * (1 + SPREAD * wet);
   if (reach * 2 * scale < HAIRLINE) return false;
 
-  // How coarse to work: never finer than the device can show, never so fine
-  // that the field blows the budget — and both of those measured at the detail
+  // How coarse to work: the page's own pitch, coarsened only where the field
+  // would otherwise blow the budget — and both of those measured at the detail
   // the setting is turned to, so turning it down coarsens the grid rather than
-  // running a finer one fewer times.
-  const { pitch, budget } = grid(detail);
+  // running a finer one fewer times. The zoom is not consulted: the field is
+  // worked out on the page (see `PITCH`).
+  const { pitch, budget } = grid(detail, live);
   const box = bounds(points);
-  let cell = Math.max(pitch, PIXEL / scale);
+  let cell = pitch;
   const margin = () => reach + MARGIN_CELLS * cell;
   for (let tries = 0; tries < 8; tries++) {
     const pad = margin();
@@ -355,10 +486,8 @@ export function paintSimulatedWash(
   const height = Math.ceil((box.height + pad * 2) / cell);
   if (width < 4 || height < 4 || width * height > budget * 2) return false;
 
-  const surface = sheetFor(width, height);
+  const surface = surfaceFor(asked, width, height);
   if (!surface) return false;
-  // Whatever the canvas was holding is about to be painted over.
-  dried = null;
 
   const field = createField({
     x,
@@ -372,9 +501,9 @@ export function paintSimulatedWash(
   lay(field, points, reach, cell, wet, load);
   const settled = density(field);
   if (!drawInto(surface, field, settled, color, page)) return false;
-  const at: Dried = { ...asked, x, y, width, height, cell };
-  dried = at;
-  place(ctx, surface, at);
+  const at: Dried = { ...asked, x, y, width, height, cell, surface };
+  keep(at);
+  place(ctx, at);
   return true;
 }
 

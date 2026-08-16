@@ -110,14 +110,28 @@ older phone. It is opt-in for that reason. If a browser cannot run it at all,
 or a mark is too small to be worth simulating, that mark is painted with the
 stroke engine instead: no drawing ever fails to open because of the setting.
 
-**Detail** is the dial that decides how much it costs, and it appears under the
-swatches as soon as the simulation is the one painting. It is how finely the
-water is worked out, from a tenth up to all of it, and what it buys is the
-square of itself: half the detail is a quarter of the work. What it costs is the
-fine half of the picture — the rim thins, the mottle broadens, and a small brush
-on a coarse enough setting is painted as a plain stroke instead. It is the
-control to reach for when the simulation is the picture you want and your device
-is not keeping up with it.
+The water is worked out on the **page**, at a cell per pixel of it — not on the
+screen. So a wash looks the same however far you are zoomed in or out, and once
+a mark has dried it stays dried: panning, pinching and undoing put the same
+pixels back rather than working the whole page out again, which is what makes a
+drawing with a lot of paint on it move at all.
+
+A mark far bigger than the brush — a sweep across the whole page — is the one
+that cannot be worked out at that fineness, so it is worked out coarsely and
+scaled up, and its edges are softer than a smaller mark's. There is no setting
+that avoids that: at a cell per pixel a wash over an A4 page is millions of
+cells and would take the better part of a minute. And while your finger is still
+down, a mark that big is worked out coarser again — it settles into its full
+detail the moment you lift.
+
+**Detail** is the dial that decides how much all of it costs, and it appears
+under the swatches as soon as the simulation is the one painting. It is how
+finely the water is worked out, from a tenth up to all of it, and what it buys
+is the square of itself: half the detail is a quarter of the work. What it costs
+is the fine half of the picture — the rim thins, the mottle broadens, and a
+small brush on a coarse enough setting is painted as a plain stroke instead. It
+is the control to reach for when the simulation is the picture you want and your
+device is not keeping up with it.
 
 ## Two pencils
 
