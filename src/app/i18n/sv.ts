@@ -119,6 +119,8 @@ export const sv: Catalog = {
       "Det här lagret ses genom filtret; resten av stapeln gör det inte. Suddgummit går igenom resultatet, så du kan sudda ett hål i ett mjukat lager och visa vad som ligger under.",
     apply: "Använd",
     remove: "Stäng av",
+    previewHint:
+      "Sidan bakom visar inställningen medan du drar i den. Ingenting läggs på teckningen förrän du använder den.",
     blur: {
       name: "Oskärpa",
       hint: "Gör hela sidan mjuk, som om teckningen vore ur fokus.",

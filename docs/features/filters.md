@@ -23,9 +23,16 @@ behind the panel button in the header (or a swipe in from the right edge) on a
 narrow one — and find the **Filters** section under the Image actions. Each
 filter is a row, with what it is currently set to on the right, or **Off**.
 
-Press a row to open its options. Nothing lands on the drawing until you press
-**Apply**, so you can move the sliders about and change your mind for free.
-**Turn off** takes the filter back off the page.
+Press a row to open its options. **The page behind shows the setting as you move
+it** — the dialog steps down to the foot of the screen and stops dimming the
+page, so what you are dialling in is the drawing itself rather than a number you
+have to guess at. A radius of 20 page pixels means nothing until you see it.
+
+Nothing lands on the drawing until you press **Apply**, however much the page is
+already showing: the preview is only a way of looking at it, so a slider dragged
+from end to end and thought better of costs you nothing — no undo step, no
+history entry, nothing to sync. **Cancel** puts the page straight back, and
+**Turn off** takes the filter off it.
 
 Applying a filter is one edit, like any other: one step of undo, one entry in
 the drawing's history, one push to your cloud copy.
