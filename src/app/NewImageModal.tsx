@@ -557,9 +557,9 @@ export function NewImageModal({
             options={[
               { value: "blank", label: t("newImage.sourceBlank") },
               { value: "file", label: t("newImage.sourceFile") },
-              // There unless a free look proved there is nothing to paste — and
-              // dim only for the second such a look takes, never once the tab is
-              // something you are meant to press.
+              // Only once it is worth pressing: never while the opening free
+              // look is still out, so the tab can join the row but never
+              // vanish from it (see `clipboardSource.ts`).
               ...(tabShown(clip)
                 ? [
                     {
