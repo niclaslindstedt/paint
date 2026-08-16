@@ -627,8 +627,9 @@ lives by: **nothing outside it may branch on a tool id.**
 - `graphite.ts` — the pencil, which is the crayon's near neighbour and
   deliberately not the same painter: graphite chips off where it lands instead
   of smearing, finds a finer tooth than a blunt wax face does, and is a _colour_
-  rather than an ink — the tool mixes its own grey against the page rather than
-  taking the one the toolbar is holding.
+  rather than an ink — the tool mixes its own grey out of the lead and the page
+  rather than taking the one the toolbar is holding, which is what `fixedInk`
+  on the descriptor says to the toolbar.
 - `rubber.ts` — the rubber, and the only painter here whose alpha is spent
   taking something off. It reads `graphite.ts`'s own lattice rather than one of
   its own — that is the point of it: a rubber lifts from the peaks a lead
@@ -645,8 +646,8 @@ identically.
 
 A tool that needs the app to treat it differently says so on its descriptor —
 `erases` for the eraser, `navigates` for the hand, `picksColor` for the
-dropper, `selects` for the selection family — so the canvas and the
-toolbar read a property instead of learning a name.
+dropper, `selects` for the selection family, `fixedInk` for the pencil — so the
+canvas and the toolbar read a property instead of learning a name.
 
 `lifts` and `liftable` are that seam carrying a whole feature. A canvas gives up
 pixels one way only, so the **rubber** takes off everything it covers exactly as

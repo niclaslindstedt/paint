@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 import { beforeEach, describe, expect, it } from "vitest";
 
+import { hexToHsv } from "../src/app/color.ts";
 import { dropperBehaviour } from "../src/app/plugins/builtin/dropper.ts";
 import { fillBehaviour } from "../src/app/plugins/builtin/fill.ts";
 import { freehandBehaviour } from "../src/app/plugins/builtin/freehand.ts";
@@ -517,6 +518,30 @@ describe("the pencil", () => {
     const draft = pluginById("graphite")!.behaviour.start({ x: 0, y: 0 }, ctx)!;
     expect(draft.color).not.toBe(ctx.color);
     expect(draft.color).toBe(graphiteInk(ctx.background));
+  });
+
+  it("takes that grey from the lead that is in it", () => {
+    // The one control a pencil's colour has, and it is not a palette: a hard
+    // lead scratches a pale line, a soft one goes down nearly black.
+    const drawnWith = (grade: number) =>
+      pluginById("graphite")!.behaviour.start(
+        { x: 0, y: 0 },
+        { ...ctx, dials: { grade } },
+      )!.color!;
+    expect(hexToHsv(drawnWith(0.38)).v).toBeGreaterThan(
+      hexToHsv(drawnWith(1.9)).v,
+    );
+    // …and an untouched dial is the HB, which is what a pencil drawn with
+    // before the lead reached the colour was toned as.
+    expect(drawnWith(1)).toBe(graphiteInk(ctx.background));
+  });
+
+  it("offers nowhere to pick a colour at all", () => {
+    // Not the toolbar's ink (`fixedInk` strikes that button through) and not a
+    // swatch row of its own either — the grade *is* the colour control.
+    const graphite = pluginById("graphite")!;
+    expect(graphite.fixedInk).toBe(true);
+    expect(graphite.swatches).toBeUndefined();
   });
 
   it("records the grey it drew in, so a repaint cannot re-tone it", () => {

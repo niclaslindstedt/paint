@@ -437,12 +437,19 @@ export function registerBuiltinPlugins(): void {
     // from an inked one. It is the medium saying what it is made of, not a tool
     // recognising another tool by name.
     liftable: true,
+    // Graphite is a mineral, not an ink: there is one colour in a pencil and it
+    // came in the lead. So the toolbar's swatch is struck through while this is
+    // in hand rather than opening a palette that changes nothing (see
+    // `PaintPlugin.fixedInk`) — the grade below is the only colour control a
+    // pencil has, and it is already on the panel.
+    fixedInk: true,
     behaviour: freehandBehaviour({
       style: "graphite",
-      // Graphite is a mineral, not an ink: the tool mixes its own grey and the
-      // toolbar's colour means nothing to it. Which grey depends on the sheet
-      // — dark paper gets the silverpoint sheen rather than an invisible mark.
-      ink: (ctx) => graphiteInk(ctx.background),
+      // The other half of that: the grey the lead is. The grade picks it, the
+      // same grade that picks how much of it goes down — an 8H is a pale cool
+      // scratch, a 9B nearly black — and the sheet flips the whole ladder, so
+      // dark paper gets the silverpoint sheen rather than an invisible mark.
+      ink: (ctx) => graphiteInk(ctx.background, ctx.dials.grade),
     }),
   });
 
