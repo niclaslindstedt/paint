@@ -137,10 +137,15 @@ export function setWashDetail(detail: number): void {
  *  wider than the brush: all of them paint, and all of them paint the same mark
  *  this app has always painted.
  *
- *  `detail` is the simulation's alone, which is why it is last: it says how much
- *  of the field to run (see `MIN_WASH_DETAIL`), and turning it down is one more
- *  way a mark falls through — a head only a couple of coarse cells across has
- *  nothing left for a field to resolve. */
+ *  `page` and `detail` are the simulation's alone, which is why they are last.
+ *  The page is the colour the mark is landing on, and the simulation needs it
+ *  for one decision: a wash is pigment stopping light, and on a dark sheet the
+ *  page is the *absence* of ink so the arithmetic runs the other way round (see
+ *  `washSim.ts`). It is the same reading of the same page `inkBlend` makes when
+ *  it picks `multiply` or `screen` for the mark. `detail` says how much of the
+ *  field to run (see `MIN_WASH_DETAIL`), and turning it down is one more way a
+ *  mark falls through — a head only a couple of coarse cells across has nothing
+ *  left for a field to resolve. */
 export function paintWashWith(
   engine: WashEngine,
   ctx: CanvasRenderingContext2D,
@@ -152,6 +157,7 @@ export function paintWashWith(
   granulation = 0.6,
   ground: GroundProfile = SOLID_GROUND,
   color = "#000000",
+  page = "#ffffff",
   detail = DEFAULT_WASH_DETAIL,
 ): void {
   if (engine === "simulation") {
@@ -165,6 +171,7 @@ export function paintWashWith(
       granulation,
       ground,
       color,
+      page,
       detail,
     );
     if (painted) return;

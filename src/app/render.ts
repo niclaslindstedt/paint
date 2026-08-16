@@ -1045,6 +1045,10 @@ function detailFor(
   return {
     scale: options.scale ?? renderScale(ctx),
     ground: groundProfile(options.ground),
+    // The sheet's colour, for the painters that work in pigment rather than in
+    // a fill: it is what says which way a stain runs, and it is the same
+    // reading of the same page `inkBlend` makes below (see `PaintDetail.page`).
+    page: options.pageColor,
     wash: options.washEngine ?? washEngine(),
     washDetail: options.washDetail ?? washDetail(),
     // The same box the stroke cull uses, handed down so a painter can skip the

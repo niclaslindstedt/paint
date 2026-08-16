@@ -28,12 +28,22 @@
 // with ordinary compositing it is exact too. That is why doubling a wash
 // deepens it towards the colour instead of towards black.
 //
+// **…and which way it runs is the page's to say.** All of the above is a light
+// sheet: the ink takes light away from a page that has it. On a dark sheet the
+// page is the *absence* of ink, a wet mark composites with `screen` rather than
+// `multiply`, and the same arithmetic has to be mirrored — what a pigment stops
+// is measured in darkness rather than in light (see `keeping`). It is the same
+// call `inkBlend` already makes about the same page, and it is not optional:
+// unmirrored, a white wash on a black page lets every channel through at every
+// density there is and the engine paints a mark nobody can see.
+//
 // **It can always say no.** No DOM, no canvas, a mark too small to be worth a
 // field, a page-wide sweep whose cells would be wider than the brush: every one
 // of those returns `false`, and the caller paints the mark with the simple
 // engine instead (see `wash.ts`). A browser that cannot run the simulation must
 // still open every drawing and paint every mark.
 
+import { isDarkColor } from "../canvas.ts";
 import { SOLID_GROUND, type GroundProfile } from "../ground.ts";
 import { createSurface, resizeSurface, type Surface } from "../surface.ts";
 import type { Point } from "../types.ts";
@@ -207,6 +217,7 @@ type Dried = {
   granulation: number;
   ground: GroundProfile;
   color: string;
+  page: string;
   detail: number;
   x: number;
   y: number;
@@ -232,6 +243,10 @@ function sameMark(
     a.pigment === b.pigment &&
     a.granulation === b.granulation &&
     a.color === b.color &&
+    // The page as well as the ink: it decides which way the pigment reads (see
+    // `keeping`), so the same mark over a sheet that flipped is a different
+    // picture and must not be blitted from the last one.
+    a.page === b.page &&
     a.detail === b.detail &&
     a.ground.absorbency === b.ground.absorbency &&
     a.ground.tooth === b.ground.tooth &&
@@ -282,6 +297,7 @@ export function paintSimulatedWash(
   granulation = 0.6,
   ground: GroundProfile = SOLID_GROUND,
   color = "#000000",
+  page = "#ffffff",
   detail = DEFAULT_WASH_DETAIL,
 ): boolean {
   if (points.length === 0 || size <= 0) return false;
@@ -297,6 +313,7 @@ export function paintSimulatedWash(
     granulation,
     ground,
     color,
+    page,
     detail,
   };
   if (dried && sheet && sameMark(dried, asked)) {
@@ -354,7 +371,7 @@ export function paintSimulatedWash(
   });
   lay(field, points, reach, cell, wet, load);
   const settled = density(field);
-  if (!drawInto(surface, field, settled, color)) return false;
+  if (!drawInto(surface, field, settled, color, page)) return false;
   const at: Dried = { ...asked, x, y, width, height, cell };
   dried = at;
   place(ctx, surface, at);
@@ -441,12 +458,8 @@ function lay(
 
 /** Turn what settled into the field canvas's pixels.
  *
- *  Each cell becomes a transmittance rather than a colour — `colour ^ density`,
- *  which is Beer–Lambert with the ink standing in for its own absorption
- *  spectrum — and then the colour-and-alpha pair that composites to the same
- *  thing. That is what makes two passes of a yellow deepen towards yellow
- *  instead of drifting towards grey, and it is exact under the `multiply`
- *  blending a wet mark on absorbent paper already uses.
+ *  Each cell becomes a transmittance rather than a colour, and then the
+ *  colour-and-alpha pair that composites to the same thing (see `washFilm`).
  *
  *  `false` where the browser will not give us an image to write into, which
  *  drops the mark back to the simple engine. */
@@ -455,8 +468,12 @@ function drawInto(
   field: WashField,
   settled: Float32Array,
   color: string,
+  page: string,
 ): boolean {
-  const ink = channels(color);
+  // Which way round the pigment reads, decided once for the whole mark: it is
+  // a property of the sheet, and every cell of one wash has to agree about it.
+  const dark = isDarkColor(page);
+  const keep = keeping(color, dark);
   let image: ImageData;
   try {
     image = surface.ctx.createImageData(field.width, field.height);
@@ -465,40 +482,91 @@ function drawInto(
   }
   const pixels = image.data;
   for (let at = 0; at < settled.length; at++) {
-    const d = settled[at]! * DENSITY;
+    const film = washFilm(keep, settled[at]! * DENSITY, dark);
     const out = at * 4;
-    if (d <= 0) {
+    if (!film) {
       pixels[out + 3] = 0;
       continue;
     }
-    // Beer–Lambert with the ink's own colour as its absorption: a channel the
-    // pigment lets through stays let through however much of it there is, and
-    // a channel it absorbs falls away exponentially. This is why two passes of
-    // a yellow never make a grey.
-    const r = Math.pow(ink[0]!, d);
-    const g = Math.pow(ink[1]!, d);
-    const b = Math.pow(ink[2]!, d);
-    const alpha = 1 - Math.min(r, Math.min(g, b));
-    if (alpha < FAINT) {
-      pixels[out + 3] = 0;
-      continue;
-    }
-    const clear = 1 - alpha;
-    pixels[out] = byte((r - clear) / alpha);
-    pixels[out + 1] = byte((g - clear) / alpha);
-    pixels[out + 2] = byte((b - clear) / alpha);
-    pixels[out + 3] = byte(alpha);
+    pixels[out] = byte(film[0]);
+    pixels[out + 1] = byte(film[1]);
+    pixels[out + 2] = byte(film[2]);
+    pixels[out + 3] = byte(film[3]);
   }
   surface.ctx.putImageData(image, 0, 0);
   return true;
 }
 
-/** A `#rrggbb` as three transmittances in 0–1.
+/** The least and the most of a channel one unit of pigment may leave.
  *
- *  Clamped off both ends: a channel at zero would swallow the page at any
- *  density at all, and one at exactly 1 would never darken however much pigment
- *  landed. Neither is a pigment — the whitest white in a paintbox still
- *  absorbs something. */
+ *  Clamped off both ends: a channel left at zero would swallow the page at any
+ *  density at all, and one left at exactly 1 would never shift it however much
+ *  pigment landed. Neither is a pigment — the whitest white in a paintbox still
+ *  absorbs something, and the blackest black still lets a little through. */
+const KEEP_LEAST = 0.02;
+const KEEP_MOST = 0.995;
+
+/** How much of the page one unit of settled pigment leaves, per channel.
+ *
+ *  On a light sheet that is the ink's own colour: a pigment is something light
+ *  has to get through, and what it lets through it goes on letting through
+ *  however much of it lands. **On a dark sheet the page is the absence of ink**
+ *  and the same physics runs the other way — the mark composites with `screen`
+ *  rather than `multiply` (see `ground.ts`), so what the pigment eats into is
+ *  the dark, and what it leaves is measured as the ink's complement.
+ *
+ *  Getting that wrong is not a subtlety. A white wash on a black page has a
+ *  transmittance of ~1 in every channel, so unmirrored it stops nothing, comes
+ *  out at half a percent of alpha, and the whole simulation paints an invisible
+ *  mark — which is exactly what a dark canvas with the default white ink is. */
+export function keeping(
+  color: string,
+  dark: boolean,
+): [number, number, number] {
+  const raw = channels(color);
+  const keep = (v: number) =>
+    Math.max(KEEP_LEAST, Math.min(KEEP_MOST, dark ? 1 - v : v));
+  return [keep(raw[0]), keep(raw[1]), keep(raw[2])];
+}
+
+/** One cell of settled pigment as pixels: the colour and alpha, each 0–1, that
+ *  composite to what `keeping` says is left of the page under it. `null` for a
+ *  film too faint to be worth a pixel.
+ *
+ *  `keep ^ density` is Beer–Lambert with the ink standing in for its own
+ *  absorption spectrum: a channel the pigment lets through stays let through
+ *  however much of it there is, and a channel it stops falls away
+ *  exponentially. That is what makes two passes of a yellow deepen towards
+ *  yellow instead of drifting towards grey, and it is *exact* under the
+ *  blending a wet mark on absorbent paper already uses — `multiply` on a light
+ *  page comes out as `page × transmittance`, which is what a glaze is, and
+ *  `screen` on a dark one comes out as its mirror.
+ *
+ *  Pure, and exported for the tests: this is the arithmetic the engine's whole
+ *  picture rests on and it needs no canvas to check. */
+export function washFilm(
+  keep: readonly [number, number, number],
+  density: number,
+  dark: boolean,
+): [number, number, number, number] | null {
+  if (!(density > 0)) return null;
+  const r = Math.pow(keep[0]!, density);
+  const g = Math.pow(keep[1]!, density);
+  const b = Math.pow(keep[2]!, density);
+  // The alpha is what the *most* affected channel lost: any less and the colour
+  // below would have to leave the 0–1 range to make up the difference.
+  const alpha = 1 - Math.min(r, Math.min(g, b));
+  if (alpha < FAINT) return null;
+  // …and the colour that composites to those three, measured the same way
+  // round `keep` was — so a dark page's film is turned back into ink here.
+  const shade = (left: number) => {
+    const ink = 1 - (1 - left) / alpha;
+    return dark ? 1 - ink : ink;
+  };
+  return [shade(r), shade(g), shade(b), alpha];
+}
+
+/** A `#rrggbb` as three channel values in 0–1. */
 function channels(color: string): [number, number, number] {
   const raw = color.trim().replace(/^#/, "");
   const full =
@@ -509,8 +577,7 @@ function channels(color: string): [number, number, number] {
           .join("")
       : raw;
   const n = /^[0-9a-fA-F]{6}$/.test(full) ? Number.parseInt(full, 16) : 0;
-  const clamp = (v: number) => Math.max(0.02, Math.min(0.995, v / 255));
-  return [clamp((n >> 16) & 0xff), clamp((n >> 8) & 0xff), clamp(n & 0xff)];
+  return [((n >> 16) & 0xff) / 255, ((n >> 8) & 0xff) / 255, (n & 0xff) / 255];
 }
 
 function byte(v: number): number {

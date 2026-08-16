@@ -12,7 +12,11 @@ import { describe, expect, it } from "vitest";
 
 import { groundProfile } from "../src/app/ground.ts";
 import { paintWash } from "../src/app/plugins/aquarelle.ts";
-import { paintSimulatedWash } from "../src/app/plugins/washSim.ts";
+import {
+  keeping,
+  paintSimulatedWash,
+  washFilm,
+} from "../src/app/plugins/washSim.ts";
 import {
   DEFAULT_WASH_DETAIL,
   DEFAULT_WASH_ENGINE,
@@ -188,6 +192,106 @@ describe("falling back", () => {
     const target = ctx as unknown as CanvasRenderingContext2D;
     expect(paintSimulatedWash(target, [], SIZE)).toBe(false);
     expect(paintSimulatedWash(target, sweep(), 0)).toBe(false);
+  });
+});
+
+describe("pigment on a sheet of some colour", () => {
+  /** What one cell of settled pigment leaves of a page of this colour, per
+   *  channel — the compositing the browser is about to do, done here. */
+  function composited(
+    ink: string,
+    page: number,
+    density: number,
+    dark: boolean,
+  ): number[] {
+    const film = washFilm(keeping(ink, dark), density, dark);
+    if (!film) return [page, page, page];
+    const [r, g, b, a] = film;
+    // `multiply` on a light sheet, `screen` on a dark one — what `inkBlend`
+    // picks for a wet mark, and what this arithmetic is written to be exact
+    // under (see `ground.ts`).
+    return [r, g, b].map((c) =>
+      dark ? page + a * c * (1 - page) : page * (1 - a + a * c),
+    );
+  }
+
+  it("paints a light wash on a dark page", () => {
+    // The regression. Beer–Lambert with the ink as its own absorption says a
+    // white pigment stops nothing — true on white paper, and nonsense on a
+    // black page, where the mark is the *only* thing lighting the sheet. Left
+    // unmirrored this came out at half a percent of alpha: the engine ran, the
+    // wash dried, and nothing whatever appeared on the canvas.
+    const film = washFilm(keeping("#ffffff", true), 0.6, true);
+    expect(film).not.toBeNull();
+    expect(film![3]).toBeGreaterThan(0.5);
+    // …and it is white, rather than the near-black the unmirrored maths made
+    // of it.
+    expect(film![0]).toBeGreaterThan(0.99);
+  });
+
+  it("reads a dark page as the mirror of a light one", () => {
+    // The same physics run the other way, so the same wash of the page's
+    // opposite has to come out at the same strength on either sheet.
+    for (const density of [0.2, 0.8, 2]) {
+      const onWhite = washFilm(keeping("#000000", false), density, false);
+      const onBlack = washFilm(keeping("#ffffff", true), density, true);
+      expect(onBlack![3]).toBeCloseTo(onWhite![3], 6);
+    }
+  });
+
+  it("composites to the transmittance it worked out", () => {
+    // The claim the whole conversion rests on: the colour-and-alpha pair is
+    // the one that lands on the page as `keep ^ density`, so a second wash
+    // over a first deepens towards the colour rather than towards grey.
+    for (const [ink, dark, page] of [
+      ["#2563eb", false, 1],
+      ["#e8b923", false, 1],
+      ["#2563eb", true, 0],
+      ["#ffffff", true, 0],
+    ] as const) {
+      const keep = keeping(ink, dark);
+      const out = composited(ink, page, 1.3, dark);
+      for (let c = 0; c < 3; c++) {
+        const left = Math.pow(keep[c]!, 1.3);
+        expect(out[c]!).toBeCloseTo(dark ? 1 - left : left, 6);
+      }
+    }
+  });
+
+  it("glazes: two passes deepen towards the ink", () => {
+    // One wash and then another over it is how the medium is actually worked,
+    // and on either sheet the pair has to land where one wash of twice the
+    // pigment would.
+    for (const [ink, dark, page] of [
+      ["#2563eb", false, 1],
+      ["#2563eb", true, 0],
+    ] as const) {
+      const once = composited(ink, page, 0.9, dark);
+      const film = washFilm(keeping(ink, dark), 0.9, dark)!;
+      const twice = once.map((channel, c) =>
+        dark
+          ? channel + film[3] * film[c]! * (1 - channel)
+          : channel * (1 - film[3] + film[3] * film[c]!),
+      );
+      const deep = composited(ink, page, 1.8, dark);
+      for (let c = 0; c < 3; c++) expect(twice[c]!).toBeCloseTo(deep[c]!, 6);
+    }
+  });
+
+  it("has nothing to put down where nothing settled", () => {
+    expect(washFilm(keeping("#000000", false), 0, false)).toBeNull();
+    // …nor where a wash is fainter than a byte of alpha can hold.
+    expect(washFilm(keeping("#000000", false), 1e-6, false)).toBeNull();
+  });
+
+  it("leaves a pigment the page's own colour alone", () => {
+    // White on white and black on black are both "no ink at all" — which is
+    // what `multiply` and `screen` respectively do with them, so the film has
+    // to agree rather than paint a ghost.
+    expect(washFilm(keeping("#ffffff", false), 1, false)![3]).toBeLessThan(
+      0.01,
+    );
+    expect(washFilm(keeping("#000000", true), 1, true)![3]).toBeLessThan(0.01);
   });
 });
 

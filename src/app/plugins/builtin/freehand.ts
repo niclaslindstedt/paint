@@ -213,6 +213,11 @@ export function freehandBehaviour(ink: FreehandInk = {}): ToolBehaviour {
             // the colour as a value: what it lays down is a *density*, and the
             // colour is what light has to get through (see `washSim.ts`).
             strokeColor(stroke),
+            // …over a sheet of this colour, which is the other half of that:
+            // pigment on a dark page eats into the dark rather than into the
+            // light, and a simulation told nothing about the page paints a
+            // white wash on a black one as nothing at all (see `washSim.ts`).
+            detail.page ?? "#ffffff",
             // …and how finely the simulation is set to resolve, which is the
             // one of these that is about the *cost* of the mark rather than
             // about the mark (see `MIN_WASH_DETAIL`).
