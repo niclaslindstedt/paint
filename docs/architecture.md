@@ -488,6 +488,19 @@ worth separating:
   A kit is the same pair of lists the app-wide toolbar is, which is why one
   `toolbarEntries` call answers for both, and why Settings → Canvas and Settings
   → Tools render the same row (`settings/toolRow.tsx`).
+- **How those tools are _set_ is applied once, when the page opens.** A kit also
+  carries which member of a family each of its buttons stands for
+  (`CanvasKit.groupTools`) and how a tool is set up (`CanvasKit.toolSettings`, a
+  `PresetSettings` per tool — the very thing a preset chip applies). `withKit`
+  puts both in force, and `App` calls it in an effect keyed on _which drawing is
+  open_. It is a write rather than a projection, and the split is deliberate:
+  nothing can change which buttons a toolbar has while you draw, but a width and
+  a dial are one press away, so a kit that kept overriding them would be a panel
+  whose sliders sprang back. Opening a sketchbook page presses its preset chips
+  for you and then gets out of the way. The editor for it
+  (`settings/kitTool.tsx`) is reached from a row's glyph and renders the same
+  `WidthPicker`, `ShippedPresets`, `SavedPresets` and `ToolDials` the panel over
+  the canvas does — one control per decision, wherever the decision is made.
 
 An id naming a preset that has since been deleted falls back to the app-wide
 toolbar; the page itself is untouched, because its size was baked in when it was

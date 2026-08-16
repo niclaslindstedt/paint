@@ -28,7 +28,7 @@ import {
 } from "@niclaslindstedt/oss-framework/namespaces";
 
 import { isDarkAppearance } from "./app/canvas.ts";
-import { toolbarFor } from "./app/canvasPresets.ts";
+import { canvasPresetById, toolbarFor } from "./app/canvasPresets.ts";
 import { CanvasScreen } from "./app/CanvasScreen.tsx";
 import { SideMenuContent } from "./app/SideMenuContent.tsx";
 import { useT } from "./app/i18n/index.ts";
@@ -41,7 +41,11 @@ import { imageStroke } from "./app/plugins/builtin/image.ts";
 import { resolveActiveTool } from "./app/plugins/registry.ts";
 import { setLeadDetail, setLeadEngine } from "./app/plugins/lead.ts";
 import { setWashDetail, setWashEngine } from "./app/plugins/wash.ts";
-import { applyBackdropVars, useAppSettings } from "./app/useAppSettings.ts";
+import {
+  applyBackdropVars,
+  useAppSettings,
+  withKit,
+} from "./app/useAppSettings.ts";
 import { useNamespaces } from "./app/useNamespaces.ts";
 import { freshId, usePaintStore } from "./app/usePaintStore.ts";
 import { useSettingsSync } from "./app/useSettingsSync.ts";
@@ -202,6 +206,32 @@ export function App() {
           enabledPlugins: [...kit.tools],
           toolOrder: [...kit.order],
         };
+
+  // …and the rest of what that kit says: which member of a family each of its
+  // buttons opens on, and how the tools it has set up are set (see `withKit`).
+  //
+  // A *write*, once, when the page is opened — not a projection like the two
+  // lists above. Which buttons the toolbar has is a thing nothing can change
+  // while you draw; a width and a dial are one press away and moving them is
+  // the ordinary thing to do, so a kit that kept overriding them would be a
+  // panel whose sliders sprang back. So opening a sketchbook page presses its
+  // preset chips for you and then gets out of the way: the eraser is a kneaded
+  // one at 20 mm, and if you fatten it this afternoon it stays fat until the
+  // next time you open a sketchbook page.
+  const openDrawingId = store.activeDrawing?.id;
+  const openCanvasPreset = store.activeDrawing?.canvasPreset;
+  useEffect(() => {
+    setSettings((prev) =>
+      withKit(
+        prev,
+        canvasPresetById(prev.canvasPresets, openCanvasPreset)?.kit,
+      ),
+    );
+    // Keyed on *which drawing* is open, not on the preset it was made on: the
+    // kit goes back in force each time a page is opened, and never again while
+    // it is being drawn on.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openDrawingId]);
 
   // The tool the canvas draws with, resolved against what the toolbar actually
   // offers — a tool switched off in Settings (or one this page's canvas preset

@@ -22,6 +22,12 @@
 //     one way (`toolbarEntries`) whichever of the two it is reading, and the
 //     page that edits a canvas preset's tools is the page that edits the app's,
 //     with a different destination.
+//   - **A kit can say how those tools are *set*, and not only which they are.**
+//     "The sketchbook opens with a pencil and an eraser" is half of what a
+//     sketchbook is; the other half is that the eraser is a kneaded one at
+//     20 mm. So a kit also carries which member of a family its button opens on
+//     (`groupTools`) and how a tool is set up (`toolSettings`) — a width and
+//     every dial, which is exactly what a preset chip sets (see `presets.ts`).
 //
 // Pure, and kept out of the settings hook, so the whole create-hide-reorder
 // cycle can be driven from a test with no browser.
@@ -34,6 +40,7 @@ import {
   type SizePreset,
   type SizePresetId,
 } from "./canvasSize.ts";
+import type { PresetSettings } from "./presets.ts";
 import type { Ground } from "./types.ts";
 
 /** The tools a canvas preset is worked with.
@@ -43,10 +50,37 @@ import type { Ground } from "./types.ts";
  *  offered and are never listed), `order` is where the buttons sit. Either can
  *  name a tool this build doesn't ship — `toolbarEntries` ignores what it
  *  cannot place — so a kit survives a downgrade the way the settings blob
- *  does. */
+ *  does.
+ *
+ *  The two maps under them are the same idea one level down: not *which* tools
+ *  the page is worked with but **which one of a family, and how each is set**.
+ *  Both are sparse, and both are the settings blob's own shapes — `groupTools`
+ *  is `AppSettings.groupTools`, `toolSettings` is a preset per tool — so putting
+ *  a kit in force is the same write the toolbar and a preset chip already make
+ *  (see `withKit` in `useAppSettings.ts`). */
 export type CanvasKit = {
   tools: string[];
   order: string[];
+  /** Which member of a tool group this page's button opens on, by group id —
+   *  the rubber rather than the eraser, the star rather than the rectangle.
+   *
+   *  A group button always stands for *a* tool (see `groupMemberFor`), and
+   *  without this the answer is "whichever you used last", which is a property
+   *  of your afternoon rather than of the page. Sparse: a group the kit says
+   *  nothing about keeps that answer. */
+  groupTools?: Record<string, string>;
+  /** How a tool is set up on this page, by tool id: a width, and where every
+   *  dial goes.
+   *
+   *  Deliberately a `PresetSettings` — the very thing a preset chip applies —
+   *  because "the eraser on this page is a kneaded one" *is* a preset, and a
+   *  second shape for the same idea would be a second way to be set up. The
+   *  dials are resolved (every dial the tool offered, not just the moved ones)
+   *  for the reason a saved tool's are: putting a kit in force has to be able to
+   *  set a dial *back* as well as away, or a sketchbook opened after an
+   *  afternoon of tuning is neither the sketchbook nor what you had. Sparse: a
+   *  tool the kit says nothing about stays however you have it. */
+  toolSettings?: Record<string, PresetSettings>;
 };
 
 /** One named page on the New image shelf. */
@@ -233,6 +267,70 @@ export function withTool(kit: CanvasKit, id: string, on: boolean): CanvasKit {
   return { ...kit, tools };
 }
 
+/** The member of a group this kit opens on, or `undefined` for "whichever you
+ *  had last" — which is what a kit that says nothing about a family means. */
+export function kitGroupTool(
+  kit: CanvasKit,
+  group: string,
+): string | undefined {
+  return kit.groupTools?.[group];
+}
+
+/** Which member of a family this page's button opens on. `null` gives the
+ *  answer back to the app — the member you last held (see `groupMemberFor`). */
+export function withGroupTool(
+  kit: CanvasKit,
+  group: string,
+  tool: string | null,
+): CanvasKit {
+  const next = { ...(kit.groupTools ?? {}) };
+  if (tool === null) delete next[group];
+  else next[group] = tool;
+  return sparse({ ...kit, groupTools: next });
+}
+
+/** How one tool is set up on this page. `null` forgets it, which is how a tool
+ *  goes back to being however the person drawing has it set. */
+export function withKitTool(
+  kit: CanvasKit,
+  tool: string,
+  settings: PresetSettings | null,
+): CanvasKit {
+  const next = { ...(kit.toolSettings ?? {}) };
+  if (settings === null) delete next[tool];
+  else next[tool] = { ...settings, dials: { ...settings.dials } };
+  return sparse({ ...kit, toolSettings: next });
+}
+
+/** Whether this kit has anything of its own to say about one toolbar entry —
+ *  which member its button opens on, or how any of its tools are set.
+ *
+ *  Takes ids rather than a `ToolbarEntry`, so the model stays a leaf: which
+ *  tools are in a family is the registry's answer, and this module has no
+ *  business asking it. */
+export function kitCustomizes(
+  kit: CanvasKit,
+  entry: string,
+  tools: readonly string[],
+): boolean {
+  if (kit.groupTools?.[entry] !== undefined) return true;
+  return tools.some((id) => kit.toolSettings?.[id] !== undefined);
+}
+
+/** Drop either optional map once it is empty, so a kit that has been set up and
+ *  then unset is byte-for-byte the kit it was before — the same rule the tunings
+ *  in the settings blob follow. */
+function sparse(kit: CanvasKit): CanvasKit {
+  const next = { ...kit };
+  if (next.groupTools && Object.keys(next.groupTools).length === 0) {
+    delete next.groupTools;
+  }
+  if (next.toolSettings && Object.keys(next.toolSettings).length === 0) {
+    delete next.toolSettings;
+  }
+  return next;
+}
+
 /** Move one id to `to` in an order — what the up / down arrows send, for the
  *  app-wide toolbar and for a canvas preset's kit alike.
  *
@@ -336,12 +434,55 @@ function cleanKit(value: unknown): CanvasKit {
   const raw = (typeof value === "object" && value !== null ? value : {}) as {
     tools?: unknown;
     order?: unknown;
+    groupTools?: unknown;
+    toolSettings?: unknown;
   };
   const ids = (from: unknown) =>
     Array.isArray(from)
       ? from.filter((id): id is string => typeof id === "string")
       : [];
-  return { tools: ids(raw.tools), order: ids(raw.order) };
+  const groupTools: Record<string, string> = {};
+  if (typeof raw.groupTools === "object" && raw.groupTools !== null) {
+    for (const [group, tool] of Object.entries(raw.groupTools as object)) {
+      if (typeof tool === "string" && tool) groupTools[group] = tool;
+    }
+  }
+  const toolSettings: Record<string, PresetSettings> = {};
+  if (typeof raw.toolSettings === "object" && raw.toolSettings !== null) {
+    for (const [tool, held] of Object.entries(raw.toolSettings as object)) {
+      const settings = cleanToolSettings(held);
+      if (settings) toolSettings[tool] = settings;
+    }
+  }
+  return sparse({
+    tools: ids(raw.tools),
+    order: ids(raw.order),
+    groupTools,
+    toolSettings,
+  });
+}
+
+/** Read one tool's setup back. Only the shape is checked, and a width that
+ *  isn't one is dropped rather than taking the whole entry with it: which dials
+ *  a tool has is the plugin's to say and it re-answers that at every read (see
+ *  `withPreset`), so a value this build cannot place is simply never applied. */
+function cleanToolSettings(value: unknown): PresetSettings | null {
+  if (typeof value !== "object" || value === null) return null;
+  const raw = value as Record<string, unknown>;
+  const dials: Record<string, number> = {};
+  if (typeof raw.dials === "object" && raw.dials !== null) {
+    for (const [dial, at] of Object.entries(raw.dials as object)) {
+      if (typeof at === "number" && Number.isFinite(at)) dials[dial] = at;
+    }
+  }
+  const size =
+    typeof raw.size === "number" && Number.isFinite(raw.size) && raw.size > 0
+      ? raw.size
+      : undefined;
+  // A setup that says nothing at all is not one: it would be a tool the editor
+  // shows as pinned and applying it would write nothing.
+  if (size === undefined && Object.keys(dials).length === 0) return null;
+  return { ...(size === undefined ? {} : { size }), dials };
 }
 
 /** Read a persisted sheet back. Which stocks exist is `ground.ts`'s to say and

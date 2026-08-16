@@ -51,7 +51,7 @@ phone wallpaper, a comic panel. It stands on the New image shelf beside the size
 above, drawn to the same scale, and it is picked exactly like one. Settings →
 **Canvas** is where you make them.
 
-A preset always carries a size, and it can carry two more things:
+A preset always carries a size, and it can carry three more things:
 
 - **Its own tools.** A page made on the preset opens with that toolbar instead
   of your usual one — the tools you switched on, in the order you put them in —
@@ -61,6 +61,25 @@ A preset always carries a size, and it can carry two more things:
   starts from the toolbar you have now, so it is a list to prune rather than one
   to build; the list itself is the same rack as Settings → Tools. A preset cell
   on the shelf wears a small toolbox mark when it carries one.
+- **Those tools, set up.** Press a tool's **mark** in that list and you get the
+  tool itself: which of a family the page's button opens on, and how the tool is
+  set. A sketchbook is not "a pencil and an eraser" — it is a 2B at 0.7 mm and a
+  kneaded rubber — so the page can say so. Two answers, each optional:
+  - **Default tool.** The rub-out button is an eraser or a rubber, the shapes
+    button is a rectangle or a star. Pick which one this page's button opens on,
+    or leave it on _whichever you had last_, which is what it has always done.
+  - **Its own settings.** Switch it on and the tool gets the width and the knobs
+    you set here — the same presets, the same width row and the same Advanced
+    sliders as the panel over the canvas, so there is nothing new to learn. It
+    starts from how you have the tool right now. Leave it off and the tool stays
+    however you have it, which is the default for every tool.
+
+  A row wears a dot when the page says something of its own about it. Opening a
+  page made on the preset puts those settings in your hand — as if you had
+  pressed the presets yourself — and then leaves you alone: fatten the rubber
+  this afternoon and it stays fat until the next time you open a page made on
+  that preset.
+
 - **Its own canvas type.** Picking the preset puts that sheet in the picker
   below. Only a suggestion — the sheet is painted into every mark made on it (see
   [the surface you draw on](surface.md)), so it stays yours to change right up
@@ -71,9 +90,9 @@ Unlike the shipped sizes, a preset stands the way you set it up: type 1600 ×
 the rest of the shelf is facing. **Flip** still turns the page in your hand.
 
 Editing a preset — renaming it, resizing it, changing its tools — leaves the
-drawings already made on it alone, except that they pick up the new toolbar next
-time they are opened. Deleting one leaves them alone too: they keep their size,
-and they go back to your usual toolbar.
+drawings already made on it alone, except that they pick up the new toolbar (and
+the new tool settings) next time they are opened. Deleting one leaves them alone
+too: they keep their size, and they go back to your usual toolbar.
 
 ## Changing the page afterwards
 
