@@ -135,7 +135,7 @@ export function toAppData(doc: Versioned): AppData {
   };
 }
 
-/** Serialize a document for the bytes at rest (localStorage and the cloud
+/** Serialize a document for the bytes at rest (IndexedDB and the cloud
  *  backends): stamp the latest version onto the version-free model. */
 export function serializeDoc(data: AppData): string {
   return JSON.stringify({ version: LATEST_VERSION, ...data });

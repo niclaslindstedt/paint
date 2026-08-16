@@ -266,9 +266,12 @@ export function SideMenuContent({
           store.moveDrawingToFolder(drag.id, null);
           break;
         case "namespace":
+          // Fire-and-forget: the move reads and writes the other sketchbook's
+          // storage, and reports its own failure (see `deliver`). There is
+          // nothing for the drop gesture to wait for.
           if (drag.kind === "drawing")
-            store.moveDrawingToNamespace(drag.id, target.slug);
-          else store.moveFolderToNamespace(drag.id, target.slug);
+            void store.moveDrawingToNamespace(drag.id, target.slug);
+          else void store.moveFolderToNamespace(drag.id, target.slug);
           break;
         case "archive":
           if (drag.kind === "drawing") store.setDrawingArchived(drag.id, true);

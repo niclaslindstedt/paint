@@ -13,7 +13,7 @@
 // small again and the pictures browsable, genuine `.png` / `.jpg` files — and,
 // on load, re-hydrated back onto their strokes from those files.
 //
-// The always-present localStorage working copy (`usePaintStore`) keeps every
+// The always-present on-device working copy (`usePaintStore`, in IndexedDB) keeps every
 // bitmap inline, so drawing, undo, export, and the on-device backend are
 // untouched. Only what travels through an adapter is split in two.
 //

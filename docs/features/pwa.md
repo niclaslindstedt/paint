@@ -14,7 +14,7 @@ and home indicator on a phone.
 
 A service worker precaches the app shell — the JS, CSS, fonts, and icons — on
 first visit, so a later launch works with no connection. Drawings live in
-localStorage, which needs no network either; a connected cloud backend simply
+IndexedDB, which needs no network either; a connected cloud backend simply
 queues its push until you're back online.
 
 ## Updates

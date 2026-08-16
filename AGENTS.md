@@ -72,13 +72,23 @@ The app owns the domain and the stores ("store stays in the app"):
 
 - `src/app/types.ts` — the `Stroke` / `Drawing` / `AppData` model. A drawing is
   an ordered list of **vector strokes**, never a bitmap: that is what makes undo
-  exact, the document small enough for localStorage, and a synced copy readable
-  JSON. Rasterising happens only on screen and in the PNG export.
-- `src/app/usePaintStore.ts` — the per-namespace document store
-  (localStorage-persisted JSON, undo/redo, every edit action).
+  exact, the document cheap to re-serialize on every edit, and a synced copy
+  readable JSON. Rasterising happens only on screen and in the PNG export.
+- `src/app/usePaintStore.ts` — the per-namespace document store (undo/redo,
+  every edit action). Synchronous by design; it reaches storage through a
+  `DocBackend`.
+- `src/app/docDb.ts` / `src/app/docBackend.ts` — where the document actually
+  lives: IndexedDB, behind a synchronous in-memory cache that `main.tsx`
+  fills for the active namespace before the first render. **Do not put a
+  document back in localStorage** — the origin gets ~5 MB for everything, and
+  one sketchbook with photos in it is over.
 - `src/app/useSyncEngine.ts` — the sync engine over the framework's storage
   adapters (debounced push, conflict/auth/throttle handling, optional
   `withEncryption` of the remote copy).
+- `src/app/settingsStore.ts` / `src/app/useSettingsSync.ts` — the app settings
+  as `settings.json` at a connected backend's root, so a kit travels between
+  machines. Adopt-on-connect, write-through on edit; `devMode` and
+  `captureLogs` deliberately stay on the device.
 - `src/app/plugins/` — **the tool plugin seam** (see below).
 - `src/app/render.ts` — paints a drawing onto a 2D context by dispatching each
   stroke to the plugin that drew it. The screen, the in-flight gesture, and the

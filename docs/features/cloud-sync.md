@@ -1,8 +1,8 @@
 # Cloud sync
 
-Paint is local-first: the working copy always lives in this browser's
-localStorage, and everything works with no account and no network. Sync is
-opt-in, and it is a _copy_ of that document being pushed somewhere you chose.
+Paint is local-first: the working copy always lives in this browser's IndexedDB,
+and everything works with no account and no network. Sync is opt-in, and it is a
+_copy_ of that document being pushed somewhere you chose.
 
 ## Backends
 
@@ -10,7 +10,7 @@ Settings → Storage picks where the document is kept:
 
 | Backend          | What it is                                                              |
 | ---------------- | ----------------------------------------------------------------------- |
-| **This device**  | localStorage only. The default; nothing leaves the browser.             |
+| **This device**  | This browser's IndexedDB. The default; nothing leaves the browser.      |
 | **Local folder** | A folder you pick on this computer (Chromium's File System Access API). |
 | **Dropbox**      | A `paint-<namespace>.json` file in the app's Dropbox app folder.        |
 | **Google Drive** | The same file in a `Paint` folder in your My Drive.                     |
@@ -59,6 +59,37 @@ knowing:
 
 An **encrypted** copy skips this entirely — its pictures stay inside the
 encrypted envelope rather than landing on the drive in the clear.
+
+## Your settings travel too
+
+Beside the document and the `images/` tree, a connected backend keeps one more
+file: `settings.json`. It holds the kit rather than the drawings — which tools
+are switched on, the order you put them in, every width and dial and saved
+preset, the colours you mixed, and how the app looks.
+
+That is there because a kit is worth carrying. Finding the 4B at 0.7 mm with the
+opacity eased off is real work, and doing it again on the laptop is the same
+work twice. Connect the same folder — or the same Dropbox — on the other machine
+and the tools are already set up the way you left them.
+
+Two rules decide which copy wins, and they are not symmetrical:
+
+- **Connecting** a backend that already has a `settings.json` adopts it. That is
+  the point: the machine you are sitting at should end up like the one you set
+  up. A backend with no settings file yet is seeded from this device instead.
+- **Changing** a setting afterwards writes straight through, so the backend
+  always reflects the last change you made anywhere.
+
+Two settings deliberately stay put: **developer mode** and **log capture**.
+Those are things you switch on to investigate something on _this_ browser, and
+having them follow you onto a phone you weren't debugging is a surprise rather
+than a convenience. Which backend you use, and your cloud sign-ins, aren't in
+the file either — a file that told the app where to read itself from would be a
+loop.
+
+`settings.json` stays plaintext even when the drawings are encrypted. None of it
+is secret, and keeping it readable is what lets a fresh device render the app
+the way you set it up before you have typed the passphrase.
 
 ## First connect
 

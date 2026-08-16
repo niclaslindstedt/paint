@@ -41,6 +41,7 @@ import { setWashEngine } from "./app/plugins/wash.ts";
 import { applyBackdropVars, useAppSettings } from "./app/useAppSettings.ts";
 import { useNamespaces } from "./app/useNamespaces.ts";
 import { freshId, usePaintStore } from "./app/usePaintStore.ts";
+import { useSettingsSync } from "./app/useSettingsSync.ts";
 import { useSyncEngine } from "./app/useSyncEngine.ts";
 import type { PageMakeup } from "./app/NewImageModal.tsx";
 import type { Drawing } from "./app/types.ts";
@@ -209,6 +210,11 @@ export function App() {
   // Publish the docked sidebar's footprint as CSS variables so viewport-fixed
   // overlays (the `UpdateToast`) centre over the content band.
   useSidebarInset(pinned, position.side);
+
+  // Carry the settings with the backend: a connected folder / Dropbox / Drive
+  // holds them as `settings.json` beside the drawings, so the kit you set up
+  // here is the one waiting on the other machine. A no-op on this device.
+  useSettingsSync({ store: sync.settingsStore, settings, setSettings });
 
   // Log capture follows the Developer-tab toggle.
   useEffect(() => {

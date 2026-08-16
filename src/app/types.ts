@@ -2,7 +2,7 @@
 // The paint document model. A drawing is a *vector* document: an ordered list
 // of strokes, each one a shape plus the ink it was drawn with. Nothing here is
 // a bitmap, which is what makes the whole document JSON — small enough for
-// localStorage, diffable, undoable step by step, and cheap to push to a cloud
+// IndexedDB, diffable, undoable step by step, and cheap to push to a cloud
 // backend. Rasterising happens only on the way out (PNG export) and on screen.
 //
 // Every tool in the app produces one of these strokes; a tool plugin picks the

@@ -11,6 +11,7 @@ import "@fontsource/jetbrains-mono/latin-ext-700.css";
 
 import "./styles.css";
 import { App } from "./App.tsx";
+import { hydrateActiveDoc } from "./app/docDb.ts";
 import { LanguageRoot } from "./app/i18n/index.ts";
 import { registerBuiltinPlugins } from "./app/plugins/builtin/index.ts";
 
@@ -66,7 +67,27 @@ function loadPage() {
   return Promise.resolve(App);
 }
 
-void loadPage().then((Page) => {
+// The drawings live in IndexedDB (see `app/docDb.ts`), which is asynchronous,
+// while the store that reads them is not. Bridging that is one await here: pull
+// the namespace the app opens on into the store's cache *before* the first
+// render, so the canvas paints the real document rather than a blank page that
+// fills in a frame later. Only the active namespace is read — the others are
+// fetched if and when they are switched to, and a sketchbook full of photos is
+// not something to load for a session that never opens it.
+//
+// It resolves even when there is no database to read (a Firefox private window,
+// a locked-down profile): `hydrateActiveDoc` falls back and never rejects, so a
+// browser that refuses storage still gets an app.
+//
+// Statically imported rather than behind an `import()`: `App` is in the entry
+// chunk, and it reaches `docDb` through the store either way, so deferring this
+// one would only add a round trip to first paint. The policy page skips the
+// read instead — it has no drawings to show.
+function bootDocument(): Promise<unknown> {
+  return isPrivacy ? Promise.resolve(null) : hydrateActiveDoc();
+}
+
+void Promise.all([loadPage(), bootDocument()]).then(([Page]) => {
   render(
     <LanguageRoot>
       <Page />

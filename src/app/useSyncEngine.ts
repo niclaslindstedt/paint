@@ -34,12 +34,15 @@ import {
   summarizeDoc,
   type CloudDocSummary,
 } from "./cloudSetup.ts";
+import { folderFileStore } from "./folderFileStore.ts";
+import { dropboxByteFileStore, gdriveByteFileStore } from "./imageFileStore.ts";
 import {
   dropboxImageStore,
   folderImageStore,
   gdriveImageStore,
   withExternalImages,
 } from "./imageStore.ts";
+import { fileSettingsStore, type SettingsStore } from "./settingsStore.ts";
 import { logStore } from "./log.ts";
 import { serializeDoc } from "./migrations.ts";
 import {
@@ -54,7 +57,7 @@ export { FOLDER_BACKEND_AVAILABLE } from "./useFolderBackend.ts";
 
 // The app's sync engine — the state machine the framework's `SyncStatus` glyph
 // and `SyncDetailsModal` command centre paint over. The local document
-// (localStorage, written by `usePaintStore`) is always the working copy; when a
+// (IndexedDB, written by `usePaintStore`) is always the working copy; when a
 // remote backend is connected the engine pushes the serialized document there
 // (debounced on the store's edit counter) and can pull the backend's copy back
 // down. Dropbox and Google Drive ride the framework's storage adapters; the
@@ -222,6 +225,9 @@ export type SyncEngine = {
   providerName: string;
   backendKind: BackendKind;
   location: SyncLocation;
+  /** The active backend's `settings.json`, or null on the on-device backend —
+   *  see `settingsStore.ts`. Driven by `useSettingsSync`. */
+  settingsStore: SettingsStore | null;
   saveNow: () => void;
   reload: () => void;
   reconnect: (() => Promise<void>) | null;
@@ -890,6 +896,40 @@ export function useSyncEngine(
     ? PROVIDER_NAMES[backend as Exclude<SyncBackendId, "local">]
     : "This device";
 
+  // The backend's `settings.json` (see `settingsStore.ts`), built on the same
+  // root-scoped byte transports the images ride. Null on the on-device backend,
+  // which has no folder to put a file in — `useSettingsSync` then does nothing
+  // and the localStorage copy stands.
+  //
+  // It is built from the *raw* transport rather than from `adapter`, and stays
+  // plaintext even when `encrypted` is on: the settings are not secret, and a
+  // readable file is what lets a fresh device render the app the way you set it
+  // up before anyone types the passphrase.
+  const settingsStore = useMemo<SettingsStore | null>(() => {
+    if (backend === "dropbox" && dropboxAuth) {
+      return fileSettingsStore(
+        dropboxByteFileStore(dropboxAuth, DROPBOX_APP_KEY || undefined),
+      );
+    }
+    if (backend === "gdrive" && gdriveToken) {
+      return fileSettingsStore(
+        gdriveByteFileStore(gdriveToken, GDRIVE_APP_FOLDER),
+      );
+    }
+    if (backend === "folder" && folderHandle) {
+      return fileSettingsStore(
+        folderFileStore(folderHandle, markFolderPermissionLost),
+      );
+    }
+    return null;
+  }, [
+    backend,
+    dropboxAuth,
+    gdriveToken,
+    folderHandle,
+    markFolderPermissionLost,
+  ]);
+
   // The folder's human-readable location: the picked directory's own name plus
   // the document file. Falls back to just the file name before the handle
   // rehydrates.
@@ -926,6 +966,7 @@ export function useSyncEngine(
           : docKey(slug),
       url: isCloud && connected ? backendWebUrl(backend, slug) : null,
     },
+    settingsStore,
     saveNow,
     reload,
     reconnect:
