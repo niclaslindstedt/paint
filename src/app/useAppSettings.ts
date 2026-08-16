@@ -750,6 +750,48 @@ export function sizesFor(plugin: PaintPlugin | undefined): number[] {
   return gaugeSizes(gaugeFor(plugin));
 }
 
+/** The settings the Settings dialog writes **straight through** to the committed
+ *  blob rather than staging in its draft (see the note at the top of
+ *  `SettingsModal.tsx`).
+ *
+ *  There is nothing to roll back for any of them: a tool you switch on has to
+ *  reach the toolbar behind the dialog, a page you darken has to repaint, and a
+ *  watercolour engine whose whole content is "which of these two do you like"
+ *  cannot be judged behind a Save button. They are the ones the dialog *shows*
+ *  from the committed settings too, so a draft's copy of them is stale from the
+ *  moment the control is touched.
+ *
+ *  Named here, in one list, because the dialog's Save has to put every one of
+ *  them back over the draft it commits — and a list kept in Save's own head is a
+ *  list that forgets the next live setting somebody adds. That is exactly how
+ *  the watercolour engine came to be silently reverted by pressing Save. */
+export const LIVE_SETTINGS = [
+  "enabledPlugins",
+  "toolOrder",
+  "canvasTheme",
+  "showGrid",
+  "showToolName",
+  "washEngine",
+] as const satisfies readonly (keyof AppSettings)[];
+
+export type LiveSetting = (typeof LIVE_SETTINGS)[number];
+
+/** `draft` with every live-applied setting taken from `live` instead — what the
+ *  Settings dialog commits on Save.
+ *
+ *  The draft was seeded when the dialog opened, so its copy of a live setting is
+ *  whatever it was *before* the user touched the control. Committing the draft
+ *  whole would hand that stale value back and undo the change the user watched
+ *  happen. */
+export function withLiveSettings(
+  draft: AppSettings,
+  live: AppSettings,
+): AppSettings {
+  const next = { ...draft };
+  for (const key of LIVE_SETTINGS) Object.assign(next, { [key]: live[key] });
+  return next;
+}
+
 /** `settings` with `preset` applied to `tool` — its width, and every one of its
  *  dials.
  *
