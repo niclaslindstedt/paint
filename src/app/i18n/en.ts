@@ -376,6 +376,13 @@ export const en = {
     washSimulationHint: "Water on paper, dried a step at a time. Much slower.",
     washDetail: "Detail: {value}%",
     washDetailHint: "Lower is faster and coarser.",
+    leadEngine: "Lead",
+    leadSimple: "Stroke",
+    leadSimpleHint: "Fast, and the same on any paper.",
+    leadSimulation: "Graphite",
+    leadSimulationHint: "A lead pressed into this page's own tooth. Slower.",
+    leadDetail: "Detail: {value}%",
+    leadDetailHint: "Lower is faster and coarser.",
   },
   // The presets each tool ships with — the settings its medium is actually used
   // at, offered as chips above the ones you saved yourself (see

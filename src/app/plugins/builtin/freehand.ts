@@ -19,8 +19,12 @@ import {
 } from "../brushes.ts";
 import { paintCrayon } from "../crayon.ts";
 import { extraDials, strokeDial } from "../dials.ts";
-import { paintGraphite } from "../graphite.ts";
 import { applyInk, distance, paintPath, strokeColor } from "../ink.ts";
+import {
+  DEFAULT_LEAD_DETAIL,
+  DEFAULT_LEAD_ENGINE,
+  paintGraphiteWith,
+} from "../lead.ts";
 import { paintRubbing } from "../rubber.ts";
 import {
   DEFAULT_WASH_DETAIL,
@@ -271,12 +275,33 @@ export function freehandBehaviour(ink: FreehandInk = {}): ToolBehaviour {
           );
           return;
         case "graphite":
-          paintGraphite(
+          paintGraphiteWith(
+            // Which of the two pencils is drawing — a view of the page rather
+            // than anything on it, handed down with the scale and the sheet
+            // (see `plugins/lead.ts`). Both read the grade the same way, so
+            // this changes the rendering and nothing else.
+            detail.lead ?? DEFAULT_LEAD_ENGINE,
             ctx2d,
             points,
             stroke.size,
             scale,
             strokeDial(stroke, "grade"),
+            // The sheet, which is the whole of what the simulation has that the
+            // stroke model does not: how coarse the paper is, how deep, and
+            // whether it dips at random or goes over and under.
+            sheet,
+            // The lead's own grey as a value: the field lays down a *load* and
+            // works out the alpha itself, so it needs the colour rather than a
+            // context setting (see `leadSim.ts`).
+            strokeColor(stroke),
+            // …how finely the simulation is set to work the mark out, which is
+            // the one of these that is about the *cost* of the mark rather than
+            // about the mark (see `MIN_LEAD_DETAIL`).
+            detail.leadDetail ?? DEFAULT_LEAD_DETAIL,
+            // …and the patch the caller is actually keeping, so a long scribble
+            // being repainted where it grew costs the patch rather than the
+            // scribble (see `PaintDetail.clip`).
+            detail.clip,
           );
           return;
         case "rubber":

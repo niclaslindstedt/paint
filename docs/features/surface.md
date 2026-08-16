@@ -119,6 +119,51 @@ on a coarse enough setting is painted as a plain stroke instead. It is the
 control to reach for when the simulation is the picture you want and your device
 is not keeping up with it.
 
+## Two pencils
+
+The pencil has the same choice, in the same place and for the same reason: take
+it up, press the size button, and **Rendering** holds two engines shown as
+swatches of the same shading on the same sheet. Both read the grade dial the
+same way, and switching is a change of how a pencil mark is drawn rather than of
+anything you have set.
+
+**Stroke** is the default, and it is the pencil this app has always had: flakes
+of graphite scattered along the path, skipping the places the paper is low. It
+is fast, and it draws the same line on any paper.
+
+**Graphite** presses a lead into _this page's own sheet_. That is the whole
+difference, and it is the reason the option is worth having: the stroke engine
+reads a fine tooth of its own and nothing else, so a pencil line looks the same
+on hot-pressed paper as on rough — and in life those are two different drawings.
+The simulation reads the surface you actually picked, so:
+
+- a hard lead rides the peaks and leaves the valleys bare, which on rough stock
+  is a line you can see the sheet straight through and on hot-pressed is very
+  nearly a solid one;
+- shading a patch twice **fills in** what the first pass could not reach, the
+  way it does under your hand, instead of simply laying a second speckle over
+  the first;
+- and it stops: a patch of paper holds only so much graphite, so there is a
+  black a pencil cannot go past however long you keep scribbling, and a toothy
+  sheet takes more of it than a smooth one before it gets there;
+- on cotton duck the lead catches the crowns of the weave and skips the troughs
+  between, so a drawing on canvas looks like a drawing on canvas.
+
+The grain dial you set when you made the page moves all of it, because turning
+the grain up is turning up the tooth the lead has to climb over.
+
+It costs roughly six times as long per mark as the stroke engine, and a pencil
+drawing is a great many marks — so it is opt-in, and it has the same **Detail**
+slider the wash does, under the swatches once the simulation is the one drawing.
+Detail is how finely the sheet is worked out, from a tenth up to all of it, and
+what it buys is the square of itself: half the detail is a quarter of the work,
+and a quarter of it is faster than the stroke engine. What it costs is the fine
+half of the picture — the graphite grain broadens, the paper's tooth softens,
+and a fine lead on a coarse enough setting is drawn as a plain pencil line
+instead. As with the wash, a browser that cannot run the simulation, or a mark
+too small to be worth one, is drawn with the stroke engine: no drawing ever
+fails to open because of the setting.
+
 ## Layers keep the water apart
 
 Wet mixing happens **within a layer**. A wash mixes with the marks on its own

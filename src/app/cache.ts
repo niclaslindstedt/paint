@@ -439,6 +439,10 @@ export function sameFrame(a: CacheSpec, b: CacheSpec): boolean {
     // …and how finely it is working, which changes the same washes without
     // touching a stroke either.
     a.options.washDetail === b.options.washDetail &&
+    // …and which pencil is drawing, which changes every graphite mark on the
+    // page without touching a stroke in exactly the same way.
+    a.options.leadEngine === b.options.leadEngine &&
+    a.options.leadDetail === b.options.leadDetail &&
     // The sheet: change the paper and every mark on the page is painted
     // differently — the grain under them, and how the wet ones mix with what
     // they are over.
