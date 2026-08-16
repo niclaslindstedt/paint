@@ -246,50 +246,91 @@ it exactly as it paints into a canvas, so a new tool gets vector output for free
 and there is still one painter per stroke. What an export covers — the sheet, or
 a crop around the marks — is `bounds.ts`, geometry keyed off the shape kind.
 
-### Filters are a view, not an edit
+### Effects are an edit, not a view
 
-A page can carry **filters** — a blur, a scattering of grain — and they are the
-one thing painted that is not a mark. A filter is held on the drawing as a kind
-and a couple of numbers (`Filter` in `types.ts`), and it is composited over the
-finished picture rather than applied to anything in it. The tempting
-implementation was the opposite one: rasterise the page, filter the pixels, put
-an image stroke back in place of the marks. That would have traded away every
-property the rest of the app is built on — exact undo, a document small enough
-for localStorage, a synced copy that is readable JSON — for a shorter diff.
+A drawing can be blurred or grained, and both are the one thing painted that is
+not a mark. They are **effects**: applied once, to the pixels, and then gone.
+Applying one rasterises the target layer's marks onto an off-screen surface at
+document size, composites the effect over them, and replaces those marks with a
+single `image` stroke of the result (`bake.ts`). The document goes on being a
+stroke list; one of its strokes is now a picture, exactly as a dropped photograph
+is.
 
-The split follows the usual line. `filters.ts` is pure: what the filters are,
-what each offers to set, and how a drawing's list of them is kept (one of each
-kind, always in the declared order, so a page looks the same however it got
-there). `filterPaint.ts` is the pixels, and it runs as the last coat of a frame
-(`frame.ts`) and of a raster export (`export.ts`) — never inside `renderDrawing`,
-because a filter is a composite over _everything_ the render produced, the sheet
-and the gesture in flight included.
+They used to be **filters** — a kind and a couple of numbers held on the drawing
+and composited over the finished picture on every frame, forever. That kept the
+document purely vector, which is the property the rest of the app is built on,
+and it is why the design was chosen. What sank it was the cost on the layer
+scope: a filtered layer has to be composited as a unit, so every stroke landing
+on one forced the whole layer to be re-softened, and `cache.ts` had to give up
+both its append and its scroll fast paths for as long as the filter existed.
+Rubbing out on a blurred watercolour was unusable. An effect pays that cost once,
+at the moment you ask for it.
 
-Keeping it out of the renderer is also what keeps the mark cache honest: the
-cache holds the **unfiltered** picture, so moving a slider costs one composite
-rather than a repaint of the document, and a committed stroke is still absorbed
-by the same append it always was. Neither effect touches pixels one at a time —
-the blur is one filtered `drawImage` and the grain is a deterministic speck tile
-laid as a pattern anchored to the page — which is what makes them affordable on
-every frame of a stroke. The grain goes down in **two coats** of different speck
-sizes, because a single tile gives itself away: the eye reads the same clump
-arriving at a fixed spacing as a weave rather than as noise, and it measures as
-an autocorrelation spike at the tile's pitch. Two coats whose periods do not
-share a factor push that agreement further than a page is wide. The tile is
-built at one speck per pixel and scaled when it is painted, so the field costs
-the same megabyte at every zoom and a zoom never rebuilds it.
+The trade is stated rather than hidden: the marks that went into a bake are gone
+from the document (undo brings them back, a reload does not), and the layer is a
+PNG on the wire. Two things keep that affordable — the bake is **cropped** to the
+ink it covers grown by the effect's reach and clipped to the page, and it has a
+**resolution ceiling** (`MAX_BAKE_PIXELS`) past which it rasterises smaller and
+paints back at full size. Grain is the case that sets the ceiling: noise is
+incompressible by construction, and a document lives in localStorage.
+
+The split follows the usual line. `effects.ts` is pure: what the effects are,
+what each offers to set, and where each may be applied — noise is a layer's
+alone, blur offers the layer or the whole stack. `effectPaint.ts` is the pixels.
+Neither effect touches pixels one at a time — the blur is one filtered
+`drawImage` and the grain is a deterministic speck tile laid as a pattern
+anchored to the page — which is what makes them cheap enough to preview live. The
+grain goes down in **two coats** of different speck sizes, because a single tile
+gives itself away: the eye reads the same clump arriving at a fixed spacing as a
+weave rather than as noise, and it measures as an autocorrelation spike at the
+tile's pitch. Two coats whose periods do not share a factor push that agreement
+further than a page is wide. The tile is built at one speck per pixel and scaled
+when it is painted, so the field costs the same megabyte at every zoom.
+
+`bakeEffect` answers `null` when it cannot bake — no marks on the target, no DOM,
+a canvas that refused its pixels — and the caller then lands no edit at all. That
+is deliberate: the one failure worth engineering against is emptying a layer
+whose replacement never arrived.
+
+**Scope is decided by `effectTargets`**, and it skips two kinds of layer at both
+scopes: **locked** ones (a lock means the sheet takes no edits, and rasterising
+every mark on it is a bigger edit than the pencil line the lock refuses) and
+**hidden** ones (an effect you cannot see land is one you cannot judge). "All
+layers" bakes each named layer _separately_, so the stack survives an effect
+applied across it.
 
 That cheapness is what pays for the **preview**. A radius in page pixels is not a
-number anyone can picture, so a filter's dialog paints its draft onto the page
-behind it while the sliders move: `filterPreview.ts` hands back the drawing seen
-through the setting being dialled — the same `withFilter` edit the store applies,
-over the same stroke objects — and the screen paints _that_. Nothing reaches the
-document until Apply, so the draft is screen state like the view or a
-half-typed caption, and a slider dragged end to end costs no undo step. Because
-the marks are the same objects and a page filter is a composite over the blit,
-each sample is one composite rather than a repaint. The dialog holds the modal
-scrim back for as long as it is open (`backdrop.ts`), for the obvious reason: a
-preview seen through a dimmed — or blurred — veil is not one.
+number anyone can picture, so the dialog paints its draft onto the page behind it
+while the sliders move — and it is the _same composite the bake will rasterise_,
+on the same layers, so what you approve is what you get. It reaches the renderer
+as `RenderOptions.preview`, never as document state: the target layers are lifted
+onto surfaces of their own and `paintEffect` runs over each, which is the path
+`bake.ts` takes off-screen. Nothing reaches the document until Apply, so the
+draft is screen state like the view or a half-typed caption, and a slider dragged
+end to end costs no undo step. The dialog holds the modal scrim back for as long
+as it is open (`backdrop.ts`), for the obvious reason: a preview seen through a
+dimmed — or blurred — veil is not one.
+
+A preview is the **only** thing that costs the mark cache anything. While one is
+open, `cache.ts` gives up its append and its scroll fast paths (a layer being
+composited as a unit cannot take a stroke painted on top of the pixels already
+held) and compares the preview by identity as part of its staleness check —
+moving a slider repaints without adding, removing or reordering a mark, which is
+the one other document edit (the sheet's eye being the first) that comparing
+strokes cannot see. Close the dialog and every fast path is back, which is the
+whole difference from the filters this replaced.
+
+The blur has **two painters**, and the reason is worth knowing before touching
+it. `ctx.filter` is the obvious way to blur a canvas and it is unavailable in
+Safari — not missing, which would be catchable, but _inert_: the property takes
+a value, reads it back, and changes nothing that gets drawn. A painter that sets
+it and blits therefore degrades to no blur at all on every iPhone, iPad and Mac,
+silently. So the capability is **probed by behaviour** once per session — put a
+pixel down under a blur, ask whether ink landed beside it — and a context that
+did not deliver gets a resampling blur instead: shrink the picture, draw it back
+up smoothed, twice. That is a handful of `drawImage` calls on an image that is
+getting smaller each time, and it tracks a real Gaussian closely enough that the
+two agree to about four levels per channel across the whole radius slider.
 
 ### The sheet is a material, not a backdrop
 
@@ -315,7 +356,7 @@ on one this build no longer offers has to keep painting on a sheet rather than
 falling back to glass. The alias is read-only — the document keeps the id it was
 written with, and nothing writes a retired one.
 
-The split is the one `filters.ts` / `filterPaint.ts` uses. `ground.ts` is pure:
+The split is the one `effects.ts` / `effectPaint.ts` uses. `ground.ts` is pure:
 the catalog of stocks, the three numbers each carries (how much it drinks, the
 pitch of its grain and how deep that grain is), and the rule that turns a tool's
 declared `wetness` and a sheet's absorbency into what a mark does — which
@@ -330,14 +371,13 @@ effects:
 - **A layer that mixes is composited as a unit.** A wet mark mixes with the
   pixels beneath it, and painted flat "beneath it" would be every lower layer as
   well — so a layer carrying wet marks on a thirsty ground is lifted onto a
-  surface of its own, exactly as a filtered layer is. Mixing is therefore scoped
-  to a layer, and an eraser on such a layer stops at it. That is the trade a
-  filtered layer already makes, and it is what makes layers the way to keep a
-  mark out of the water.
+  surface of its own, exactly as a layer under an effect preview is. Mixing is
+  therefore scoped to a layer, and an eraser on such a layer stops at it. It is
+  what makes layers the way to keep a mark out of the water.
 - **The mark cache cannot absorb a wet mark.** Its pixels are a finished
   picture, sheet included, so appending a mark that mixes would mix it with the
   sheet and with layers a repaint would not. Such a stroke repaints instead —
-  the same call the cache makes for a filtered stack (`cache.ts`).
+  the same call the cache makes while an effect is being previewed (`cache.ts`).
 
 `wet.ts` is the one piece that is not compositing: it copies the pixels under a
 wet mark, smears them outward, cuts the smear to the mark's own shape and lays
@@ -347,52 +387,16 @@ visible in the result — a mark can only lift what was already there. It is
 bounded by the mark's box, skipped past a pixel budget, and deterministic like
 every other texture in the app.
 
-Filters come at **two scopes**, and the difference is where they are applied
-rather than what they are. The drawing's own (`Drawing.filters`) are composited
-over the finished picture, outside `renderDrawing`, exactly as described above.
-A layer's (`Layer.filters`) cannot be: they need that layer's pixels and nothing
-else's, so they are applied _inside_ the render — the layer's marks go onto a
-surface of their own, `paintFilters` runs over it, and the result is composited
-into the page.
+Both cases are why the rule is **a layer is only lifted onto a surface when it
+has something to do there** — wet marks to mix, or an effect to show. Splitting
+every layer would scope erasing to a layer for drawings that asked for nothing of
+the kind, and that is behaviour this app has always had.
 
-That inversion is the whole design, and it buys the thing a page-wide filter
-cannot give: **the eraser cuts the filtered result.** A rubbing out on a
-filtered layer is one of that layer's own marks and lands inside its surface, so
-it takes the softened pixels away and shows what is under them. On an unfiltered
-layer the eraser goes on reaching the whole page beneath it, which is why a
-layer is only ever lifted onto a surface when it actually carries filters —
-splitting every layer would change erasing for drawings nobody has filtered.
-
-It costs the cache, and knowingly. A filtered layer is composited as a unit, so
-a landed stroke cannot be painted on top of the pixels the cache is holding —
-the whole layer has to soften again with it inside — and `cache.ts` therefore
-gives up both its append and its scroll fast paths on any drawing with a
-filtered layer, guarded on `anyLayerFiltered` so that everything else pays
-nothing. The stack's filters also join the cache's staleness check: moving a
-slider repaints a layer without adding, removing or reordering a mark, which is
-the one other document edit (the sheet's eye being the first) that comparing
-strokes cannot see. In the SVG export the same split becomes a `<g filter=…>`
-per filtered layer, which is also what scopes that layer's erasing mask.
-
-The blur has **two painters**, and the reason is worth knowing before touching
-it. `ctx.filter` is the obvious way to blur a canvas and it is unavailable in
-Safari — not missing, which would be catchable, but _inert_: the property takes
-a value, reads it back, and changes nothing that gets drawn. A painter that sets
-it and blits therefore degrades to no blur at all on every iPhone, iPad and Mac,
-silently. So the capability is **probed by behaviour** once per session — put a
-pixel down under a blur, ask whether ink landed beside it — and a context that
-did not deliver gets a resampling blur instead: shrink the picture, draw it back
-up smoothed, twice. That is a handful of `drawImage` calls on an image that is
-getting smaller each time, which keeps it inside the same per-frame budget as
-the fast path, and it tracks a real Gaussian closely enough that the two agree to
-about four levels per channel across the whole radius slider.
-
-The SVG export is the one place the picture is generated twice, because a vector
-file has no pixels to composite: `svgFilter` emits the same two effects as SVG
-filter primitives and the recorder wraps the drawing in them. The blur is
-exactly the same Gaussian; the grain is `feTurbulence`, which is the nearest
-thing a reader can generate for itself, and it is noted as an approximation
-where it is written.
+The SVG export needs no special handling for effects, which is one of the things
+baking bought: an effect is in the marks by the time anything exports, so the
+recorder emits a baked layer as an `<image>` exactly as it emits a dropped
+photograph. The `<filter>` primitives the old page- and layer-scoped filters
+needed are gone with them.
 
 ### A repaint is a fold; a frame is not
 

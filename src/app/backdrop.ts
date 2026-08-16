@@ -5,7 +5,7 @@
 // Appearance tab's two knobs are turned otherwise (see `applyBackdropVars`).
 // That is right for every dialog that has a question to ask about something
 // elsewhere, and wrong for the one kind that is asking about the page itself:
-// a filter's options are a live preview, and a preview seen through a black
+// an effect's options are a live preview, and a preview seen through a black
 // veil — or, worse, through the scrim's own blur, which would soften a page
 // whatever the radius said — is not a preview at all.
 //

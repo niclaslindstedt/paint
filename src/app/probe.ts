@@ -59,11 +59,11 @@ function snapshot(drawing: Drawing, ink: InkContext): Snapshot | null {
   if (!ctx) return null;
   ctx.setTransform(scale, 0, 0, scale, 0, 0);
   // The page is painted opaque (no `transparentPage`), the grid is left off,
-  // and the layers' filters are skipped: the tools must read the drawing, not
-  // the drawing aid and not the way it is being looked at. A bucket that
+  // and any effect being previewed is skipped: the tools must read the drawing,
+  // not the drawing aid and not a change nobody has applied yet. A bucket that
   // stopped at a grid line would be unusable, and one flooding across a blurred
   // layer has no edge to stop at at all.
-  renderDrawing(ctx, drawing, null, { ...ink, unfiltered: true });
+  renderDrawing(ctx, drawing, null, { ...ink, flat: true });
   try {
     const data = ctx.getImageData(0, 0, width, height).data;
     return { pixels: data, width, height, scale };

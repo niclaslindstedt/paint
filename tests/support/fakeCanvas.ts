@@ -87,6 +87,7 @@ const METHODS = [
   "ellipse",
   "quadraticCurveTo",
   "rect",
+  "scale",
   "strokeRect",
   "translate",
 ] as const;
@@ -153,7 +154,19 @@ export function createFakeContext(
     filter: "none",
     imageSmoothingEnabled: true,
     imageSmoothingQuality: "low",
-    /** What the blur's capability probe reads back (see `filterPaint.ts`).
+    /** What the grain builds its speck tile in (see `effectPaint.ts`). A plain
+     *  buffer of the size asked for — the tile is written pixel by pixel and
+     *  put back, and none of that is worth simulating beyond letting it run. */
+    createImageData: (w: number, h: number) => {
+      tick("createImageData");
+      return { width: w, height: h, data: new Uint8ClampedArray(w * h * 4) };
+    },
+    putImageData: () => tick("putImageData"),
+    createPattern: () => {
+      tick("createPattern");
+      return {} as CanvasPattern;
+    },
+    /** What the blur's capability probe reads back (see `effectPaint.ts`).
      *
      *  It puts one opaque pixel down and asks whether ink landed beside it, so
      *  that is the only question answered here: on an honoured filter the
@@ -253,9 +266,14 @@ export function createFakeCanvas(
     width,
     height,
     getContext: () => ctx,
+    // What a bake reads off the surface it painted (see `bake.ts`). The bytes
+    // are a stub — there are no real pixels here — but the *call* is the thing
+    // worth being able to make, so a bake can be driven end to end in a node
+    // test and asserted on by the stroke it produces.
+    toDataURL: () => "data:image/png;base64,stub",
     ctx,
   };
-  // The back-reference the real thing has. `filterPaint.ts` reads the canvas
+  // The back-reference the real thing has. `effectPaint.ts` reads the canvas
   // off the context it was handed rather than being passed both.
   (ctx as unknown as { canvas: unknown }).canvas = canvas;
   return canvas;

@@ -74,8 +74,8 @@
 }
 
 /* ── A previewing dialog steps aside ─────────────────────────────────────────
-   A filter's options are the one dialog whose subject is the page *behind* it:
-   the sliders are painted onto the drawing as they move (see `filterPreview.ts`)
+   An effect's options are the one dialog whose subject is the page *behind* it:
+   the sliders are painted onto the drawing as they move (see `render.ts`)
    and the scrim is held back so you can see them land. A card centred in the
    window would then sit over the middle of the very thing it is previewing, so
    it sits at the foot of the screen instead — over the toolbar, which nothing in

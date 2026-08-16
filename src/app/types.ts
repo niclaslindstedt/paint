@@ -174,63 +174,18 @@ export type Layer = {
    *  carries it out of the box, which is what stops a stray pencil line landing
    *  under everything you have drawn. */
   locked?: boolean;
-  /** Filters this layer alone is seen through (see `Filter`).
-   *
-   *  The same values the drawing carries, scoped to one sheet of the stack:
-   *  blur the layer a photo sits on and the marks above and below it stay
-   *  sharp. Absent — the usual case — means none, so a stack that has never
-   *  been filtered serialises exactly as it always did.
-   *
-   *  Where the page's filters are composited over the *finished* picture, these
-   *  are part of how the layer is painted: its marks go onto a surface of their
-   *  own, the filters are applied to that, and the result is composited into the
-   *  page (see `render.ts`). Two consequences worth knowing, both of them the
-   *  point rather than side effects:
-   *
-   *    - **The eraser cuts the filtered result.** A rubbing out on a blurred
-   *      layer takes the blurred pixels away and shows what is under them,
-   *      because it is one of that layer's own marks and lands inside its
-   *      surface. On an unfiltered layer the eraser goes on reaching the whole
-   *      page beneath it, exactly as it always has.
-   *    - **A filtered layer is composited as a unit.** Its marks blur together
-   *      rather than each blurring alone, which is what makes it read as a soft
-   *      photograph instead of a pile of soft strokes. */
-  filters?: Filter[];
 };
 
-/** One filter: something a picture is seen *through*, rather than a mark on it.
- *
- *  A filter is held on the drawing — or on one layer of it (`Layer.filters`) —
- *  and applied when the page is painted (see `filters.ts` / `filterPaint.ts`),
- *  which is what keeps the document vector: a blurred drawing is still the same
- *  strokes, at the same coordinates, with a number saying how it is being
- *  looked at. Turning a filter off costs nothing and loses nothing, and the
- *  whole thing is two numbers on the wire.
- *
- *  At most one filter of each kind is ever on a drawing (or on a layer) —
- *  "blur" is a setting, not something you stack — and they are applied in the
- *  order `filters.ts` declares rather than the order they were switched on, so
- *  a page looks the same however it got there.
- *
- *  Every option is a plain number or a flag on the object itself: the panel and
- *  the dialog read and write them by id off the descriptors, and nothing in the
- *  UI branches on a filter's kind. */
-export type Filter =
-  | {
-      kind: "blur";
-      /** Gaussian standard deviation, in document pixels. */
-      radius: number;
-    }
-  | {
-      kind: "noise";
-      /** How strongly the grain shows, 0–1. */
-      amount: number;
-      /** How big one speck is, in document pixels. */
-      grain: number;
-      /** Speckle the colours as well as the light. Absent — the usual case —
-       *  means monochrome grain, which is what film leaves. */
-      color?: boolean;
-    };
+// A layer used to be able to carry *filters* — a blur or a grain the whole sheet
+// was seen through on every frame, forever. It no longer can, and the field is
+// stripped from documents that have one (see `migrations.ts`).
+//
+// What replaced it is an **effect** (`effects.ts`): the same two operations,
+// applied once, to the pixels. Blurring a layer rasterises its marks into a
+// single image stroke with the softening already in them, so nothing has to be
+// re-softened per frame and a mark drawn afterwards is sharp. That is both the
+// honest model — a blur really is a change to the picture — and the reason
+// rubbing out on a blurred layer is no longer slow.
 
 /** What the page is *made of* — the stock the sheet is cut from, and how much
  *  of its tooth shows (see `ground.ts`).
@@ -297,10 +252,6 @@ export type Drawing = {
   layers?: Layer[];
   /** The layer new marks land on. Absent falls back to the top of the stack. */
   activeLayerId?: string;
-  /** The page-wide filters this drawing is seen through (see `Filter`).
-   *  Absent — the usual case — means none, and a drawing that has never been
-   *  filtered is byte-for-byte the document it always was. */
-  filters?: Filter[];
   /** Optional framework glyph + accent colour, used by the side menu row and
    *  the browser-tab favicon (see the `glyphs` module). */
   glyph?: string;

@@ -25,17 +25,19 @@ import {
   type PastePayload,
 } from "./clipboard.ts";
 import { DownloadMenu } from "./DownloadMenu.tsx";
+import { bakeEffect, effectTargets } from "./bake.ts";
 import {
-  filterDescriptor,
-  filterOf,
-  layerFilterOf,
-  type FilterTarget,
-} from "./filters.ts";
-import { previewFilter } from "./filterPreview.ts";
+  defaultScope,
+  effectDescriptor,
+  type Effect,
+  type EffectKind,
+  type EffectScope,
+} from "./effects.ts";
 import { DrawingTitle } from "./DrawingTitle.tsx";
 import { HeaderIconButton } from "./HeaderIconButton.tsx";
 import { PasteIcon, ScissorsIcon, SidePanelIcon } from "./icons.tsx";
 import { useT } from "./i18n/index.ts";
+import { activeLayer, layerDisplayName } from "./layers.ts";
 import { ImagePlacement } from "./ImagePlacement.tsx";
 import { importImageFile, type ImportedImage } from "./images.ts";
 import { fieldHasKeyboard } from "./keys.ts";
@@ -66,8 +68,8 @@ import { Toolbar } from "./Toolbar.tsx";
 import { ToolFlash } from "./ToolFlash.tsx";
 import { presetsFor, toolSize, type AppSettings } from "./useAppSettings.ts";
 import type { PresetSettings } from "./presets.ts";
-import type { Filter, Point } from "./types.ts";
-import type { PaintStore } from "./usePaintStore.ts";
+import type { Point } from "./types.ts";
+import { freshId, type PaintStore } from "./usePaintStore.ts";
 import {
   resizeCanvas,
   scaleDrawing,
@@ -83,9 +85,9 @@ const ResizeModal = lazy(() =>
   import("./ResizeModal.tsx").then((m) => ({ default: m.ResizeModal })),
 );
 
-// …and the same for a filter's options, which most drawings never open at all.
-const FilterModal = lazy(() =>
-  import("./FilterModal.tsx").then((m) => ({ default: m.FilterModal })),
+// …and the same for an effect's options, which most drawings never open at all.
+const EffectModal = lazy(() =>
+  import("./EffectModal.tsx").then((m) => ({ default: m.EffectModal })),
 );
 
 // The main screen: a header naming the open drawing (with the favourite star
@@ -256,17 +258,17 @@ export function CanvasScreen({
   const copied = useRef<DraftStroke[] | null>(null);
   // The resize dialog, which is the one page action that has a question to ask.
   const [resizing, setResizing] = useState(false);
-  // Which filter's options are open, if any — the panel names the filter and
-  // what it belongs to, this screen owns the dialog, exactly as it owns the
-  // resize one.
+  // Which effect's options are open, if any — the panel names the effect, this
+  // screen owns the dialog, exactly as it owns the resize one.
   //
-  // The **draft** sits here rather than inside the dialog because it is what
-  // the canvas paints while the sliders move (see `filterPreview.ts`): one
-  // value, showing in the dialog and on the page, so the two cannot disagree.
-  // Screen state all the same — the document hears nothing until Apply.
-  const [filtering, setFiltering] = useState<{
-    target: FilterTarget;
-    draft: Filter;
+  // The **draft** and the **scope** sit here rather than inside the dialog
+  // because they are what the canvas paints while the sliders move: one value,
+  // showing in the dialog and on the page, so the two cannot disagree. Screen
+  // state all the same — the document hears nothing until Apply.
+  const [effecting, setEffecting] = useState<{
+    kind: EffectKind;
+    draft: Effect;
+    scope: EffectScope;
   } | null>(null);
   // Bumped when the page changes shape under the view, so the canvas can fit the
   // sheet again — see `PaintCanvas`'s `refitToken`.
@@ -318,33 +320,40 @@ export function CanvasScreen({
     return box ? { ids: selected.map((s) => s.id), box } : null;
   }, [selected]);
 
-  /** Open one filter's options, on the page or on a layer of it.
+  /** Open one effect's options.
    *
-   *  The draft is seeded here rather than in the dialog because the page is
-   *  painted through it from the first frame the dialog is up: whatever is
-   *  already set, or — for a filter being switched on — the descriptor's
-   *  preset, which is deliberately a visible setting (see `filters.ts`). */
-  const openFilter = useCallback(
-    (target: FilterTarget) => {
-      const descriptor = filterDescriptor(target.kind);
-      if (!descriptor || !drawing) return;
-      const held = target.layerId
-        ? layerFilterOf(drawing, target.layerId, target.kind)
-        : filterOf(drawing, target.kind);
-      setFiltering({ target, draft: held ?? descriptor.preset });
-    },
-    [drawing],
-  );
+   *  The draft is seeded from the descriptor's preset — a visible setting, so
+   *  the page shows something from the first frame the dialog is up — and the
+   *  scope from the narrower of the ones it offers. Neither is remembered
+   *  between openings: an effect leaves nothing on the document to read back,
+   *  which is exactly what makes it an effect (see `effects.ts`). */
+  const openEffect = useCallback((kind: EffectKind) => {
+    const descriptor = effectDescriptor(kind);
+    if (!descriptor) return;
+    setEffecting({
+      kind,
+      draft: descriptor.preset,
+      scope: defaultScope(descriptor),
+    });
+  }, []);
 
-  // The page as the open dialog's sliders have it — the drawing itself
-  // everywhere else, and the same object while nothing is being set up, so a
-  // drawing with no dialog over it pays nothing for this.
-  const previewed = useMemo(
+  // Which layers the open dialog would land on, and the preview the canvas
+  // paints from them. One object per (effect, scope) rather than one per frame,
+  // because the mark cache compares it by identity (see `cache.ts`) — and
+  // `undefined` while no dialog is open, so a drawing with none pays nothing.
+  const targets = useMemo(
     () =>
-      drawing && filtering
-        ? previewFilter(drawing, filtering.target, filtering.draft)
-        : drawing,
-    [drawing, filtering],
+      drawing && effecting
+        ? effectTargets(drawing, effecting.scope, activeLayer(drawing).id)
+        : [],
+    [drawing, effecting],
+  );
+  const preview = useMemo(
+    () =>
+      effecting && targets.length > 0
+        ? { effect: effecting.draft, layerIds: new Set(targets) }
+        : null,
+    [effecting, targets],
   );
 
   // A placement belongs to the page it was dropped on. Opening another drawing
@@ -355,9 +364,9 @@ export function CanvasScreen({
   // A caption belongs to the page it was begun on, for the same reason.
   useEffect(() => setTyping(null), [openPage]);
   // The panel is about the page it was opened over, so it closes with it — and
-  // so does a filter's options, which are settings on that page and no other.
+  // so does an effect's options, which are aimed at that page and no other.
   useEffect(() => setLayersOpen(false), [openPage]);
-  useEffect(() => setFiltering(null), [openPage]);
+  useEffect(() => setEffecting(null), [openPage]);
   // …and a selection names marks on *this* page, so it is dropped with the page
   // rather than carried onto one where those ids mean nothing.
   useEffect(() => {
@@ -803,11 +812,11 @@ export function CanvasScreen({
           className="relative min-h-0 flex-1 overflow-hidden bg-page-bg"
         >
           <PaintCanvas
-            // The document — or, while a filter's options are open, the
-            // document seen through the setting they are sitting on. It is a
-            // view for this paint and nothing more: the marks are the same
-            // objects, and the store is never told (see `filterPreview.ts`).
-            drawing={previewed ?? drawing}
+            drawing={drawing}
+            // The effect being set up, if any. It goes to the renderer as a
+            // *view* — no undo step, no push to the cloud — and comes out of
+            // the same composite the bake will rasterise (see `bake.ts`).
+            preview={preview}
             pageColor={pageColor}
             tool={tool}
             ink={{
@@ -934,9 +943,9 @@ export function CanvasScreen({
                 // about, and the panel is what you were leaving anyway. It
                 // matters more now that the dialog previews: the page it is
                 // showing you is the page the panel was covering.
-                onFilter={(target) => {
+                onEffect={(kind) => {
                   setLayersOpen(false);
-                  openFilter(target);
+                  openEffect(kind);
                 }}
                 onTransform={transformPage}
                 onClose={() => setLayersOpen(false)}
@@ -990,7 +999,7 @@ export function CanvasScreen({
             defaultInk={ink}
             docked
             onResize={() => setResizing(true)}
-            onFilter={openFilter}
+            onEffect={openEffect}
             onTransform={transformPage}
             onClose={() => undefined}
           />
@@ -1099,43 +1108,52 @@ export function CanvasScreen({
         ]}
       />
 
-      {/* A filter's options. Mounted only while they are open, so the sliders
-          always start from what the page is actually set to — and nothing lands
-          on the drawing until Apply, however much the page behind is already
-          showing (see `FilterModal`). */}
-      {filtering &&
+      {/* An effect's options. Mounted only while they are open, so the sliders
+          always start from the descriptor's preset — and nothing lands on the
+          drawing until Apply, however much the page behind is already showing
+          (see `EffectModal`). */}
+      {effecting &&
         (() => {
-          const { target, draft } = filtering;
-          const descriptor = filterDescriptor(target.kind);
+          const descriptor = effectDescriptor(effecting.kind);
           if (!descriptor) return null;
-          // The same dialog either way; only who it reads from and writes to
-          // changes with the target it was opened for.
-          const on = target.layerId;
-          const held = on
-            ? layerFilterOf(drawing, on, target.kind)
-            : filterOf(drawing, target.kind);
           return (
             <Suspense fallback={null}>
-              <FilterModal
+              <EffectModal
                 descriptor={descriptor}
-                filter={held ?? null}
-                draft={draft}
+                draft={effecting.draft}
                 onDraft={(next) =>
-                  setFiltering((current) =>
+                  setEffecting((current) =>
                     current ? { ...current, draft: next } : null,
                   )
                 }
-                scope={on ? "layer" : "page"}
-                onCancel={() => setFiltering(null)}
-                onApply={(filter) => {
-                  if (on) store.setLayerFilter(on, filter);
-                  else store.setFilter(filter);
-                  setFiltering(null);
-                }}
-                onRemove={() => {
-                  if (on) store.clearLayerFilter(on, target.kind);
-                  else store.clearFilter(target.kind);
-                  setFiltering(null);
+                scope={effecting.scope}
+                onScope={(next) =>
+                  setEffecting((current) =>
+                    current ? { ...current, scope: next } : null,
+                  )
+                }
+                target={
+                  effecting.scope === "layer"
+                    ? layerDisplayName(activeLayer(drawing), {
+                        background: t("layers.background"),
+                        base: t("layers.base"),
+                      })
+                    : t("effects.targetLayers", { n: String(targets.length) })
+                }
+                empty={targets.length === 0}
+                onCancel={() => setEffecting(null)}
+                onApply={(effect) => {
+                  // Rasterising needs a canvas, so it happens here where one is
+                  // — what reaches the store is a stroke list like any other.
+                  const strokes = bakeEffect(
+                    drawing,
+                    effect,
+                    targets,
+                    { pageColor, defaultInk: ink },
+                    () => freshId("stroke"),
+                  );
+                  if (strokes) store.applyEffect(strokes);
+                  setEffecting(null);
                 }}
               />
             </Suspense>

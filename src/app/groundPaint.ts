@@ -2,8 +2,8 @@
 // Painting the sheet's grain.
 //
 // The other half of `ground.ts`: that module says what a sheet *does*, this one
-// draws what it looks like. They are split for the reason `filters.ts` and
-// `filterPaint.ts` are — the model is read all over the app and by the tests,
+// draws what it looks like. They are split for the reason `effects.ts` and
+// `effectPaint.ts` are — the model is read all over the app and by the tests,
 // and the painting needs a DOM.
 //
 // The grain is a **repeating tile filled as a pattern**, and that is the only

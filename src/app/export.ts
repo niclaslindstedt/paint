@@ -12,8 +12,6 @@
 // was on screen — there is no second painting path to drift.
 
 import { clipToPage, drawingBounds, padBox, type Box } from "./bounds.ts";
-import { activeFilters, svgFilter } from "./filters.ts";
-import { paintFilters } from "./filterPaint.ts";
 import { preloadDrawingImages } from "./images.ts";
 import { backgroundHidden } from "./layers.ts";
 import { renderDrawing, type InkContext } from "./render.ts";
@@ -122,26 +120,6 @@ function wantsTransparency(
   return options.transparent && carriesAlpha(format);
 }
 
-/** Whether this file will end up with nothing behind the marks: because the
- *  export asked for it, or because the page itself has no sheet.
- *
- *  The second half is the one worth naming. A page with no colour is not a page
- *  that *happens* to be white — its background layer is switched off (see
- *  `layers.ts`), which is the same state as hiding the sheet from the layers
- *  panel, and the renderer honours it whoever is painting. So a PNG or an SVG of
- *  one comes out transparent without the download menu being asked, which is
- *  right: an image made to sit on somebody else's page should arrive with
- *  nothing behind it. */
-export function exportsTransparent(
-  drawing: Drawing,
-  format: DownloadFormat,
-  options: ExportOptions,
-): boolean {
-  return (
-    carriesAlpha(format) && (options.transparent || backgroundHidden(drawing))
-  );
-}
-
 /** Whether this file has to be given a page the drawing hasn't got: a page with
  *  no sheet, written to a format with no alpha. Without it the encoder reads the
  *  nothing as black, which is the one way a "transparent" export can come out
@@ -179,23 +157,16 @@ export async function drawingToBlob(
     transparentPage: wantsTransparency(format, options),
   };
 
-  // What actually comes out, once the page's own sheet has had its say.
-  const transparent = exportsTransparent(drawing, format, options);
-  // …and the case the two disagree on: a page with no sheet, written to a format
-  // that cannot hold one. The marks would land on nothing and the encoder would
+  // The case the page's own sheet and the format disagree on: a page with no
+  // sheet, written to a format that cannot hold one. The marks would land on nothing and the encoder would
   // read that nothing as black, so the file gets a page after all — the colour
   // the sheet would go back to if it were switched on (see `resolvePageColor`),
   // which is what "JPG always keeps the page colour" has always meant.
   const flatten = flattensPage(drawing, format);
 
-  const filters = activeFilters(drawing);
-
   if (format === "svg") {
     const recorder = new SvgCanvas();
     renderDrawing(asContext2D(recorder), drawing, null, paint);
-    // A vector file has no pixels to composite, so the page's filters travel as
-    // SVG filter primitives and the reader applies them (see `filters.ts`).
-    recorder.setPageFilter(svgFilter(filters));
     return new Blob([recorder.toSvg(region)], { type: formatMime(format) });
   }
 
@@ -222,20 +193,6 @@ export async function drawingToBlob(
     ctx.fillRect(region.x, region.y, region.width, region.height);
     ctx.restore();
   }
-  // …and the page's filters over the finished picture, through the same code
-  // the screen's last coat runs (see `filterPaint.ts`), at one canvas pixel per
-  // document pixel. A cropped export moves the page's corner with the origin.
-  paintFilters(ctx, filters, {
-    page: {
-      x: -region.x,
-      y: -region.y,
-      width: drawing.width,
-      height: drawing.height,
-    },
-    scale: 1,
-    pageColor: options.pageColor,
-    transparent,
-  });
   const blob = await new Promise<Blob | null>((resolve) =>
     canvas.toBlob(resolve, formatMime(format), JPEG_QUALITY),
   );

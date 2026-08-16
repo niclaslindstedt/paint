@@ -17,8 +17,8 @@ with it and leaves the drawing on transparency.
 right-hand side beside the canvas: a panel you have to summon is one you forget
 you have, and there is width to spare. Above the stack it carries the **Image**
 actions — resize, flip, mirror — which act on the whole drawing (see
-[the canvas](canvas.md)), and the **Filters** section under them, which changes
-how the whole page is seen (see [filters](filters.md)).
+[the canvas](canvas.md)), and the **Effects** section under them, which blurs or
+grains what is already on the page (see [effects](effects.md)).
 
 **The last button in the header** — at the far right end of the row, wearing the
 panel it opens — is the switch, on every screen width. On a wide screen it folds

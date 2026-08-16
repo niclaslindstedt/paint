@@ -139,14 +139,14 @@ the same [`oss-framework`](https://github.com/niclaslindstedt/oss-framework).
   top, hide or lock any of them. Hiding the background takes the page colour
   with it, and a transparent export leaves that layer out. A drawing nobody
   restacks is stored exactly as it was before layers existed.
-- **Filters that change nothing.** Blur or scatter grain over the whole page
-  from the right-hand panel's **Filters** section, or over **one layer** from
-  the layer you have selected — so a photograph can go soft while the notes on
-  top of it stay sharp, and the eraser cuts through the softened result to what
-  is underneath. A filter is a couple of numbers on the drawing rather than a
-  picture in place of your marks, so it costs one undo step, downloads with the
-  page, and switches off leaving the sketch exactly as it was. See
-  [`docs/features/filters.md`](docs/features/filters.md).
+- **Effects that actually land.** Blur or scatter grain from the right-hand
+  panel's **Effects** section — noise on the layer you have selected, blur on
+  that layer or across the whole stack. An effect is applied **once** and is
+  then part of the picture: marks you make afterwards are unaffected, blurring
+  twice blurs the blur, and drawing or rubbing out on what you softened is as
+  fast as anywhere else. The page behind shows the setting as you dial it, and
+  nothing lands until you press Apply; undo puts your marks back. See
+  [`docs/features/effects.md`](docs/features/effects.md).
 - **Vector, not pixels.** Undo is exact, the document is small enough for a
   phone, and a synced copy is readable JSON rather than a blob.
 - **A real file format.** `.pct` is a zip holding one transparent PNG per layer
@@ -305,9 +305,10 @@ npm run preview
   Background stays at the bottom of the stack: it is the page, so it does not
   move and nothing slides under it. The **Image** heading above the
   stack resizes, flips and mirrors the page, and its bin starts the drawing
-  over; the **Filters** section under it blurs or grains the whole page. A press
-  on the page closes it again, as does the header button that opened it — there
-  is no close cross on the panel.
+  over; the **Effects** section under it blurs or grains what is already there.
+  Every heading folds its section away, so you can collapse the ones you are not
+  using. A press on the page closes the panel again, as does the header button
+  that opened it — there is no close cross on it.
 - **Canvas** — one finger (or a pen, or the mouse) draws, two pinch and pan,
   and with a fine pointer the cursor **is the nib**: a circle the size of the
   mark you are about to leave, on the page you are about to leave it on, growing

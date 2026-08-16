@@ -1,0 +1,112 @@
+# Effects
+
+An effect changes what is **on** the page. Blur a sketch to push it behind
+something else; scatter grain over a photograph to take the flatness off it. You
+set it up, you apply it, and it is then part of the picture — like reaching for
+a real can of spray, not like putting a coloured gel over a lamp.
+
+That is the whole idea, and everything else follows from it:
+
+- **It happens once.** A line you draw afterwards is sharp. Nothing keeps
+  re-softening as you work, so drawing and rubbing out on a layer you have
+  blurred is as fast as on any other.
+- **It stacks with itself.** Blur the same layer twice and you have blurred the
+  blur — which is exactly what a second pass over the same photograph does.
+- **It replaces the marks it lands on.** The layer becomes a picture of itself
+  with the effect in it. **Undo puts your marks back**, so it is safe to try;
+  reloading the page will not.
+
+Effects used to be _filters_ — a setting on the drawing that changed nothing and
+was re-applied every time the page was painted. That kept the document purely
+vector, and it cost what it sounds like: every stroke on a blurred layer forced
+the whole layer to be softened again, on every frame, so rubbing out on a
+blurred watercolour crawled. This is the honest version, and the fast one.
+
+## Applying one
+
+Open the right-hand panel — it is docked beside the canvas on a wide screen, and
+behind the panel button in the header (or a swipe in from the right edge) on a
+narrow one — and find the **Effects** section under the Image actions.
+
+Press a row to open its options. **The page behind shows the effect as you set
+it** — the dialog steps down to the foot of the screen and stops dimming the
+page, so what you are dialling in is the drawing itself rather than a number you
+have to guess at. A radius of 20 page pixels means nothing until you see it. And
+it is the same painting the effect will actually make, on the same layers, so
+what you approve is what you get.
+
+Nothing lands until you press **Apply**. A slider dragged from end to end and
+thought better of costs you nothing — no undo step, no history entry, nothing to
+sync — and **Cancel** puts the page straight back.
+
+Applying is one edit like any other: one step of undo, one entry in the
+drawing's history, one push to your cloud copy.
+
+## Where it lands
+
+**Noise** always applies to the layer you have selected. Grain belongs to the
+sheet a mark was made on; the same speck field laid over every layer of a stack
+would be the same dust twice over.
+
+**Blur** offers a choice:
+
+- **This layer** — only the selected layer is softened. Everything above and
+  below it stays exactly as it was, which is how you blur a photograph and keep
+  the notes you wrote on top of it crisp.
+- **All layers** — every layer that is showing and unlocked is softened, each
+  one on its own. Your stack survives: you get a blurred version of each layer,
+  not one flattened picture, so you can still reorder and hide them afterwards.
+
+Two things are never touched by **All layers**: **hidden** layers (an effect you
+cannot see land is one you cannot judge) and **locked** ones — which includes the
+background sheet on a fresh drawing. Unlock a layer and it is in.
+
+The dialog names what it is about to rewrite before you press the button, and if
+the layer you picked has nothing on it, it says so and **Apply** is dead.
+
+## Blur
+
+One setting — **Radius**, in page pixels, from a hairline softening to a
+thorough fog. It is a distance on the page rather than on your screen, so it
+means the same thing at any zoom.
+
+The softened layer is cropped to the marks that went into it plus enough room for
+the blur to fade out, so a small sketch on a big page stays a small picture.
+
+## Noise
+
+Fine specks scattered over what is already there, half of them lighter than what
+they land on and half darker, the way grain sits on film.
+
+- **Strength** — how far the specks go. Low is a texture you notice only on a
+  flat area of colour; high is a page you read through the dust.
+- **Speck size** — how big one speck is, in page pixels. One pixel is film
+  grain; a few is closer to a rough paper.
+- **Coloured specks** — off by default, which leaves grey grain. On, the specks
+  carry colour of their own.
+
+Grain lands on the marks and nowhere else, so a layer with a lot of empty space
+on it does not come back as a rectangle of dust.
+
+## After it is applied
+
+The layer is a picture, and it behaves like any other picture on the page:
+
+- **Drawing on it** puts a sharp mark on top. Nothing softens it.
+- **Rubbing out** takes pixels off it and shows what is underneath — the layers
+  below, or the page. That is how you open a soft hole in a photograph, and it
+  is now as quick as rubbing out anywhere else.
+- **Moving, scaling and turning the page** carry it along exactly as they carry
+  a photograph you dropped in.
+- **Exports** need do nothing special: the effect is in the marks, so every
+  format — PNG, JPG, SVG, the clipboard — carries it without any extra
+  machinery.
+
+## What an effect does not touch
+
+- **Anything you did not aim it at.** Layers outside the scope are untouched,
+  down to the byte.
+- **Picking colours.** The paint bucket and the dropper read the page as it
+  actually is, including a baked effect — which is the right answer now that the
+  softening really is on the page.
+- **The page colour.** The sheet is not a mark, so nothing here changes it.

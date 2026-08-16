@@ -5,7 +5,6 @@ import {
   carriesAlpha,
   exportFileName,
   exportRegion,
-  exportsTransparent,
   flattensPage,
   formatMime,
   DOWNLOAD_FORMATS,
@@ -118,13 +117,10 @@ describe("exportRegion", () => {
 // --- A page made of nothing --------------------------------------------------
 //
 // A new image starts with its sheet switched off (see `NewImageModal`), so what
-// an export does with one is the default path rather than a corner. Three rules,
-// and the third is the one that bites: a format with no alpha channel writes the
-// nothing as solid black unless it is given a page first.
+// an export does with one is the default path rather than a corner. The rule
+// that bites: a format with no alpha channel writes the nothing as solid black
+// unless it is given a page first.
 
-const ink = { pageColor: "#ffffff", defaultInk: "#111827" };
-const opaque = { ...ink, scope: "page" as const, transparent: false };
-const asked = { ...ink, scope: "page" as const, transparent: true };
 const sheeted: Drawing = { ...drawing("sheeted"), layers: defaultLayers() };
 const nothing: Drawing = { ...drawing("nothing"), layers: transparentLayers() };
 
@@ -133,20 +129,6 @@ describe("what an export puts behind the marks", () => {
     expect(carriesAlpha("png")).toBe(true);
     expect(carriesAlpha("svg")).toBe(true);
     expect(carriesAlpha("jpg")).toBe(false);
-  });
-
-  it("carries a page with no sheet through without being asked", () => {
-    // Nobody touched the download menu's transparency switch here: the page
-    // itself has no sheet, and an image made to sit on somebody else's page
-    // should arrive with nothing behind it.
-    expect(exportsTransparent(nothing, "png", opaque)).toBe(true);
-    expect(exportsTransparent(nothing, "svg", opaque)).toBe(true);
-    expect(exportsTransparent(sheeted, "png", opaque)).toBe(false);
-  });
-
-  it("still honours the switch on a page that has one", () => {
-    expect(exportsTransparent(sheeted, "png", asked)).toBe(true);
-    expect(exportsTransparent(sheeted, "jpg", asked)).toBe(false);
   });
 
   it("gives a JPG a page rather than a black rectangle", () => {

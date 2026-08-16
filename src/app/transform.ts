@@ -26,7 +26,6 @@
 
 import { textBox } from "./plugins/builtin/text.ts";
 import { clampCanvasSize, type CanvasSize } from "./canvasSize.ts";
-import { scaleFilters } from "./filters.ts";
 import type { Drawing, Point, Shape, Stroke } from "./types.ts";
 
 /** Which way a mirror faces. `horizontal` swaps left and right (a mirror stood
@@ -253,23 +252,9 @@ export function scaleDrawing(
   return {
     width: to.width,
     height: to.height,
-    // A filter set in document pixels — a blur's radius — is a distance on the
-    // page exactly as a nib width is, so it grows with the sheet. Leaving it
-    // alone would hand back a drawing scaled up and noticeably sharper. The
-    // stack's own filters go the same way, or a scaled page would come back
-    // with its layers softened by a different amount than the page they are on.
-    ...(drawing.filters
-      ? { filters: scaleFilters(drawing.filters, scale) }
-      : {}),
-    ...(drawing.layers
-      ? {
-          layers: drawing.layers.map((layer) =>
-            layer.filters
-              ? { ...layer, filters: scaleFilters(layer.filters, scale) }
-              : layer,
-          ),
-        }
-      : {}),
+    // Nothing to scale on the stack itself: an effect is applied to the pixels
+    // and is gone (see `effects.ts`), so a softened layer is a bitmap and
+    // scales exactly as any other picture on the page does.
     strokes: drawing.strokes.map((stroke) => {
       const next = mapStroke(stroke, at, scale);
       if (next.shape.kind !== "image") return next;
