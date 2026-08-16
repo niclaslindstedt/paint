@@ -65,6 +65,7 @@ import { groundProfile } from "./ground.ts";
 import {
   anyErases,
   anyStains,
+  onSheet,
   paintStrokes,
   relayFixed,
   renderDrawing,
@@ -184,26 +185,30 @@ export function paintCommitted(
     const added = landed.length;
     if (added > 0) {
       // The gesture that just landed, painted onto the marks already there —
-      // which is what compositing it over them on screen did anyway.
+      // which is what compositing it over them on screen did anyway. Held to
+      // the sheet, exactly as a full repaint holds every mark to it (see
+      // `onSheet`), so the cache cannot keep ink the page hasn't got.
       applyView(cache.surface.ctx, spec);
-      paintStrokes(cache.surface.ctx, landed, {
-        ...spec.options,
-        clip: windowOnPage(spec),
+      onSheet(cache.surface.ctx, spec.drawing, () => {
+        paintStrokes(cache.surface.ctx, landed, {
+          ...spec.options,
+          clip: windowOnPage(spec),
+        });
+        // …with the same caveat the screen has: what is already on these pixels
+        // is a finished picture, sheet included, so a mark that rubs out takes
+        // the page with it — and, if it was a rubber rather than a hole, takes
+        // ink it could never have lifted with it too. Both go back: the ink over
+        // what the rubbing out exposed, then the sheet under the lot.
+        if (anyErases(landed)) {
+          relayFixed(
+            cache.surface.ctx,
+            landed,
+            { ...spec.options, clip: windowOnPage(spec) },
+            strokes.slice(0, cache.count),
+          );
+          underlay(cache.surface.ctx, spec.drawing, spec.options);
+        }
       });
-      // …with the same caveat the screen has: what is already on these pixels
-      // is a finished picture, sheet included, so a mark that rubs out takes
-      // the page with it — and, if it was a rubber rather than a hole, takes
-      // ink it could never have lifted with it too. Both go back: the ink over
-      // what the rubbing out exposed, then the sheet under the lot.
-      if (anyErases(landed)) {
-        relayFixed(
-          cache.surface.ctx,
-          landed,
-          { ...spec.options, clip: windowOnPage(spec) },
-          strokes.slice(0, cache.count),
-        );
-        underlay(cache.surface.ctx, spec.drawing, spec.options);
-      }
     }
     remember(cache, spec, strokes);
     blitCache(ctx, cache);

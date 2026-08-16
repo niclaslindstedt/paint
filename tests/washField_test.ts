@@ -257,3 +257,60 @@ describe("the wet field", () => {
     expect(total(field.water)).toBe(0);
   });
 });
+
+// --- The box the arithmetic actually runs in ---------------------------------
+//
+// The field is stepped inside a box drawn round the water rather than over the
+// whole grid: the sheet a mark has not reached, and the sheet it has already
+// dried out of, are cells whose every term is zero, and visiting them is the
+// difference between a wash costing its own wet area and costing its bounding
+// box (see `damp` in `washField.ts`).
+//
+// That is only sound while the box holds every wet cell there is. Nothing in the
+// picture would say if it stopped — a wash whose leading edge fell outside would
+// simply stop spreading, which looks like a wash that stopped spreading — so it
+// is asserted directly, on every step, rather than inferred from a shape.
+
+describe("the damp box", () => {
+  /** Every cell with water in it, and whether the box holds all of them. */
+  function outside(field: WashField): number {
+    let loose = 0;
+    for (let y = 0; y < field.height; y++) {
+      for (let x = 0; x < field.width; x++) {
+        if (field.water[y * field.width + x]! <= 0) continue;
+        if (
+          x < field.left ||
+          x > field.right ||
+          y < field.top ||
+          y > field.bottom
+        ) {
+          loose++;
+        }
+      }
+    }
+    return loose;
+  }
+
+  it("holds every wet cell, on every step of a drying wash", () => {
+    const field = sheet(groundProfile({ stock: "newsprint" }), 1.2, 90);
+    const middle = (field.width * field.cell) / 2;
+    // Laid in three touches with the sheet drying between them, which is the
+    // shape that actually exercises it: the box has to open for water arriving
+    // on a sheet that has begun to dry back.
+    for (let touch = 0; touch < 3; touch++) {
+      charge(field, middle + touch * mm(3), middle, mm(2), 1, 0.8);
+      for (let i = 0; i < 12; i++) {
+        step(field);
+        expect(outside(field)).toBe(0);
+      }
+    }
+  });
+
+  it("closes on a sheet that has dried out", () => {
+    const field = sheet();
+    blot(field, { steps: 200 });
+    // Nothing wet left, so there is nothing left to step: the box is the one no
+    // cell is inside, and the steps after it cost nothing.
+    expect(field.right).toBeLessThan(field.left);
+  });
+});

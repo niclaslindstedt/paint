@@ -226,6 +226,11 @@ export function freehandBehaviour(ink: FreehandInk = {}): ToolBehaviour {
             // one of these that is about the *cost* of the mark rather than
             // about the mark (see `MIN_WASH_DETAIL`).
             detail.washDetail ?? DEFAULT_WASH_DETAIL,
+            // …and whether this mark is still under the hand, which is the
+            // other thing that is about the cost: a gesture is re-simulated on
+            // every pointer sample where a landed mark is simulated once and
+            // kept (see `PaintDetail.live`).
+            detail.live === true,
           );
           return;
         case "spray":

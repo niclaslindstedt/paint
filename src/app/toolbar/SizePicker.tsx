@@ -16,6 +16,7 @@ import type {
   ToolSwatch,
 } from "../plugins/types.ts";
 import type { PresetSettings, ToolPreset } from "../presets.ts";
+import { MAX_PANEL_HEIGHT } from "./panel.ts";
 import { PresetBar } from "./PresetBar.tsx";
 import { ToolDials } from "./ToolDials.tsx";
 import { ToolOptions } from "./ToolOptions.tsx";
@@ -179,7 +180,17 @@ export function SizePicker({
       }}
       className="p-2"
     >
-      <div className="flex flex-col gap-2">
+      {/* The panel's own scroller, inside the frame rather than on it: the
+          floating panel sizes itself to what it is given and caps that at the
+          room it has, so a child that stops growing is what stops the panel
+          growing (see `MAX_PANEL_HEIGHT`). Putting the cap here also keeps the
+          padding above and below the sections outside the scrolled area, so
+          the content shears against the panel's edge rather than against its
+          own margin. */}
+      <div
+        className="flex flex-col gap-2 overflow-y-auto overscroll-contain"
+        style={{ maxHeight: MAX_PANEL_HEIGHT }}
+      >
         {/* Whose panel this is, and the one way *out* of it: the star that
             saves the tool as it is now set.
             

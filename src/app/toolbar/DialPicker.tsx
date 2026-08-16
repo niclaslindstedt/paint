@@ -11,6 +11,7 @@ import type {
   ToolSwatch,
 } from "../plugins/types.ts";
 import type { PresetSettings } from "../presets.ts";
+import { MAX_PANEL_HEIGHT } from "./panel.ts";
 import { PressPreview } from "./PressPreview.tsx";
 import { ShippedPresets } from "./PresetBar.tsx";
 import { ToolDials } from "./ToolDials.tsx";
@@ -128,7 +129,13 @@ export function DialPicker({
       }}
       className="p-2"
     >
-      <div className="flex flex-col gap-2">
+      {/* Capped and scrolled like the width panel's, and for the same reason:
+          a tool with swatches, rendering choices and a rack of dials is taller
+          than a phone (see `MAX_PANEL_HEIGHT`). */}
+      <div
+        className="flex flex-col gap-2 overflow-y-auto overscroll-contain"
+        style={{ maxHeight: MAX_PANEL_HEIGHT }}
+      >
         {swatches.length > 0 && (
           <>
             <div className="flex justify-center">
