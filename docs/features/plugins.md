@@ -370,7 +370,7 @@ app said one thing and the glass said another, and the glass is the one you can
 put a ruler on.
 
 So a millimetre is 18.11 pixels: a 0.5 mm pencil lead is a nine-pixel line, a
-25 mm flat brush a four-hundred-pixel band, and the default 3200 × 2000 sheet a
+25 mm flat brush a four-hundred-pixel band, and a 3200 × 2000 sheet a
 postcard held landscape at 177 × 110 mm. Type is measured in **points**, because
 type has been sold that way for four hundred years and a caption in millimetres
 is one nobody can compare against anything.

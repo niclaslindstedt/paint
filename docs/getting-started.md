@@ -1,7 +1,8 @@
 # Getting started
 
-Paint opens on a blank page with a toolbar under it. There is nothing to sign
-into and nothing to configure — start drawing.
+Paint opens on a blank page with a toolbar under it — a page the size and
+orientation of the screen you opened it on, filling the window edge to edge.
+There is nothing to sign into and nothing to configure — start drawing.
 
 The **hamburger** in the top left, beside the drawing's name, shows and hides the
 list of drawings. On a wide screen that list is docked; on a phone it slides

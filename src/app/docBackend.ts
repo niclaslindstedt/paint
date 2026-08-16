@@ -19,8 +19,9 @@ import {
   quarantineDoc,
   readDocFresh,
 } from "./docDb.ts";
+import { currentScreenCanvasSize } from "./canvasSize.ts";
 import { parseDoc, serializeDoc } from "./migrations.ts";
-import { DEFAULT_CANVAS, type AppData, type Drawing } from "./types.ts";
+import type { AppData, Drawing } from "./types.ts";
 import * as output from "../output.ts";
 
 export { docKey } from "./docDb.ts";
@@ -32,17 +33,22 @@ export function freshId(prefix: string): string {
   return `${prefix}-${crypto.randomUUID()}`;
 }
 
-/** A blank page. It pins no background, so it follows the canvas theme until
- *  someone chooses a colour for it (see `canvas.ts`). */
+/** A blank page. Sized and oriented like the screen it is made on — the same
+ *  "This screen" default the new-image dialog opens with (`canvasSize.ts`), so
+ *  the page a first run lands on is shaped like the device in hand rather than
+ *  like some other machine's sheet. Falls back to the default sheet where
+ *  there is no window to ask. It pins no background, so it follows the canvas
+ *  theme until someone chooses a colour for it (see `canvas.ts`). */
 export function blankDrawing(
   name: string,
   folderId: string | null = null,
 ): Drawing {
+  const size = currentScreenCanvasSize();
   return {
     id: freshId("drawing"),
     name,
-    width: DEFAULT_CANVAS.width,
-    height: DEFAULT_CANVAS.height,
+    width: size.width,
+    height: size.height,
     strokes: [],
     ...(folderId ? { folderId } : {}),
     createdAt: new Date().toISOString(),
