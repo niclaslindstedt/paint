@@ -344,6 +344,19 @@ export type PaintDetail = {
    *  in this app landed on before grounds existed, so a painter that reads it
    *  and a painter that ignores it both keep drawing what they always drew. */
   ground?: GroundProfile;
+  /** The page these marks are landing on (see `InkContext.pageColor`).
+   *
+   *  A painter needs it for one decision, and it is the same one `inkBlend`
+   *  makes about the same page: **which way a stain runs**. Ink on a light
+   *  sheet takes light away; a dark sheet is the *absence* of ink and the same
+   *  physics runs the other way (see `ground.ts`), so a painter that works in
+   *  pigment rather than in a fill has to be told which sheet it is on — the
+   *  watercolour simulation is the one that does, and unmirrored it paints a
+   *  light wash on a dark page as nothing at all.
+   *
+   *  Absent is a white sheet, which is what watercolour is painted on and what
+   *  a painter called directly has always assumed. */
+  page?: string;
   /** Which watercolour engine is in force (see `plugins/wash.ts`). A *view* of
    *  the drawing rather than anything in it — like the canvas theme — so it is
    *  handed down with the scale and the sheet rather than recorded on a mark.
