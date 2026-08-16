@@ -259,6 +259,18 @@ share a factor push that agreement further than a page is wide. The tile is
 built at one speck per pixel and scaled when it is painted, so the field costs
 the same megabyte at every zoom and a zoom never rebuilds it.
 
+That cheapness is what pays for the **preview**. A radius in page pixels is not a
+number anyone can picture, so a filter's dialog paints its draft onto the page
+behind it while the sliders move: `filterPreview.ts` hands back the drawing seen
+through the setting being dialled — the same `withFilter` edit the store applies,
+over the same stroke objects — and the screen paints _that_. Nothing reaches the
+document until Apply, so the draft is screen state like the view or a
+half-typed caption, and a slider dragged end to end costs no undo step. Because
+the marks are the same objects and a page filter is a composite over the blit,
+each sample is one composite rather than a repaint. The dialog holds the modal
+scrim back for as long as it is open (`backdrop.ts`), for the obvious reason: a
+preview seen through a dimmed — or blurred — veil is not one.
+
 ### The sheet is a material, not a backdrop
 
 A drawing carries a **ground** — which stock the page is cut from, and how much

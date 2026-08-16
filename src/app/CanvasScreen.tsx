@@ -31,6 +31,7 @@ import {
   layerFilterOf,
   type FilterTarget,
 } from "./filters.ts";
+import { previewFilter } from "./filterPreview.ts";
 import { DrawingTitle } from "./DrawingTitle.tsx";
 import type { MenuEdge } from "./gestures.ts";
 import { HeaderIconButton } from "./HeaderIconButton.tsx";
@@ -66,7 +67,7 @@ import { Toolbar } from "./Toolbar.tsx";
 import { ToolFlash } from "./ToolFlash.tsx";
 import { presetsFor, toolSize, type AppSettings } from "./useAppSettings.ts";
 import type { PresetSettings } from "./presets.ts";
-import type { Point } from "./types.ts";
+import type { Filter, Point } from "./types.ts";
 import type { PaintStore } from "./usePaintStore.ts";
 import {
   resizeCanvas,
@@ -263,7 +264,15 @@ export function CanvasScreen({
   // Which filter's options are open, if any — the panel names the filter and
   // what it belongs to, this screen owns the dialog, exactly as it owns the
   // resize one.
-  const [filtering, setFiltering] = useState<FilterTarget | null>(null);
+  //
+  // The **draft** sits here rather than inside the dialog because it is what
+  // the canvas paints while the sliders move (see `filterPreview.ts`): one
+  // value, showing in the dialog and on the page, so the two cannot disagree.
+  // Screen state all the same — the document hears nothing until Apply.
+  const [filtering, setFiltering] = useState<{
+    target: FilterTarget;
+    draft: Filter;
+  } | null>(null);
   // Bumped when the page changes shape under the view, so the canvas can fit the
   // sheet again — see `PaintCanvas`'s `refitToken`.
   const [refitToken, setRefitToken] = useState(0);
@@ -313,6 +322,35 @@ export function CanvasScreen({
     const box = selectionBox(selected);
     return box ? { ids: selected.map((s) => s.id), box } : null;
   }, [selected]);
+
+  /** Open one filter's options, on the page or on a layer of it.
+   *
+   *  The draft is seeded here rather than in the dialog because the page is
+   *  painted through it from the first frame the dialog is up: whatever is
+   *  already set, or — for a filter being switched on — the descriptor's
+   *  preset, which is deliberately a visible setting (see `filters.ts`). */
+  const openFilter = useCallback(
+    (target: FilterTarget) => {
+      const descriptor = filterDescriptor(target.kind);
+      if (!descriptor || !drawing) return;
+      const held = target.layerId
+        ? layerFilterOf(drawing, target.layerId, target.kind)
+        : filterOf(drawing, target.kind);
+      setFiltering({ target, draft: held ?? descriptor.preset });
+    },
+    [drawing],
+  );
+
+  // The page as the open dialog's sliders have it — the drawing itself
+  // everywhere else, and the same object while nothing is being set up, so a
+  // drawing with no dialog over it pays nothing for this.
+  const previewed = useMemo(
+    () =>
+      drawing && filtering
+        ? previewFilter(drawing, filtering.target, filtering.draft)
+        : drawing,
+    [drawing, filtering],
+  );
 
   // A placement belongs to the page it was dropped on. Opening another drawing
   // with one still floating drops it rather than carrying it across — settling
@@ -767,7 +805,11 @@ export function CanvasScreen({
           className="relative min-h-0 flex-1 overflow-hidden bg-page-bg"
         >
           <PaintCanvas
-            drawing={drawing}
+            // The document — or, while a filter's options are open, the
+            // document seen through the setting they are sitting on. It is a
+            // view for this paint and nothing more: the marks are the same
+            // objects, and the store is never told (see `filterPreview.ts`).
+            drawing={previewed ?? drawing}
             pageColor={pageColor}
             tool={tool}
             ink={{
@@ -897,10 +939,12 @@ export function CanvasScreen({
                 }}
                 // The floating panel gets out of the way of its own dialog —
                 // on a phone the two would be stacked over the page it is
-                // about, and the panel is what you were leaving anyway.
+                // about, and the panel is what you were leaving anyway. It
+                // matters more now that the dialog previews: the page it is
+                // showing you is the page the panel was covering.
                 onFilter={(target) => {
                   setLayersOpen(false);
-                  setFiltering(target);
+                  openFilter(target);
                 }}
                 onTransform={transformPage}
                 onClose={() => setLayersOpen(false)}
@@ -954,7 +998,7 @@ export function CanvasScreen({
             defaultInk={ink}
             docked
             onResize={() => setResizing(true)}
-            onFilter={setFiltering}
+            onFilter={openFilter}
             onTransform={transformPage}
             onClose={() => undefined}
           />
@@ -1065,22 +1109,30 @@ export function CanvasScreen({
 
       {/* A filter's options. Mounted only while they are open, so the sliders
           always start from what the page is actually set to — and nothing lands
-          on the drawing until Apply (see `FilterModal`). */}
+          on the drawing until Apply, however much the page behind is already
+          showing (see `FilterModal`). */}
       {filtering &&
         (() => {
-          const descriptor = filterDescriptor(filtering.kind);
+          const { target, draft } = filtering;
+          const descriptor = filterDescriptor(target.kind);
           if (!descriptor) return null;
           // The same dialog either way; only who it reads from and writes to
           // changes with the target it was opened for.
-          const on = filtering.layerId;
+          const on = target.layerId;
           const held = on
-            ? layerFilterOf(drawing, on, filtering.kind)
-            : filterOf(drawing, filtering.kind);
+            ? layerFilterOf(drawing, on, target.kind)
+            : filterOf(drawing, target.kind);
           return (
             <Suspense fallback={null}>
               <FilterModal
                 descriptor={descriptor}
                 filter={held ?? null}
+                draft={draft}
+                onDraft={(next) =>
+                  setFiltering((current) =>
+                    current ? { ...current, draft: next } : null,
+                  )
+                }
                 scope={on ? "layer" : "page"}
                 onCancel={() => setFiltering(null)}
                 onApply={(filter) => {
@@ -1089,8 +1141,8 @@ export function CanvasScreen({
                   setFiltering(null);
                 }}
                 onRemove={() => {
-                  if (on) store.clearLayerFilter(on, filtering.kind);
-                  else store.clearFilter(filtering.kind);
+                  if (on) store.clearLayerFilter(on, target.kind);
+                  else store.clearFilter(target.kind);
                   setFiltering(null);
                 }}
               />

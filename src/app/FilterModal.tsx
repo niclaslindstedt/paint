@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-import { useState } from "react";
+import { useEffect } from "react";
 
 import {
   Button,
@@ -7,6 +7,7 @@ import {
   ToggleRow,
 } from "@niclaslindstedt/oss-framework/components";
 
+import { holdBackdrop } from "./backdrop.ts";
 import {
   controlReadout,
   controlValue,
@@ -31,11 +32,18 @@ import type { Filter } from "./types.ts";
 // modal, the same footer, the same one primary button — because they are the
 // same kind of thing: a page-wide change with a question to ask first.
 //
-// **Nothing lands until Apply.** The draft is this component's own state, so a
-// slider dragged and thought better of costs nothing — no undo step, no push to
-// the cloud, no repaint of the document. That is also why there is no live
-// preview: previewing would mean writing the drawing on every pointer sample,
-// and a filter is one undo step, not a hundred.
+// **The page behind shows the answer, and still nothing lands until Apply.**
+// A radius in page pixels is not a number anyone can picture, so the draft is
+// painted on the drawing itself while the sliders move (see `filterPreview.ts`)
+// — and the draft is the screen's state rather than the document's, so a slider
+// dragged from end to end and thought better of costs no undo step, no push to
+// the cloud, and no edit at all. It is a *view* of the page on every pointer
+// sample, which the frame cache serves as one composite over the picture it is
+// already holding.
+//
+// Which is also why this dialog, alone among them, takes the scrim away while
+// it is open (`holdBackdrop`): the page it is previewing is the page behind it,
+// and a preview seen through a black — or blurred — veil is not one.
 //
 // The controls are read off the descriptor and nothing here knows which filter
 // it is showing — a new filter is a descriptor in `filters.ts` and its catalog
@@ -43,9 +51,15 @@ import type { Filter } from "./types.ts";
 
 type Props = {
   descriptor: FilterDescriptor;
-  /** The filter as it is on the drawing, or `null` when it is switched off —
-   *  in which case the dialog opens on the preset and Apply switches it on. */
+  /** The filter as it is on the drawing, or `null` when it is switched off.
+   *  Only what the footer needs — whether there is anything to turn off. What
+   *  the sliders sit on is `draft`, which the screen seeds from this. */
   filter: Filter | null;
+  /** The filter being set up: what the controls show, and what the page behind
+   *  is being painted through. Held by the screen because the preview is
+   *  painted there — see `CanvasScreen`. */
+  draft: Filter;
+  onDraft: (next: Filter) => void;
   onCancel: () => void;
   onApply: (filter: Filter) => void;
   /** Take the filter off the page. Offered only when it is on. */
@@ -60,13 +74,17 @@ type Props = {
 export function FilterModal({
   descriptor,
   filter,
+  draft,
+  onDraft,
   onCancel,
   onApply,
   onRemove,
   scope,
 }: Props) {
   const t = useT();
-  const [draft, setDraft] = useState<Filter>(filter ?? descriptor.preset);
+  // The scrim, for as long as these options are open — and put back exactly as
+  // it was on the way out, whatever the Appearance tab has it set to.
+  useEffect(() => holdBackdrop(), []);
 
   return (
     <Modal
@@ -96,7 +114,9 @@ export function FilterModal({
         </footer>
       }
     >
-      <div className="flex flex-col gap-4 px-5 py-5">
+      {/* The marker the stylesheet reads to move the card off the middle of
+          the page it is previewing — see `styles.css`. */}
+      <div data-previewing className="flex flex-col gap-4 px-5 py-5">
         <h2 id="filter-title" className="text-base font-bold text-fg-bright">
           {t(descriptor.nameKey)}
         </h2>
@@ -118,9 +138,9 @@ export function FilterModal({
                 step={control.step}
                 value={value}
                 onChange={(e) =>
-                  setDraft((current) =>
+                  onDraft(
                     withControl(
-                      current,
+                      draft,
                       control.id,
                       Number((e.target as HTMLInputElement).value),
                     ),
@@ -138,15 +158,17 @@ export function FilterModal({
             label={t(option.nameKey)}
             hint={t(option.hintKey)}
             checked={switchValue(draft, option.id)}
-            onChange={(on) =>
-              setDraft((current) => withSwitch(current, option.id, on))
-            }
+            onChange={(on) => onDraft(withSwitch(draft, option.id, on))}
           />
         ))}
 
         <p className="border-t border-line pt-3 text-[11px] text-muted">
           {scope === "layer" ? t("filters.layerHint") : t("filters.hint")}
         </p>
+        {/* …and what the page behind is doing, which is the one thing the
+            sliders cannot say for themselves: it is already showing the
+            change, and it is not keeping it yet. */}
+        <p className="text-[11px] text-muted">{t("filters.previewHint")}</p>
       </div>
     </Modal>
   );

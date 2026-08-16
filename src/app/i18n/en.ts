@@ -126,6 +126,8 @@ export const en = {
       "This layer is seen through the filter; the rest of the stack is not. The eraser cuts through the result, so you can rub a hole in a softened layer and show what is under it.",
     apply: "Apply",
     remove: "Turn off",
+    previewHint:
+      "The page behind is showing the setting as you move it. Nothing lands on the drawing until you apply it.",
     blur: {
       name: "Blur",
       hint: "Softens the whole page, as though the drawing were out of focus.",

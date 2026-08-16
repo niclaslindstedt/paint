@@ -73,6 +73,23 @@
   backdrop-filter: blur(var(--modal-backdrop-blur, 0px));
 }
 
+/* ── A previewing dialog steps aside ─────────────────────────────────────────
+   A filter's options are the one dialog whose subject is the page *behind* it:
+   the sliders are painted onto the drawing as they move (see `filterPreview.ts`)
+   and the scrim is held back so you can see them land. A card centred in the
+   window would then sit over the middle of the very thing it is previewing, so
+   it sits at the foot of the screen instead — over the toolbar, which nothing in
+   this dialog needs, rather than over the picture.
+
+   It lives here because the card is the framework's element rather than ours:
+   all `Modal` gives an app is what goes *inside* it, so the dialog marks its own
+   content and this reaches the card through it. A browser without `:has()` shows
+   a centred dialog that previews exactly as well — which is why this is one
+   property and no layout depends on it. */
+[role="dialog"]:has(> [data-previewing]) {
+  align-self: end;
+}
+
 /* ── The sync glyph as a button-island cell ──────────────────────────────────
    The framework's `SyncStatus` is shaped as a *header* button: a fixed 36px
    square with its own border and rounding. In the side menu's button island it
