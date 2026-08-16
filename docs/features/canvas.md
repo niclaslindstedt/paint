@@ -22,11 +22,17 @@ so a page made on a retina laptop exports at its native size rather than at half
 of it. A size that is already on the list — Full HD on a 1080p monitor — is
 offered once, as _This screen_.
 
-A page **larger than the window** is not a problem: the canvas opens as a window
-onto the sheet at 1:1 and you move around it, so there is always room to the
-right of what you have drawn. That is the whole point of the large sheet — a
-page that exactly fits the window is a page you run out of, and the first
-diagram that needs one more box has nowhere to put it.
+A page **larger than the window** is not a problem: the canvas is a window onto
+the sheet and you move around it, so there is always room to the right of what
+you have drawn. That is the whole point of the large sheet — a page that exactly
+fits the window is a page you run out of, and the first diagram that needs one
+more box has nowhere to put it.
+
+A drawing **opens covering the window** edge to edge: the page fills the width
+and the height, and whichever side the shapes disagree on is cropped equally at
+both ends rather than letterboxed behind margins. A page made at _This screen_
+covers your screen exactly — at its native resolution, which the zoom readout
+calls 100%.
 
 Because the size is fixed rather than reflowed, a sketch made on a laptop looks
 the same on a phone — you just see less of it at once. The page also grows on
@@ -92,7 +98,7 @@ exists. See [the surface you draw on](surface.md).
 | Wheel / trackpad scroll               | Pans                                 |
 | Ctrl (⌘) + wheel, or a trackpad pinch | Zooms about the cursor               |
 | The **hand** tool (`D`)               | One-finger drag pans                 |
-| Double-tap with the hand              | Fits the whole page, again for 1:1   |
+| Double-tap with the hand              | Fits the whole page, again for 100%  |
 | Swipe in from the screen edge         | Opens the sidebar, and marks nothing |
 
 The **hand** is the way around the page when two fingers aren't handy — a mouse
@@ -103,7 +109,10 @@ double-tap is two marks, so it does exactly that and nothing else.
 
 The **zoom readout** in the bottom-right corner of the canvas does the same as
 the hand's double-tap, from any tool: it shows the current zoom, and tapping it
-fits the page (or returns to 1:1 if it is already fitted).
+fits the page (or returns to 100% if it is already fitted). The percentage
+counts your screen's own pixels — **100% is one document pixel per device
+pixel**, so a screen-sized page covering the screen reads 100%, and it is the
+zoom at which a millimetre on the size button is a millimetre on the glass.
 
 Putting a second finger down mid-stroke abandons that stroke rather than
 committing it — you meant to zoom, and half a line you didn't want is worse than

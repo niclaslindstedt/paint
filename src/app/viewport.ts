@@ -30,9 +30,19 @@ export type Viewport = { width: number; height: number };
 export const MIN_SCALE = 0.1;
 export const MAX_SCALE = 8;
 
-/** The zoom a drawing opens at. 1 means one document pixel per CSS pixel — so
- *  the page really is larger than the screen, which is the point of it. */
-export const DEFAULT_SCALE = 1;
+/** The scale at which one document pixel is one *device* pixel — the zoom the
+ *  readout calls 100%.
+ *
+ *  The view's own `scale` is in CSS pixels because pointer maths is, but a
+ *  page is *made* in device pixels (see `canvasSize.ts`) and the physical
+ *  calibration in `units.ts` — "5 mm on the size button is 5 mm on the glass" —
+ *  holds at one document pixel per device pixel. So that is what 100% means:
+ *  a page made at "This screen" covers the screen exactly, and reads 100%
+ *  while doing it, instead of the 1/pixel-ratio it used to be accused of. */
+export function nativeScale(pixelRatio: number): number {
+  const ratio = Number.isFinite(pixelRatio) && pixelRatio > 0 ? pixelRatio : 1;
+  return 1 / ratio;
+}
 
 /** How much of the page must stay on screen when panning, as a fraction of the
  *  viewport. Panning is otherwise unbounded, so a careless two-finger flick
@@ -89,14 +99,25 @@ export function clampView(
   };
 }
 
-/** The view a drawing opens at: 1:1, with the page centred in the window. On a
- *  screen smaller than the page that lands you in the middle of the sheet with
- *  room in every direction; on a bigger one the whole page sits centred. */
+/** The view a drawing opens at: the page *covering* the window, centred.
+ *
+ *  Covering, not fitting — the scale is chosen so the page fills the window
+ *  edge to edge on both axes, and whichever side the aspect ratios disagree on
+ *  is cropped equally at both ends. Opening on a sheet of margins asked you to
+ *  zoom before you could draw; opening at 1:1 dropped you somewhere in the
+ *  middle of a page you couldn't see the shape of. Opening on the whole
+ *  visible sheet is the one view that needs no gesture first — and for a page
+ *  made at "This screen" it is also exactly native resolution (see
+ *  `nativeScale`). */
 export function initialView(
   page: { width: number; height: number },
   viewport: Viewport,
 ): CanvasView {
-  return centerAt(DEFAULT_SCALE, page, viewport);
+  if (page.width <= 0 || page.height <= 0) return centerAt(1, page, viewport);
+  const scale = clampScale(
+    Math.max(viewport.width / page.width, viewport.height / page.height),
+  );
+  return centerAt(scale, page, viewport);
 }
 
 /** The view that fits the whole page in the window with a little margin — what

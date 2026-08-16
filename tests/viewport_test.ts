@@ -2,13 +2,13 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  DEFAULT_SCALE,
   MAX_SCALE,
   MIN_SCALE,
   clampScale,
   clampView,
   fitView,
   initialView,
+  nativeScale,
   panBy,
   pinch,
   toDocumentPoint,
@@ -54,17 +54,57 @@ describe("toDocumentPoint / toScreenPoint", () => {
 });
 
 describe("initialView", () => {
-  it("opens at 1:1 with the page centred", () => {
+  it("opens with the page covering the whole window", () => {
+    // No margins and no 1:1 plunge: the sheet fills the window edge to edge.
     const view = initialView(PAGE, PHONE);
-    expect(view.scale).toBe(DEFAULT_SCALE);
-    // The window's centre is over the page's centre, so you start in the middle
-    // of the sheet with room in every direction.
+    expect(PAGE.width * view.scale).toBeGreaterThanOrEqual(PHONE.width);
+    expect(PAGE.height * view.scale).toBeGreaterThanOrEqual(PHONE.height);
+  });
+
+  it("touches the window exactly on the tighter axis", () => {
+    // A wide page in a tall window covers the height and crops the width…
+    const wide = initialView({ width: 2000, height: 1000 }, PHONE);
+    expect(1000 * wide.scale).toBeCloseTo(PHONE.height, 6);
+    expect(2000 * wide.scale).toBeGreaterThan(PHONE.width);
+    // …and a page shaped like the window covers it exactly, both ways.
+    const same = initialView({ width: 800, height: 1400 }, PHONE);
+    expect(800 * same.scale).toBeCloseTo(PHONE.width, 6);
+    expect(1400 * same.scale).toBeCloseTo(PHONE.height, 6);
+  });
+
+  it("centres the cropped side, cutting both ends equally", () => {
+    const view = initialView(PAGE, PHONE);
+    // The window's centre is over the page's centre, so whatever the cover
+    // crops is split evenly between the two edges.
     const centre = toDocumentPoint(view, {
       x: PHONE.width / 2,
       y: PHONE.height / 2,
     });
     expect(centre.x).toBeCloseTo(PAGE.width / 2, 6);
     expect(centre.y).toBeCloseTo(PAGE.height / 2, 6);
+  });
+
+  it("still respects the zoom ceiling for a tiny page", () => {
+    expect(
+      initialView({ width: 64, height: 64 }, { width: 2000, height: 2000 })
+        .scale,
+    ).toBe(MAX_SCALE);
+  });
+});
+
+describe("nativeScale", () => {
+  it("is one document pixel per device pixel", () => {
+    // A 3× phone shows a document pixel with a third of a CSS pixel, so a
+    // screen-sized page covers the screen exactly at this scale — and the
+    // readout calls it 100% instead of 33%.
+    expect(nativeScale(3)).toBeCloseTo(1 / 3, 9);
+    expect(nativeScale(1)).toBe(1);
+  });
+
+  it("falls back to 1:1 for a ratio that isn't one", () => {
+    expect(nativeScale(0)).toBe(1);
+    expect(nativeScale(Number.NaN)).toBe(1);
+    expect(nativeScale(-2)).toBe(1);
   });
 });
 

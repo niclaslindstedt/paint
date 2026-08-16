@@ -77,7 +77,7 @@ import {
   type ResizeAnchor,
   type Sampling,
 } from "./transform.ts";
-import { toDocumentPoint, type CanvasView } from "./viewport.ts";
+import { nativeScale, toDocumentPoint, type CanvasView } from "./viewport.ts";
 import * as output from "../output.ts";
 
 // The resize dialog is a click away, never a first paint away — like every
@@ -984,9 +984,13 @@ export function CanvasScreen({
 
           {/* The zoom readout, floating over the canvas rather than sitting in
             the header — six icon buttons up there left a phone's title field
-            too narrow to read. It doubles as the way back: tap to fit the whole
-            page, tap again for 1:1. Hidden from the pointer stream everywhere
-            but on itself, so it can never swallow a stroke that runs under it. */}
+            too narrow to read. It counts *device* pixels — 100% is one document
+            pixel per pixel of the panel, so a screen-sized page covering the
+            screen reads 100% rather than the reciprocal of the pixel ratio
+            (see `nativeScale`). It doubles as the way back: tap to fit the
+            whole page, tap again for 100%. Hidden from the pointer stream
+            everywhere but on itself, so it can never swallow a stroke that
+            runs under it. */}
           <button
             type="button"
             onClick={() => setFitToken((n) => n + 1)}
@@ -995,7 +999,11 @@ export function CanvasScreen({
             className="absolute right-3 bottom-3 cursor-pointer rounded-full border border-line bg-surface/90 px-2.5 py-1 text-xs text-muted tabular-nums hover:text-fg-bright"
           >
             {t("canvas.zoomPercent", {
-              percent: String(Math.round(scale * 100)),
+              percent: String(
+                Math.round(
+                  (scale / nativeScale(window.devicePixelRatio)) * 100,
+                ),
+              ),
             })}
           </button>
         </div>

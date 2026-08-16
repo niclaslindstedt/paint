@@ -32,6 +32,7 @@ import {
   clampView,
   fitView,
   initialView,
+  nativeScale,
   panBy,
   pinch,
   toDocumentPoint,
@@ -406,9 +407,11 @@ export function PaintCanvas({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [drawing.id, viewport.width, viewport.height, applyView]);
 
-  /** Toggle between fitting the whole page and 1:1, zooming about `anchor`
-   *  (the window's centre when nothing more specific is meant). The one
-   *  "get me back" gesture, shared by the zoom pill and the double-tap. */
+  /** Toggle between fitting the whole page and 100% — one document pixel per
+   *  *device* pixel, the zoom the readout calls 100% (see `nativeScale`) —
+   *  zooming about `anchor` (the window's centre when nothing more specific is
+   *  meant). The one "get me back" gesture, shared by the zoom pill and the
+   *  double-tap. */
   const toggleFit = useCallback(
     (anchor?: Point) => {
       const current = viewRef.current;
@@ -419,7 +422,7 @@ export function PaintCanvas({
         applyView(
           zoomAt(
             current,
-            1,
+            nativeScale(window.devicePixelRatio),
             anchor ?? {
               x: window_.width / 2,
               y: window_.height / 2,
