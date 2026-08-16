@@ -29,6 +29,7 @@
   "include": [
     "src",
     "tests",
+    "brand.ts",
     "vite.config.ts",
     "vitest.config.ts",
     "pwa-plugin.ts"
