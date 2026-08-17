@@ -283,6 +283,10 @@ export const sv: Catalog = {
       name: "Spetsvinkel: {value}°",
       hint: "Åt vilket håll den platta spetsen är vänd.",
     },
+    load: {
+      name: "Bläck: {value} %",
+      hint: "Hur fullt ett dopp spetsen får per drag. Ett snålt bleknar och spricker upp när det sinar; över fullt klumpar det där pennan sätts ner.",
+    },
     grade: {
       name: "Blyerts: {value}",
       hint: "Stiftets hårdhetsgrad. H är hård och ljus och går ovanpå papperet; B är mjuk och mörk och fyller kornet.",
@@ -624,7 +628,7 @@ export const sv: Catalog = {
     calligraphy: {
       name: "Kalligrafipenna",
       description:
-        "En platt spets — bred tvärs över draget, hårfin längs med det. Ställ in vinkeln den hålls i.",
+        "En doppad bredspets — sväller och smalnar med vinkeln den hålls i, skiftar med farten, och sinar när bläcket tar slut.",
     },
     text: {
       name: "Text",

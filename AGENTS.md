@@ -261,10 +261,11 @@ Not every skill keeps something in sync. `.agent/skills/` also holds playbooks
 for work that is easy to do badly, and those carry no `.last-updated` and no
 registry row.
 
-| Skill              | When to run                                                                                                           |
-| ------------------ | --------------------------------------------------------------------------------------------------------------------- |
-| `glyph-design`     | Whenever you draw or correct a tool glyph in `src/app/icons.tsx` — with a design sheet to match or without one.       |
-| `skill-reflection` | At BOTH ends of any session that loads a skill — read its lessons first, reflect them back into it before committing. |
+| Skill              | When to run                                                                                                                                                                                                 |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `glyph-design`     | Whenever you draw or correct a tool glyph in `src/app/icons.tsx` — with a design sheet to match or without one.                                                                                             |
+| `skill-reflection` | At BOTH ends of any session that loads a skill — read its lessons first, reflect them back into it before committing.                                                                                       |
+| `tool-simulation`  | Whenever you build or improve a physical simulation of a drawing medium (ink, lead, wash, …) — reference research, the field-model skeleton, render/probe harnesses, and the frame-rate architecture rules. |
 
 **Do not edit a glyph by eye.** One that reads fine in the editor ships at 18
 pixels beside twenty others, and "a bit heavy" is a number you can have in

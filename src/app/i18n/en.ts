@@ -310,6 +310,10 @@ export const en = {
       name: "Nib angle: {value}°",
       hint: "Which way the flat of the nib is turned.",
     },
+    load: {
+      name: "Ink load: {value}%",
+      hint: "How full a dip the nib gets per stroke. A low one pales and breaks up as it runs dry; past full it blobs where it lands.",
+    },
     grade: {
       name: "Lead: {value}",
       hint: "The grade of the lead. H is hard and pale and rides the paper; B is soft and dark and fills its tooth in.",
@@ -681,7 +685,7 @@ export const en = {
     calligraphy: {
       name: "Calligraphy pen",
       description:
-        "A flat nib — broad across the stroke, hairline along it. Set the angle it is held at.",
+        "A dipped broad nib — swelling and thinning with the angle it is held at, shading with your speed, and running dry as the ink is spent.",
     },
     text: {
       name: "Text",

@@ -182,6 +182,30 @@ instead. As with the wash, a browser that cannot run the simulation, or a mark
 too small to be worth one, is drawn with the stroke engine: no drawing ever
 fails to open because of the setting.
 
+## A dipped pen
+
+The calligraphy pen writes with ink rather than filling a shape — there is no
+engine to pick, because a broad nib with no ink in it is not a pen. Every
+stroke starts with a dip and spends it as it travels: the mark shades with
+your hand — darker where you slow into a curve, paler through a fast sweep —
+it beads where the nib first touches down and pools a little where it lifts,
+and where a stroke crosses itself the translucent ink dries visibly darker.
+Write long enough on one dip and the pen runs dry the way a real one does:
+the stroke pales, then rails — the middle of the edge hollowing while the
+corners keep writing — then breaks up into scratches on the paper's tooth.
+
+How much ink a dip takes is the pen's own **Ink load** dial, per stroke: a
+low load is the drama of a pen giving out mid-flourish, and past full the nib
+blobs where it lands. The paper has its say too — a thirsty sheet drinks the
+reservoir sooner, widens the line a touch and feathers its edge along the
+fibres, the film settles into cold-pressed grain and prints a canvas weave
+straight through the ribbon, and the sealed solid page keeps the clean cut
+and the longest write per dip.
+
+A mark too small on screen for any of that to show — and any browser that
+cannot run the simulation — is drawn as the plain flat nib this tool used to
+be, so nothing ever fails to paint.
+
 ## Layers keep the water apart
 
 Wet mixing happens **within a layer**. A wash mixes with the marks on its own

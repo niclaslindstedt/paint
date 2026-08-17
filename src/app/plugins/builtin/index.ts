@@ -132,6 +132,7 @@ import {
   GRANULATION,
   HAIR,
   HARDNESS,
+  LOAD,
   OPACITY,
   PIGMENT,
   PRESSURE,
@@ -720,10 +721,17 @@ export function registerBuiltinPlugins(): void {
     // once, which is why writing on the wrong paper feathers.
     wetness: 0.5,
     // The nib is drawn a full width either side of the path (the tool halves
-    // what the button says, so the edge is the number on the button).
+    // what the button says, so the edge is the number on the button), plus the
+    // couple of cells of feather the ink wicks past its corners.
     grows: true,
     reach: 1.5,
-    dials: [OPACITY, ANGLE],
+    // The angle every broad nib has — and the dial no other tool does: how
+    // much ink the nib was dipped with. The pen *simulates* its ink (see
+    // `plugins/quillSim.ts`): the film shades with the hand, pools at the
+    // touch and the lift, and runs dry as the stroke spends it, so the load
+    // is the difference between a crisp word and a stroke that rails and
+    // breaks up on the paper — which is a mark calligraphers make on purpose.
+    dials: [OPACITY, ANGLE, LOAD],
     // The three hands anyone is taught. A calligrapher changes the nib and the
     // angle they hold it at, and that is the whole difference between them.
     presets: NIB_PRESETS,

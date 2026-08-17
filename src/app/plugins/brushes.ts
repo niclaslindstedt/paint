@@ -273,9 +273,18 @@ function inside(box: Rect, p: Point): boolean {
 // is built out of the paper's grain instead: see that file's header for why
 // the texture of a wax mark cannot be a function of how wide the stick is.
 
-/** The calligraphy nib: a flat edge held at a fixed angle, so the line is broad
- *  across the nib and hairline along it. Each step is a quad between the two
- *  ends of the nib at consecutive points.
+/** The calligraphy nib as a flat edge held at a fixed angle, so the line is
+ *  broad across the nib and hairline along it. Each step is a quad between the
+ *  two ends of the nib at consecutive points.
+ *
+ *  **This is the calligraphy pen's fallback, not the pen.** The pen writes
+ *  with simulated ink — a finite bead spent along the stroke, shading and
+ *  railing and breaking up as it goes (see `quillSim.ts`) — and comes here
+ *  only where that engine says no: a mark pulled back to a hairline, a nib too
+ *  fine for a field, a browser with no canvas to work one out on. At those
+ *  sizes the whole band is a couple of pixels and none of the ink's character
+ *  could show; what has to survive is the geometry, which is exactly what
+ *  these quads are.
  *
  *  All the quads go into **one path filled once**, so the seams between them
  *  disappear instead of showing as darker joins under a translucent ink. That
