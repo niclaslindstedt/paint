@@ -372,8 +372,16 @@ function heldInkFor(
   wipeSurface(ink, canvas.width, canvas.height);
   ink.ctx.setTransform(view.a, view.b, view.c, view.d, view.e, view.f);
   // Culled to the window the canvas is showing, which is all the held pixels
-  // can hold anyway — the same cull the frame under it ran.
-  paintStrokes(ink.ctx, relay, { ...options, clip: windowOf(view, canvas) });
+  // can hold anyway — the same cull the frame under it ran. Painted *landed*,
+  // whatever the caller's own coat was: these are the committed marks, and a
+  // `live` flag riding in from the gesture would route them through the
+  // painters' live paths — and past the dried-mark stores that make them a
+  // blit (see `PaintDetail.live`).
+  paintStrokes(ink.ctx, relay, {
+    ...options,
+    clip: windowOf(view, canvas),
+    live: undefined,
+  });
   heldInk = {
     relay,
     view: { ...view },

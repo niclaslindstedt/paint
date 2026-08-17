@@ -13,6 +13,7 @@ import { registerBuiltinPlugins } from "../src/app/plugins/builtin/index.ts";
 import { BACKGROUND_LAYER_ID, BASE_LAYER_ID } from "../src/app/layers.ts";
 import { registerPlugin, resetPlugins } from "../src/app/plugins/registry.ts";
 import { dropHeldRelay, liftBounds, relayFixed } from "../src/app/relay.ts";
+import { dropHeldRubbing } from "../src/app/plugins/rubber.ts";
 import {
   anyErases,
   anyLifts,
@@ -433,9 +434,11 @@ describe("the ink a live rubbing out is cut from", () => {
       const rub = mark("rubber");
 
       relayFixed(ctx, [rub], { ...ink, live: true }, before);
-      // Three surfaces: the held window of fixed ink, and the patch-sized pair
-      // the cut is made on.
-      expect(dom.created).toHaveLength(3);
+      // Seven surfaces: the held window of fixed ink, the patch-sized pair
+      // the cut is made on, and the live rubbing's own held walk — its three
+      // weight unions and the surface they are combined on (see
+      // `paintLiveRubbing` in `rubber.ts`).
+      expect(dom.created).toHaveLength(7);
       const held = dom.created[0]!;
       const laid = held.ctx.calls.stroke ?? 0;
       // The pen's line is on the held ink; the pencil's is not — the rubber
@@ -444,10 +447,11 @@ describe("the ink a live rubbing out is cut from", () => {
 
       relayFixed(ctx, [rub], { ...ink, live: true }, before);
       // The next frame minted nothing and repainted no ink — only the mask.
-      expect(dom.created).toHaveLength(3);
+      expect(dom.created).toHaveLength(7);
       expect(held.ctx.calls.stroke ?? 0).toBe(laid);
     } finally {
       dropHeldRelay();
+      dropHeldRubbing();
       dom.restore();
     }
   });
@@ -472,6 +476,7 @@ describe("the ink a live rubbing out is cut from", () => {
       expect(held.ctx.calls.stroke ?? 0).toBeGreaterThan(laid);
     } finally {
       dropHeldRelay();
+      dropHeldRubbing();
       dom.restore();
     }
   });

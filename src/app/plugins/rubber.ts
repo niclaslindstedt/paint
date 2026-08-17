@@ -40,6 +40,7 @@
 // hole afterwards (see `relayFixed` in `relay.ts`).
 
 import type { Rect } from "../geometry.ts";
+import { createSurface, wipeSurface, type Surface } from "../surface.ts";
 import type { Point } from "../types.ts";
 import { PAPER_TOOTH, paperTooth } from "./graphite.ts";
 import {
@@ -107,6 +108,27 @@ const SOFT = 1.1;
  *  the same reason, as the lead in `graphite.ts`. */
 function openFace(cell: number, pressure: number) {
   const lanes: number[][] = [[], [], []];
+  const paintLevel = (
+    ctx: CanvasRenderingContext2D,
+    level: number,
+    alpha: number,
+  ): void => {
+    const run = lanes[level]!;
+    if (run.length === 0) return;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    // A shade *over* the lattice pitch, where the pencil's specks sit a shade
+    // under it: a lead leaves separate flakes, a rubber leaves a wiped field
+    // with what it missed showing through.
+    ctx.lineWidth = cell * 1.15;
+    ctx.globalAlpha = alpha;
+    ctx.beginPath();
+    for (let i = 0; i < run.length; i += 4) {
+      ctx.moveTo(run[i]!, run[i + 1]!);
+      ctx.lineTo(run[i + 2]!, run[i + 3]!);
+    }
+    ctx.stroke();
+  };
   return {
     /** Bear down with `weight` (0–1½) at a point, dragging along (`tx`, `ty`). */
     lay(x: number, y: number, tx: number, ty: number, weight: number): void {
@@ -135,22 +157,15 @@ function openFace(cell: number, pressure: number) {
         Math.min(LEVELS.length - 1, Math.floor(lift * LEVELS.length))
       ]!.push(jx - tx * drag, jy - ty * drag, jx + tx * drag, jy + ty * drag);
     },
+    /** One weight's lanes, stroked as a single path at `alpha` — a single
+     *  `stroke()` covers the union of its lanes once, which is what keeps two
+     *  presses overlapping in one pass from lifting twice. The live walk
+     *  paints through this a level at a time, opaquely, so its held unions
+     *  keep that property across frames (see `paintLiveRubbing`). */
+    paintLevel,
     paint(ctx: CanvasRenderingContext2D, alpha: number): void {
-      ctx.lineCap = "round";
-      ctx.lineJoin = "round";
-      // A shade *over* the lattice pitch, where the pencil's specks sit a shade
-      // under it: a lead leaves separate flakes, a rubber leaves a wiped field
-      // with what it missed showing through.
-      ctx.lineWidth = cell * 1.15;
-      for (const [level, run] of lanes.entries()) {
-        if (run.length === 0) continue;
-        ctx.globalAlpha = alpha * LIFT * LEVELS[level]!;
-        ctx.beginPath();
-        for (let i = 0; i < run.length; i += 4) {
-          ctx.moveTo(run[i]!, run[i + 1]!);
-          ctx.lineTo(run[i + 2]!, run[i + 3]!);
-        }
-        ctx.stroke();
+      for (let level = 0; level < LEVELS.length; level++) {
+        paintLevel(ctx, level, alpha * LIFT * LEVELS[level]!);
       }
     },
   };
@@ -170,6 +185,12 @@ function dragFace(
   half: number,
   cell: number,
   clip?: Rect,
+  // The slice of presses to actually lay, for the live walk that lays each
+  // exactly once (see `paintLiveRubbing`). Everything about a press still
+  // reads off the whole mark — the settle, the bearing, the span — so a slice
+  // lays exactly what a full drag would have laid at those points.
+  from = 0,
+  upto = along.length,
 ): void {
   const count = along.length;
   const span = along[count - 1]!.at;
@@ -184,7 +205,7 @@ function dragFace(
   // would have landed inside it (see `PaintDetail.clip`).
   const slack = half + cell * 5;
 
-  for (let i = 0; i < count; i++) {
+  for (let i = from; i < upto; i++) {
     const p = along[i]!;
     // A press that cannot reach the patch being kept costs nothing but this
     // test. Everything about the presses that *are* laid is untouched — the
@@ -254,6 +275,330 @@ function stampFace(
   }
 }
 
+// --- The rubbing under the hand, laid once -----------------------------------
+//
+// A rubbing out is repainted twice per pointer sample — once as the hole, once
+// as the relay's mask (see `relay.ts`) — and the full drag above walks the
+// whole gesture both times, so a long scrub cost the square of its own length
+// and settled around two full grain budgets per frame. The live walk below is
+// the quill's arrangement (see `openScribe` in `quillSim.ts`) worked in lanes
+// instead of cells: a press whose weight can no longer change is laid **once**
+// into a held union of lanes per weight, and each frame lays only the tail the
+// end can still lighten — the rock-off ramp, and the couple of samples whose
+// smoothed speed is still moving. A frame of scrubbing then costs the presses
+// that arrived, not the presses that ever were.
+//
+// The unions are held *opaque*, one surface per weight, and given their alpha
+// only as they are blitted — because a level's lanes must lift as one pass,
+// however many frames laid them (see `paintLevel`), and an opaque union is the
+// one thing a canvas accumulates idempotently. Blitting the three levels
+// through the caller's compositing is then exactly the three strokes the full
+// drag would have made.
+//
+// One honest difference from the full drag: the live walk works at the finest
+// cell rather than coarsening past `GRAIN_BUDGET` — a budget is a cap on work
+// *per paint*, and the live walk's work per paint is the tail. A rubbing long
+// enough to be coarsened therefore refines a shade when it lands and repaints
+// through the budgeted path; the trade the budget bought before was the whole
+// mark re-graining continuously *while* rubbed, which was worse.
+
+/** How many raw samples back the smoothed speed can still change (`trace`
+ *  smooths over ±2), so no press whose hurry could move is ever laid for
+ *  good — the quill's own window, for the quill's own reason. */
+const SPEED_WINDOW = 2;
+
+/** The most cells the held surfaces may span — a cell is a device pixel, near
+ *  enough, so this is roughly two full screens. Past it the walk gives up and
+ *  the gesture pays the full drag it always did. */
+const LIVE_SPAN = 4_194_304;
+
+/** How much room the held surfaces are opened with beyond the gesture so far,
+ *  in cells on every side, so growing is an occasional copy rather than one
+ *  per frame. */
+const HEADROOM = 96;
+
+/** The rubbing still under the hand: which gesture it is, how much of it has
+ *  been laid for good, and the patch of page the unions cover. */
+type HeldRub = {
+  points: readonly Point[];
+  size: number;
+  scale: number;
+  press: number;
+  alpha: number;
+  cell: number;
+  /** Presses laid for good, as a count into the trace lattice. */
+  settled: number;
+  /** The patch the surfaces cover: origin on the cell lattice (document
+   *  coordinates), extent in cells. */
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  /** One opaque union of lanes per weight (see `LEVELS`). */
+  levels: readonly [Surface, Surface, Surface];
+};
+
+let heldRub: HeldRub | null = null;
+/** …and the surface a level's union is combined with the tail on, reused
+ *  across frames and levels for the allocator's sake. */
+let rubScratch: Surface | null = null;
+
+/** Drop the held walk. Tests only — the app holds it for its lifetime, the
+ *  way the relay holds its surfaces. */
+export function dropHeldRubbing(): void {
+  heldRub = null;
+  rubScratch = null;
+}
+
+/** Whether `next` is `prior` with more on the end — the samples compared by
+ *  identity, exactly as the trail and the quill compare them: a gesture
+ *  appends immutable points, so anything rebuilt fails and the walk starts
+ *  over, which costs a relay rather than a wrong mark. */
+function grownBy(prior: readonly Point[], next: readonly Point[]): boolean {
+  if (next.length < prior.length) return false;
+  for (let i = 0; i < prior.length; i++) {
+    if (prior[i] !== next[i]) return false;
+  }
+  return true;
+}
+
+/** Point a surface's context at the patch: document coordinates in, cells
+ *  out. */
+function latticeTransform(
+  surface: Surface,
+  held: {
+    x: number;
+    y: number;
+    cell: number;
+  },
+): void {
+  surface.ctx.setTransform(
+    1 / held.cell,
+    0,
+    0,
+    1 / held.cell,
+    -held.x / held.cell,
+    -held.y / held.cell,
+  );
+}
+
+/** The arc length through raw sample `upto` — how far along the mark the
+ *  speeds can no longer change. */
+function arcThrough(points: readonly Point[], upto: number): number {
+  let span = 0;
+  for (let i = 1; i <= upto && i < points.length; i++) {
+    const a = points[i - 1]!;
+    const b = points[i]!;
+    span += Math.hypot(b.x - a.x, b.y - a.y);
+  }
+  return span;
+}
+
+/** The held walk for this gesture — validated, opened, or regrown to cover
+ *  it. `null` when a live walk cannot run (no DOM, a gesture past the span
+ *  cap), and the caller pays the full drag. */
+function heldFor(
+  points: readonly Point[],
+  size: number,
+  scale: number,
+  press: number,
+  alpha: number,
+  cell: number,
+  half: number,
+): HeldRub | null {
+  // Everything a press's lanes read besides the path itself; a change means
+  // these pixels describe some other rubbing.
+  const valid =
+    heldRub !== null &&
+    heldRub.size === size &&
+    heldRub.scale === scale &&
+    heldRub.press === press &&
+    heldRub.alpha === alpha &&
+    heldRub.cell === cell &&
+    grownBy(heldRub.points, points);
+  const held = valid ? heldRub! : null;
+
+  // The patch the gesture needs: its box, plus how far a press can land grain
+  // from the path — the same slack the drag's clip test allows.
+  const pad = half + cell * 6;
+  let left = Infinity;
+  let top = Infinity;
+  let right = -Infinity;
+  let bottom = -Infinity;
+  for (const p of points) {
+    if (p.x < left) left = p.x;
+    if (p.x > right) right = p.x;
+    if (p.y < top) top = p.y;
+    if (p.y > bottom) bottom = p.y;
+  }
+  const wantX = Math.floor((left - pad) / cell) * cell;
+  const wantY = Math.floor((top - pad) / cell) * cell;
+  const wantW = Math.ceil((right + pad - wantX) / cell);
+  const wantH = Math.ceil((bottom + pad - wantY) / cell);
+  if (
+    held &&
+    wantX >= held.x &&
+    wantY >= held.y &&
+    wantX + wantW * cell <= held.x + held.width * cell &&
+    wantY + wantH * cell <= held.y + held.height * cell
+  ) {
+    return held;
+  }
+
+  // Open fresh — or regrow around what is already laid, carrying the unions
+  // over so nothing is ever laid twice.
+  const room = HEADROOM * cell;
+  const x = Math.min(held?.x ?? Infinity, wantX - room);
+  const y = Math.min(held?.y ?? Infinity, wantY - room);
+  const width = Math.ceil(
+    (Math.max(
+      held ? held.x + held.width * cell : -Infinity,
+      wantX + wantW * cell + room,
+    ) -
+      x) /
+      cell,
+  );
+  const height = Math.ceil(
+    (Math.max(
+      held ? held.y + held.height * cell : -Infinity,
+      wantY + wantH * cell + room,
+    ) -
+      y) /
+      cell,
+  );
+  if (width * height > LIVE_SPAN) {
+    heldRub = null;
+    return null;
+  }
+  const levels: Surface[] = [];
+  for (let level = 0; level < LEVELS.length; level++) {
+    const surface = createSurface(width, height);
+    if (!surface) {
+      heldRub = null;
+      return null;
+    }
+    levels.push(surface);
+  }
+  const next: HeldRub = {
+    points,
+    size,
+    scale,
+    press,
+    alpha,
+    cell,
+    settled: held?.settled ?? 0,
+    x,
+    y,
+    width,
+    height,
+    levels: levels as unknown as readonly [Surface, Surface, Surface],
+  };
+  for (let level = 0; level < LEVELS.length; level++) {
+    const surface = levels[level]!;
+    if (held) {
+      // The old unions, slid to their new places — whole cells, so the copy
+      // is lossless.
+      surface.ctx.drawImage(
+        held.levels[level]!.canvas,
+        Math.round((held.x - x) / cell),
+        Math.round((held.y - y) / cell),
+      );
+    }
+    latticeTransform(surface, next);
+  }
+  heldRub = next;
+  return next;
+}
+
+/** The combining surface, sized to the held patch. */
+function scratchFor(width: number, height: number): Surface | null {
+  const held = rubScratch ?? createSurface(width, height);
+  if (!held) return null;
+  rubScratch = held;
+  return wipeSurface(held, width, height);
+}
+
+/** Paint the rubbing under the hand by advancing the held walk: settle the
+ *  presses whose weight can no longer change, lay the still-changing tail
+ *  over a copy of the unions, and blit the three weights through whatever
+ *  compositing the caller has in force — the hole and the relay's mask are
+ *  the same three blits. `false` when a live walk cannot run, and the caller
+ *  pays the full drag, exactly as every frame did before this existed. */
+function paintLiveRubbing(
+  ctx: CanvasRenderingContext2D,
+  points: readonly Point[],
+  size: number,
+  scale: number,
+  press: number,
+  alpha: number,
+): boolean {
+  const cell = Math.max(TOOTH, PIXEL / scale);
+  const half = Math.max(cell * 0.5, size / 2);
+  const along = trace(points, cell * 0.85);
+  if (along.length < 2) return false;
+  const held = heldFor(points, size, scale, press, alpha, cell, half);
+  if (!held) return false;
+  const scratch = scratchFor(held.width, held.height);
+  if (!scratch) {
+    heldRub = null;
+    return false;
+  }
+
+  const count = along.length;
+  const span = along[count - 1]!.at;
+  const ramp = Math.max(1, Math.min(span * 0.3, 2 + half));
+  // A press is only laid for good once nothing after it can change it: the
+  // settle ramp has stopped moving with the span, the end's rock-off can no
+  // longer reach it, and its smoothed speed is final.
+  let frontier = held.settled;
+  if (span * 0.3 >= 2 + half) {
+    const safe = Math.min(
+      span - ramp - cell,
+      arcThrough(points, points.length - 1 - SPEED_WINDOW),
+    );
+    let upto = frontier;
+    while (upto < count && along[upto]!.at <= safe) upto++;
+    if (upto > frontier) {
+      const face = openFace(cell, press);
+      dragFace(face, along, half, cell, undefined, frontier, upto);
+      for (let level = 0; level < LEVELS.length; level++) {
+        face.paintLevel(held.levels[level]!.ctx, level, 1);
+      }
+      frontier = upto;
+    }
+  }
+  held.settled = frontier;
+  held.points = points;
+
+  // The tail the end still owns, collected once…
+  const tail = openFace(cell, press);
+  dragFace(tail, along, half, cell, undefined, frontier, count);
+  // …and each weight blitted as the union of its settled and tail lanes, at
+  // the alpha the full drag would have stroked it with.
+  const kept = ctx.globalAlpha;
+  for (let level = 0; level < LEVELS.length; level++) {
+    wipeSurface(scratch, held.width, held.height);
+    scratch.ctx.drawImage(held.levels[level]!.canvas, 0, 0);
+    latticeTransform(scratch, held);
+    tail.paintLevel(scratch.ctx, level, 1);
+    scratch.ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.globalAlpha = alpha * LIFT * LEVELS[level]!;
+    ctx.drawImage(
+      scratch.canvas,
+      0,
+      0,
+      held.width,
+      held.height,
+      held.x,
+      held.y,
+      held.width * cell,
+      held.height * cell,
+    );
+  }
+  ctx.globalAlpha = kept;
+  return true;
+}
+
 /** How coarse to work the grain at: the sheet's own tooth, or the device pixel
  *  once the view is pulled back far enough that the tooth is finer than one.
  *  Marks big enough to blow the budget coarsen by exactly the factor that brings
@@ -276,9 +621,12 @@ function grainCell(length: number, size: number, scale: number): number {
  *  `clip` is the patch the caller is actually keeping (see `PaintDetail.clip`):
  *  presses that cannot reach it are never laid, and the ones that are grain
  *  identically to an unclipped paint — the cell, the lattice and the hand all
- *  read off the whole mark and the page, never off the box. It is what keeps a
- *  live rubbing out costing the patch under the hand rather than the whole
- *  gesture, twice a frame (once as the hole, once as the relay's mask). */
+ *  read off the whole mark and the page, never off the box.
+ *
+ *  `live` says this is the gesture still under the hand (see
+ *  `PaintDetail.live`), which is the one paint that happens per pointer sample
+ *  rather than per mark: it goes through the held walk above, laying each
+ *  press once instead of the whole gesture twice a frame. */
 export function paintRubbing(
   ctx: CanvasRenderingContext2D,
   points: readonly Point[],
@@ -286,6 +634,7 @@ export function paintRubbing(
   scale = 1,
   pressure = 1,
   clip?: Rect,
+  live = false,
 ): void {
   const first = points[0];
   if (!first) return;
@@ -298,6 +647,11 @@ export function paintRubbing(
     // taking off what the cells average out to.
     ctx.globalAlpha = alpha * Math.min(1, LIFT * 0.75 * press);
     paintPath(ctx, points, size);
+    ctx.globalAlpha = alpha;
+    return;
+  }
+
+  if (live && paintLiveRubbing(ctx, points, size, scale, press, alpha)) {
     ctx.globalAlpha = alpha;
     return;
   }

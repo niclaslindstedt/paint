@@ -115,6 +115,12 @@ export type Frame = {
    *  and never kept (see `render.ts`). Pass the *same object* for as long as the
    *  setting holds: the mark cache compares it by identity. */
   preview: EffectPreview | null;
+  /** The view is still under the fingers — a pinch in progress, a wheel still
+   *  streaming. The committed coat may then be served by carrying the cached
+   *  pixels to the new view instead of repainting the document (see
+   *  `CacheSpec.zooming`); whoever sets it owes one more frame with it off
+   *  when the gesture settles. */
+  zooming: boolean;
   /** The gesture in flight, or `null`. */
   draft: DraftStroke | null;
   /** The settled selection's outline, or `null`. Ignored while `moving` is set:
@@ -185,6 +191,7 @@ export function paintFrame(frame: Frame): void {
     dpr,
     options,
     decodedAt: frame.decodedAt,
+    ...(frame.zooming ? { zooming: true } : {}),
   };
   const draft = frame.draft ? { ...frame.draft, id: "draft" } : null;
   // The selection's outline: the same marching ants the marquee was dragged
@@ -219,7 +226,7 @@ export function paintFrame(frame: Frame): void {
   ctx.clearRect(0, 0, width, height);
 
   frame.cache.current ??= createCache(width, height);
-  paintCommitted(ctx, canvas, frame.cache.current, spec);
+  const committedWork = paintCommitted(ctx, canvas, frame.cache.current, spec);
 
   // Then the view: device pixels, then the view's scale and pan. From here on
   // this works in document coordinates exactly as the PNG export does.
@@ -308,7 +315,12 @@ export function paintFrame(frame: Frame): void {
   });
 
   paintChrome(ctx, drawing, outline, view.scale, dpr);
-  trailPainted(frame.trail, spec, draft, outline);
+  // A carried frame is the held pixels resampled, not the picture the document
+  // paints (see `CacheSpec.zooming`) — so the trail must not remember it as
+  // one, or the settle frame after a zoomed-while-drawing gesture would patch
+  // a stale screen instead of repainting it.
+  if (committedWork === "carried") frame.trail.painted = null;
+  else trailPainted(frame.trail, spec, draft, outline);
 }
 
 /** `underlay`, held to one patch of the page — the only part of it a scoped

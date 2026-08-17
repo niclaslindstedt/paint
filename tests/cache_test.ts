@@ -582,6 +582,121 @@ describe("dragging the page", () => {
   });
 });
 
+// A pinch used to repaint the whole document per frame — on a page of
+// simulated marks, seconds of work per frame of a gesture whose next frame
+// threw it away. While the view is declared to be under the fingers
+// (`CacheSpec.zooming`), a frame that differs only by the view is served by
+// carrying the held pixels there: one resampled blit, paid off by the sharp
+// repaint the caller owes when the gesture settles.
+
+describe("zooming while the view is under the fingers", () => {
+  it("carries the held pixels instead of repainting the document", () => {
+    const cache = createCache(400, 300)!;
+    const { ctx, canvas } = screen();
+    const page = drawing([stroke(100), stroke(120), stroke(140)]);
+    paintCommitted(ctx, canvas, cache, spec(page));
+    painted = [];
+    ctx.blits.length = 0;
+
+    for (const scale of [1.1, 1.3, 1.7, 2.2]) {
+      expect(
+        paintCommitted(
+          ctx,
+          canvas,
+          cache,
+          spec(page, { view: { scale, tx: -30, ty: -20 }, zooming: true }),
+        ),
+      ).toBe("carried");
+    }
+    // Four frames of pinch: not one stroke repainted, one blit per frame.
+    expect(painted).toHaveLength(0);
+    expect(ctx.blits).toHaveLength(4);
+  });
+
+  it("resamples the last real repaint, never a carried frame", () => {
+    // Every carried frame must be one resample of the pixels the last real
+    // repaint captured — a carry that re-captured the screen would blit blits,
+    // and a long pinch would smear the page into mush.
+    const cache = createCache(400, 300)!;
+    const { ctx, canvas } = screen();
+    const page = drawing([stroke(100)]);
+    paintCommitted(ctx, canvas, cache, spec(page));
+    const before = cache.painted;
+
+    paintCommitted(ctx, canvas, cache, {
+      ...spec(page),
+      view: { scale: 2, tx: -50, ty: -50 },
+      zooming: true,
+    });
+    // The cache still holds the frame the carry was cut from, so the settle
+    // frame — and every carried one before it — starts from the same pixels.
+    expect(cache.painted).toBe(before);
+  });
+
+  it("repaints for real once the gesture settles", () => {
+    const cache = createCache(400, 300)!;
+    const { ctx, canvas } = screen();
+    const page = drawing([stroke(100), stroke(120)]);
+    paintCommitted(ctx, canvas, cache, spec(page));
+    const zoomed = { scale: 2, tx: -50, ty: -50 };
+    paintCommitted(
+      ctx,
+      canvas,
+      cache,
+      spec(page, { view: zoomed, zooming: true }),
+    );
+    painted = [];
+
+    // The same view asked for without the flag: the settle frame the caller
+    // owes, painted from the document and captured for the frames after it.
+    expect(
+      paintCommitted(ctx, canvas, cache, spec(page, { view: zoomed })),
+    ).toBe("repainted");
+    expect(painted).toHaveLength(2);
+    expect(
+      paintCommitted(ctx, canvas, cache, spec(page, { view: zoomed })),
+    ).toBe("blitted");
+  });
+
+  it("repaints rather than carrying when the document changed too", () => {
+    // A stroke landing mid-gesture (a wheel zoom under a stylus) must show:
+    // a carried frame can only stand in for the picture it was cut from.
+    const cache = createCache(400, 300)!;
+    const { ctx, canvas } = screen();
+    const strokes = [stroke(100)];
+    paintCommitted(ctx, canvas, cache, spec(drawing(strokes)));
+    painted = [];
+    expect(
+      paintCommitted(
+        ctx,
+        canvas,
+        cache,
+        spec(drawing([...strokes, stroke(120)]), {
+          view: { scale: 2, tx: -50, ty: 0 },
+          zooming: true,
+        }),
+      ),
+    ).toBe("repainted");
+  });
+
+  it("still scrolls exactly when only the pan moved", () => {
+    // A two-finger drag that never spreads keeps the scroll path's exact
+    // strips — carrying is only for the frames a scroll cannot serve.
+    const cache = createCache(400, 300)!;
+    const { ctx, canvas } = screen();
+    const page = drawing([stroke(200)]);
+    paintCommitted(ctx, canvas, cache, spec(page));
+    expect(
+      paintCommitted(
+        ctx,
+        canvas,
+        cache,
+        spec(page, { view: { scale: 1, tx: 40, ty: 0 }, zooming: true }),
+      ),
+    ).toBe("scrolled");
+  });
+});
+
 // An effect being previewed is the second document edit the cache cannot see in
 // the strokes (the first is the sheet's eye) — and it isn't a document edit at
 // all, which is exactly why it needs pinning. Moving the dialog's slider

@@ -102,6 +102,7 @@ export function paintGraphiteOn(
   color = "#000000",
   detail = DEFAULT_LEAD_DETAIL,
   clip?: Rect,
+  live = false,
 ): void {
   const drawn = paintSimulatedLead(
     ctx,
@@ -113,6 +114,7 @@ export function paintGraphiteOn(
     color,
     detail,
     clip,
+    live,
   );
   if (drawn) return;
   paintGraphite(ctx, points, size, scale, grade);

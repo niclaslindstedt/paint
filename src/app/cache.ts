@@ -102,12 +102,21 @@ export type CacheSpec = {
    *  would sit invisible behind a cached frame until something else forced a
    *  repaint — the bug the cache would otherwise have quietly introduced. */
   decodedAt?: number;
+  /** The view is still under the fingers — a pinch in progress, a wheel still
+   *  turning. A frame that differs from the cache's only by where the view has
+   *  got to may then be served by **carrying** the held pixels to the new view
+   *  (one resampled blit) instead of repainting the document, because a sharp
+   *  frame is coming the moment the gesture settles (see `carry`). The caller
+   *  owns that promise: whoever sets this must ask for one more frame with it
+   *  off when the gesture ends. */
+  zooming?: boolean;
 };
 
 /** What a frame actually had to do. The canvas ignores it; the tests assert on
  *  it, because "did this frame repaint the document" is the whole point of the
  *  cache and is otherwise invisible. */
-export type CacheWork = "blitted" | "appended" | "scrolled" | "repainted";
+export type CacheWork =
+  "blitted" | "appended" | "scrolled" | "carried" | "repainted";
 
 export type MarkCache = {
   surface: Surface;
@@ -275,6 +284,15 @@ export function paintCommitted(
     // just moved under them.
     if (cache.wet) cache.wet.layerId = null;
     return "scrolled";
+  }
+
+  // The view is mid-gesture and only the view moved: carry the held pixels to
+  // where it has got to and let the settle frame paint the real picture. The
+  // cache deliberately remembers nothing — every carried frame resamples the
+  // *last real repaint* exactly once, so a long pinch cannot compound blur by
+  // blitting blits.
+  if (spec.zooming && carry(ctx, cache, spec, strokes)) {
+    return "carried";
   }
 
   paintDocument(ctx, spec, wetKeep(cache, canvas, spec));
@@ -480,6 +498,60 @@ function scroll(
       Math.abs(dy),
     );
   }
+  return true;
+}
+
+/** Serve a mid-gesture frame by drawing the held pixels where the new view
+ *  says they now sit: one `drawImage` under the transform that maps the view
+ *  they were painted in onto the view being asked for. A zoom then costs a
+ *  resampled blit per frame instead of a document — which on a page of
+ *  simulated marks is the difference between a pinch at frame rate and one at
+ *  seconds per frame.
+ *
+ *  What it shows is honest but soft: the last real frame, resampled, with bare
+ *  desk where the gesture has revealed page the held frame never painted. Both
+ *  are paid off by the settle frame the `zooming` flag promises (see
+ *  `CacheSpec.zooming`). `false` when the frame differs by anything *but* the
+ *  view — a landed stroke, an undo, a resize, a decode — and the caller
+ *  repaints for real, exactly as it would have without this. */
+function carry(
+  ctx: CanvasRenderingContext2D,
+  cache: MarkCache,
+  spec: CacheSpec,
+  strokes: readonly Stroke[],
+): boolean {
+  const from = cache.painted;
+  if (!from) return false;
+  if (!sameFrame({ ...from, view: spec.view }, spec)) return false;
+  // The same marks, exactly: a document that changed mid-gesture deserves the
+  // real repaint, soft frames and all.
+  if (strokes.length !== cache.count) return false;
+  if (!grewFrom(cache.strokes, cache.count, strokes)) return false;
+  if (
+    cache.surface.canvas.width !== spec.width ||
+    cache.surface.canvas.height !== spec.height
+  ) {
+    return false;
+  }
+
+  // Where a device pixel of the held frame lands on this one: both frames are
+  // `applyView` over the same page, so the map between them is one uniform
+  // scale and offset.
+  const grew =
+    (spec.view.scale * spec.dpr) / (from.view.scale * (from.dpr || 1));
+  if (!Number.isFinite(grew) || grew <= 0) return false;
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(0, 0, spec.width, spec.height);
+  ctx.setTransform(
+    grew,
+    0,
+    0,
+    grew,
+    spec.dpr * spec.view.tx - grew * from.dpr * from.view.tx,
+    spec.dpr * spec.view.ty - grew * from.dpr * from.view.ty,
+  );
+  ctx.drawImage(cache.surface.canvas, 0, 0);
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
   return true;
 }
 

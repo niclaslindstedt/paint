@@ -444,7 +444,13 @@ be much less than a full render:
   is in flight. A landed stroke is painted onto that bitmap rather than
   triggering a rebuild, and a **drag scrolls it** — the marks are blitted at
   their new offset and only the strip of page that has just come into view is
-  painted. When a rebuild is unavoidable it paints the _screen_ and copies the
+  painted. A **zoom still under the fingers carries it**: while the canvas
+  declares the view mid-gesture (`CacheSpec.zooming`), a frame that differs
+  only by where the view has got to is the held pixels resampled there in one
+  blit, and the sharp repaint is owed — and paid — the moment the pinch lifts
+  or the wheel pauses. Every carried frame resamples the last real repaint, so
+  a long pinch cannot compound blur, and a document that changes mid-gesture
+  repaints for real. When a rebuild is unavoidable it paints the _screen_ and copies the
   result back, because rendering into an off-screen context is no faster and
   the copy leaves the cache holding exactly what the next frame wants. It
   compares the _painted_ strokes, so hiding or reordering a layer repaints, and
@@ -502,7 +508,21 @@ be much less than a full render:
   past, or on a page since closed) are detected by holding each mark's path
   through a `WeakRef` — the store matches paths by identity, so a collected
   path is a mark no repaint can ever name — and swept out when a new mark
-  wants the room.
+  wants the room. The calligraphy pen (`quillStore.ts`) and the pencil
+  (`leadStore.ts`) keep the same shelf with the same rules, with one honest
+  difference at the pencil: its field is worked at the _device's_ pitch rather
+  than the page's, so the cell is part of the ask and a zoom that settles
+  somewhere new dries every pencil mark again — once, where it used to be once
+  per frame.
+- `rubber.ts` holds the one gesture that is repainted **twice** per pointer
+  sample — a rubbing out is painted once as the hole and once as the relay's
+  mask (`relay.ts`) — as a live walk rather than a drag re-run from its first
+  press: a press whose weight can no longer change is laid once into a held
+  union of lanes per weight, each frame lays only the tail the end can still
+  lighten, and the three unions are blitted through whichever compositing the
+  caller has in force. A frame of scrubbing then costs the presses that
+  arrived rather than the presses that ever were, which is what made a long
+  scrub quadratic in its own length.
 
 The cache holds no state the document doesn't: every path into it goes through
 `renderDrawing`, and where there is no DOM to build it in the canvas paints the
