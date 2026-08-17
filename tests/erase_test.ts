@@ -244,9 +244,16 @@ describe("a rubbing out that only lifts what a rubber can", () => {
       );
       // The give-away: two working surfaces — the ink on one, a picture of how
       // much of it went on the other — and the first blitted back on top.
-      expect(dom.created).toHaveLength(2);
-      expect(ctx.calls.drawImage ?? 0).toBe(1);
-      const [relaid, mask] = dom.created;
+      //
+      // They are the *last* two asked for, not the only two. The pencil is a
+      // lead pressed into the sheet now (see `plugins/lead.ts`), so a graphite
+      // mark opens a field of its own before any of this starts — a surface the
+      // relay knows nothing about and must not be confused with its own.
+      expect(dom.created).toHaveLength(3);
+      const [relaid, mask] = dom.created.slice(-2);
+      // Two blits onto the page: the pencil's own field, and the relaid ink put
+      // back over the hole.
+      expect(ctx.calls.drawImage ?? 0).toBe(2);
       // The pen's line goes back and the pencil's does not: graphite is
       // `liftable`, ink is not.
       expect(relaid!.ctx.calls.stroke ?? 0).toBe(1);

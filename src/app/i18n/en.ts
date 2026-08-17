@@ -363,25 +363,14 @@ export const en = {
   // `plugins/options.ts`). A dial changes the next mark; one of these changes
   // how every mark of its kind is painted, on every drawing.
   //
-  // **One short line each.** The swatch is the explanation — it is the mark this
-  // answer makes — so the words are for what a picture cannot show: the cost.
-  // The rest is in `docs/features/surface.md`, where it can be read once rather
-  // than every time the panel is opened.
+  // **One short line each.** What these buy is speed and nothing else, so the
+  // words are for exactly that. The rest is in `docs/features/surface.md`, where
+  // it can be read once rather than every time the panel is opened.
   options: {
     title: "Rendering",
-    washEngine: "Wash",
-    washSimple: "Stroke",
-    washSimpleHint: "Fast, and the same on any device.",
-    washSimulation: "Pigment",
-    washSimulationHint: "Water on paper, dried a step at a time. Much slower.",
-    washDetail: "Detail: {value}%",
+    washDetail: "Wash detail: {value}%",
     washDetailHint: "Lower is faster and coarser.",
-    leadEngine: "Lead",
-    leadSimple: "Stroke",
-    leadSimpleHint: "Fast, and the same on any paper.",
-    leadSimulation: "Graphite",
-    leadSimulationHint: "A lead pressed into this page's own tooth. Slower.",
-    leadDetail: "Detail: {value}%",
+    leadDetail: "Lead detail: {value}%",
     leadDetailHint: "Lower is faster and coarser.",
   },
   // The presets each tool ships with — the settings its medium is actually used

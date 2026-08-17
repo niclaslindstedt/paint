@@ -850,9 +850,7 @@ export function CanvasScreen({
             defaultInk={ink}
             showGrid={settings.showGrid}
             checker={checker}
-            washEngine={settings.washEngine}
             washDetail={settings.washDetail}
-            leadEngine={settings.leadEngine}
             leadDetail={settings.leadDetail}
             fitToken={fitToken}
             refitToken={refitToken}

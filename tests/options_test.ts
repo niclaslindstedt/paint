@@ -28,16 +28,54 @@ import {
   pluginById,
   resetPlugins,
 } from "../src/app/plugins/registry.ts";
-import {
-  WASH_DETAIL_OPTION,
-  WASH_ENGINE_OPTION,
-} from "../src/app/plugins/washOptions.ts";
+import { WASH_DETAIL_OPTION } from "../src/app/plugins/washOptions.ts";
 import { MIN_WASH_DETAIL } from "../src/app/plugins/wash.ts";
-import type { PaintPlugin } from "../src/app/plugins/types.ts";
+import type { PaintPlugin, ToolOption } from "../src/app/plugins/types.ts";
 import {
   defaultSettings,
   type AppSettings,
 } from "../src/app/useAppSettings.ts";
+
+/** A `choice` option with something hanging off one of its answers.
+ *
+ *  No tool ships one today — the two engine pickers that used to be the whole
+ *  reason `choice` and `shownWhen` exist went away when the app settled on one
+ *  watercolour and one pencil. The seam kept them: an option is what a *plugin*
+ *  declares, and a build with one tool that wants a picker should not have to
+ *  reintroduce the mechanism. So the mechanism is tested against a plugin's
+ *  worth of declaration rather than against whatever the shipped tools happen to
+ *  use this month. */
+const NIB_OPTION: ToolOption = {
+  kind: "choice",
+  id: "testNib",
+  nameKey: "options.title",
+  answers: [
+    {
+      value: "round",
+      nameKey: "options.washDetail",
+      hintKey: "options.washDetailHint",
+    },
+    {
+      value: "chisel",
+      nameKey: "options.leadDetail",
+      hintKey: "options.leadDetailHint",
+    },
+  ],
+  default: "round",
+};
+
+/** …and one that only makes sense while a particular answer is picked. */
+const NIB_ANGLE_OPTION: ToolOption = {
+  kind: "range",
+  id: "testNibAngle",
+  nameKey: "options.title",
+  hintKey: "options.leadDetailHint",
+  min: -90,
+  max: 90,
+  step: 5,
+  default: 0,
+  shownWhen: { option: "testNib", is: "chisel" },
+};
 
 describe("the options a tool declares", () => {
   beforeEach(() => {
@@ -45,33 +83,23 @@ describe("the options a tool declares", () => {
     registerBuiltinPlugins();
   });
 
-  it("hangs the wash settings off the brush they are about", () => {
-    // They used to be a section of Settings → Tools. They belong to the tool,
-    // so they are declared by it and shown in its own panel.
+  it("hangs the wash setting off the brush it is about", () => {
+    // It used to be a section of Settings → Tools. It belongs to the tool, so
+    // it is declared by it and shown in its own panel.
     const watercolor = pluginById("watercolor");
     expect(watercolor?.options?.map((option) => option.id)).toEqual([
-      "washEngine",
       "washDetail",
     ]);
     expect(hasOptions(watercolor)).toBe(true);
   });
 
-  it("hangs the pencil's engine off the pencil, the same way", () => {
+  it("hangs the pencil's off the pencil, the same way", () => {
     // The second tool to have an opinion about how its own marks are painted,
     // and the seam held: one more descriptor, no screen the wiser.
     const graphite = pluginById("graphite");
     expect(graphite?.options?.map((option) => option.id)).toEqual([
-      "leadEngine",
       "leadDetail",
     ]);
-    // …and the detail slider stays out of the way while the cheap engine is
-    // drawing, because there is no field for it to coarsen.
-    expect(
-      shownOptions(graphite!.options!, {
-        leadEngine: "simple",
-        leadDetail: 1,
-      }).map((option) => option.id),
-    ).toEqual(["leadEngine"]);
     expect(hasOptions(graphite)).toBe(true);
     // …and by nothing else today. A tool with no opinion about how its marks
     // are painted declares none, and gets no such section at all.
@@ -80,6 +108,17 @@ describe("the options a tool declares", () => {
       "graphite",
       "watercolor",
     ]);
+  });
+
+  it("leaves both shipped tools with nothing to choose between", () => {
+    // The point of dropping the second watercolour and the second pencil: the
+    // panel under the widths is two speed sliders now, not two questions about
+    // rendering engines that only a swatch could answer.
+    for (const id of ["graphite", "watercolor"]) {
+      for (const option of pluginById(id)?.options ?? []) {
+        expect(option.kind).toBe("range");
+      }
+    }
   });
 
   it("names settings that exist, at the values they default to", () => {
@@ -119,7 +158,7 @@ describe("the options a tool declares", () => {
       descriptionKey: "tools.watercolor.description",
       icon: () => null,
       sizeless: true,
-      options: [WASH_ENGINE_OPTION],
+      options: [NIB_OPTION],
       behaviour: {
         start: () => null,
         move: (draft: never) => draft,
@@ -133,14 +172,14 @@ describe("the options a tool declares", () => {
 
 describe("resolving an option", () => {
   it("answers with the default for a value nobody set", () => {
-    expect(optionValue(WASH_ENGINE_OPTION, undefined)).toBe("simple");
+    expect(optionValue(NIB_OPTION, undefined)).toBe("round");
     expect(optionValue(WASH_DETAIL_OPTION, undefined)).toBe(1);
   });
 
   it("refuses an answer the option does not offer", () => {
-    expect(optionValue(WASH_ENGINE_OPTION, "simulation")).toBe("simulation");
-    expect(optionValue(WASH_ENGINE_OPTION, "quantum")).toBe("simple");
-    expect(optionValue(WASH_ENGINE_OPTION, 3)).toBe("simple");
+    expect(optionValue(NIB_OPTION, "chisel")).toBe("chisel");
+    expect(optionValue(NIB_OPTION, "quantum")).toBe("round");
+    expect(optionValue(NIB_OPTION, 3)).toBe("round");
   });
 
   it("pulls a number back onto its own track", () => {
@@ -151,15 +190,10 @@ describe("resolving an option", () => {
   });
 
   it("reads every option a tool declares straight off the settings", () => {
-    const settings: AppSettings = {
-      ...defaultSettings(),
-      washEngine: "simulation",
-      washDetail: 0.35,
-    };
+    const settings: AppSettings = { ...defaultSettings(), washDetail: 0.35 };
     resetPlugins();
     registerBuiltinPlugins();
     expect(resolveOptions(pluginById("watercolor"), settings)).toEqual({
-      washEngine: "simulation",
       washDetail: 0.35,
     });
     // A tool with none comes back empty, which is how the panel knows to show
@@ -168,32 +202,44 @@ describe("resolving an option", () => {
   });
 
   it("finds the answer a value stands for, for the hint under the row", () => {
-    expect(optionAnswer(WASH_ENGINE_OPTION, "simulation")?.nameKey).toBe(
-      "options.washSimulation",
+    expect(optionAnswer(NIB_OPTION, "chisel")?.nameKey).toBe(
+      "options.leadDetail",
     );
     expect(optionAnswer(WASH_DETAIL_OPTION, 0.5)).toBeUndefined();
   });
 });
 
 describe("an option that belongs to one answer", () => {
-  const options = [WASH_ENGINE_OPTION, WASH_DETAIL_OPTION];
+  const options = [NIB_OPTION, NIB_ANGLE_OPTION];
 
   it("stays out of the way while another is picked", () => {
-    // The detail is the simulation's arithmetic. With the stroke model painting
-    // there is no field to coarsen, and a slider that moved nothing would be
-    // the panel lying about itself.
+    // A setting about one answer's arithmetic has nothing to say while a
+    // different answer is picked, and a control that moved nothing would be the
+    // panel lying about itself.
     expect(
-      shownOptions(options, { washEngine: "simple", washDetail: 1 }).map(
+      shownOptions(options, { testNib: "round", testNibAngle: 0 }).map(
         (option) => option.id,
       ),
-    ).toEqual(["washEngine"]);
+    ).toEqual(["testNib"]);
   });
 
   it("appears with it", () => {
     expect(
-      shownOptions(options, { washEngine: "simulation", washDetail: 1 }).map(
+      shownOptions(options, { testNib: "chisel", testNibAngle: 0 }).map(
         (option) => option.id,
       ),
-    ).toEqual(["washEngine", "washDetail"]);
+    ).toEqual(["testNib", "testNibAngle"]);
+  });
+
+  it("is a seam no shipped tool uses today, and that is the point", () => {
+    // Both engine pickers are gone (see `plugins/wash.ts`, `plugins/lead.ts`).
+    // A plugin interface that lost half of itself every time the app stopped
+    // needing that half would be a worse interface, so `choice` and `shownWhen`
+    // stay — tested here against a declaration rather than against a tool.
+    for (const plugin of allPlugins()) {
+      for (const option of plugin.options ?? []) {
+        expect(option.shownWhen).toBeUndefined();
+      }
+    }
   });
 });

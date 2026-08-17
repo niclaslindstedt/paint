@@ -334,21 +334,9 @@ export const sv: Catalog = {
   },
   options: {
     title: "Återgivning",
-    washEngine: "Lavering",
-    washSimple: "Drag",
-    washSimpleHint: "Snabb, och likadan på alla enheter.",
-    washSimulation: "Pigment",
-    washSimulationHint:
-      "Vatten på papper som torkar steg för steg. Mycket långsammare.",
-    washDetail: "Detaljnivå: {value} %",
+    washDetail: "Laveringens detaljnivå: {value} %",
     washDetailHint: "Lägre är snabbare och grövre.",
-    leadEngine: "Stift",
-    leadSimple: "Drag",
-    leadSimpleHint: "Snabb, och likadan på allt papper.",
-    leadSimulation: "Grafit",
-    leadSimulationHint:
-      "Ett stift tryckt ner i sidans egen tandning. Långsammare.",
-    leadDetail: "Detaljnivå: {value} %",
+    leadDetail: "Stiftets detaljnivå: {value} %",
     leadDetailHint: "Lägre är snabbare och grövre.",
   },
   presets: {

@@ -2,7 +2,11 @@
 import { describe, expect, it } from "vitest";
 
 import { TileCache, rendererKey } from "../src/app/tiles.ts";
-import { setWashEngine, washEngine } from "../src/app/plugins/wash.ts";
+import {
+  DEFAULT_WASH_DETAIL,
+  setWashDetail,
+  washDetail,
+} from "../src/app/plugins/wash.ts";
 
 /** A stand-in for a painted tile: the cache only ever hands back what it was
  *  given, so what that is doesn't matter here. */
@@ -46,12 +50,16 @@ describe("TileCache", () => {
 });
 
 describe("rendererKey", () => {
-  it("changes when an engine does — the other watercolour is another picture", () => {
+  it("changes when the detail does — a coarser wash is another picture", () => {
     const before = rendererKey();
-    const was = washEngine();
-    setWashEngine(was === "simple" ? "simulation" : "simple");
-    expect(rendererKey()).not.toBe(before);
-    setWashEngine(was);
+    const was = washDetail();
+    try {
+      setWashDetail(was === 0.5 ? 0.4 : 0.5);
+      expect(rendererKey()).not.toBe(before);
+    } finally {
+      setWashDetail(was);
+    }
     expect(rendererKey()).toBe(before);
+    expect(washDetail()).toBe(DEFAULT_WASH_DETAIL);
   });
 });

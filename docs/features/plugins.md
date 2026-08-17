@@ -693,22 +693,30 @@ exactly the document it would have been.
 A dial tunes the mark you are about to make. A tool can also declare an
 **option**, and that is a different animal: it says how marks of its kind are
 _painted_, for every drawing you own, including the ones already made. The
-watercolour brush and the pencil have them today — which of the two engines
-each is drawn with, and how finely the heavier one works — and they sit in the
-same panel as that tool's dials, under **Rendering**, above them.
+watercolour brush and the pencil have one each today — how finely the simulation
+behind them works a mark out — and they sit in the same panel as that tool's
+dials, under **Rendering**, above them.
 
-They are in the tool's own panel because that is where the answer is: an engine
-is a property of the implement rather than of the app, and it is a choice nobody
-can make by reading about it. So the engines are shown rather than described —
-each is a swatch of the same marks, on the same paper, painted by the engine it
-names. Press one and the page behind repaints with it. (They used to be a
-section of Settings → Tools.)
+They are in the tool's own panel because that is where the answer is: how a mark
+is worked out is a property of the implement rather than of the app, and it is a
+trade nobody can judge by reading about it. (They used to be a section of
+Settings → Tools.)
+
+Both tools used to declare a second option beside it: **which** of two engines
+painted their marks, offered as a pair of swatches of the same stroke. Those are
+gone — there is one watercolour and one pencil now — and the mechanism that
+served them is worth keeping in mind even so, because it is still in the
+interface: an option may be a **choice** rather than a slider, its answers may
+carry a painted preview, and one option may be hidden behind another's answer
+(`shownWhen`). No shipped tool uses any of that today. A plugin seam that lost
+half of itself the moment the app stopped needing that half would be a worse
+seam.
 
 Nothing about an option is recorded on a mark, and that is the point: a setting
 kept per stroke would mean changing it orphaned everything drawn before. It is a
-way of looking at the page, like the canvas theme — so a wash drawn with one
-engine paints with whichever is in force when the page is next painted, and a
-phone that cannot afford a simulation still opens a page painted with it on a
+way of looking at the page, like the canvas theme — so a wash painted at one
+detail repaints at whichever is in force when the page is next painted, and a
+phone that cannot afford the full field still opens a page painted at it on a
 desktop.
 
 ## The fills and the dropper read the page

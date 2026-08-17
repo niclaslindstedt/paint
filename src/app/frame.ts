@@ -54,8 +54,6 @@ import type { EffectPreview } from "./render.ts";
 import { visibleStrokes } from "./layers.ts";
 import { paintMarquee } from "./plugins/builtin/select.ts";
 import type { DraftStroke } from "./plugins/types.ts";
-import type { LeadEngine } from "./plugins/lead.ts";
-import type { WashEngine } from "./plugins/wash.ts";
 import {
   anyErases,
   onSheet,
@@ -100,22 +98,14 @@ export type Frame = {
    *  with no sheet is *shown*, and an export leaves it out so the nothing stays
    *  nothing. */
   checker: readonly [string, string];
-  /** Which watercolour engine paints a wash on this frame (see
+  /** How finely the watercolour simulation resolves on this frame (see
    *  `plugins/wash.ts`). Written into the render options so the mark cache can
-   *  see it change — switching engine repaints the page rather than blitting
-   *  the picture the other one left. */
-  washEngine: WashEngine;
-  /** …and how finely it resolves, for the same reason: turning the detail down
-   *  repaints every wash on the page without touching a stroke, so the cache
-   *  has to be able to see it move (see `MIN_WASH_DETAIL`). */
+   *  see it change — turning the detail down repaints every wash on the page
+   *  without touching a stroke, so the cache has to be able to see it move (see
+   *  `MIN_WASH_DETAIL`). */
   washDetail: number;
-  /** …and which pencil draws the graphite marks, for the same reason again:
-   *  switching engine redraws every pencil line on the page without touching a
-   *  stroke, so the cache has to be able to see it move (see
-   *  `plugins/lead.ts`). */
-  leadEngine: LeadEngine;
-  /** …and how finely it works them out, for the same reason once more (see
-   *  `MIN_LEAD_DETAIL`). */
+  /** …and how finely the graphite simulation works the pencil marks out, for the
+   *  same reason (see `MIN_LEAD_DETAIL`). */
   leadDetail: number;
   /** Bumped whenever a bitmap finishes decoding — see `CacheSpec`. */
   decodedAt: number;
@@ -160,9 +150,7 @@ export function paintFrame(frame: Frame): void {
     ground: frame.drawing.ground,
     grid: frame.showGrid ? GRID_STEP : undefined,
     checker: frame.checker,
-    washEngine: frame.washEngine,
     washDetail: frame.washDetail,
-    leadEngine: frame.leadEngine,
     leadDetail: frame.leadDetail,
     // The effect being set up, if a dialog is open on one. It goes through the
     // renderer rather than being composited over the finished frame, because an

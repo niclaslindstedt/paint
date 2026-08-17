@@ -619,17 +619,13 @@ export function sameFrame(a: CacheSpec, b: CacheSpec): boolean {
     a.options.checker?.[0] === b.options.checker?.[0] &&
     a.options.checker?.[1] === b.options.checker?.[1] &&
     a.options.transparentPage === b.options.transparentPage &&
-    // Which watercolour engine is painting. It is a view of the drawing rather
-    // than part of it (see `plugins/wash.ts`), so switching it changes every
-    // wash on the page without touching a stroke — the third of the edits this
-    // comparison would otherwise be blind to.
-    a.options.washEngine === b.options.washEngine &&
-    // …and how finely it is working, which changes the same washes without
-    // touching a stroke either.
+    // How finely the watercolour simulation is resolving. It is a view of the
+    // drawing rather than part of it (see `plugins/wash.ts`), so moving it
+    // changes every wash on the page without touching a stroke — the third of
+    // the edits this comparison would otherwise be blind to.
     a.options.washDetail === b.options.washDetail &&
-    // …and which pencil is drawing, which changes every graphite mark on the
-    // page without touching a stroke in exactly the same way.
-    a.options.leadEngine === b.options.leadEngine &&
+    // …and how finely the graphite simulation is working, which changes every
+    // pencil mark on the page without touching a stroke in exactly the same way.
     a.options.leadDetail === b.options.leadDetail &&
     // The sheet: change the paper and every mark on the page is painted
     // differently — the grain under them, and how the wet ones mix with what

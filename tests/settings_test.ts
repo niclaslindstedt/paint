@@ -394,8 +394,6 @@ describe("withLiveSettings", () => {
       ...draft,
       enabledPlugins: [...draft.enabledPlugins, "watercolor"],
       toolOrder: ["eraser", "pencil"],
-      washEngine: "simulation",
-      leadEngine: "simulation",
     };
     const saved = withLiveSettings(draft, live);
     for (const key of LIVE_SETTINGS) expect(saved[key]).toEqual(live[key]);
@@ -417,20 +415,20 @@ describe("withLiveSettings", () => {
     expect(saved.showToolName).toBe(draft.showToolName);
   });
 
-  it("does not revert the watercolour engine", () => {
-    // The bug this exists for, on its own: pick the pigment simulation in
-    // Settings → Tools, press Save, and the engine has to still be the one you
-    // picked rather than the one the dialog opened with.
-    const draft = { ...defaultSettings(), washEngine: "simple" as const };
-    const live = { ...draft, washEngine: "simulation" as const };
-    expect(withLiveSettings(draft, live).washEngine).toBe("simulation");
+  it("does not revert the wash detail", () => {
+    // The bug this exists for, on its own: move the detail slider on the
+    // brush's own panel, press Save in the dialog, and the detail has to still
+    // be the one you set rather than the one the dialog opened with.
+    const draft = { ...defaultSettings(), washDetail: 1 };
+    const live = { ...draft, washDetail: 0.4 };
+    expect(withLiveSettings(draft, live).washDetail).toBe(0.4);
   });
 
   it("changes neither of the blobs it was handed", () => {
     const draft = defaultSettings();
-    const live = { ...draft, washEngine: "simulation" as const };
+    const live = { ...draft, washDetail: 0.4 };
     withLiveSettings(draft, live);
-    expect(draft.washEngine).toBe("simple");
-    expect(live.washEngine).toBe("simulation");
+    expect(draft.washDetail).toBe(1);
+    expect(live.washDetail).toBe(0.4);
   });
 });

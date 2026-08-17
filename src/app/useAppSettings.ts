@@ -42,20 +42,8 @@ import {
   type ToolPreset,
 } from "./presets.ts";
 import type { PaintPlugin } from "./plugins/types.ts";
-import {
-  DEFAULT_LEAD_DETAIL,
-  DEFAULT_LEAD_ENGINE,
-  clampLeadDetail,
-  isLeadEngine,
-  type LeadEngine,
-} from "./plugins/lead.ts";
-import {
-  DEFAULT_WASH_DETAIL,
-  DEFAULT_WASH_ENGINE,
-  clampWashDetail,
-  isWashEngine,
-  type WashEngine,
-} from "./plugins/wash.ts";
+import { DEFAULT_LEAD_DETAIL, clampLeadDetail } from "./plugins/lead.ts";
+import { DEFAULT_WASH_DETAIL, clampWashDetail } from "./plugins/wash.ts";
 
 // The app's own (non-theme) settings — which optional tool plugins are switched
 // on, the last-used ink, developer mode, and log capture. The framework
@@ -169,38 +157,28 @@ export type AppSettings = {
    *  string is a value rather than a gap — that is how a swatch that may be
    *  absent (the gradient's middle stop) records being switched off. */
   toolColors: Record<string, Record<string, string>>;
-  /** Which watercolour engine paints a wash (see `plugins/wash.ts`).
+  /** How finely the watercolour simulation resolves, 0.1 to 1 (see
+   *  `MIN_WASH_DETAIL`).
    *
    *  A setting rather than a property of a drawing, and deliberately: it is a
-   *  *view*, like the canvas theme. A wash drawn with one paints with whichever
-   *  is in force, so switching cannot orphan work — and a phone that cannot
-   *  afford the simulation can still open a page painted with it on a desktop.
+   *  *view*, like the canvas theme. A wash painted at one detail repaints at
+   *  whichever is in force, so moving it cannot orphan work — and a phone that
+   *  cannot afford the full field can still open a page painted at it on a
+   *  desktop.
    *
-   *  Set from the watercolour brush's own panel rather than from a page in
-   *  Settings: it is a property of the brush, and it is a choice nobody can make
-   *  without painting with it (see `plugins/washOptions.ts`). */
-  washEngine: WashEngine;
-  /** …and how finely that simulation resolves, 0.1 to 1 (see
-   *  `MIN_WASH_DETAIL`). The one setting in the app that buys nothing but speed:
-   *  the cost of a wash goes as the square of it, so it is what makes the
-   *  heavier engine usable on a page full of washes, or on an older phone. */
+   *  The one setting in the app that buys nothing but speed: the cost of a wash
+   *  goes as the square of it, so it is what makes the simulation usable on a
+   *  page full of washes, or on an older phone. Set from the watercolour brush's
+   *  own panel rather than from a page in Settings: it is a property of the
+   *  brush, and it is a trade nobody can judge without painting with it (see
+   *  `plugins/washOptions.ts`). */
   washDetail: number;
-  /** Which pencil draws a graphite mark (see `plugins/lead.ts`).
-   *
-   *  A setting rather than a property of a drawing, for the wash engine's
-   *  reason: it is a *view*. A sketch drawn with one draws with whichever is in
-   *  force, so switching cannot orphan work — and a phone that cannot afford
-   *  the simulation can still open a page drawn with it on a desktop.
-   *
-   *  Set from the pencil's own panel rather than from a page in Settings: it is
-   *  a property of the pencil, and it is a choice nobody can make without
-   *  drawing with it (see `plugins/leadOptions.ts`). */
-  leadEngine: LeadEngine;
-  /** …and how finely that simulation works a mark out, 0.1 to 1 (see
-   *  `MIN_LEAD_DETAIL`). The wash's own detail slider one shelf along, and it
-   *  buys the same thing: the cost of a pencil mark goes as the square of it, so
-   *  this is what makes the heavier engine usable on a page full of sketch
-   *  strokes, or on an older phone. */
+  /** …and how finely the graphite simulation works a pencil mark out, 0.1 to 1
+   *  (see `MIN_LEAD_DETAIL`). The wash's own detail slider one shelf along, held
+   *  for the same reasons and set in the same place (see
+   *  `plugins/leadOptions.ts`) — and it matters more here, because a page of a
+   *  thousand sketch strokes is a thousand fields where a painting is a few
+   *  dozen. */
   leadDetail: number;
   /** Whether shape tools fill rather than outline. */
   filled: boolean;
@@ -304,21 +282,11 @@ const BASE_SETTINGS: Omit<AppSettings, "enabledPlugins"> = {
   // black-to-white ramp it ships with.
   toolDials: {},
   toolColors: {},
-  // The stroke model out of the box. The pigment simulation is the better
-  // picture and it is opt-in anyway, because it costs a great deal more per
-  // wash and a page of them on an old phone is a real difference.
-  washEngine: DEFAULT_WASH_ENGINE,
-  // …and all of the simulation's field when it is the one painting: a build
-  // that quietly painted a coarser wash than its own sample showed would be
-  // lying about its picture. Turning it down is a trade the user makes.
+  // All of the watercolour simulation's field: a build that quietly painted a
+  // coarser wash than its own sample showed would be lying about its picture.
+  // Turning it down is a trade the user makes.
   washDetail: DEFAULT_WASH_DETAIL,
-  // The stroke model out of the box here too, and for the same reason: the
-  // sheet simulation is the better picture of a pencil and it costs a field per
-  // mark, which on a page of a thousand sketch strokes is a real difference.
-  leadEngine: DEFAULT_LEAD_ENGINE,
-  // …and all of its field when it is the one drawing, for the wash's reason:
-  // a build that quietly drew a coarser mark than its own sample showed would
-  // be lying about its picture.
+  // …and all of the graphite simulation's, for the same reason.
   leadDetail: DEFAULT_LEAD_DETAIL,
   filled: false,
   showGrid: false,
@@ -561,14 +529,12 @@ export function parseSettings(raw: string): AppSettings {
     merged.downloadScope = base.downloadScope;
   }
   merged.downloadTransparent = Boolean(merged.downloadTransparent);
-  // An engine this build doesn't ship falls back to the default rather than
-  // being kept, unlike an unknown tool id: there is nothing to paint a wash
-  // with but the engines that are here, and a name we can't resolve would leave
-  // the setting showing nothing selected.
-  if (!isWashEngine(merged.washEngine)) merged.washEngine = base.washEngine;
+  // A detail off a blob written by another build (or by hand) is pulled back
+  // onto the slider's own track: a control cannot show a value that is not one
+  // of its own. A blob from a build that still had a `washEngine` or a
+  // `leadEngine` in it simply loses them — an unknown key is not carried, and
+  // there is no longer an engine for one to have named.
   merged.washDetail = clampWashDetail(merged.washDetail);
-  // …and the same for the pencil's, for the same reason.
-  if (!isLeadEngine(merged.leadEngine)) merged.leadEngine = base.leadEngine;
   merged.leadDetail = clampLeadDetail(merged.leadDetail);
   return merged;
 }
@@ -838,16 +804,17 @@ export function sizesFor(plugin: PaintPlugin | undefined): number[] {
  *  from the committed settings too, so a draft's copy of them is stale from the
  *  moment the control is touched.
  *
- *  The two wash settings are here for the neighbouring reason: the dialog does
+ *  The two detail settings are here for the neighbouring reason: the dialog does
  *  not own them **at all** any more. They are set from the watercolour brush's
- *  own panel (see `plugins/washOptions.ts`), which is somewhere else entirely —
- *  so the draft's copy of them is a value nobody edited in the dialog, and Save
- *  writing it back is exactly the silent revert this list exists to prevent.
+ *  and the pencil's own panels (see `plugins/washOptions.ts`), which is
+ *  somewhere else entirely — so the draft's copy of them is a value nobody
+ *  edited in the dialog, and Save writing it back is exactly the silent revert
+ *  this list exists to prevent.
  *
  *  Named here, in one list, because the dialog's Save has to put every one of
  *  them back over the draft it commits — and a list kept in Save's own head is a
  *  list that forgets the next live setting somebody adds. That is exactly how
- *  the watercolour engine came to be silently reverted by pressing Save.
+ *  the watercolour settings came to be silently reverted by pressing Save.
  *
  *  It cuts the other way too, and just as sharply: a setting that stops applying
  *  live has to *leave* this list, or Save reads the committed value back over
@@ -857,9 +824,7 @@ export function sizesFor(plugin: PaintPlugin | undefined): number[] {
 export const LIVE_SETTINGS = [
   "enabledPlugins",
   "toolOrder",
-  "washEngine",
   "washDetail",
-  "leadEngine",
   "leadDetail",
   // The New image shelf, for the same reason as the switchboard above it: the
   // Canvas tab is a list you *manage* — make one, name it, throw it away — and

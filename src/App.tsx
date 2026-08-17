@@ -39,8 +39,8 @@ import { cacheIdForBase } from "./app/pwa.ts";
 import { adoptDrawing } from "./app/pct.ts";
 import { imageStroke } from "./app/plugins/builtin/image.ts";
 import { resolveActiveTool } from "./app/plugins/registry.ts";
-import { setLeadDetail, setLeadEngine } from "./app/plugins/lead.ts";
-import { setWashDetail, setWashEngine } from "./app/plugins/wash.ts";
+import { setLeadDetail } from "./app/plugins/lead.ts";
+import { setWashDetail } from "./app/plugins/wash.ts";
 import {
   applyBackdropVars,
   useAppSettings,
@@ -302,22 +302,15 @@ export function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [settings.modalBackdropDarkness, settings.modalBackdropBlur]);
 
-  // Put the chosen engines in force — the watercolour's and the pencil's. Both
-  // are app-wide rather than threaded through each repaint so that every
-  // surface painting this document — the screen, the mark cache, the
+  // Put the two simulations' detail in force — the watercolour's and the
+  // pencil's. Both are app-wide rather than threaded through each repaint so
+  // that every surface painting this document — the screen, the mark cache, the
   // thumbnails, the page the dropper reads, the exported PNG — cannot disagree
   // about them (see `plugins/wash.ts` and `plugins/lead.ts`).
   useEffect(() => {
-    setWashEngine(settings.washEngine);
     setWashDetail(settings.washDetail);
-    setLeadEngine(settings.leadEngine);
     setLeadDetail(settings.leadDetail);
-  }, [
-    settings.washEngine,
-    settings.washDetail,
-    settings.leadEngine,
-    settings.leadDetail,
-  ]);
+  }, [settings.washDetail, settings.leadDetail]);
 
   useEffect(() => {
     status("App started");
@@ -354,13 +347,7 @@ export function App() {
     // enough to "idle" for a job this size.
     const handle = window.setTimeout(warm, 1500);
     return () => window.clearTimeout(handle);
-  }, [
-    darkCanvas,
-    settings.washEngine,
-    settings.washDetail,
-    settings.leadEngine,
-    settings.leadDetail,
-  ]);
+  }, [darkCanvas, settings.washDetail, settings.leadDetail]);
 
   // Re-badge the browser tab with the active namespace's glyph, so a glance at
   // the tab strip tells you which sketchbook you're in; without one it wears

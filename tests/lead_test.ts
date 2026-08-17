@@ -1,33 +1,34 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-// The seam between the two pencils.
+// The floor under the one pencil.
 //
 // `leadField_test.ts` checks what the simulation *does*. This checks the rule
-// the whole seam is built to keep, which is a different claim and the one that
-// would break a drawing if it went wrong:
+// the seam is built to keep, which is a different claim and the one that would
+// break a drawing if it went wrong:
 //
-//   **the heavier engine may decline, and a mark still gets drawn.**
+//   **the simulation may decline, and a mark still gets drawn.**
 //
 // A browser with no canvas to work on, a view pulled back until the mark is a
 // hairline, a lead finer than a couple of cells: every one of those has to come
 // out as the mark this app has always drawn, not as a gap on the page. The
 // tests run in node with no DOM, so the simulation declines every time here —
 // which makes this the exact environment the claim is about.
+//
+// The stroke model it falls through to is the one thing left of the second
+// pencil this app used to offer. Nobody chooses it and nothing names it; these
+// tests are what keep it wired up.
 
 import { describe, expect, it } from "vitest";
 
 import { SOLID_GROUND, groundProfile } from "../src/app/ground.ts";
-import { HB_LEAD } from "../src/app/plugins/graphite.ts";
+import { HB_LEAD, paintGraphite } from "../src/app/plugins/graphite.ts";
 import {
   DEFAULT_LEAD_DETAIL,
-  DEFAULT_LEAD_ENGINE,
-  LEAD_ENGINES,
   MAX_LEAD_DETAIL,
   MIN_LEAD_DETAIL,
   clampLeadDetail,
-  isLeadEngine,
-  leadEngine,
-  paintGraphiteWith,
-  setLeadEngine,
+  leadDetail,
+  paintGraphiteOn,
+  setLeadDetail,
 } from "../src/app/plugins/lead.ts";
 import { paintSimulatedLead } from "../src/app/plugins/leadSim.ts";
 import { mm } from "../src/app/units.ts";
@@ -50,32 +51,21 @@ function specks(ctx: FakeContext): number {
   return ctx.strokes.reduce((total, stroke) => total + stroke.runs.length, 0);
 }
 
-describe("which pencil is drawing", () => {
-  it("offers two engines and opens on the cheap one", () => {
-    expect(LEAD_ENGINES.map((engine) => engine.id)).toEqual([
-      "simple",
-      "simulation",
-    ]);
-    // The simulation is opt-in: it costs a field per mark, and a tool that is
-    // slow out of the box is a tool nobody keeps.
-    expect(DEFAULT_LEAD_ENGINE).toBe("simple");
-    expect(LEAD_ENGINES[0]!.id).toBe(DEFAULT_LEAD_ENGINE);
-  });
-
-  it("refuses an engine off a persisted blob that this build has never had", () => {
-    expect(isLeadEngine("simulation")).toBe(true);
-    expect(isLeadEngine("pigment")).toBe(false);
-    expect(isLeadEngine(undefined)).toBe(false);
-  });
-
+describe("the detail in force", () => {
   it("is one app-wide value, so nothing painting a page can disagree", () => {
     // Every surface that paints the same document has to agree about it: the
     // screen, the mark cache, the thumbnails, the page the dropper reads, the
     // exported PNG.
-    expect(leadEngine()).toBe(DEFAULT_LEAD_ENGINE);
-    setLeadEngine("simulation");
-    expect(leadEngine()).toBe("simulation");
-    setLeadEngine(DEFAULT_LEAD_ENGINE);
+    expect(leadDetail()).toBe(DEFAULT_LEAD_DETAIL);
+    try {
+      setLeadDetail(0.4);
+      expect(leadDetail()).toBe(0.4);
+      // Clamped on the way in, so nothing downstream has to re-check.
+      setLeadDetail(0);
+      expect(leadDetail()).toBe(MIN_LEAD_DETAIL);
+    } finally {
+      setLeadDetail(DEFAULT_LEAD_DETAIL);
+    }
   });
 });
 
@@ -98,13 +88,12 @@ describe("how hard the simulation is set to work", () => {
     // Turning the detail down coarsens the field, and past a point it coarsens
     // it until the lead is a couple of cells wide and the simulation declines
     // altogether. That has to be a *fall-through* at every value on the track,
-    // never a gap on the page — which is the same promise the engine choice
-    // makes, asked once per stop of the slider.
+    // never a gap on the page — the seam's one promise, asked once per stop of
+    // the slider.
     for (const detail of [1, 0.75, 0.5, 0.25, MIN_LEAD_DETAIL]) {
       const ctx = createFakeContext();
       ctx.globalAlpha = 1;
-      paintGraphiteWith(
-        "simulation",
+      paintGraphiteOn(
         ctx,
         curve(),
         mm(0.7),
@@ -119,7 +108,7 @@ describe("how hard the simulation is set to work", () => {
   });
 });
 
-describe("an engine that cannot run", () => {
+describe("a simulation that cannot run", () => {
   it("says so rather than drawing half a mark", () => {
     const ctx = createFakeContext();
     // No DOM: there is no canvas to work the field on.
@@ -139,16 +128,14 @@ describe("an engine that cannot run", () => {
   });
 
   it("hands the mark to the stroke model instead of losing it", () => {
-    // The rule the seam exists for. Asked for the simulation, in a place it
-    // cannot run, the mark still lands — and lands as the mark this app has
-    // always drawn.
+    // The rule the seam exists for. In a place the field cannot run, the mark
+    // still lands — and lands as the mark this app has always drawn.
     const asked = createFakeContext();
     asked.globalAlpha = 1;
-    paintGraphiteWith(
-      "simulation",
+    paintGraphiteOn(
       asked,
       curve(),
-      mm(0.7),
+      mm(0.9),
       1,
       HB_LEAD,
       groundProfile({ stock: "cold" }),
@@ -156,7 +143,7 @@ describe("an engine that cannot run", () => {
     );
     const plain = createFakeContext();
     plain.globalAlpha = 1;
-    paintGraphiteWith("simple", plain, curve(), mm(0.7), 1, HB_LEAD);
+    paintGraphite(plain, curve(), mm(0.9), 1, HB_LEAD);
     expect(specks(asked)).toBeGreaterThan(0);
     expect(specks(asked)).toBe(specks(plain));
   });
