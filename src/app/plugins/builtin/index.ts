@@ -132,6 +132,7 @@ import {
   GRANULATION,
   HAIR,
   HARDNESS,
+  LOAD,
   OPACITY,
   PIGMENT,
   PRESSURE,
@@ -483,14 +484,15 @@ export function registerBuiltinPlugins(): void {
     // the difference between a zoomed-in page painting the marks it is showing
     // and painting every mark within four brush-widths of the window.
     reach: 1,
-    // A head of hair, and the four things about one that change the mark: how
-    // wet and gathered it is, what gauge the hair is, how far the bundle has
-    // worn open, and whether the paper under it wicks. Plus the opacity every
-    // marking tool offers.
+    // A head of hair, and the five things about one that change the mark: how
+    // wet and gathered it is, how much paint it was dipped with — the charge
+    // the whole drag spends before it runs dry (see `capacityOf`) — what gauge
+    // the hair is, how far the bundle has worn open, and whether the paper
+    // under it wicks. Plus the opacity every marking tool offers.
     // Body colour off a loaded head: wet enough to mix into what it is painted
     // over on any paper, nowhere near as wet as a wash.
     wetness: 0.6,
-    dials: [OPACITY, HARDNESS, HAIR, SPLAY, BLEED],
+    dials: [OPACITY, HARDNESS, LOAD, HAIR, SPLAY, BLEED],
     // Four heads rather than four widths — the hog, the dry brush and the
     // glaze are what those five dials are *for*.
     presets: BRUSH_PRESETS,
@@ -522,9 +524,13 @@ export function registerBuiltinPlugins(): void {
     reach: 1,
     // The round's dials, plus the one thing a blade has that a cone does not:
     // which way it is turned. Held at −45° out of the box, the same tilt the
-    // broad nib rests at, because it is the same right-handed wrist.
+    // broad nib rests at, because it is the same right-handed wrist. The load
+    // dial rests at the same 1 as the round's and buys half the distance: a
+    // chisel ferrule squeezes most of the dip out of the bundle, so one charge
+    // of a flat runs about half as far as one charge of the round (see
+    // `reservoirOf`).
     wetness: 0.6,
-    dials: [OPACITY, HARDNESS, ANGLE, SPLAY, BLEED],
+    dials: [OPACITY, HARDNESS, LOAD, ANGLE, SPLAY, BLEED],
     presets: FLAT_BRUSH_PRESETS,
     behaviour: freehandBehaviour({
       style: "brush",

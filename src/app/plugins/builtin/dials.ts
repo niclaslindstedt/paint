@@ -211,6 +211,26 @@ export const SPLAY: ToolDial = {
   step: 0.05,
 };
 
+/** How much paint the brush is dipped with — the charge the whole drag spends
+ *  (see `capacityOf` in `plugins/head.ts`).
+ *
+ *  1 is one ordinary dip of this brush, and the run before the head goes dry
+ *  scales straight off it: turned down toward a quarter the head is barely
+ *  touched to the paint and scratches dry within a stroke or two, turned up
+ *  toward three it is charged heavily enough to cross most of a page. It moves
+ *  *distance* and nothing else — the mark's width, streaks and edge belong to
+ *  `HARDNESS` and the head — and it multiplies what the ferrule already holds,
+ *  which is why the round outlasts the flat with both dials at rest: a cone
+ *  keeps about twice the dip a chisel ferrule does (see `reservoirOf`). */
+export const LOAD: ToolDial = {
+  id: "load",
+  nameKey: "dials.load.name",
+  hintKey: "dials.load.hint",
+  min: 0.25,
+  max: 3,
+  step: 0.05,
+};
+
 /** How far a wet edge wicks into the sheet before it dries.
  *
  *  The one softness the brush has, and the one dial here that belongs to the

@@ -51,7 +51,7 @@ export const ROUND_HEAD: BrushHead = { shape: "round", angle: 0 };
 export const BLADE = 0.14;
 
 /** How much of its load the head still has after travelling `at` document
- *  pixels, 1 down to nearly 0.
+ *  pixels, 1 down to 0.
  *
  *  A brush is charged once and then spends it. That is the shape of a real
  *  drag and the thing that makes the two ends of one look nothing alike: it
@@ -67,12 +67,52 @@ export const BLADE = 0.14;
  *  touches down, and stays that way. One exponent, driven by how loaded the
  *  head is, is both of those.
  *
- *  It never quite reaches nothing: a brush with a dry patch is not a brush with
- *  no paint, and a stroke that faded out entirely would be a stroke the user
- *  could not finish. */
+ *  It reaches nothing, and stays there. It used to be floored a shade above
+ *  zero so a drag could always be finished, and that floor was a lie about the
+ *  medium: a head with no more colour on it cannot keep painting, however far
+ *  the hand goes on. What ends the mark is this curve running out — through
+ *  the marked dry stretch `drynessOf` reads off it — and what buys a longer
+ *  run is dipping more paint (the load dial), not a brush that never empties. */
 export function loadAt(at: number, capacity: number, hard: number): number {
   const spent = Math.min(1, at / capacity);
-  return Math.max(0.08, 1 - spent ** (0.45 + hard * 1.9));
+  return Math.max(0, 1 - spent ** (0.45 + hard * 1.9));
+}
+
+/** The load under which the head is *running dry* — where the marked last
+ *  phase of a drag begins.
+ *
+ *  Above it the mark is the medium's ordinary texture: solid, or evenly
+ *  streaky, however the hardness is set. Below it the paint is visibly going —
+ *  the body thins to scratches, more of every hair is off the paper than on it
+ *  — until at nothing the mark simply stops. The phase has to be wide enough
+ *  to *read* as a phase: a stroke that is solid one moment and gone the next
+ *  looks like a bug, where a stroke that audibly scrapes its last third looks
+ *  like a brush that wants dipping. */
+export const DRY_LOAD = 0.35;
+
+/** How far into running dry a head holding `load` is: 0 while it still covers,
+ *  1 once the paint is gone.
+ *
+ *  Eased in rather than linear, so crossing `DRY_LOAD` is not a visible seam —
+ *  the scratchiness arrives, gathers pace, and ends the mark. The painter adds
+ *  this to its per-hair dryness scaled past certainty, which is what finally
+ *  lifts every hair off the paper (see the dryness in `bristle.ts`). */
+export function drynessOf(load: number): number {
+  return Math.min(1, Math.max(0, (DRY_LOAD - load) / DRY_LOAD)) ** 1.5;
+}
+
+/** How much of one dip a head of each shape holds, as a share of what the
+ *  round's cone takes up.
+ *
+ *  A round is a bundle as deep as it is wide, and the dip rides *inside* it —
+ *  that is the reservoir, and `capacityOf` below is written for it. A chisel
+ *  ferrule squeezes the same bundle into a blade a fraction as deep (see
+ *  `BLADE`), and most of what the cone would have held goes with the squeeze:
+ *  a flat lays a wider mark off a shallower store, so it runs about **half**
+ *  as far as the round on the same dip. It is a property of the ferrule, like
+ *  the blade itself — the load dial multiplies it, never replaces it. */
+export function reservoirOf(shape: BrushHead["shape"]): number {
+  return shape === "round" ? 1 : 0.5;
 }
 
 /** How far a head that loaded runs before it is spent, in document pixels.
@@ -96,7 +136,12 @@ export function loadAt(at: number, capacity: number, hard: number): number {
  *  separate hairs — was something you had to cross the page twice to see. It is
  *  also the one number that decides what a long stroke *costs*: a spent head
  *  lifts most of its hairs off the paper, so the run-out is where a drag stops
- *  getting more expensive the longer it gets. */
+ *  getting more expensive the longer it gets.
+ *
+ *  This is the **round's** dip — the shape whose reservoir is the whole cone.
+ *  The painter scales it by what the ferrule leaves of that (`reservoirOf`)
+ *  and by how much paint the load dial says was dipped, so the flat runs half
+ *  as far out of the box and either brush can be charged up or starved down. */
 export function capacityOf(size: number, hard: number): number {
   return (mm(3) + size * 3.5) * (0.45 + hard * 1.6);
 }

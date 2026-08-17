@@ -176,6 +176,9 @@ export function freehandBehaviour(ink: FreehandInk = {}): ToolBehaviour {
             // feathers; on the solid page the sheet adds nothing, so a drawing
             // made before grounds existed paints unchanged.
             strokeDial(stroke, "bleed", 0) + sheet.absorbency * 1.1,
+            // How much paint the head was dipped with — the multiplier on the
+            // run the whole mark spends before it goes dry (see `capacityOf`).
+            strokeDial(stroke, "load"),
             ink.head === "flat"
               ? {
                   shape: "flat",

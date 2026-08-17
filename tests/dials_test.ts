@@ -184,13 +184,13 @@ describe("the shipped set", () => {
     // *is* rather than restyling what another dial already did.
     //
     // The brushes are the exceptions and are named here rather than waved
-    // through by a raised limit. A head of hair is loaded or dry, milled fine
-    // or coarse, new or worn open, and on paper that wicks or paper that does
-    // not, and no one of those four is any of the others; a wash is water,
-    // pigment and what the sheet does with what is left. Nothing else in the
-    // set has that many independent axes, and a tool turning up on this list
-    // that is not one of these three is a tool that has grown a settings
-    // screen.
+    // through by a raised limit. A head of hair is loaded or dry, dipped with
+    // much or little paint, milled fine or coarse, new or worn open, and on
+    // paper that wicks or paper that does not, and no one of those five is any
+    // of the others; a wash is water, pigment and what the sheet does with
+    // what is left. Nothing else in the set has that many independent axes,
+    // and a tool turning up on this list that is not one of these three is a
+    // tool that has grown a settings screen.
     const over = allPlugins().filter((p) => (p.dials?.length ?? 0) > 2);
     expect(over.map((p) => p.id)).toEqual([
       "paintbrush",
@@ -201,7 +201,7 @@ describe("the shipped set", () => {
 
   it("keeps even those inside a panel you can still use with a thumb", () => {
     for (const id of ["paintbrush", "flatbrush", "watercolor"]) {
-      expect(pluginById(id)!.dials!.length).toBeLessThanOrEqual(5);
+      expect(pluginById(id)!.dials!.length).toBeLessThanOrEqual(6);
     }
   });
 
