@@ -301,7 +301,7 @@ export const sv: Catalog = {
     },
     load: {
       name: "Färgmängd: {value} %",
-      hint: "Hur mycket färg penseln doppas med. Draget gör av med den efter hand, skrapar torrt och tar slut.",
+      hint: "Hur mycket färg penseln doppas med. Draget gör av med den efter hand, skrapar torrt och drar sedan ett tunt streck som bleknar bort.",
     },
     splay: {
       name: "Spretighet: {value} %",

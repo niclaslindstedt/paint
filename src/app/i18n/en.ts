@@ -328,7 +328,7 @@ export const en = {
     },
     load: {
       name: "Load: {value}%",
-      hint: "How much paint the brush is dipped with. The stroke spends it as it goes, scratches dry, and stops.",
+      hint: "How much paint the brush is dipped with. The stroke spends it as it goes, scratches dry, then trails a thin film until that fades too.",
     },
     splay: {
       name: "Splay: {value}%",

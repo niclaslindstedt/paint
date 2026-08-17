@@ -190,13 +190,17 @@ painters in `src/app/plugins/brushes.ts`, `bristle.ts`, `crayon.ts` and
   a share of the width — widen the brush and you get _more_ streaks rather than
   fatter ones, the way a rack of real brushes works. The head lands blunt and
   holds its width, it is too wide to follow a wiggle finer than itself and it
-  cannot turn inside its own width, and it carries a load it spends — and only
-  that load: a #6 round covers about four centimetres of paper, which is about
-  what one dip gives you, then scrapes through a marked dry stretch where the
-  body gives way to scratches, and then stops leaving anything at all, because
-  a brush with no more colour on it cannot keep painting. How much paint one
-  dip charges is the **load** dial — starve it down to dry-brush within a
-  stroke, or charge it up to cross most of a page. The mark it leaves
+  cannot turn inside its own width, and it carries a load it spends: a #6 round
+  covers about twelve centimetres of paper, which is about what one dip gives
+  you, then scrapes through a marked dry stretch where the body gives way to
+  scratches. Past that the paint has gone but the brush has not stopped
+  marking — what is left wetting the hairs is a **film**, and it keeps coming
+  off for about as far again: thin, pale, broken all over, and fading the whole
+  way until there is nothing left at all. Carry a stroke past its dip and it
+  ends in a ghost of itself rather than at an edge. How much paint one dip
+  charges is the **load** dial — starve it down to dry-brush within a stroke,
+  or charge it up to cross most of a page, and the ghost after it grows and
+  shrinks with the dip. The mark it leaves
   is the **width of the head** — everything that ruffles the edge of a brushed
   stroke, the clumping, the wander, the twist of the bundle and the fray of a
   worn head, is budgeted out of the head rather than added to it, so a fringe
@@ -254,8 +258,8 @@ painters in `src/app/plugins/brushes.ts`, `bristle.ts`, `crayon.ts` and
   anything, and it is why a sign-writer owns one. Which way the blade is turned
   is the **nib angle** dial, the same one the broad nib carries. The ferrule's
   squeeze also empties most of the bundle, so one dip of a flat runs about
-  half as far as one dip of the round before it scratches dry — the same
-  **load** dial charges it with more;
+  half as far as one dip of the round before it scratches dry, and trails its
+  film for half as far after — the same **load** dial charges it with more;
 - the **watercolour brush** is the one medium here where what you are painting
   with is _water_, and the pigment only goes where the water took it. Four
   things happen while a wet stroke dries on a sheet and all four are in the

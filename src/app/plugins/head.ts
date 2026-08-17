@@ -70,9 +70,12 @@ export const BLADE = 0.14;
  *  It reaches nothing, and stays there. It used to be floored a shade above
  *  zero so a drag could always be finished, and that floor was a lie about the
  *  medium: a head with no more colour on it cannot keep painting, however far
- *  the hand goes on. What ends the mark is this curve running out — through
+ *  the hand goes on. What ends the *paint* is this curve running out — through
  *  the marked dry stretch `drynessOf` reads off it — and what buys a longer
- *  run is dipping more paint (the load dial), not a brush that never empties. */
+ *  run is dipping more paint (the load dial), not a brush that never empties.
+ *
+ *  What it does not end is the mark. Past the last of the paint there is still
+ *  the film left on the hairs, and that is `residueAt` below. */
 export function loadAt(at: number, capacity: number, hard: number): number {
   const spent = Math.min(1, at / capacity);
   return Math.max(0, 1 - spent ** (0.45 + hard * 1.9));
@@ -101,6 +104,52 @@ export function drynessOf(load: number): number {
   return Math.min(1, Math.max(0, (DRY_LOAD - load) / DRY_LOAD)) ** 1.5;
 }
 
+/** The band of load a mark hands over across: above `FILM_FROM` what you are
+ *  looking at is paint, below `FILM_TO` it is film, and in between it is both.
+ *
+ *  Neither end of it is zero, and that is the whole point. A charged run gives
+ *  out well before its curve does — below about a fifth of a load every hair is
+ *  off the paper more than it is on it, and the mark has gone while `loadAt`
+ *  still says there is something left. Hand the trail over at zero and there is
+ *  a dead stretch between the phases: a mark that stops, a gap, and then a
+ *  ghost, which is the one shape a drag cannot have. Hand it over across a band
+ *  instead and the film is already coming through as the paint thins, which is
+ *  what running out actually looks like — a stretch of paper carrying the last
+ *  dark scratches and the first pale ones at the same time. */
+export const FILM_FROM = 0.45;
+export const FILM_TO = 0.2;
+
+/** How far past its last paint a head keeps marking, as a multiple of the
+ *  charge it just spent.
+ *
+ *  Watch a real brush give out and it does not stop when it stops covering.
+ *  What is left once the body of the load has gone is a **film** — the paint
+ *  still wetting the hairs themselves, far too little to close a mark and far
+ *  from nothing — and it keeps coming off for a long way: thin, pale, broken
+ *  all over, and fading the whole time. It is most of what a dry-brush scumble
+ *  is made of, and it is why a stroke you carried on out of stubbornness ends
+ *  in a ghost of itself rather than at an edge.
+ *
+ *  As long again as the charge, because that is about what it looks like on
+ *  paper: a drag that covered for a hand's width will haunt the sheet for
+ *  another one. It scales off the charge rather than off the head, so
+ *  everything that buys a longer run — a wider head, a heavier dip, the round's
+ *  deeper reservoir — buys a longer ghost in the same proportion. */
+export const RESIDUE_RUN = 1;
+
+/** How much of that film is left after travelling `at`: 1 for as long as the
+ *  head has paint proper, then easing away to nothing over `RESIDUE_RUN` of
+ *  charge, and nothing for ever after.
+ *
+ *  Slightly past linear, so the trail thins quickly where it parts company with
+ *  the paint and then lingers — the shape of something running out rather than
+ *  of something being turned down. */
+export function residueAt(at: number, capacity: number): number {
+  if (at <= capacity) return 1;
+  const gone = (at - capacity) / (capacity * RESIDUE_RUN);
+  return Math.max(0, 1 - gone) ** 1.2;
+}
+
 /** How much of one dip a head of each shape holds, as a share of what the
  *  round's cone takes up.
  *
@@ -126,24 +175,26 @@ export function reservoirOf(shape: BrushHead["shape"]): number {
  *
  *  Mostly proportional to the head, with a floor under it so a rigger is not
  *  spent in a centimetre. A charged #6 round — five millimetres of hair —
- *  covers something like four centimetres of paper here, which is a good long
+ *  covers something like twelve centimetres of paper here, which is a good long
  *  drag and about what one dip actually gives you.
  *
- *  It used to be nearly four times that, and the whole page was the poorer for
- *  it: a head that lasts a hundred and fifty millimetres never runs out inside
- *  a drawing, so every brush mark in it was the solid end of the stroke and the
- *  thing that makes a brushed line look brushed — the far end opening up into
- *  separate hairs — was something you had to cross the page twice to see. It is
- *  also the one number that decides what a long stroke *costs*: a spent head
- *  lifts most of its hairs off the paper, so the run-out is where a drag stops
- *  getting more expensive the longer it gets.
+ *  It was a third of that, and one dip did not go far enough: a #6 was asking
+ *  to be recharged inside a stroke you would draw without thinking about it,
+ *  which is not what dipping a brush buys you. (It was also, once, four times
+ *  *this*, which was the other error — a head that lasts half a metre never
+ *  runs out inside a drawing at all, so every mark in it was the solid part of
+ *  a stroke and the thing that makes a brushed line look brushed was something
+ *  you had to cross the page twice to see.) What keeps the run-out visible at
+ *  this length is that it is no longer the end of the mark: the paint gives out
+ *  where it always did in the drag, and the trail past it (see `residueAt`) is
+ *  the part you get for nothing.
  *
  *  This is the **round's** dip — the shape whose reservoir is the whole cone.
  *  The painter scales it by what the ferrule leaves of that (`reservoirOf`)
  *  and by how much paint the load dial says was dipped, so the flat runs half
  *  as far out of the box and either brush can be charged up or starved down. */
 export function capacityOf(size: number, hard: number): number {
-  return (mm(3) + size * 3.5) * (0.45 + hard * 1.6);
+  return (mm(9) + size * 10.5) * (0.45 + hard * 1.6);
 }
 
 /** How wide the pooled middle of the mark is, as a share of the head's
