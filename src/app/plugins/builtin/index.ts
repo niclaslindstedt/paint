@@ -477,6 +477,12 @@ export function registerBuiltinPlugins(): void {
     // on the button was a distance.
     gauge: ROUND_BRUSH_GAUGE,
     defaultSize: mm(4.8),
+    // A head lays down a mark the width of the head (see the width budget in
+    // `bristle.ts`), plus whatever the paper wicks past its edge — under a
+    // whole width all told, where the unstated default assumes four. That is
+    // the difference between a zoomed-in page painting the marks it is showing
+    // and painting every mark within four brush-widths of the window.
+    reach: 1,
     // A head of hair, and the four things about one that change the mark: how
     // wet and gathered it is, what gauge the hair is, how far the bundle has
     // worn open, and whether the paper under it wicks. Plus the opacity every
@@ -511,6 +517,9 @@ export function registerBuiltinPlugins(): void {
     // Sold in fractions of an inch, opening on the half-inch one-stroke.
     gauge: FLAT_BRUSH_GAUGE,
     defaultSize: mm(12.7),
+    // The round's box, for the round's reason — a blade is never wider than its
+    // own width either.
+    reach: 1,
     // The round's dials, plus the one thing a blade has that a cone does not:
     // which way it is turned. Held at −45° out of the box, the same tilt the
     // broad nib rests at, because it is the same right-handed wrist.
