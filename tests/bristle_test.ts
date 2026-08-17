@@ -12,6 +12,8 @@ import {
   hairLayout,
   loadAt,
   reservoirOf,
+  residueAt,
+  RESIDUE_RUN,
   type BrushHead,
 } from "../src/app/plugins/head.ts";
 import type { Point } from "../src/app/types.ts";
@@ -53,7 +55,12 @@ function drag(length: number): Point[] {
 }
 
 /** Paint a mark and report every hair that was laid down: how wide it was set
- *  to, and how many there were. */
+ *  to, and how many there were.
+ *
+ *  Charged heavily, so the whole drag is one dip's worth of mark: a head that
+ *  ran dry inside it would also lay down the bands of its trail (see
+ *  `residue.ts`), and these are questions about the *head* — how many strands
+ *  it splays into and how thick they are. */
 function hairsOf(size: number, hardness = 0.8, scale = 1) {
   const ctx = createFakeContext();
   const widths: number[] = [];
@@ -62,7 +69,7 @@ function hairsOf(size: number, hardness = 0.8, scale = 1) {
     widths.push(ctx.lineWidth);
     stroke();
   };
-  paintBrush(ctx, drag(600), size, hardness, scale);
+  paintBrush(ctx, drag(600), size, hardness, scale, 1, 1, 0, 6);
   return { widths, count: widths.length };
 }
 
@@ -81,9 +88,15 @@ function coverageOf(size: number, hardness: number, length = 600): number {
 }
 
 /** The same thing as a fraction of what that head lays down fully charged, so
- *  two different sizes can be compared without the hair count deciding it. */
+ *  two different sizes can be compared without the hair count deciding it.
+ *
+ *  Measured over a stretch of drag both heads still have paint for — a spent
+ *  head's charge is the shorter of the two, so six tenths of it is inside
+ *  either — because this is a question about the *texture* of a mark and not
+ *  about how far each head got before it ran dry. */
 function coverageShare(size: number, hardness: number): number {
-  return coverageOf(size, hardness) / coverageOf(size, 1);
+  const length = capacityOf(size, hardness) * 0.6;
+  return coverageOf(size, hardness, length) / coverageOf(size, 1, length);
 }
 
 /** How far across the drag a head of a given shape actually reaches — the
@@ -285,6 +298,8 @@ describe("paintBrush", () => {
     // charged one's distance, and it stops for good where the charged one is
     // still laying a slab — but it is never absent.
     expect(coverageShare(90, 0)).toBeGreaterThan(0.01);
+    // …and the run it gets is a small fraction of the charged one's.
+    expect(capacityOf(90, 0)).toBeLessThan(capacityOf(90, 1) * 0.35);
   });
 
   it("keeps the small heads people actually draw with solid", () => {
@@ -328,6 +343,31 @@ describe("paintBrush", () => {
     expect(drynessOf(DRY_LOAD)).toBe(0);
     expect(drynessOf(0.1)).toBeGreaterThan(drynessOf(0.2));
     expect(drynessOf(0)).toBe(1);
+  });
+
+  it("keeps a film on the hairs for as far again as the paint lasted", () => {
+    // What is left once the load has gone is the paint wetting the filaments
+    // themselves. It is full while there is paint proper, fades from the moment
+    // there is not, and is gone for good a charge later.
+    const capacity = capacityOf(mm(4.8), 1);
+    expect(residueAt(0, capacity)).toBe(1);
+    expect(residueAt(capacity, capacity)).toBe(1);
+    const trail = capacity * (1 + RESIDUE_RUN);
+    expect(residueAt(capacity * 1.2, capacity)).toBeLessThan(1);
+    expect(residueAt(trail * 0.9, capacity)).toBeGreaterThan(0);
+    expect(residueAt(trail * 0.9, capacity)).toBeLessThan(
+      residueAt(capacity * 1.2, capacity),
+    );
+    expect(residueAt(trail, capacity)).toBe(0);
+    expect(residueAt(trail * 4, capacity)).toBe(0);
+    // The trail is the charge's own length, so everything that buys a longer
+    // run — a wider head, a heavier dip, the round's deeper reservoir — buys a
+    // longer ghost in the same proportion.
+    const wide = capacityOf(mm(50), 1);
+    expect(residueAt(wide * 1.5, wide)).toBeCloseTo(
+      residueAt(capacity * 1.5, capacity),
+      10,
+    );
   });
 
   it("pools a body only under a head that has one, and never a slab", () => {
@@ -432,19 +472,102 @@ describe("paintBrush", () => {
 
   it("runs a head out inside a drawing, and a spent head paints nothing", () => {
     // What ends a brushed stroke is the paint going — for good. The head used
-    // to keep scratching for ever once it was spent; now the far side of the
-    // run-out is bare paper, because a brush with no more colour on it cannot
-    // keep painting however far the hand carries on.
+    // to keep scratching for ever once it was spent; now there is a trail of
+    // film past the charge and then bare paper, because a brush with nothing
+    // left on it at all cannot keep painting however far the hand carries on.
+    //
+    // One dip of a #6 round is a good long drag — the length of a hand span or
+    // so of paper, which is about what a charged brush actually gives you.
     const spent = capacityOf(mm(4.8), 1) * reservoirOf("round");
-    expect(spent).toBeGreaterThan(mm(20));
-    expect(spent).toBeLessThan(mm(60));
+    expect(spent).toBeGreaterThan(mm(90));
+    expect(spent).toBeLessThan(mm(160));
+    const trail = spent * (1 + RESIDUE_RUN);
     const { at } = pathOf((ctx) =>
-      paintBrush(ctx, straight(spent * 3), mm(4.8), 1, 1),
+      paintBrush(ctx, straight(trail * 2), mm(4.8), 1, 1),
     );
-    // Everything painted sits inside the charged run…
-    for (const p of at) expect(p.x).toBeLessThan(spent + mm(4.8));
-    // …and the drag reached well into it before the head gave out.
-    expect(Math.max(...at.map((p) => p.x))).toBeGreaterThan(spent * 0.8);
+    // Everything painted sits inside the charge and the trail after it…
+    for (const p of at) expect(p.x).toBeLessThan(trail + mm(4.8));
+    // …and the drag reached well into that trail before the head gave out.
+    expect(Math.max(...at.map((p) => p.x))).toBeGreaterThan(trail * 0.8);
+  });
+
+  it("drags a fading film past the last of the paint", () => {
+    // A paintbrush that has stopped covering has not stopped marking. What is
+    // left on the hairs keeps coming off for about as far again: thin, pale,
+    // and coming apart as it goes, until there is nothing left at all.
+    const spent = capacityOf(mm(4.8), 1) * reservoirOf("round");
+    const trail = spent * (1 + RESIDUE_RUN);
+    const ctx = createFakeContext();
+    paintBrush(ctx, straight(trail * 1.4), mm(4.8), 1, 1);
+    const drawn = ctx.strokes.filter((s) => s.runs.length > 0);
+    const ends = (s: (typeof drawn)[number]) =>
+      Math.max(...s.runs.flatMap((r) => [r[0]!, r[2]!]));
+    const starts = (s: (typeof drawn)[number]) =>
+      Math.min(...s.runs.flatMap((r) => [r[0]!, r[2]!]));
+    // The paint is what goes down at the stroke's own opacity, and it stops
+    // where the charge does.
+    const paint = drawn.filter((s) => s.alpha === 1);
+    expect(paint.length).toBeGreaterThan(0);
+    for (const pass of paint) expect(ends(pass)).toBeLessThan(spent + mm(4.8));
+    // The film is everything after it: paler than the mark, running on well
+    // past the charge, and stopping for good at the end of the trail.
+    const film = drawn.filter((s) => s.alpha < 1);
+    expect(film.length).toBeGreaterThan(0);
+    expect(Math.max(...film.map(ends))).toBeGreaterThan(
+      spent + (trail - spent) * 0.5,
+    );
+    for (const pass of film) {
+      expect(pass.alpha).toBeLessThan(0.6);
+      expect(ends(pass)).toBeLessThan(trail + mm(4.8));
+    }
+    // …fading the whole way: what goes down in the near half of the trail is
+    // heavier than anything in the far half.
+    const middle = (spent + trail) / 2;
+    const strongest = (passes: typeof film) =>
+      Math.max(0, ...passes.map((s) => s.alpha));
+    const near = strongest(film.filter((s) => starts(s) < middle));
+    const far = strongest(film.filter((s) => starts(s) >= middle));
+    expect(far).toBeLessThan(near);
+    expect(far).toBeGreaterThan(0);
+  });
+
+  it("thins the film out until it vanishes", () => {
+    // The fade is not only the ink: a film that no longer covers comes apart
+    // into fewer and shorter scratches, which is what makes the far end of a
+    // long drag disappear rather than stop.
+    const spent = capacityOf(mm(4.8), 1) * reservoirOf("round");
+    const trail = spent * (1 + RESIDUE_RUN);
+    const { at } = pathOf((ctx) =>
+      paintBrush(ctx, straight(trail * 1.4), mm(4.8), 1, 1),
+    );
+    const density = (from: number, to: number) =>
+      at.filter((p) => p.x >= from && p.x < to).length / (to - from);
+    const solid = density(spent * 0.2, spent * 0.5);
+    const near = density(spent, spent + (trail - spent) * 0.25);
+    const far = density(trail - (trail - spent) * 0.25, trail);
+    expect(near).toBeLessThan(solid);
+    expect(far).toBeLessThan(near);
+    expect(far).toBeGreaterThan(0);
+    // And past the end of it, nothing whatsoever.
+    expect(at.filter((p) => p.x > trail + mm(4.8)).length).toBe(0);
+  });
+
+  it("keeps the film in step with the head that laid the paint", () => {
+    // The trail is the *same head*: the hairs that lift first while there is
+    // paint are the hairs that give out first once there is none, and every one
+    // of them keeps its lane. So the film has to sit inside the mark rather
+    // than beside it — a second brush drawn over the first would show as a
+    // trail wider than the stroke it belongs to.
+    const spent = capacityOf(mm(4.8), 1) * reservoirOf("round");
+    const trail = spent * (1 + RESIDUE_RUN);
+    const { at } = pathOf((ctx) =>
+      paintBrush(ctx, straight(trail * 1.2, 400), mm(4.8), 1, 1),
+    );
+    const film = at.filter((p) => p.x > spent);
+    expect(film.length).toBeGreaterThan(20);
+    for (const p of film) {
+      expect(Math.abs(p.y - 400)).toBeLessThan(mm(4.8) * 0.55);
+    }
   });
 
   it("scratches through a marked dry phase before it stops", () => {
@@ -473,7 +596,7 @@ describe("paintBrush", () => {
     expect(reservoirOf("round")).toBeCloseTo(reservoirOf("flat") * 2, 10);
     const reach = (head: BrushHead) => {
       const { at } = pathOf((ctx) =>
-        paintBrush(ctx, straight(3000), mm(12), 1, 1, 1, 1, 0, 1, head),
+        paintBrush(ctx, straight(24000), mm(12), 1, 1, 1, 1, 0, 1, head),
       );
       return Math.max(...at.map((p) => p.x));
     };
@@ -490,7 +613,7 @@ describe("paintBrush", () => {
     // scratches dry within a stroke, a heavy charge crosses most of a page.
     const reach = (load: number) => {
       const { at } = pathOf((ctx) =>
-        paintBrush(ctx, straight(4000), mm(4.8), 1, 1, 1, 1, 0, load),
+        paintBrush(ctx, straight(20000), mm(4.8), 1, 1, 1, 1, 0, load),
       );
       return Math.max(...at.map((p) => p.x));
     };
@@ -502,15 +625,30 @@ describe("paintBrush", () => {
   });
 
   it("cuts the collapsed line where the paint ran out", () => {
-    // Zoomed out to a hairline the head is a plain line — and the run-out has
-    // to survive the collapse, or pulling away from the page would grow back
-    // the tail the head never painted.
+    // Zoomed out to a hairline the head is a plain line — and both phases of
+    // the run-out have to survive the collapse, or pulling away from the page
+    // would grow back the tail the head never painted.
     const spent = capacityOf(40, 0.8) * reservoirOf("round");
+    const trail = spent * (1 + RESIDUE_RUN);
     const ctx = createFakeContext();
-    paintBrush(ctx, straight(spent * 4), 40, 0.8, 0.003);
-    const xs = ctx.strokes.flatMap((s) => s.runs.flatMap((r) => [r[0], r[2]]));
-    expect(Math.max(...xs)).toBeLessThan(spent + 1);
-    expect(Math.max(...xs)).toBeGreaterThan(spent * 0.9);
+    paintBrush(ctx, straight(trail * 2), 40, 0.8, 0.003);
+    const ends = (passes: typeof ctx.strokes) =>
+      passes.flatMap((s) => s.runs.flatMap((r) => [r[0]!, r[2]!]));
+    // The line proper stops where the paint did…
+    const paint = ctx.strokes.filter(
+      (s) => s.alpha === Math.max(...ctx.strokes.map((other) => other.alpha)),
+    );
+    expect(Math.max(...ends(paint))).toBeLessThan(spent + 1);
+    expect(Math.max(...ends(paint))).toBeGreaterThan(spent * 0.9);
+    // …and the fading trail stops where the film did. A line has no hairs to
+    // come apart into, so what is left of the phase at this size is the one
+    // thing a line can carry: it gets paler and it stops.
+    const film = ctx.strokes.filter(
+      (s) => s.alpha < Math.max(...ctx.strokes.map((other) => other.alpha)),
+    );
+    expect(film.length).toBeGreaterThan(1);
+    expect(Math.max(...ends(film))).toBeLessThan(trail + 1);
+    expect(Math.max(...ends(film))).toBeGreaterThan(trail * 0.9);
   });
 
   it("costs the patch it is asked for rather than the whole drag", () => {
@@ -593,9 +731,47 @@ describe("paintBrush", () => {
     for (const point of inside) expect(drawn.has(key(point))).toBe(true);
   });
 
+  it("paints the same film inside a patch as it does without one", () => {
+    // The same contract over the trail, and it is the reason the fade's bands
+    // are cut from the *mark* rather than from the patch: a band cut to the
+    // window would put a strip of trail at the wrong step of the fade, and the
+    // seam would show wherever two repainted patches met.
+    const spent = capacityOf(mm(4.8), 1) * reservoirOf("round");
+    const trail = spent * (1 + RESIDUE_RUN);
+    const patch = { x: spent + 300, y: 300, width: 400, height: 200 };
+    const film = (clip?: typeof patch) =>
+      pathOf((ctx) =>
+        paintBrush(
+          ctx,
+          straight(trail * 1.2),
+          mm(4.8),
+          1,
+          1,
+          1,
+          1,
+          0,
+          1,
+          undefined,
+          clip,
+        ),
+      );
+    const key = (p: { x: number; y: number; pen: number }) =>
+      `${p.x.toFixed(6)},${p.y.toFixed(6)},${p.pen.toFixed(6)}`;
+    const drawn = new Set(film().at.map(key));
+    const inside = film(patch).at.filter(
+      (p) => p.x > patch.x && p.x < patch.x + patch.width,
+    );
+    expect(inside.length).toBeGreaterThan(20);
+    for (const point of inside) expect(drawn.has(key(point))).toBe(true);
+  });
+
   it("paints at the stroke's own opacity", () => {
     // The mark is opaque paint with the hairs' partings scratched through it,
     // not a weave of translucent threads — so no pass may quietly dim itself.
+    //
+    // The two exemptions are the ones that are not the mark: the wick at its
+    // edge, and the film left after the paint has gone (see `residue.ts`). The
+    // drag below is well inside one dip of this head, so neither is in it.
     const ctx = createFakeContext();
     ctx.globalAlpha = 0.6;
     const seen: number[] = [];

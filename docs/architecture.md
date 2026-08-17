@@ -736,7 +736,14 @@ lives by: **nothing outside it may branch on a tool id.**
   is fitted across the strands it turns out to have. Nothing in `head.ts` knows
   about a stroke, which is what lets every physical claim in it (the gauge real
   filament is milled at, what one dip covers, how far a worn head frays open) be
-  held to without painting a mark.
+  held to without painting a mark. A drag has two phases and they are two
+  modules: `bristle.ts` paints the charge, and `residue.ts` paints the **film**
+  left on the hairs after it — thin, pale and coming apart, for about as far
+  again as the paint lasted. What both need of a single hair — how readily it
+  leaves the paper, how long its skips run, where it lands and lifts, and the
+  little state machine that streams its run into a path — is `strand.ts`, so
+  the trail is the same head that laid the paint down rather than a second
+  brush drawn over the first.
 - `aquarelle.ts` — watercolour, which is the one medium here where what is
   being painted with is _water_: the wash runs past the hair that laid it, its
   two edges wander independently, the rim dries darkest as the pool evaporates,

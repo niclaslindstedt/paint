@@ -26,7 +26,6 @@ import { mm } from "../units.ts";
 import {
   driftWalk,
   HAIRLINE,
-  hashedRandom,
   normalAt,
   PIXEL,
   trace,
@@ -38,15 +37,20 @@ import {
   coreShare,
   DRY_LOAD,
   drynessOf,
+  FILM_FROM,
   fitHead,
   loadAt,
   reservoirOf,
+  residueAt,
+  RESIDUE_RUN,
   ROUND_HEAD,
   TWIST_STRAY,
   WANDER_STRAY,
   type BrushHead,
 } from "./head.ts";
 import { paintPath } from "./ink.ts";
+import { paintResidue, RESIDUE_INK } from "./residue.ts";
+import { hairTraits, openStrand } from "./strand.ts";
 
 /** Stiffen a traced path to what a head that wide could actually have drawn.
  *
@@ -202,11 +206,15 @@ const POOL_GRAIN = 2.6;
  *     moment it touches down as it is ever going to be (see `widthProfile`);
  *   - **paint that runs out**, which is what actually ends a stroke: the far
  *     end of a long drag opens up into separate hairs through a marked dry
- *     stretch, and past it the head lays down nothing at all — a brush with no
- *     more colour cannot keep painting (see `loadAt` and `drynessOf`). `load`
- *     is how much was dipped: 1 is one ordinary charge, and the run scales
- *     with it — and with the shape of the ferrule, because a flat holds about
- *     half what the round's cone does (see `reservoirOf`).
+ *     stretch, and past it the head has no more colour to lay down (see
+ *     `loadAt` and `drynessOf`). `load` is how much was dipped: 1 is one
+ *     ordinary charge, and the run scales with it — and with the shape of the
+ *     ferrule, because a flat holds about half what the round's cone does (see
+ *     `reservoirOf`);
+ *   - and **a trail of the film left on the hairs** for about as far again,
+ *     thin and pale and coming apart as it goes, because a brush that has
+ *     stopped covering has not stopped marking. It is painted next door in
+ *     `residue.ts`, off the same head this one dragged.
  *
  *  The four numbers past the geometry are four different things about the
  *  brush, and none of them is a restyling of another:
@@ -254,6 +262,9 @@ export function paintBrush(
   // `reservoirOf`), times how much the load dial says was dipped.
   const capacity =
     capacityOf(size, hard) * reservoirOf(head.shape) * Math.max(0.05, load);
+  // …and how far it keeps marking after that: the film left on the hairs comes
+  // off for about as far again, thin and fading (see `residueAt`).
+  const trail = capacity * (1 + RESIDUE_RUN);
   // The head's width on the screen it is bound for. A brush drawn four pixels
   // wide has room for four hairs, however many the medium would splay.
   const onScreen = size * scale;
@@ -267,8 +278,21 @@ export function paintBrush(
     // the line stops where the paint did, or a page zoomed away from would
     // grow back the tail the head never painted.
     ctx.save();
-    ctx.globalAlpha = alpha * (0.42 + hard * 0.58);
-    paintPath(ctx, chargedRun(points, capacity), size);
+    const weight = alpha * (0.42 + hard * 0.58);
+    ctx.globalAlpha = weight;
+    paintPath(ctx, runBetween(points, 0, capacity), size);
+    // …and so does the trail after it, as a few steps of a fading line. A line
+    // has no hairs to come apart into, so what is left of the phase at this
+    // size is the one thing a line can carry: it gets paler and it stops.
+    const step = (trail - capacity) / COLLAPSED_BANDS;
+    for (let band = 0; band < COLLAPSED_BANDS; band++) {
+      const from = capacity + step * band;
+      const run = runBetween(points, from, from + step);
+      if (run.length < 2) break;
+      ctx.globalAlpha =
+        weight * RESIDUE_INK * residueAt(from + step / 2, capacity);
+      paintPath(ctx, run, size);
+    }
     ctx.restore();
     return;
   }
@@ -316,16 +340,8 @@ export function paintBrush(
   // far the lanes could be spread and still leave a mark `size` wide (see
   // `head.ts`). All of it settled before a hair is drawn.
   const worn = Math.max(0, Math.min(2, fray));
-  const {
-    splay,
-    gap,
-    inset,
-    count: bristles,
-    lanes,
-    edges,
-    clumps,
-    pens,
-  } = fitHead(size, hard, scale, gauge, worn);
+  const fit = fitHead(size, hard, scale, gauge, worn);
+  const { splay, gap, count: bristles, pens } = fit;
   // How far a wet edge wicks into the sheet, in document pixels — the `bleed`
   // dial, measured against the head because a fat brush puts down more water.
   // Zero unless the dial has been moved, and zero as well once the halo is
@@ -347,6 +363,7 @@ export function paintBrush(
   const nxs = new Float64Array(count);
   const nys = new Float64Array(count);
   const loads = new Float64Array(count);
+  const residues = new Float64Array(count);
   const teeth = new Float64Array(count);
   const tooth = driftWalk();
   tooth.reset(3);
@@ -355,6 +372,7 @@ export function paintBrush(
     nxs[i] = nx;
     nys[i] = ny;
     loads[i] = loadAt(along[i]!.at, capacity, hard);
+    residues[i] = residueAt(along[i]!.at, capacity);
     teeth[i] = tooth.at(along[i]!.at / TOOTH);
   }
 
@@ -401,6 +419,11 @@ export function paintBrush(
   const grainShare = 0.35 + 0.65 * Math.min(1, (size / (TOOTH * 1.6)) ** 0.7);
   // How far the mark runs, so a hair can be cut short of either end of it.
   const total = along[count - 1]!.at;
+  // What each hair of that head is like over a mark this long: how readily it
+  // leaves the paper, how long its skips run, where it lands and lifts (see
+  // `strand.ts`). Settled once and read by both phases of the drag, so the
+  // trail after the paint is the same head that laid the paint down.
+  const hairs = hairTraits(fit, size, hard, total);
 
   // Which samples can put ink where the caller is keeping any (see `clip`), and
   // the first and last that can. A sample reaches half a head plus a wet edge
@@ -416,14 +439,26 @@ export function paintBrush(
     clip,
     half * splay + wick + spacing + PIXEL / Math.max(0.01, scale),
   );
-  // The sample past which there is no paint left to lay down. A hard stop, not
-  // a style: every loop below ends here, so however far the hand carries on
-  // after the head is spent, the tail costs nothing and leaves nothing.
+  // The sample past which there is no paint left to lay down — where the
+  // charged run ends and the trail of film begins — and the one past which even
+  // the film has gone. The second is a hard stop, not a style: nothing below
+  // walks past it, so however far the hand carries on after the head is
+  // genuinely spent, the tail costs nothing and leaves nothing.
   let lastWet = count - 1;
   while (lastWet > 0 && loads[lastWet]! <= 0) lastWet--;
+  let lastDamp = count - 1;
+  while (lastDamp > 0 && residues[lastDamp]! <= 0) lastDamp--;
+  // …and the sample the trail starts coming through at, which is neither of
+  // those: a charged run gives out well before its curve does (see
+  // `FILM_FROM`), so the two phases overlap across the stretch where the paint
+  // is thinning rather than leaving a gap between the last of it and the first
+  // of the film.
+  let firstFilm = 0;
+  while (firstFilm < count && loads[firstFilm]! > FILM_FROM) firstFilm++;
   const first = shown ? shown.first : 0;
   const last = Math.min(shown ? shown.last : count - 1, lastWet);
-  if (first > last) return;
+  const lastShown = Math.min(shown ? shown.last : count - 1, lastDamp);
+  if (first > lastShown) return;
 
   ctx.save();
   ctx.lineCap = "round";
@@ -527,64 +562,18 @@ export function paintBrush(
   const twisting = driftWalk();
   twisting.reset(7);
 
-  // The hairs.
-  for (let b = 0; b < bristles; b++) {
-    const lane = bristles === 1 ? 0 : (b / (bristles - 1) - 0.5) * 2;
-    const edge = edges[b]!;
-    const across = (lanes[b]! * inset + clumps[b]!) / Math.max(1, half);
+  // The hairs — and none of them, when the patch being painted lies entirely
+  // past the last of the paint. There is still a mark out there, but it is the
+  // trail below rather than anything this loop draws.
+  const charged = first <= last ? bristles : 0;
+  for (let b = 0; b < charged; b++) {
+    const lane = hairs.lane[b]!;
+    const across = hairs.across[b]!;
+    const dryEdge = hairs.dryEdge[b]!;
+    const skipRun = hairs.skipRun[b]!;
+    const lands = hairs.lands[b]!;
+    const lifts = hairs.lifts[b]!;
     ctx.lineWidth = pens[b]!;
-    // How readily this hair leaves the paper — the fraction of the drag it
-    // spends off it, before the load and the paper's tooth have their say.
-    //
-    // Mostly this is how dry the head is, and that is deliberate: look at a
-    // pressure series and each mark is *evenly* streaky down its whole length.
-    // The paint running out is a second, slower thing that happens along the
-    // stroke (the term below), not what makes a light-pressure mark light.
-    //
-    // The outer hairs go first whatever the head — they carry the least paint
-    // and take the least pressure, and that is what makes an edge fray rather
-    // than stop.
-    //
-    // It rises across the head as well as at its very sides. A head does not
-    // bear on the paper evenly — the middle of the bundle is where the handle's
-    // weight goes — so a light mark is a mass that is thickest down its centre,
-    // not a rectangle of evenly spaced wires with two frayed borders.
-    const dryEdge =
-      0.03 +
-      (1 - hard) * 0.3 +
-      lane * lane * (1 - hard) * 0.24 +
-      edge * 0.4 * (1.4 - hard) +
-      hashedRandom(b * 7.1, b * 3.3) * 0.1;
-    // How long this hair's dry stretches run. Per hair, so the skips across the
-    // head are not all the same length — one drift period for all of them reads
-    // as a dashed line, which is a thing no brush does.
-    //
-    // Measured against the head rather than in absolute pixels, and kept short:
-    // a run comparable to the whole stroke is not a skipping hair at all, it is
-    // a hair that either drew or did not, and a head of those comes out as a
-    // handful of unbroken wires with bare paper between them instead of as a
-    // mark that is combed all over.
-    const skipRun = Math.max(
-      14,
-      size * (0.3 + hashedRandom(b * 2.7, 33) * 0.8),
-    );
-    // Where this hair touches down and where it leaves, as a distance in from
-    // each end of the mark. A head is a cut bundle, not a blade: the hairs are
-    // near enough level, which is why a brushed mark starts and stops bluntly
-    // rather than tapering — but only near enough, and the few tenths of a
-    // head-width they disagree by is the ragged edge across both ends of every
-    // stroke on a reference sheet. The lift end frays further than the landing
-    // one, because by then the head is emptier and the outermost hairs have the
-    // least holding them down.
-    //
-    // Held to a fraction of the mark as well as of the head, because a dab is
-    // shorter than the brush that made it: unbounded, a head-width of fray at
-    // each end of a stroke a third of a head long cuts every hair away and
-    // leaves the pooled middle on its own.
-    const ragged = Math.min(size, total * 0.5);
-    const lands = hashedRandom(b * 4.7, 13) ** 1.6 * ragged * 0.1;
-    const lifts =
-      hashedRandom(b * 6.1, 29) ** 1.4 * ragged * (0.16 + edge * 0.34);
 
     // Walk the stroke, emitting the runs where this hair is on the paper
     // straight into the path. Collecting them into arrays of points first cost
@@ -678,32 +667,81 @@ export function paintBrush(
     if (wick > 0) wickPass(ctx, alpha, ctx.lineWidth, wick);
     ctx.stroke();
   }
+
+  // …and the trail of film past all of that, where the drag went further than
+  // the dip did (see `residue.ts`). It is the same head, walking on from the
+  // sample the paint gave out at, so everything above is handed over rather
+  // than worked out again — and on a stroke that never ran dry, which is most
+  // of them, `from` is already past `to` and it costs one comparison.
+  paintResidue({
+    ctx,
+    alpha,
+    along,
+    nxs,
+    nys,
+    widths,
+    residues,
+    loads,
+    teeth,
+    fit,
+    hairs,
+    half,
+    worn,
+    grainShare,
+    total,
+    shown: shown ? shown.at : null,
+    from: firstFilm,
+    to: lastDamp,
+    visibleFrom: Math.max(first, firstFilm),
+    visibleTo: lastShown,
+  });
   ctx.restore();
 }
 
-/** The lead of a polyline the head still had paint for: the points inside
- *  `range` of travel, the last one cut onto it exactly.
+/** How many steps the collapsed line's trail fades in. Fewer than the hairs'
+ *  bands: at this size the whole mark is a few pixels wide and a step in its
+ *  alpha is the only thing the phase has left to say. */
+const COLLAPSED_BANDS = 3;
+
+/** The stretch of a polyline between two distances along it, both ends cut onto
+ *  it exactly.
  *
- *  For the collapsed mark only — the full painter reads the same distance per
- *  sample through `loadAt` and lifts hair by hair. A line has no hairs to
- *  lift, so it is simply cut where the paint ran out. */
-function chargedRun(points: readonly Point[], range: number): readonly Point[] {
+ *  For the collapsed mark only — the full painter reads the distance per sample
+ *  through `loadAt` and `residueAt` and lifts hair by hair. A line has no hairs
+ *  to lift, so it is simply cut where the paint ran out and again into the
+ *  bands the trail fades over. */
+function runBetween(
+  points: readonly Point[],
+  from: number,
+  to: number,
+): readonly Point[] {
+  // A tap is the whole of its own mark, and there is no distance along it to
+  // cut: it is either the head's first touch or nothing.
+  if (points.length < 2) return from <= 0 ? points : [];
+  const run: Point[] = [];
   let travelled = 0;
   for (let i = 1; i < points.length; i++) {
     const a = points[i - 1]!;
     const b = points[i]!;
-    const step = Math.hypot(b.x - a.x, b.y - a.y);
-    if (travelled + step < range) {
-      travelled += step;
-      continue;
+    const dx = b.x - a.x;
+    const dy = b.y - a.y;
+    const step = Math.hypot(dx, dy);
+    // The segment this run starts inside is cut onto rather than skipped, so a
+    // band begins exactly where the one before it ended and the two meet.
+    if (travelled > from) run.push(a);
+    else if (travelled + step > from) {
+      const f = step > 0 ? (from - travelled) / step : 0;
+      run.push({ x: a.x + dx * f, y: a.y + dy * f });
     }
-    const f = step > 0 ? (range - travelled) / step : 0;
-    return [
-      ...points.slice(0, i),
-      { x: a.x + (b.x - a.x) * f, y: a.y + (b.y - a.y) * f },
-    ];
+    if (travelled + step >= to) {
+      const f = step > 0 ? (to - travelled) / step : 0;
+      run.push({ x: a.x + dx * f, y: a.y + dy * f });
+      return run;
+    }
+    travelled += step;
   }
-  return points;
+  if (travelled > from) run.push(points[points.length - 1]!);
+  return run;
 }
 
 /** Which samples of a traced path can put ink inside `clip`, padded by how far
@@ -765,47 +803,6 @@ function wickPass(
   ctx.stroke();
   ctx.globalAlpha = alpha;
   ctx.lineWidth = pen;
-}
-
-/** One bristle's run, streamed into the current path.
- *
- *  Curved through the midpoints — the same smoothing the freehand painter uses,
- *  and for the same reason: an offset polyline has a corner at every sample. A
- *  run of one point is dropped rather than drawn, so a hair that touches down
- *  for a single sample leaves no dot.
- *
- *  It is a little state machine rather than an array because a hair crosses
- *  hundreds of samples and there are up to sixteen of them per stroke: the
- *  points are used once, in order, and never looked at again. */
-function openStrand() {
-  // The last point emitted into the path, held back one step so the curve
-  // through it can be aimed at the midpoint of the next.
-  let heldX = 0;
-  let heldY = 0;
-  let seen = 0;
-  return {
-    to(ctx: CanvasRenderingContext2D, x: number, y: number): void {
-      if (seen === 0) {
-        heldX = x;
-        heldY = y;
-        seen = 1;
-        return;
-      }
-      if (seen === 1) {
-        ctx.moveTo(heldX, heldY);
-      } else {
-        ctx.quadraticCurveTo(heldX, heldY, (heldX + x) / 2, (heldY + y) / 2);
-      }
-      heldX = x;
-      heldY = y;
-      seen++;
-    },
-    /** End the run — the hair has left the paper, or the stroke has. */
-    lift(ctx: CanvasRenderingContext2D): void {
-      if (seen > 1) ctx.lineTo(heldX, heldY);
-      seen = 0;
-    },
-  };
 }
 
 /** Trace the outline of a variable-width band through a path and leave it as
