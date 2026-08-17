@@ -105,7 +105,7 @@ export const en = {
     resize: "Resize…",
     reset: "Start over",
     resetConfirm:
-      "Throw this drawing away and start over? Every mark, every layer and the page colour go. Undo still brings them back.",
+      "Throw this drawing away and start over? Every mark and every layer go — the page keeps its colour. Undo still brings them back.",
     resetConfirmLabel: "Start over",
     flip: "Flip",
     flipLeft: "Quarter turn left",

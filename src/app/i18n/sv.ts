@@ -100,7 +100,7 @@ export const sv: Catalog = {
     resize: "Ändra storlek…",
     reset: "Börja om",
     resetConfirm:
-      "Kasta teckningen och börja om? Alla streck, alla lager och sidans färg försvinner. Ångra tar tillbaka dem.",
+      "Kasta teckningen och börja om? Alla streck och alla lager försvinner — sidan behåller sin färg. Ångra tar tillbaka dem.",
     resetConfirmLabel: "Börja om",
     flip: "Vänd",
     flipLeft: "Ett kvarts varv åt vänster",
