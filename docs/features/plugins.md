@@ -190,8 +190,18 @@ painters in `src/app/plugins/brushes.ts`, `bristle.ts`, `crayon.ts` and
   a share of the width — widen the brush and you get _more_ streaks rather than
   fatter ones, the way a rack of real brushes works. The head lands blunt and
   holds its width, it is too wide to follow a wiggle finer than itself and it
-  cannot turn inside its own width, and it carries a load it spends: the far end
-  of a long drag opens up into separate hairs. Drag it fast and it thins, which
+  cannot turn inside its own width, and it carries a load it spends — and only
+  that load: a #6 round covers about four centimetres of paper, which is about
+  what one dip gives you, then scrapes through a marked dry stretch where the
+  body gives way to scratches, and then stops leaving anything at all, because
+  a brush with no more colour on it cannot keep painting. How much paint one
+  dip charges is the **load** dial — starve it down to dry-brush within a
+  stroke, or charge it up to cross most of a page. The mark it leaves
+  is the **width of the head** — everything that ruffles the edge of a brushed
+  stroke, the clumping, the wander, the twist of the bundle and the fray of a
+  worn head, is budgeted out of the head rather than added to it, so a fringe
+  frays inwards and the number on the size button is a distance you can measure.
+  Drag it fast and it thins, which
   the stroke knows for free — the canvas samples every 1.5 document pixels at
   the slowest, so the gaps between stored points are how quickly you crossed
   them. What decides how a mark reads is **how much paper is left showing**: a
@@ -242,7 +252,10 @@ painters in `src/app/plugins/brushes.ts`, `bristle.ts`, `crayon.ts` and
   its own edge and it closes to the thickness of the bundle. That is one stroke
   that swells and thins as it goes round a curve without the hand doing
   anything, and it is why a sign-writer owns one. Which way the blade is turned
-  is the **nib angle** dial, the same one the broad nib carries;
+  is the **nib angle** dial, the same one the broad nib carries. The ferrule's
+  squeeze also empties most of the bundle, so one dip of a flat runs about
+  half as far as one dip of the round before it scratches dry — the same
+  **load** dial charges it with more;
 - the **watercolour brush** is the one medium here where what you are painting
   with is _water_, and the pigment only goes where the water took it. Four
   things happen while a wet stroke dries on a sheet and all four are in the
@@ -278,17 +291,19 @@ produce identical grain instead of a mark that shimmers when you pan.
 
 ### What a rubber will not take off
 
-Graphite and wax sit on the sheet and come away; ink, paint, felt tip, a bucket
-of colour and a dropped photograph have soaked into it and do not, however hard
-you rub. So the rubber leaves all of those exactly where they are — which is
-what finally makes the oldest workflow in drawing work here: **sketch it in
-pencil, ink over the sketch, then rub the sketch out.**
+Graphite sits loose on the sheet and comes away; everything else stays. Ink,
+paint, felt tip, a bucket of colour and a dropped photograph have soaked into
+the paper, and a wax crayon mark smears under a rubber rather than lifting —
+so however hard you rub, only the pencil comes off. The rubber leaves all the
+rest exactly where it is — which is what finally makes the oldest workflow in
+drawing work here: **sketch it in pencil, ink over the sketch, then rub the
+sketch out.**
 
 Two flags say all of it, and nothing anywhere reads a tool's name: `lifts` on
-the rubber, `liftable` on the pencil and the crayon. The renderer does the rest
+the rubber, `liftable` on the pencil. The renderer does the rest
 — an erasing mark can only be a hole, so it takes everything for the length of
 one composite and the marks it could never have lifted are laid straight back
-over it (`relayFixed` in `render.ts`). Ink comes back at exactly the strength it
+over it (`relayFixed` in `relay.ts`). Ink comes back at exactly the strength it
 had, because the mask it comes back through _is_ the fraction that went. The
 plain **eraser** is still there and still indifferent: it is a hole, it goes
 through ink and pencil at the same rate, and at full strength it takes the page
@@ -693,22 +708,30 @@ exactly the document it would have been.
 A dial tunes the mark you are about to make. A tool can also declare an
 **option**, and that is a different animal: it says how marks of its kind are
 _painted_, for every drawing you own, including the ones already made. The
-watercolour brush and the pencil have them today — which of the two engines
-each is drawn with, and how finely the heavier one works — and they sit in the
-same panel as that tool's dials, under **Rendering**, above them.
+watercolour brush and the pencil have one each today — how finely the simulation
+behind them works a mark out — and they sit in the same panel as that tool's
+dials, under **Rendering**, above them.
 
-They are in the tool's own panel because that is where the answer is: an engine
-is a property of the implement rather than of the app, and it is a choice nobody
-can make by reading about it. So the engines are shown rather than described —
-each is a swatch of the same marks, on the same paper, painted by the engine it
-names. Press one and the page behind repaints with it. (They used to be a
-section of Settings → Tools.)
+They are in the tool's own panel because that is where the answer is: how a mark
+is worked out is a property of the implement rather than of the app, and it is a
+trade nobody can judge by reading about it. (They used to be a section of
+Settings → Tools.)
+
+Both tools used to declare a second option beside it: **which** of two engines
+painted their marks, offered as a pair of swatches of the same stroke. Those are
+gone — there is one watercolour and one pencil now — and the mechanism that
+served them is worth keeping in mind even so, because it is still in the
+interface: an option may be a **choice** rather than a slider, its answers may
+carry a painted preview, and one option may be hidden behind another's answer
+(`shownWhen`). No shipped tool uses any of that today. A plugin seam that lost
+half of itself the moment the app stopped needing that half would be a worse
+seam.
 
 Nothing about an option is recorded on a mark, and that is the point: a setting
 kept per stroke would mean changing it orphaned everything drawn before. It is a
-way of looking at the page, like the canvas theme — so a wash drawn with one
-engine paints with whichever is in force when the page is next painted, and a
-phone that cannot afford a simulation still opens a page painted with it on a
+way of looking at the page, like the canvas theme — so a wash painted at one
+detail repaints at whichever is in force when the page is next painted, and a
+phone that cannot afford the full field still opens a page painted at it on a
 desktop.
 
 ## The fills and the dropper read the page

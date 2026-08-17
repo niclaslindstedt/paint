@@ -39,6 +39,16 @@ import {
 // hint under it belongs to the answer that is *picked* — the tightest honest
 // thing a 250-pixel panel can say — where a wall of hints, one per answer, is
 // the settings page this section was moved out of.
+//
+// **No shipped tool declares a choice today.** The two that did were the wash
+// and lead engine pickers, and both went when the app settled on one watercolour
+// and one pencil (see `plugins/wash.ts`); what is left is a slider each. The
+// choice half of this file stays because an option is what a *plugin* declares
+// and the interface should not shrink to whatever the built-ins happen to use
+// this month — but it means the previews below, and the warming that exists for
+// them, currently paint nothing. Leave them wired up; the moment a tool declares
+// a choice with previews, an unwarmed panel is a third of a second of frozen
+// thread again.
 
 /** How wide a preview is drawn, in CSS pixels. Two of them and a gap is the
  *  width of the panel, which is what decides it: a choice between two pictures
@@ -47,17 +57,17 @@ const PREVIEW_WIDTH = 100;
 
 /** Previews already painted.
  *
- *  These are the dearest pictures in the panel by a distance: a wash engine's
- *  swatch is two brush strokes over a whole sheet of cold-pressed paper, and
- *  the pigment engine paints its by running the simulation. Two of them in an
- *  effect flush is most of what a panel used to cost to open, so they are
- *  painted once, one per frame, and warmed before the panel opens (see
- *  `warmOptionPreviews` and `tiles.ts`). */
+ *  These were the dearest pictures in the panel by a distance when a tool still
+ *  declared a choice with previews on it: the wash engine's swatch was two brush
+ *  strokes over a whole sheet of cold-pressed paper, painted by running the
+ *  simulation, and two of them in an effect flush was most of what a panel cost
+ *  to open. So they are painted once, one per frame, and warmed before the panel
+ *  opens (see `warmOptionPreviews` and `tiles.ts`). */
 const painted = new TileCache(24);
 
 /** Everything one preview's pixels are a function of: which answer it is a
  *  picture of, the ink and the page it is painted in, and — because a swatch
- *  is painted through the app's own renderer — the engines in force. The
+ *  is painted through the app's own renderer — what the renderer is set to. The
  *  pigment swatch is deliberately painted at whatever detail the slider beside
  *  it is set to, and that is in `rendererKey` too. */
 function previewKey(
@@ -91,8 +101,10 @@ function paintPreview(
 
 /** Paint the pictures a panel's Rendering section is about to show, before it
  *  is opened — the other half of what makes the size panel open drawn (see
- *  `warmPressTiles`), and much the larger half: the pigment engine's swatch is
- *  a third of a second on its own, where a press is a millisecond or two.
+ *  `warmPressTiles`), and much the larger half when there is anything to paint:
+ *  the pigment engine's swatch was a third of a second on its own, where a press
+ *  is a millisecond or two. No option ships a preview today, so this is a no-op
+ *  until one does.
  *  Given the same options and answers the panel would render, so a warmed panel
  *  is a pair of blits. Returns the way to take whatever is left of the pass
  *  back out of the queue. */

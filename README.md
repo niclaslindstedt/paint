@@ -65,9 +65,9 @@ the same [`oss-framework`](https://github.com/niclaslindstedt/oss-framework).
   the tool it was saved from.
 - **Two ways to rub something out, one button.** The **eraser** is a hole: it
   takes off whatever it covers, at whatever strength you set it to. Press it
-  again for the **rubber**, which is a real one — it lifts pencil and crayon a
-  little at a time, leaves the paper's grain showing through what is left, never
-  quite takes all of it, and leaves ink, paint and marker exactly where they
+  again for the **rubber**, which is a real one — it lifts pencil a little at a
+  time, leaves the paper's grain showing through what is left, never quite
+  takes all of it, and leaves ink, paint, crayon and marker exactly where they
   are. So you can sketch in pencil, ink over the sketch, and rub the sketch out.
 - **Eleven shapes, one button.** Rectangle, ellipse, line, arrow, rounded
   rectangle, triangle, diamond, pentagon, hexagon, star and double arrow share a
@@ -86,22 +86,20 @@ the same [`oss-framework`](https://github.com/niclaslindstedt/oss-framework).
   into the sheet's dips, and nothing covers — every layer shows what is under
   it, so glazing a second pass over the first really does deepen it. How much
   water is on the brush, how much colour is in the water, and how heavily the
-  paper takes it are three dials. There are **two engines** behind them, picked
-  in the brush's own panel as two swatches of the same stroke: the fast stroke
-  model above, or a pigment simulation that puts water on the paper a step at a
-  time and lets the mark be whatever dries — blooms, backruns, a frayed wet edge
-  and a rim that gathers where the wash actually stopped. It is much slower, so
-  it is opt-in, a detail slider beside it trades fineness back for speed, and
-  any browser that cannot run it paints with the first one instead.
-- **A pencil that knows what paper it is on.** The pencil has the same pair of
-  engines in the same place, and the second one presses a lead into _this
-  page's own sheet_: a hard lead rides the peaks and leaves the valleys bare —
+  paper takes it are three dials. Behind them is a **pigment simulation** that
+  puts water on the paper a step at a time and lets the mark be whatever dries —
+  blooms, backruns, a frayed wet edge and a rim that gathers where the wash
+  actually stopped. A detail slider in the brush's own panel trades fineness back
+  for speed, and any browser that cannot run the field at all still paints the
+  wash.
+- **A pencil that knows what paper it is on.** The pencil presses a lead into
+  _this page's own sheet_: a hard lead rides the peaks and leaves the valleys bare —
   a broken sparkle on rough stock, very nearly solid on hot-pressed — shading a
   patch twice fills in what the first pass could not reach, a patch of paper
   holds only so much graphite before it stops taking any, and on cotton duck the
   lead catches the crowns of the weave and skips the troughs. The grain dial you
-  set when you made the page moves all of it. Opt-in and slider-tuned like the
-  wash, and it falls back to the fast one the same way.
+  set when you made the page moves all of it. Slider-tuned like the wash, and it
+  falls back the same way.
 - **Brushes that are their medium.** The round brush is a head of hair: it lays
   down opaque paint with the hairs' partings scratched through it, frays at the
   sides, and runs dry towards the end of a long drag. The flat is the same head

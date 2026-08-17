@@ -23,16 +23,8 @@ import type { MarkCache } from "./cache.ts";
 import { cursorFor, usePointerRing } from "./PointerRing.tsx";
 import { pluginById } from "./plugins/registry.ts";
 import type { CanvasProbe, DraftStroke, ToolContext } from "./plugins/types.ts";
-import {
-  DEFAULT_LEAD_DETAIL,
-  DEFAULT_LEAD_ENGINE,
-  type LeadEngine,
-} from "./plugins/lead.ts";
-import {
-  DEFAULT_WASH_DETAIL,
-  DEFAULT_WASH_ENGINE,
-  type WashEngine,
-} from "./plugins/wash.ts";
+import { DEFAULT_LEAD_DETAIL } from "./plugins/lead.ts";
+import { DEFAULT_WASH_DETAIL } from "./plugins/wash.ts";
 import { createProbe } from "./probe.ts";
 import { inBox } from "./selection.ts";
 import { createTrail } from "./trail.ts";
@@ -139,26 +131,18 @@ type Props = {
   /** The transparency chequer for the app's current theme (see `canvas.ts`) —
    *  what a page with no sheet is drawn as. Never exported either. */
   checker: readonly [string, string];
-  /** Which watercolour engine paints a wash (see `plugins/wash.ts`). Threaded
-   *  in rather than read off the module the app puts it in force on, because
-   *  the canvas needs it as a *render input*: it is what makes a page repaint
-   *  when the setting changes, and what lets the mark cache tell the two
-   *  engines' pixels apart. */
-  washEngine?: WashEngine;
-  /** …and how finely it resolves (see `MIN_WASH_DETAIL`). Passed for the same
-   *  reason the engine is: the mark cache has to see it change. */
+  /** How finely the watercolour simulation resolves (see `MIN_WASH_DETAIL`).
+   *  Threaded in rather than read off the module the app puts it in force on,
+   *  because the canvas needs it as a *render input*: it is what makes a page
+   *  repaint when the setting moves, and what lets the mark cache tell a coarse
+   *  field's pixels from a fine one's. */
   washDetail?: number;
-  /** …and which pencil draws a graphite mark (see `plugins/lead.ts`). A render
-   *  input for the same two reasons: the page has to repaint when the setting
-   *  changes, and the mark cache has to be able to tell the two engines' pixels
-   *  apart. */
-  leadEngine?: LeadEngine;
-  /** …and how finely it works them out. Passed for the same reason the engine
-   *  is: the mark cache has to see it change. */
+  /** …and how finely the graphite simulation works a pencil mark out (see
+   *  `MIN_LEAD_DETAIL`). A render input for the same two reasons. */
   leadDetail?: number;
   /** An effect the sidebar's dialog is setting up, shown on the layers it would
    *  land on and never kept (see `effects.ts`). A render input like the wash
-   *  engine, and for the same reason: it is what makes the page repaint when a
+   *  detail, and for the same reason: it is what makes the page repaint when a
    *  slider moves, and what the mark cache compares to know it must. */
   preview?: EffectPreview | null;
   /** Bumped by the zoom pill to toggle between fitting the page and 1:1. */
@@ -215,9 +199,7 @@ export function PaintCanvas({
   onContextMenu,
   showGrid = false,
   checker,
-  washEngine = DEFAULT_WASH_ENGINE,
   washDetail = DEFAULT_WASH_DETAIL,
-  leadEngine = DEFAULT_LEAD_ENGINE,
   leadDetail = DEFAULT_LEAD_DETAIL,
   preview = null,
   fitToken = 0,
@@ -321,9 +303,7 @@ export function PaintCanvas({
     defaultInk,
     showGrid,
     checker,
-    washEngine,
     washDetail,
-    leadEngine,
     leadDetail,
     preview,
     decodedAt,
@@ -335,9 +315,7 @@ export function PaintCanvas({
     defaultInk,
     showGrid,
     checker,
-    washEngine,
     washDetail,
-    leadEngine,
     leadDetail,
     preview,
     decodedAt,
@@ -544,9 +522,7 @@ export function PaintCanvas({
     defaultInk,
     showGrid,
     checker,
-    washEngine,
     washDetail,
-    leadEngine,
     leadDetail,
     preview,
     decodedAt,

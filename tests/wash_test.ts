@@ -1,12 +1,16 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-// Two watercolour engines behind one seam.
+// One watercolour, and the floor under it.
 //
 // The field simulation itself is checked in `washField_test.ts`. What matters
-// here is the promise around it: the choice is a value with a default, it is
-// never recorded on a mark, and — the load-bearing one — **a browser that
-// cannot run the simulation still paints the wash.** These tests run in node
-// with no DOM at all, which is exactly the case the fallback exists for, so a
-// wash asked for with the simulation in force has to come out as a wash.
+// here is the promise around it: how finely it resolves is a value with a
+// default, it is never recorded on a mark, and — the load-bearing one — **a
+// browser that cannot run the simulation still paints the wash.** These tests
+// run in node with no DOM at all, which is exactly the case the fallback exists
+// for, so a wash has to come out as a wash there too.
+//
+// That fallback is the one thing left of the second engine this app used to
+// offer. Nobody chooses it and nothing names it; it is what a mark too small or
+// too cheap to dry looks like, and these tests are what keep it wired up.
 
 import { describe, expect, it } from "vitest";
 
@@ -19,15 +23,10 @@ import {
 } from "../src/app/plugins/washSim.ts";
 import {
   DEFAULT_WASH_DETAIL,
-  DEFAULT_WASH_ENGINE,
   MIN_WASH_DETAIL,
-  isWashEngine,
-  paintWashWith,
+  paintWashOn,
   setWashDetail,
-  setWashEngine,
   washDetail,
-  washEngine,
-  WASH_ENGINES,
 } from "../src/app/plugins/wash.ts";
 import { defaultSettings, parseSettings } from "../src/app/useAppSettings.ts";
 import type { Point } from "../src/app/types.ts";
@@ -45,12 +44,11 @@ function sweep(): Point[] {
 
 const SIZE = mm(6.3);
 
-/** Everything one wash put on the page, however it was painted. */
-function paintedWith(engine: "simple" | "simulation") {
+/** Everything one wash put on the page, painted through the seam. */
+function paintedThroughSeam() {
   const ctx = createFakeContext();
   ctx.globalAlpha = 1;
-  paintWashWith(
-    engine,
+  paintWashOn(
     ctx as unknown as CanvasRenderingContext2D,
     sweep(),
     SIZE,
@@ -64,34 +62,7 @@ function paintedWith(engine: "simple" | "simulation") {
   return ctx;
 }
 
-describe("the watercolour engine setting", () => {
-  it("offers both engines and opens on the simple one", () => {
-    expect(WASH_ENGINES.map((engine) => engine.id)).toEqual([
-      "simple",
-      "simulation",
-    ]);
-    expect(DEFAULT_WASH_ENGINE).toBe("simple");
-    expect(defaultSettings().washEngine).toBe("simple");
-  });
-
-  it("recognises an engine and refuses anything else", () => {
-    expect(isWashEngine("simulation")).toBe(true);
-    expect(isWashEngine("watercolor")).toBe(false);
-    expect(isWashEngine(undefined)).toBe(false);
-  });
-
-  it("falls back to the default for a blob naming an engine we don't ship", () => {
-    // Unlike a tool id, which is kept in case a downgrade wants it: there is
-    // nothing to paint a wash with but the engines that are here.
-    expect(
-      parseSettings(JSON.stringify({ washEngine: "quantum" })).washEngine,
-    ).toBe("simple");
-    expect(parseSettings(JSON.stringify({})).washEngine).toBe("simple");
-    expect(
-      parseSettings(JSON.stringify({ washEngine: "simulation" })).washEngine,
-    ).toBe("simulation");
-  });
-
+describe("the wash detail setting", () => {
   it("opens at the whole of the simulation's field", () => {
     // Anything less would be a build quietly painting a coarser wash than its
     // own sample shows. Turning it down is the user's trade to make.
@@ -114,7 +85,23 @@ describe("the watercolour engine setting", () => {
     ).toBe(1);
   });
 
-  it("holds one detail in force beside the engine", () => {
+  it("ignores a washEngine off a blob written by an older build", () => {
+    // There is one watercolour now, so the key names nothing. The merge carries
+    // an unknown key rather than dropping it — which is what lets a settings
+    // file survive being opened by two builds — but nothing reads this one, and
+    // the setting beside it has to come through untouched.
+    const parsed = parseSettings(
+      JSON.stringify({ washEngine: "simple", washDetail: 0.5 }),
+    );
+    expect(parsed.washDetail).toBe(0.5);
+    // …and it is not something the app can be made to paint with: there is no
+    // engine key left in the shape at all.
+    expect(Object.keys(defaultSettings())).not.toContain("washEngine");
+  });
+
+  it("holds one detail in force for the whole app", () => {
+    // It is app-wide rather than threaded, so that the screen, the cache, the
+    // thumbnails, the dropper's snapshot and the export cannot disagree.
     try {
       setWashDetail(0.4);
       expect(washDetail()).toBe(0.4);
@@ -125,18 +112,6 @@ describe("the watercolour engine setting", () => {
       setWashDetail(DEFAULT_WASH_DETAIL);
     }
     expect(washDetail()).toBe(1);
-  });
-
-  it("holds one engine in force for the whole app", () => {
-    // It is app-wide rather than threaded, so that the screen, the cache, the
-    // thumbnails, the dropper's snapshot and the export cannot disagree.
-    try {
-      setWashEngine("simulation");
-      expect(washEngine()).toBe("simulation");
-    } finally {
-      setWashEngine(DEFAULT_WASH_ENGINE);
-    }
-    expect(washEngine()).toBe("simple");
   });
 });
 
@@ -161,15 +136,26 @@ describe("falling back", () => {
   });
 
   it("paints the wash anyway", () => {
-    // The claim that matters. Ask for the simulation where it cannot run and a
-    // wash still lands — the same one the simple engine has always painted.
-    const simulated = paintedWith("simulation");
-    const simple = paintedWith("simple");
-    const fills = (ctx: typeof simulated) =>
+    // The claim that matters. Paint where the field cannot run and a wash still
+    // lands — the same one the stroke model under it has always painted.
+    const direct = createFakeContext();
+    direct.globalAlpha = 1;
+    paintWash(
+      direct as unknown as CanvasRenderingContext2D,
+      sweep(),
+      SIZE,
+      1,
+      1,
+      1,
+      0.6,
+      groundProfile({ stock: "cold" }),
+    );
+    const seam = paintedThroughSeam();
+    const fills = (ctx: typeof seam) =>
       ctx.painted.filter((call) => call.call === "fill").length;
-    expect(fills(simulated)).toBeGreaterThan(0);
-    expect(fills(simulated)).toBe(fills(simple));
-    expect(simulated.strokes).toEqual(simple.strokes);
+    expect(fills(seam)).toBeGreaterThan(0);
+    expect(fills(seam)).toBe(fills(direct));
+    expect(seam.strokes).toEqual(direct.strokes);
   });
 
   it("says no to a mark too small to be worth a field", () => {
@@ -295,11 +281,11 @@ describe("pigment on a sheet of some colour", () => {
   });
 });
 
-describe("one set of dials, two engines", () => {
-  it("hands both engines the same three numbers", () => {
-    // Moving a slider and then switching engine has to be a change of
-    // rendering and not of settings, so the simple engine painted directly and
-    // painted through the seam must be the same mark.
+describe("the dials reach the painter", () => {
+  it("hands the painter the same three numbers it was given", () => {
+    // The seam must not quietly re-tune anything on the way through, so the
+    // painter called directly and called through the seam has to be the same
+    // mark.
     const direct = createFakeContext();
     direct.globalAlpha = 1;
     paintWash(
@@ -314,8 +300,7 @@ describe("one set of dials, two engines", () => {
     );
     const seam = createFakeContext();
     seam.globalAlpha = 1;
-    paintWashWith(
-      "simple",
+    paintWashOn(
       seam as unknown as CanvasRenderingContext2D,
       sweep(),
       SIZE,

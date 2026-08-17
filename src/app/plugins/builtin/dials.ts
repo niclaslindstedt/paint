@@ -123,17 +123,20 @@ export const ANGLE: ToolDial = {
 
 /** How much ink the calligraphy pen's nib is dipped with, per stroke.
  *
- *  The one dial a dipped pen has that no other implement does, and the whole
- *  reservoir the ink simulation spends (see `quillSim.ts`): a full nib writes
- *  a flourished word before it thins; a half-charged one pales, rails and
- *  breaks up within a long swell, which is a mark calligraphers make on
- *  purpose; past full is an overdipped nib that blobs where it first touches
- *  down. It rests at a full dip, so an untouched pen writes the way a pen
- *  fresh from the well does. */
-export const LOAD: ToolDial = {
+ *  The same dial id as the brushes' `LOAD` and a different word for it, the way
+ *  `STRENGTH` is `OPACITY` — a dial is stored per tool, so the pen and the
+ *  brush can both have a dip without either reading the other's number. It is
+ *  the whole reservoir the ink simulation spends (see `quillSim.ts`): a full
+ *  nib writes a flourished word before it thins; a half-charged one pales,
+ *  rails and breaks up within a long swell, which is a mark calligraphers make
+ *  on purpose; past full is an overdipped nib that blobs where it first
+ *  touches down. It rests at a full dip, so an untouched pen writes the way a
+ *  pen fresh from the well does — and its track is shorter than the brushes',
+ *  because a nib holds one bead of ink and there is no ferrule to overcharge. */
+export const INK: ToolDial = {
   id: "load",
-  nameKey: "dials.load.name",
-  hintKey: "dials.load.hint",
+  nameKey: "dials.ink.name",
+  hintKey: "dials.ink.hint",
   min: 0.2,
   max: 1.3,
   step: 0.05,
@@ -227,6 +230,26 @@ export const SPLAY: ToolDial = {
   hintKey: "dials.splay.hint",
   min: 0,
   max: 2,
+  step: 0.05,
+};
+
+/** How much paint the brush is dipped with — the charge the whole drag spends
+ *  (see `capacityOf` in `plugins/head.ts`).
+ *
+ *  1 is one ordinary dip of this brush, and the run before the head goes dry
+ *  scales straight off it: turned down toward a quarter the head is barely
+ *  touched to the paint and scratches dry within a stroke or two, turned up
+ *  toward three it is charged heavily enough to cross most of a page. It moves
+ *  *distance* and nothing else — the mark's width, streaks and edge belong to
+ *  `HARDNESS` and the head — and it multiplies what the ferrule already holds,
+ *  which is why the round outlasts the flat with both dials at rest: a cone
+ *  keeps about twice the dip a chisel ferrule does (see `reservoirOf`). */
+export const LOAD: ToolDial = {
+  id: "load",
+  nameKey: "dials.load.name",
+  hintKey: "dials.load.hint",
+  min: 0.25,
+  max: 3,
   step: 0.05,
 };
 

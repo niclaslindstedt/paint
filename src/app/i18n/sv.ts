@@ -283,7 +283,7 @@ export const sv: Catalog = {
       name: "Spetsvinkel: {value}°",
       hint: "Åt vilket håll den platta spetsen är vänd.",
     },
-    load: {
+    ink: {
       name: "Bläck: {value} %",
       hint: "Hur fullt ett dopp spetsen får per drag. Ett snålt bleknar och spricker upp när det sinar; över fullt klumpar det där pennan sätts ner.",
     },
@@ -298,6 +298,10 @@ export const sv: Catalog = {
     hair: {
       name: "Strån: {value} %",
       hint: "Fina strån ger många tunna streck, grova några få breda.",
+    },
+    load: {
+      name: "Färgmängd: {value} %",
+      hint: "Hur mycket färg penseln doppas med. Draget gör av med den efter hand, skrapar torrt och tar slut.",
     },
     splay: {
       name: "Spretighet: {value} %",
@@ -338,21 +342,9 @@ export const sv: Catalog = {
   },
   options: {
     title: "Återgivning",
-    washEngine: "Lavering",
-    washSimple: "Drag",
-    washSimpleHint: "Snabb, och likadan på alla enheter.",
-    washSimulation: "Pigment",
-    washSimulationHint:
-      "Vatten på papper som torkar steg för steg. Mycket långsammare.",
-    washDetail: "Detaljnivå: {value} %",
+    washDetail: "Laveringens detaljnivå: {value} %",
     washDetailHint: "Lägre är snabbare och grövre.",
-    leadEngine: "Stift",
-    leadSimple: "Drag",
-    leadSimpleHint: "Snabb, och likadan på allt papper.",
-    leadSimulation: "Grafit",
-    leadSimulationHint:
-      "Ett stift tryckt ner i sidans egen tandning. Långsammare.",
-    leadDetail: "Detaljnivå: {value} %",
+    leadDetail: "Stiftets detaljnivå: {value} %",
     leadDetailHint: "Lägre är snabbare och grövre.",
   },
   presets: {
@@ -520,7 +512,7 @@ export const sv: Catalog = {
     rubber: {
       name: "Radergummi",
       description:
-        "Blyertsgummit, som ett sådant faktiskt beter sig: det lyfter blyerts och krita lite i taget, låter papprets struktur skina igenom och får aldrig bort allt. Bläck, färg och tusch sitter kvar.",
+        "Blyertsgummit, som ett sådant faktiskt beter sig: det lyfter blyerts lite i taget, låter papprets struktur skina igenom och får aldrig bort allt. Bläck, färg, krita och tusch sitter kvar.",
     },
     line: { name: "Linje", description: "En rak linje mellan två punkter." },
     rectangle: {

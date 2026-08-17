@@ -237,8 +237,13 @@ describe("the shipped racks", () => {
     // The liner that outsells all the others put together.
     expect(opensAt("pencil")).toBeCloseTo(0.5, 6);
     // 0.5 is the lead a shop sells most of, but this is a tool for sketching,
-    // and a sketching hand wants the blunter point.
-    expect(opensAt("graphite")).toBeCloseTo(0.7, 6);
+    // and a sketching hand wants the blunter point — blunter still now that a
+    // mark is a lead pressed into the sheet's tooth, which needs a face wide
+    // enough for the tooth to show in it (see `builtin/presets.ts`).
+    expect(opensAt("graphite")).toBeCloseTo(0.9, 6);
+    // A #12 round: a wash that is dried rather than stroked wants the page in
+    // it for the rim and the granulation to happen on.
+    expect(opensAt("watercolor")).toBeCloseTo(9.5, 6);
     // The bullet on the marker in everybody's drawer.
     expect(opensAt("marker")).toBeCloseTo(2, 6);
     // A general-purpose gun at the distance an arm holds it — between the

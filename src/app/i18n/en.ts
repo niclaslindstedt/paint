@@ -310,8 +310,8 @@ export const en = {
       name: "Nib angle: {value}°",
       hint: "Which way the flat of the nib is turned.",
     },
-    load: {
-      name: "Ink load: {value}%",
+    ink: {
+      name: "Ink: {value}%",
       hint: "How full a dip the nib gets per stroke. A low one pales and breaks up as it runs dry; past full it blobs where it lands.",
     },
     grade: {
@@ -325,6 +325,10 @@ export const en = {
     hair: {
       name: "Hair: {value}%",
       hint: "Fine hair leaves many thin streaks, coarse hair a few broad ones.",
+    },
+    load: {
+      name: "Load: {value}%",
+      hint: "How much paint the brush is dipped with. The stroke spends it as it goes, scratches dry, and stops.",
     },
     splay: {
       name: "Splay: {value}%",
@@ -367,25 +371,14 @@ export const en = {
   // `plugins/options.ts`). A dial changes the next mark; one of these changes
   // how every mark of its kind is painted, on every drawing.
   //
-  // **One short line each.** The swatch is the explanation — it is the mark this
-  // answer makes — so the words are for what a picture cannot show: the cost.
-  // The rest is in `docs/features/surface.md`, where it can be read once rather
-  // than every time the panel is opened.
+  // **One short line each.** What these buy is speed and nothing else, so the
+  // words are for exactly that. The rest is in `docs/features/surface.md`, where
+  // it can be read once rather than every time the panel is opened.
   options: {
     title: "Rendering",
-    washEngine: "Wash",
-    washSimple: "Stroke",
-    washSimpleHint: "Fast, and the same on any device.",
-    washSimulation: "Pigment",
-    washSimulationHint: "Water on paper, dried a step at a time. Much slower.",
-    washDetail: "Detail: {value}%",
+    washDetail: "Wash detail: {value}%",
     washDetailHint: "Lower is faster and coarser.",
-    leadEngine: "Lead",
-    leadSimple: "Stroke",
-    leadSimpleHint: "Fast, and the same on any paper.",
-    leadSimulation: "Graphite",
-    leadSimulationHint: "A lead pressed into this page's own tooth. Slower.",
-    leadDetail: "Detail: {value}%",
+    leadDetail: "Lead detail: {value}%",
     leadDetailHint: "Lower is faster and coarser.",
   },
   // The presets each tool ships with — the settings its medium is actually used
@@ -580,7 +573,7 @@ export const en = {
     rubber: {
       name: "Rubber",
       description:
-        "The pencil eraser, as one really behaves: it lifts pencil and crayon a little at a time, leaves the paper's grain showing, and never quite takes all of it. Ink, paint and marker stay where they are.",
+        "The pencil eraser, as one really behaves: it lifts pencil a little at a time, leaves the paper's grain showing, and never quite takes all of it. Ink, paint, crayon and marker stay where they are.",
     },
     line: { name: "Line", description: "A straight line between two points." },
     rectangle: {

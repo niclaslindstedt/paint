@@ -103,10 +103,9 @@ thumb.
 
 A tool can also have a setting that is not about the next mark but about how its
 marks are _painted_, and those sit above Advanced under **Rendering**. The
-watercolour brush is the one that has any: which of the two wash engines is
-painting — shown as two swatches of the same stroke, so you press the picture
-rather than the word — and, under the pigment simulation, how finely it is
-worked out. Both apply to every wash on every drawing, including the ones already
+watercolour brush and the pencil are the two that have one: how finely the
+simulation behind each is worked out, which trades fineness back for speed. Both
+apply to every mark of their kind on every drawing, including the ones already
 made; see [Paper and paint](features/surface.md).
 
 Tools with nothing to set by width say so: the **paint bucket** shows a **cog**

@@ -85,34 +85,20 @@ nothing, and a loaded brush on a sealed page behaves exactly as it always has.
 | **Airbrush**                       | Nearly dry by the time it lands                       |
 | **Pencil, crayon, eraser**         | Dry — a wash laid over wax goes round it              |
 
-## Two watercolours
+## The watercolour
 
-There are two ways of painting a wash, and the watercolour brush's own panel
-picks between them: take up the brush, press the size button, and the two are
-under **Rendering**, each shown as a swatch of the same stroke painted by the
-engine it names. Both read the same three dials — water, pigment, granulation —
-and the same sheet, so switching is a change of how a wash is drawn and not of
-anything you have set. It applies to every wash on every drawing, including the
-ones already made: the engine is a way of looking at the page, not something
-recorded in the file.
-
-**Stroke** is the default. A wash is a shape: it runs past the hair that laid
-it, both edges wander with the paper, the rim is drawn dark, and the pigment is
-mottled into the sheet's tooth. It is fast, and it paints the same picture on
-any device.
-
-**Pigment** is a simulation. There is water on the paper and colour in the
+A wash is **water on paper**. There is water on the sheet and colour in the
 water, and the mark is whatever is left when it dries — so the rim gathers where
 the wash actually stopped, the wet edge frays into the fibres, a heavy pigment
-rolls into the paper's valleys and a staining one does not, and water arriving
-on a part of the stroke that has already started drying blooms into it. Nothing
-in it is drawn on purpose; all of it comes out of the water.
+rolls into the paper's valleys and a staining one does not, and water arriving on
+a part of the stroke that has already started drying blooms into it. Nothing in
+it is drawn on purpose; all of it comes out of the water.
 
-The simulation costs a great deal more — roughly ten times as long per wash —
-and you will feel it on a big page, on a page with many washes on it, and on an
-older phone. It is opt-in for that reason. If a browser cannot run it at all,
-or a mark is too small to be worth simulating, that mark is painted with the
-stroke engine instead: no drawing ever fails to open because of the setting.
+The app used to offer a second, cheaper watercolour beside this one — a wash
+painted as a _shape_, with the rim drawn on and the mottle hashed into it — and
+a picker in the brush's panel to choose between them. It is gone. Two engines
+meant every user had to judge a rendering model from a pair of swatches before
+they could paint, and the one that behaves like the medium won.
 
 The water is worked out on the **page**, at a cell per pixel of it — not on the
 screen. So a wash looks the same however far you are zoomed in or out, and once
@@ -128,32 +114,26 @@ cells and would take the better part of a minute. And while your finger is still
 down, a mark that big is worked out coarser again — it settles into its full
 detail the moment you lift.
 
-**Detail** is the dial that decides how much all of it costs, and it appears
-under the swatches as soon as the simulation is the one painting. It is how
-finely the water is worked out, from a tenth up to all of it, and what it buys
-is the square of itself: half the detail is a quarter of the work. What it costs
-is the fine half of the picture — the rim thins, the mottle broadens, and a
-small brush on a coarse enough setting is painted as a plain stroke instead. It
-is the control to reach for when the simulation is the picture you want and your
-device is not keeping up with it.
+**Wash detail** is what decides how much all of it costs, and it is the one
+thing left under **Rendering** in the brush's own panel: take up the brush and
+press the size button. It is how finely the water is worked out, from a tenth up
+to all of it, and what it buys is the square of itself — half the detail is a
+quarter of the work. What it costs is the fine half of the picture: the rim
+thins, the mottle broadens, and a small brush on a coarse enough setting is
+painted as a plain stroke instead. It is the control to reach for when your
+device is not keeping up.
 
-## Two pencils
+Because the mark is dried rather than stroked, the brush wants some page to dry
+_on_. The presets sit a step up the rack for that reason — the ordinary wash and
+the glaze are a #12, the dry brush a #8, and wet-in-wet is the mop, which is the
+mark that blooms.
 
-The pencil has the same choice, in the same place and for the same reason: take
-it up, press the size button, and **Rendering** holds two engines shown as
-swatches of the same shading on the same sheet. Both read the grade dial the
-same way, and switching is a change of how a pencil mark is drawn rather than of
-anything you have set.
+## The pencil
 
-**Stroke** is the default, and it is the pencil this app has always had: flakes
-of graphite scattered along the path, skipping the places the paper is low. It
-is fast, and it draws the same line on any paper.
-
-**Graphite** presses a lead into _this page's own sheet_. That is the whole
-difference, and it is the reason the option is worth having: the stroke engine
-reads a fine tooth of its own and nothing else, so a pencil line looks the same
-on hot-pressed paper as on rough — and in life those are two different drawings.
-The simulation reads the surface you actually picked, so:
+The pencil is a **lead pressed into this page's own sheet**, and the mark is
+whatever the paper kept. That is the whole of it, and it is why the pencil is
+worth having: it reads the surface you actually picked when you made the page,
+so:
 
 - a hard lead rides the peaks and leaves the valleys bare, which on rough stock
   is a line you can see the sheet straight through and on hot-pressed is very
@@ -170,17 +150,28 @@ The simulation reads the surface you actually picked, so:
 The grain dial you set when you made the page moves all of it, because turning
 the grain up is turning up the tooth the lead has to climb over.
 
-It costs roughly six times as long per mark as the stroke engine, and a pencil
-drawing is a great many marks — so it is opt-in, and it has the same **Detail**
-slider the wash does, under the swatches once the simulation is the one drawing.
-Detail is how finely the sheet is worked out, from a tenth up to all of it, and
-what it buys is the square of itself: half the detail is a quarter of the work,
-and a quarter of it is faster than the stroke engine. What it costs is the fine
-half of the picture — the graphite grain broadens, the paper's tooth softens,
-and a fine lead on a coarse enough setting is drawn as a plain pencil line
-instead. As with the wash, a browser that cannot run the simulation, or a mark
-too small to be worth one, is drawn with the stroke engine: no drawing ever
-fails to open because of the setting.
+There used to be a second pencil offered beside this one, for the watercolour's
+reason and gone for the watercolour's reason. Its trouble was that it read a
+fine tooth of its own and nothing else, so a pencil line looked the same on
+hot-pressed paper as on rough — and in life those are two different drawings.
+
+It has the same **Lead detail** slider the wash does, in the same place. Detail
+is how finely the sheet is worked out, from a tenth up to all of it, and what it
+buys is the square of itself: half the detail is a quarter of the work. What it
+costs is the fine half of the picture — the graphite grain broadens, the paper's
+tooth softens, and a fine lead on a coarse enough setting is drawn as a plain
+pencil line instead. It matters more here than on the brush, because a painting
+is a few dozen marks and a pencil drawing is a thousand.
+
+That last point is also why the pencil's presets sit a step up its rack: a lead
+has to be a few grain cells across before there is any tooth under it to find.
+The tin is 0.5, 0.7 and 0.9 mm and a 3 mm face for shading — every one of them a
+lead that draws _this_ sheet, rather than a hairline that would look the same on
+any of them.
+
+A browser that cannot work a field out at all, or a mark too small to be worth
+one, is painted the plain way instead — for the wash and the pencil alike. No
+drawing ever fails to open, and nothing about that is a setting.
 
 ## A dipped pen
 
@@ -194,7 +185,8 @@ Write long enough on one dip and the pen runs dry the way a real one does:
 the stroke pales, then rails — the middle of the edge hollowing while the
 corners keep writing — then breaks up into scratches on the paper's tooth.
 
-How much ink a dip takes is the pen's own **Ink load** dial, per stroke: a
+How much ink a dip takes is the pen's own **Ink** dial, per stroke — the
+pen's cousin of the brushes' **Load**: a
 low load is the drama of a pen giving out mid-flourish, and past full the nib
 blobs where it lands. The paper has its say too — a thirsty sheet drinks the
 reservoir sooner, widens the line a touch and feathers its edge along the

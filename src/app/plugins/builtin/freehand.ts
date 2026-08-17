@@ -9,7 +9,8 @@
 
 import { SOLID_GROUND } from "../../ground.ts";
 import type { Point } from "../../types.ts";
-import { paintBrush, ROUND_HEAD, type BrushHead } from "../bristle.ts";
+import { paintBrush } from "../bristle.ts";
+import { ROUND_HEAD, type BrushHead } from "../head.ts";
 import {
   paintNib,
   paintSoftPath,
@@ -20,17 +21,9 @@ import { paintInk } from "../quillSim.ts";
 import { paintCrayon } from "../crayon.ts";
 import { extraDials, strokeDial } from "../dials.ts";
 import { applyInk, distance, paintPath, strokeColor } from "../ink.ts";
-import {
-  DEFAULT_LEAD_DETAIL,
-  DEFAULT_LEAD_ENGINE,
-  paintGraphiteWith,
-} from "../lead.ts";
+import { DEFAULT_LEAD_DETAIL, paintGraphiteOn } from "../lead.ts";
 import { paintRubbing } from "../rubber.ts";
-import {
-  DEFAULT_WASH_DETAIL,
-  DEFAULT_WASH_ENGINE,
-  paintWashWith,
-} from "../wash.ts";
+import { DEFAULT_WASH_DETAIL, paintWashOn } from "../wash.ts";
 import {
   FULL_DETAIL,
   type DraftStroke,
@@ -183,6 +176,9 @@ export function freehandBehaviour(ink: FreehandInk = {}): ToolBehaviour {
             // feathers; on the solid page the sheet adds nothing, so a drawing
             // made before grounds existed paints unchanged.
             strokeDial(stroke, "bleed", 0) + sheet.absorbency * 1.1,
+            // How much paint the head was dipped with — the multiplier on the
+            // run the whole mark spends before it goes dry (see `capacityOf`).
+            strokeDial(stroke, "load"),
             ink.head === "flat"
               ? {
                   shape: "flat",
@@ -192,15 +188,14 @@ export function freehandBehaviour(ink: FreehandInk = {}): ToolBehaviour {
                   angle: radians(strokeDial(stroke, "angle", ink.angle ?? 0)),
                 }
               : ROUND_HEAD,
+            // …and the patch the caller is actually keeping, so a drag that
+            // crosses the window costs the part of it that shows rather than
+            // fifty hairs' worth of the whole thing (see `PaintDetail.clip`).
+            detail.clip,
           );
           return;
         case "wash":
-          paintWashWith(
-            // Which of the two watercolour engines is painting — a view of the
-            // page rather than anything on it, handed down with the scale and
-            // the sheet (see `plugins/wash.ts`). Both read the dials below the
-            // same way, so this changes the rendering and nothing else.
-            detail.wash ?? DEFAULT_WASH_ENGINE,
+          paintWashOn(
             ctx2d,
             points,
             stroke.size,
@@ -267,8 +262,8 @@ export function freehandBehaviour(ink: FreehandInk = {}): ToolBehaviour {
             stroke.size,
             scale,
             radians(strokeDial(stroke, "angle", ink.angle ?? -45)),
-            // How much ink the nib was dipped with for this stroke — the one
-            // dial a dipped pen has that no other tool does. It is spent as
+            // How much ink the nib was dipped with for this stroke — the
+            // pen's own dip, the way the brushes carry theirs. It is spent as
             // the stroke travels, which is where the shading, the railing and
             // the running dry all come from (see `quillSim.ts`).
             strokeDial(stroke, "load"),
@@ -297,20 +292,14 @@ export function freehandBehaviour(ink: FreehandInk = {}): ToolBehaviour {
           );
           return;
         case "graphite":
-          paintGraphiteWith(
-            // Which of the two pencils is drawing — a view of the page rather
-            // than anything on it, handed down with the scale and the sheet
-            // (see `plugins/lead.ts`). Both read the grade the same way, so
-            // this changes the rendering and nothing else.
-            detail.lead ?? DEFAULT_LEAD_ENGINE,
+          paintGraphiteOn(
             ctx2d,
             points,
             stroke.size,
             scale,
             strokeDial(stroke, "grade"),
-            // The sheet, which is the whole of what the simulation has that the
-            // stroke model does not: how coarse the paper is, how deep, and
-            // whether it dips at random or goes over and under.
+            // The sheet the lead is being pressed into: how coarse the paper is,
+            // how deep, and whether it dips at random or goes over and under.
             sheet,
             // The lead's own grey as a value: the field lays down a *load* and
             // works out the alpha itself, so it needs the colour rather than a
@@ -337,6 +326,10 @@ export function freehandBehaviour(ink: FreehandInk = {}): ToolBehaviour {
             stroke.size,
             scale,
             strokeDial(stroke, "pressure"),
+            // …and the patch the caller is actually keeping — for a live
+            // rubbing out that is the pencil ink under the hand, and the grain
+            // outside it is never laid (see `PaintDetail.clip`).
+            detail.clip,
           );
           return;
         default:

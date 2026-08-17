@@ -3,14 +3,17 @@ import { describe, expect, it } from "vitest";
 
 import { mm } from "../src/app/units.ts";
 
+import { paintBrush } from "../src/app/plugins/bristle.ts";
 import {
   capacityOf,
   coreShare,
+  DRY_LOAD,
+  drynessOf,
   hairLayout,
   loadAt,
-  paintBrush,
+  reservoirOf,
   type BrushHead,
-} from "../src/app/plugins/bristle.ts";
+} from "../src/app/plugins/head.ts";
 import type { Point } from "../src/app/types.ts";
 
 import { createFakeContext } from "./support/fakeCanvas.ts";
@@ -95,11 +98,62 @@ function spreadOf(head: BrushHead, size = mm(12)): number {
     ys.push(y);
     to(cx, cy, x, y);
   };
-  paintBrush(ctx, points, size, 0.8, 1, 1, 1, 0, head);
+  paintBrush(ctx, points, size, 0.8, 1, 1, 1, 0, 1, head);
   // Against the path's own middle, so the drag's own wave doesn't count as
   // width.
   const mid = (Math.max(...ys) + Math.min(...ys)) / 2;
   return Math.max(...ys.map((y) => Math.abs(y - mid)));
+}
+
+/** A dead-straight drag, sampled the way the canvas samples a slow hand — so
+ *  anything the mark measures across is the head's doing and not the path's. */
+function straight(length: number, y = 400): Point[] {
+  const points: Point[] = [];
+  for (let x = 0; x <= length; x += 1.5) points.push({ x, y });
+  return points;
+}
+
+/** Every point the painter put on a path, with the pen it was about to be
+ *  stroked with.
+ *
+ *  The fake context records a run as the chord between its two ends (see
+ *  `FakeStroke.runs`), which is enough to count hairs and nothing like enough
+ *  to measure one: a hair's whole excursion across the head is in the curve
+ *  between them. So the path calls themselves are what is read here. */
+function pathOf(paint: (ctx: ReturnType<typeof createFakeContext>) => void) {
+  const ctx = createFakeContext();
+  const at: { x: number; y: number; pen: number }[] = [];
+  const put = (x: number, y: number) =>
+    at.push({ x, y, pen: ctx.lineWidth as number });
+  const moveTo = ctx.moveTo.bind(ctx);
+  const lineTo = ctx.lineTo.bind(ctx);
+  const curveTo = ctx.quadraticCurveTo.bind(ctx);
+  ctx.moveTo = (x: number, y: number) => {
+    put(x, y);
+    moveTo(x, y);
+  };
+  ctx.lineTo = (x: number, y: number) => {
+    put(x, y);
+    lineTo(x, y);
+  };
+  ctx.quadraticCurveTo = (cx: number, cy: number, x: number, y: number) => {
+    put(x, y);
+    curveTo(cx, cy, x, y);
+  };
+  paint(ctx);
+  return { ctx, at };
+}
+
+/** How wide a mark actually comes out, from the outer edge of one side's
+ *  outermost hair to the other's — hair thickness included, because that is
+ *  where the ink stops. */
+function widthOf(size: number, hardness = 1, fray = 1): number {
+  const { at } = pathOf((ctx) =>
+    paintBrush(ctx, straight(900), size, hardness, 1, 1, fray),
+  );
+  const top = Math.min(...at.map((p) => p.y - p.pen / 2));
+  const bottom = Math.max(...at.map((p) => p.y + p.pen / 2));
+  return bottom - top;
 }
 
 describe("hairLayout", () => {
@@ -225,10 +279,12 @@ describe("paintBrush", () => {
   });
 
   it("leaves a dry head a mark rather than nothing", () => {
-    // The other side of it. A brush with a dry patch is not a brush with no
-    // paint, and a stroke the user cannot see is a stroke they cannot undo
-    // their way out of having drawn.
-    expect(coverageShare(90, 0)).toBeGreaterThan(0.2);
+    // The other side of it. A barely-charged head is not a head with no paint:
+    // it lands, scratches out its own short run, and *then* stops. The mark is
+    // brief and sparse — a dry head is spent within a small fraction of a
+    // charged one's distance, and it stops for good where the charged one is
+    // still laying a slab — but it is never absent.
+    expect(coverageShare(90, 0)).toBeGreaterThan(0.01);
   });
 
   it("keeps the small heads people actually draw with solid", () => {
@@ -246,8 +302,10 @@ describe("paintBrush", () => {
       coverageShare(mm(2), 0.5),
     );
     // A charged head that small is a line, near enough — it has no room for a
-    // texture and should not pretend to.
-    expect(coverageShare(mm(0.3), 0.9)).toBeGreaterThan(0.9);
+    // texture and should not pretend to. (A shade under nine tenths rather
+    // than nine: the run-out now ends both marks, and the two hardnesses run
+    // out at slightly different distances.)
+    expect(coverageShare(mm(0.3), 0.9)).toBeGreaterThan(0.85);
   });
 
   it("spends a wide head's load over a wide head's distance", () => {
@@ -260,6 +318,16 @@ describe("paintBrush", () => {
     // A bigger head holds more, and a charged one holds more than a spent one.
     expect(capacityOf(200, 1)).toBeGreaterThan(capacityOf(20, 1));
     expect(capacityOf(80, 1)).toBeGreaterThan(capacityOf(80, 0) * 3);
+    // The curve reaches nothing and stays there — a spent head has no paint,
+    // not a little for ever.
+    expect(loadAt(capacityOf(80, 1), capacityOf(80, 1), 1)).toBe(0);
+    expect(loadAt(capacityOf(80, 1) * 2, capacityOf(80, 1), 1)).toBe(0);
+    // …and the dry phase reads off it: silent while the head covers, easing
+    // in below `DRY_LOAD`, total once the paint is out.
+    expect(drynessOf(1)).toBe(0);
+    expect(drynessOf(DRY_LOAD)).toBe(0);
+    expect(drynessOf(0.1)).toBeGreaterThan(drynessOf(0.2));
+    expect(drynessOf(0)).toBe(1);
   });
 
   it("pools a body only under a head that has one, and never a slab", () => {
@@ -331,6 +399,198 @@ describe("paintBrush", () => {
       spreadOf({ shape: "round", angle: Math.PI / 2 }),
       6,
     );
+  });
+
+  it("lays a mark the width of the head, whatever the dials", () => {
+    // The contract the size button makes. Everything that ruffles the edge of a
+    // brushed stroke — the clump, the wander, the twist, the fray, the
+    // thickness of the outermost strand — used to be *added* to a lane already
+    // sitting on the rim, so a #6 round set to 4.8 mm measured nearer 6.7. It
+    // is budgeted out of the head now (see "The width of the mark"), and the
+    // whole rack has to keep to it.
+    for (const size of [mm(1), mm(4.8), mm(12.7), mm(50)]) {
+      for (const hard of [0.2, 0.6, 1]) {
+        const width = widthOf(size, hard);
+        // A hair in the fray strays past the rim by a percent or two at the odd
+        // moment, which is what a strand straying out of a bundle does. What it
+        // may not do is make the mark another size.
+        expect(width).toBeLessThan(size * 1.05);
+        // …and not by shrinking away from it either: a mark half the size on
+        // the button is the same complaint the other way round.
+        expect(width).toBeGreaterThan(size * 0.72);
+      }
+    }
+  });
+
+  it("keeps a worn head inside the head as well", () => {
+    // The fray dial opens the bundle a little and that little is `splay`; what
+    // it must never do is make the mark another size. A fringe frays *inwards*.
+    for (const worn of [0, 1, 2]) {
+      expect(widthOf(mm(12.7), 0.8, worn)).toBeLessThan(mm(12.7) * 1.2);
+    }
+  });
+
+  it("runs a head out inside a drawing, and a spent head paints nothing", () => {
+    // What ends a brushed stroke is the paint going — for good. The head used
+    // to keep scratching for ever once it was spent; now the far side of the
+    // run-out is bare paper, because a brush with no more colour on it cannot
+    // keep painting however far the hand carries on.
+    const spent = capacityOf(mm(4.8), 1) * reservoirOf("round");
+    expect(spent).toBeGreaterThan(mm(20));
+    expect(spent).toBeLessThan(mm(60));
+    const { at } = pathOf((ctx) =>
+      paintBrush(ctx, straight(spent * 3), mm(4.8), 1, 1),
+    );
+    // Everything painted sits inside the charged run…
+    for (const p of at) expect(p.x).toBeLessThan(spent + mm(4.8));
+    // …and the drag reached well into it before the head gave out.
+    expect(Math.max(...at.map((p) => p.x))).toBeGreaterThan(spent * 0.8);
+  });
+
+  it("scratches through a marked dry phase before it stops", () => {
+    // The run-out is not a switch. The last stretch of the charge is a *dry
+    // phase* (see `DRY_LOAD`): the pooled body has given way and most of every
+    // hair is off the paper, so the stroke visibly wants dipping before it
+    // stops giving anything at all — solid, then scratches, then nothing.
+    const spent = capacityOf(mm(4.8), 1) * reservoirOf("round");
+    const { at } = pathOf((ctx) =>
+      paintBrush(ctx, straight(spent * 1.05), mm(4.8), 1, 1),
+    );
+    const density = (from: number, to: number) =>
+      at.filter((p) => p.x >= from && p.x < to).length / (to - from);
+    const solid = density(spent * 0.2, spent * 0.5);
+    const dry = density(spent * 0.85, spent);
+    // Still painting — the phase exists…
+    expect(dry).toBeGreaterThan(0);
+    // …and is unmistakably thinner than the charged run, not a shade off it.
+    expect(dry).toBeLessThan(solid * 0.5);
+  });
+
+  it("charges a round with twice the flat's paint", () => {
+    // A cone keeps its dip inside the bundle; a chisel ferrule squeezes most
+    // of it out. Same width, same dip, same dial — the flat runs about half
+    // as far before it is spent.
+    expect(reservoirOf("round")).toBeCloseTo(reservoirOf("flat") * 2, 10);
+    const reach = (head: BrushHead) => {
+      const { at } = pathOf((ctx) =>
+        paintBrush(ctx, straight(3000), mm(12), 1, 1, 1, 1, 0, 1, head),
+      );
+      return Math.max(...at.map((p) => p.x));
+    };
+    const round = reach({ shape: "round", angle: 0 });
+    // Blade square across the drag, so the flat is painting its full width
+    // the whole way — the shorter run is the reservoir's doing alone.
+    const flat = reach({ shape: "flat", angle: Math.PI / 2 });
+    expect(flat).toBeLessThan(round * 0.65);
+    expect(flat).toBeGreaterThan(round * 0.35);
+  });
+
+  it("spends the load dial's dip — starved short, charged long", () => {
+    // The dial multiplies the run and moves nothing else: a quarter-dip head
+    // scratches dry within a stroke, a heavy charge crosses most of a page.
+    const reach = (load: number) => {
+      const { at } = pathOf((ctx) =>
+        paintBrush(ctx, straight(4000), mm(4.8), 1, 1, 1, 1, 0, load),
+      );
+      return Math.max(...at.map((p) => p.x));
+    };
+    const starved = reach(0.5);
+    const dipped = reach(1);
+    const charged = reach(2);
+    expect(starved).toBeLessThan(dipped * 0.65);
+    expect(charged).toBeGreaterThan(dipped * 1.5);
+  });
+
+  it("cuts the collapsed line where the paint ran out", () => {
+    // Zoomed out to a hairline the head is a plain line — and the run-out has
+    // to survive the collapse, or pulling away from the page would grow back
+    // the tail the head never painted.
+    const spent = capacityOf(40, 0.8) * reservoirOf("round");
+    const ctx = createFakeContext();
+    paintBrush(ctx, straight(spent * 4), 40, 0.8, 0.003);
+    const xs = ctx.strokes.flatMap((s) => s.runs.flatMap((r) => [r[0], r[2]]));
+    expect(Math.max(...xs)).toBeLessThan(spent + 1);
+    expect(Math.max(...xs)).toBeGreaterThan(spent * 0.9);
+  });
+
+  it("costs the patch it is asked for rather than the whole drag", () => {
+    // A brush is one path per *hair*, so a mark that crosses the window cannot
+    // be culled a stroke at a time the way the airbrush's cones can — the hair
+    // lifts over the stretches that are off screen instead. That is the
+    // difference between a zoomed-in pan costing the strip of page it exposed
+    // and costing every mark that crosses it end to end.
+    // Charged well past one dip, so the whole three-thousand-pixel drag has
+    // paint on it and the saving measured is the clip's — not the run-out's.
+    const patch = { x: 400, y: 380, width: 80, height: 60 };
+    const whole = pathOf((ctx) =>
+      paintBrush(ctx, straight(3000), mm(4.8), 0.9, 1, 1, 1, 0, 5),
+    );
+    const cut = pathOf((ctx) =>
+      paintBrush(
+        ctx,
+        straight(3000),
+        mm(4.8),
+        0.9,
+        1,
+        1,
+        1,
+        0,
+        5,
+        undefined,
+        patch,
+      ),
+    );
+    expect(cut.at.length).toBeGreaterThan(0);
+    expect(cut.at.length).toBeLessThan(whole.at.length * 0.1);
+
+    // …and nothing it did draw is anywhere the patch could not see. A head
+    // reaches half its width off the path it follows and a sample either side
+    // of that, which the padding here is comfortably outside.
+    const pad = mm(4.8) * 1.5;
+    for (const { x, y } of cut.at) {
+      expect(x).toBeGreaterThan(patch.x - pad);
+      expect(x).toBeLessThan(patch.x + patch.width + pad);
+      expect(y).toBeGreaterThan(patch.y - pad);
+      expect(y).toBeLessThan(patch.y + patch.height + pad);
+    }
+  });
+
+  it("paints the same mark inside a patch as it does without one", () => {
+    // The other half of that, and the one that makes it safe: what a patch
+    // frame puts on the screen has to be what a full repaint would have put
+    // there. So every point the culled mark laid down inside the patch has to
+    // be a point the whole mark laid down, exactly.
+    //
+    // Inside the patch and not in the ring of slack around it: out there a hair
+    // is cut short and a band is squared off, both of which land somewhere the
+    // caller is not keeping. That is the whole reason the slack is there.
+    const patch = { x: 300, y: 300, width: 240, height: 200 };
+    const whole = pathOf((ctx) =>
+      paintBrush(ctx, straight(1200), mm(4.8), 0.9, 1),
+    );
+    const cut = pathOf((ctx) =>
+      paintBrush(
+        ctx,
+        straight(1200),
+        mm(4.8),
+        0.9,
+        1,
+        1,
+        1,
+        0,
+        1,
+        undefined,
+        patch,
+      ),
+    );
+    const key = (p: { x: number; y: number; pen: number }) =>
+      `${p.x.toFixed(6)},${p.y.toFixed(6)},${p.pen.toFixed(6)}`;
+    const drawn = new Set(whole.at.map(key));
+    const inside = cut.at.filter(
+      (p) => p.x > patch.x && p.x < patch.x + patch.width,
+    );
+    expect(inside.length).toBeGreaterThan(50);
+    for (const point of inside) expect(drawn.has(key(point))).toBe(true);
   });
 
   it("paints at the stroke's own opacity", () => {

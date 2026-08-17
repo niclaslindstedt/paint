@@ -37,8 +37,6 @@ import type { Rect } from "../geometry.ts";
 import type { Point, Stroke } from "../types.ts";
 import type { TKey } from "../i18n/index.ts";
 import type { SizeGauge } from "./gauge.ts";
-import type { LeadEngine } from "./lead.ts";
-import type { WashEngine } from "./wash.ts";
 
 /** A stroke that hasn't been committed to the document yet — the live gesture.
  *  It has no id until the store files it. */
@@ -163,10 +161,10 @@ export type ToolOptionAnswer = {
  *
  *  A dial is *how this mark is made* and rides on the stroke for good; an option
  *  is **how marks of this kind are painted**, for every drawing, including the
- *  ones already made. The watercolour engine is the case that made the seam:
- *  which of the two watercolours a build paints with is a rendering choice, not
- *  a property of any wash, so recording it on a stroke would mean changing it
- *  orphaned every wash drawn before (see `plugins/wash.ts`).
+ *  ones already made. The watercolour is the case that made the seam: how finely
+ *  the pigment simulation resolves a wash is a rendering choice, not a property
+ *  of any wash, so recording it on a stroke would mean changing it orphaned
+ *  every wash painted before (see `plugins/wash.ts`).
  *
  *  It used to live on a page in Settings, and that was the wrong place twice
  *  over: it is a property of the brush rather than of the app, and it is judged
@@ -187,9 +185,14 @@ type ToolOptionCommon = {
    *  `{value}` with its percentage, the way a dial's does. */
   nameKey: TKey;
   /** Shown only while another option is on a given value — how a setting that
-   *  belongs to *one answer* stays out of the way of the rest. The wash detail
-   *  is one: it says how finely the simulation resolves, and there is nothing
-   *  for it to say while the stroke engine is painting. */
+   *  belongs to *one answer* stays out of the way of the rest.
+   *
+   *  No shipped tool declares one today: the wash and lead details used to hang
+   *  off their engine pickers this way, and both pickers went when the app
+   *  settled on one watercolour and one pencil. It stays because an option is
+   *  what a *plugin* declares, and the next tool with a genuine choice in it
+   *  should not have to reintroduce the mechanism (see `tests/options_test.ts`,
+   *  which is what keeps it honest). */
   shownWhen?: { option: string; is: string };
 };
 
@@ -358,27 +361,16 @@ export type PaintDetail = {
    *  Absent is a white sheet, which is what watercolour is painted on and what
    *  a painter called directly has always assumed. */
   page?: string;
-  /** Which watercolour engine is in force (see `plugins/wash.ts`). A *view* of
-   *  the drawing rather than anything in it — like the canvas theme — so it is
-   *  handed down with the scale and the sheet rather than recorded on a mark.
-   *  Absent is the simple engine, which is what every painter called directly
-   *  gets and what this app has always painted. */
-  wash?: WashEngine;
-  /** …and how finely that engine resolves, where it resolves anything at all
-   *  (see `MIN_WASH_DETAIL`). Handed down beside the engine and for the same
-   *  reason: it changes the picture, so every surface painting the same document
-   *  has to be told the same number. Absent is all of it. */
+  /** How finely the watercolour simulation resolves, where it resolves anything
+   *  at all (see `MIN_WASH_DETAIL`). A *view* of the drawing rather than
+   *  anything in it — like the canvas theme — so it is handed down with the
+   *  scale and the sheet rather than recorded on a mark: it changes the picture,
+   *  so every surface painting the same document has to be told the same number.
+   *  Absent is all of it. */
   washDetail?: number;
-  /** Which pencil is in force (see `plugins/lead.ts`) — a *view* of the drawing
-   *  in exactly the way the wash engine above it is, handed down with the scale
-   *  and the sheet rather than recorded on a mark. Absent is the stroke model,
-   *  which is what every painter called directly gets and what this app has
-   *  always drawn. */
-  lead?: LeadEngine;
-  /** …and how finely that engine works a mark out, where it works anything out
-   *  at all (see `MIN_LEAD_DETAIL`). Handed down beside the engine and for the
-   *  same reason: it changes the picture, so every surface painting the same
-   *  document has to be told the same number. Absent is all of it. */
+  /** …and how finely the graphite simulation works a mark out, where it works
+   *  anything out at all (see `MIN_LEAD_DETAIL`). Handed down for the same
+   *  reason and absent means the same thing. */
   leadDetail?: number;
   /** The only part of the page this paint will be **kept**, in document
    *  coordinates — the window, a strip of it coming into view under a drag, or
@@ -552,13 +544,16 @@ export type PaintPlugin = {
    *  `render.ts`). Which marks those are is the other half of this pair:
    *  `liftable` on the tool that drew them. */
   lifts?: boolean;
-  /** True when this tool's medium **sits on the sheet** rather than soaking into
-   *  it, so a rubber can take it off again — graphite and wax.
+  /** True when this tool's medium **sits on the sheet** loosely enough that a
+   *  rubber can take it off again — graphite.
    *
-   *  The default is the other way round, and deliberately: ink, paint, felt tip,
-   *  a bucket of colour and a dropped photograph all stay put under a rubber,
-   *  and a tool that says nothing about itself is one of those. Only the two dry
-   *  media declare it.
+   *  The default is the other way round, and deliberately: ink, paint, felt
+   *  tip, a bucket of colour and a dropped photograph all stay put under a
+   *  rubber, and a tool that says nothing about itself is one of those. Wax
+   *  sits on the sheet too and *still* doesn't qualify — a rubber worked at a
+   *  crayon mark smears it rather than lifting it — so only the pencil
+   *  declares it: the rubber is the pencil's companion, and that pairing is
+   *  said entirely by this flag.
    *
    *  It is read by exactly one thing — the rubber's compositing — and, as
    *  ever, by the flag rather than by the id: a charcoal or a pastel tool would

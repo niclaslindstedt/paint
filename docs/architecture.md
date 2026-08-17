@@ -475,7 +475,12 @@ be much less than a full render:
   as you zoom into it and the PNG export (always 1:1) is unchanged. It also
   carries the **patch being painted**, so a painter built out of hundreds of
   stamps can skip the ones that cannot reach it: repainting a corner of an
-  airbrush stroke costs the cones in that corner rather than all of them — and
+  airbrush stroke costs the cones in that corner rather than all of them. The
+  brush spends it the other way about, because it is one path per _hair_ rather
+  than one stamp per sample and so cannot be culled a stamp at a time — it lifts
+  each hair over the stretches of the drag that are off screen, which is the
+  same saving one sample at a time, and it is what makes a pan across a page of
+  brushwork cost the strip of paper it exposed. Also carried is
   whether the mark is **still under the hand** (`PaintDetail.live`), which is a
   budget rather than a look: a landed mark is painted once and kept, where the
   gesture in flight is repainted from its first point every pointer sample, so a
@@ -524,9 +529,9 @@ follows the press froze the thread for a third of a second.
 
 - **Painted once.** A tile is a function of its key and nothing else, so the
   pixels are kept for the life of the tab and shown again with a blit. The key
-  carries `rendererKey()` — the wash and lead engines in force — because the
-  renderer reads those as globals, so two tiles painted either side of an engine
-  change are two different pictures under the same props.
+  carries `rendererKey()` — how finely the wash and graphite simulations are set
+  to resolve — because the renderer reads those as globals, so two tiles painted
+  either side of a change are two different pictures under the same props.
 - **One per frame.** Jobs go through a single shared queue taken a job at a
   time, so a panel paints and stays interactive while its pictures fill in
   rather than sitting frozen behind them. A job whose answer is no longer wanted
@@ -681,10 +686,13 @@ lives by: **nothing outside it may branch on a tool id.**
   the tool it is about. It resolves the same two ways a dial does (every option
   for the panel; each pulled back onto its own control), and an option can
   depend on another, which is how a setting belonging to one answer stays hidden
-  while a different answer is picked. `washOptions.ts` is the only set today:
-  which watercolour engine paints, and how finely the simulation resolves, each
-  answer carrying a painter for its own swatch so the panel that draws it learns
-  nothing about washes.
+  while a different answer is picked — a seam no shipped tool uses today, kept
+  because it belongs to the plugin interface rather than to whichever tool last
+  needed it. `washOptions.ts` and `leadOptions.ts` are the whole set today, one
+  slider each: how finely the pigment and the graphite simulations resolve. Both
+  files used to hold an engine picker above that slider, with a painted swatch
+  per answer; the app ships one watercolour and one pencil now, so there is
+  nothing to choose between.
 - `presets.ts` — the settings a tool _ships_ with (`builtin/presets.ts` for the
   set): a width and the dials that make its medium's must-haves, declared as
   only what each one moves and resolved here into a whole tool, so applying one
@@ -722,16 +730,23 @@ lives by: **nothing outside it may branch on a tool id.**
   the only painter modelling a physical _object_: a head that holds a load and
   spends it, that is wider than the wiggles you ask it to follow, that cannot
   turn inside its own width, and that leaves an opaque mark with the hairs'
-  partings scratched through it.
+  partings scratched through it. It is that head being **dragged across paper**;
+  what the head _is_ lives beside it in `head.ts` — how the bundle breaks into
+  strands, how much paint it holds, and how a mark exactly as wide as the head
+  is fitted across the strands it turns out to have. Nothing in `head.ts` knows
+  about a stroke, which is what lets every physical claim in it (the gauge real
+  filament is milled at, what one dip covers, how far a worn head frays open) be
+  held to without painting a mark.
 - `aquarelle.ts` — watercolour, which is the one medium here where what is
   being painted with is _water_: the wash runs past the hair that laid it, its
   two edges wander independently, the rim dries darkest as the pool evaporates,
   the pigment granulates into the sheet, and every pass is thin because nothing
-  in the medium covers. This is the **stroke** model, and it is the default: a
-  wash is a closed path with a dried rim, a gathered inner ribbon and a mottle
-  hashed off the page.
-- `washField.ts` / `washSim.ts` — the **second** watercolour engine, and a
-  different kind of answer to the same question. Nothing in it knows what a
+  in the medium covers. This is the **stroke** model: a wash is a closed path
+  with a dried rim, a gathered inner ribbon and a mottle hashed off the page. It
+  was one of two engines the app offered and is no longer chosen by anyone — it
+  survives only as the floor the simulation falls through to.
+- `washField.ts` / `washSim.ts` — the watercolour the app actually paints with.
+  Nothing in it knows what a
   stroke is: there is a grid of paper cells with water in them and pigment in
   the water, the brush charges the cells it passes over, the field is stepped
   until the sheet is dry, and the mark is whatever settled. The rim, the
@@ -750,28 +765,47 @@ lives by: **nothing outside it may branch on a tool id.**
   seconds, and no budget simulates it honestly. The field is stepped inside a box
   drawn round the water rather than over the whole grid, so a mark costs its own
   wet area and not its bounding box.
-- `wash.ts` — which of the two is painting, and how much of the simulation's
-  field to run. Both read the same three dials (`water`, `pigment`,
-  `granulation`) and the same sheet, so switching is a change of _rendering_ and
-  not of settings; the choice is a **view** and is never recorded on a stroke or
-  on a drawing. Both are app-wide values put in force once, and both also travel
-  on the render options, so the mark cache can see them change. The detail is the
-  one setting in the app that buys nothing but speed: the field's cells widen as
-  it comes down, and an ordinary mark costs the square of it. The
-  simulation can always answer "not me" — no canvas to simulate on, a mark too
-  small to be worth a field, a page-wide sweep whose cells would be wider than
-  the brush — and the simple engine paints the mark instead, so a browser that
-  cannot run it still opens every drawing.
+- `wash.ts` — how much of the simulation's field to run, and the fall-through
+  under it. The detail is a **view**, never recorded on a stroke or on a
+  drawing: it is an app-wide value put in force once, and it also travels on the
+  render options so the mark cache can see it change. It is the one setting in
+  the app that buys nothing but speed — the field's cells widen as it comes
+  down, and an ordinary mark costs the square of it. The simulation can always
+  answer "not me" — no canvas to simulate on, a mark too small to be worth a
+  field, a page-wide sweep whose cells would be wider than the brush — and
+  `aquarelle.ts` paints the mark instead, so a browser that cannot run it still
+  opens every drawing. That fall-through is all that is left of the second
+  watercolour this app used to offer: it is what a mark too small to dry looks
+  like, not an engine anyone picks.
 - `crayon.ts` — the wax, which needs one for the opposite reason: it is the only
   painter modelling the _page_. A fixed lattice of paper tooth decides where wax
   sticks, anchored in document coordinates, so it is the same sheet under every
   mark and the texture is a property of the paper rather than of the stick.
-- `graphite.ts` — the pencil, which is the crayon's near neighbour and
-  deliberately not the same painter: graphite chips off where it lands instead
-  of smearing, finds a finer tooth than a blunt wax face does, and is a _colour_
-  rather than an ink — the tool mixes its own grey out of the lead and the page
-  rather than taking the one the toolbar is holding, which is what `fixedInk`
-  on the descriptor says to the toolbar.
+- `graphite.ts` — the **stroke** model of a pencil, which is the crayon's near
+  neighbour and deliberately not the same painter: graphite chips off where it
+  lands instead of smearing, finds a finer tooth than a blunt wax face does, and
+  is a _colour_ rather than an ink — the tool mixes its own grey out of the lead
+  and the page rather than taking the one the toolbar is holding, which is what
+  `fixedInk` on the descriptor says to the toolbar. Like `aquarelle.ts` it was
+  one of two engines the app offered and is no longer chosen by anyone; it
+  survives as the floor `leadSim.ts` falls through to, and `graphiteInk` is still
+  where the lead's grey comes from for every pencil mark.
+- `leadField.ts` / `leadSim.ts` — the pencil the app actually draws with, and
+  `washField.ts` / `washSim.ts`'s twin one shelf along. Nothing in it knows what
+  a stroke is: there is a sheet with a tooth on it and a lead being pressed into
+  it, and the mark is whatever the paper kept — the broken line on rough stock,
+  the crowns of a canvas weave, the valleys filling in under a second pass, and
+  the black a pencil cannot go past. It reads the ground the page is cut from
+  (`ground.ts`) rather than a fine tooth of its own, which is the whole
+  difference from the painter above: a pencil line on hot-pressed paper and one
+  on rough are two different drawings. `leadField.ts` is pure; `leadSim.ts`
+  drives it from a gesture and turns what the sheet kept into pixels.
+- `lead.ts` — how finely that field is worked out, and the fall-through under
+  it. `wash.ts`'s twin in every respect: a **view**, app-wide, never recorded on
+  a stroke, carried on the render options so the mark cache can see it move, and
+  a simulation that can always answer "not me" — no canvas, a mark pulled back to
+  a hairline, a lead finer than a couple of cells — so `graphite.ts` draws the
+  mark instead and no drawing ever fails to open.
 - `rubber.ts` — the rubber, and the only painter here whose alpha is spent
   taking something off. It reads `graphite.ts`'s own lattice rather than one of
   its own — that is the point of it: a rubber lifts from the peaks a lead
@@ -794,14 +828,22 @@ canvas and the toolbar read a property instead of learning a name.
 `lifts` and `liftable` are that seam carrying a whole feature. A canvas gives up
 pixels one way only, so the **rubber** takes off everything it covers exactly as
 the eraser does; what makes it a rubber is that the renderer then lays the marks
-it could never have lifted straight back over the hole (`relayFixed`). The mask
-they come back through is the erasing lanes painted the ordinary way round,
-which is _to the pixel_ the fraction that went, so opaque ink returns at the
-strength it had. The two flags are the whole of the tool knowledge involved:
-`lifts` on the rubber, `liftable` on graphite and wax. What it costs is stacking
-order inside the rubbed patch — the ink goes back on top rather than back into
-its place in the stack — and the pixels that pays for are pixels being rubbed
-away anyway.
+it could never have lifted straight back over the hole (`relayFixed` in
+`relay.ts`). The mask they come back through is the erasing lanes painted the
+ordinary way round, which is _to the pixel_ the fraction that went, so opaque
+ink returns at the strength it had. The two flags are the whole of the tool
+knowledge involved: `lifts` on the rubber, `liftable` on graphite — and only
+graphite: wax smears under a rubber rather than lifting, so a crayon mark stays
+put with the ink. What it costs is stacking order inside the rubbed patch — the
+ink goes back on top rather than back into its place in the stack — and the
+pixels that pays for are pixels being rubbed away anyway.
+
+The flags are also what the pass is _scoped_ by. A rubbing out can only change
+the picture where its reach crosses liftable ink (`liftBounds`), so the canvas
+holds the live erase-and-relay to that patch and skips both where there is
+none; and while a gesture is under the hand, the committed ink it is cut from
+is painted once onto a held surface and reused frame to frame instead of being
+re-rendered — re-simulated, for a wash — on every pointer sample.
 
 `picksColor` carries one obligation past the flag, for the reason `selects`
 does: the behaviour answers `pick(p, ctx)` with the colour that press read off

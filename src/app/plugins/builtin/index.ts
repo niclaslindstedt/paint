@@ -132,6 +132,7 @@ import {
   GRANULATION,
   HAIR,
   HARDNESS,
+  INK,
   LOAD,
   OPACITY,
   PIGMENT,
@@ -424,11 +425,14 @@ export function registerBuiltinPlugins(): void {
     icon: PencilIcon,
     shortcut: "g",
     // The four leads a mechanical pencil takes, plus the 2 mm clutch lead. It
-    // opens on 0.7 — 0.5 is the lead a shop sells most of, but this is a tool
+    // opens on 0.9 — 0.5 is the lead a shop sells most of, but this is a tool
     // for *sketching*, and a sketching hand wants the blunter point and the
-    // lead that does not snap when it is leaned on.
+    // lead that does not snap when it is leaned on. It opened on 0.7 back when
+    // a pencil mark was specks scattered along the path; a lead pressed into
+    // the page's tooth needs a face wide enough for the tooth to show in it
+    // (see `./presets.ts`).
     gauge: PENCIL_GAUGE,
-    defaultSize: mm(0.7),
+    defaultSize: mm(0.9),
     // The one axis a pencil has — how soft the lead is — and the opacity every
     // marking tool offers, for laying a light guide line in.
     dials: [GRADE, OPACITY],
@@ -446,11 +450,11 @@ export function registerBuiltinPlugins(): void {
     // `PaintPlugin.fixedInk`) — the grade below is the only colour control a
     // pencil has, and it is already on the panel.
     fixedInk: true,
-    // …and, under the dials, the one rendering choice a pencil has: which of
-    // the two engines draws its marks (see `plugins/lead.ts`). The stroke model
-    // scatters graphite along the path; the simulation presses a lead into
-    // *this page's own sheet* and draws what the paper kept, which is why it is
-    // the pencil's option and not a setting somewhere about paper.
+    // …and, under the dials, the one rendering setting a pencil has: how finely
+    // the simulation works a mark out (see `plugins/lead.ts`). A pencil presses
+    // a lead into *this page's own sheet* and draws what the paper kept, and
+    // that costs a field per mark — so how much of the field to run is the
+    // pencil's option and not a setting somewhere about paper.
     options: LEAD_OPTIONS,
     behaviour: freehandBehaviour({
       style: "graphite",
@@ -475,14 +479,21 @@ export function registerBuiltinPlugins(): void {
     // on the button was a distance.
     gauge: ROUND_BRUSH_GAUGE,
     defaultSize: mm(4.8),
-    // A head of hair, and the four things about one that change the mark: how
-    // wet and gathered it is, what gauge the hair is, how far the bundle has
-    // worn open, and whether the paper under it wicks. Plus the opacity every
-    // marking tool offers.
+    // A head lays down a mark the width of the head (see the width budget in
+    // `bristle.ts`), plus whatever the paper wicks past its edge — under a
+    // whole width all told, where the unstated default assumes four. That is
+    // the difference between a zoomed-in page painting the marks it is showing
+    // and painting every mark within four brush-widths of the window.
+    reach: 1,
+    // A head of hair, and the five things about one that change the mark: how
+    // wet and gathered it is, how much paint it was dipped with — the charge
+    // the whole drag spends before it runs dry (see `capacityOf`) — what gauge
+    // the hair is, how far the bundle has worn open, and whether the paper
+    // under it wicks. Plus the opacity every marking tool offers.
     // Body colour off a loaded head: wet enough to mix into what it is painted
     // over on any paper, nowhere near as wet as a wash.
     wetness: 0.6,
-    dials: [OPACITY, HARDNESS, HAIR, SPLAY, BLEED],
+    dials: [OPACITY, HARDNESS, LOAD, HAIR, SPLAY, BLEED],
     // Four heads rather than four widths — the hog, the dry brush and the
     // glaze are what those five dials are *for*.
     presets: BRUSH_PRESETS,
@@ -509,11 +520,18 @@ export function registerBuiltinPlugins(): void {
     // Sold in fractions of an inch, opening on the half-inch one-stroke.
     gauge: FLAT_BRUSH_GAUGE,
     defaultSize: mm(12.7),
+    // The round's box, for the round's reason — a blade is never wider than its
+    // own width either.
+    reach: 1,
     // The round's dials, plus the one thing a blade has that a cone does not:
     // which way it is turned. Held at −45° out of the box, the same tilt the
-    // broad nib rests at, because it is the same right-handed wrist.
+    // broad nib rests at, because it is the same right-handed wrist. The load
+    // dial rests at the same 1 as the round's and buys half the distance: a
+    // chisel ferrule squeezes most of the dip out of the bundle, so one charge
+    // of a flat runs about half as far as one charge of the round (see
+    // `reservoirOf`).
     wetness: 0.6,
-    dials: [OPACITY, HARDNESS, ANGLE, SPLAY, BLEED],
+    dials: [OPACITY, HARDNESS, LOAD, ANGLE, SPLAY, BLEED],
     presets: FLAT_BRUSH_PRESETS,
     behaviour: freehandBehaviour({
       style: "brush",
@@ -539,9 +557,12 @@ export function registerBuiltinPlugins(): void {
     icon: WashBrushIcon,
     shortcut: "w",
     // A watercolourist's rack: rounds from a rigger's #1 to a #12, and a mop
-    // for the sky. It opens on a #8, which is most of a painting.
+    // for the sky. It opens on a #12 — it used to open on the #8 that is most
+    // of a painting, and a wash that is *dried* rather than stroked wants the
+    // page in it for the rim and the granulation to happen on (see
+    // `./presets.ts`).
     gauge: WASH_GAUGE,
-    defaultSize: mm(6.3),
+    defaultSize: mm(9.5),
     // Three things, and a watercolourist changes exactly these between one
     // stroke and the next: how much water is on the brush, how much colour is
     // in the water, and what the sheet does with what is left behind.
@@ -552,10 +573,9 @@ export function registerBuiltinPlugins(): void {
     // paints exactly as it always has.
     wetness: 1,
     dials: [OPACITY, WATER, PIGMENT, GRANULATION],
-    // …and the two settings that are about the *painting* rather than about the
-    // next mark: which of the two watercolours this build paints with, and how
-    // finely the heavier one resolves. They live under the widths with the
-    // dials, because they are judged by painting with them (see
+    // …and the one setting that is about the *painting* rather than about the
+    // next mark: how finely the simulation resolves. It lives under the widths
+    // with the dials, because it is judged by painting with it (see
     // `plugins/washOptions.ts`).
     options: WASH_OPTIONS,
     // Wet-in-wet, glaze and dry brush: the techniques those three dials are the
@@ -696,9 +716,12 @@ export function registerBuiltinPlugins(): void {
     // `docs/features/surface.md`.)
     dials: [OPACITY, PRESSURE],
     presets: CRAYON_PRESETS,
-    // Wax is caught on the tooth the same way graphite is, and comes away the
-    // same way — worse, in fact, since it smears. The other lifting medium.
-    liftable: true,
+    // Wax is caught on the tooth the same way graphite is, but it does not
+    // come away the same way: a rubber worked at a crayon mark *smears* it
+    // into the sheet rather than lifting it, which any child's colouring book
+    // can demonstrate. So the crayon does not declare `liftable` — the rubber
+    // is the pencil's companion, and a wax mark stays put under it with the
+    // ink and the paint.
     behaviour: freehandBehaviour({ style: "crayon" }),
   });
 
@@ -725,13 +748,13 @@ export function registerBuiltinPlugins(): void {
     // couple of cells of feather the ink wicks past its corners.
     grows: true,
     reach: 1.5,
-    // The angle every broad nib has — and the dial no other tool does: how
-    // much ink the nib was dipped with. The pen *simulates* its ink (see
+    // The angle every broad nib has — and the pen's own dip: how much ink
+    // the nib was charged with. The pen *simulates* its ink (see
     // `plugins/quillSim.ts`): the film shades with the hand, pools at the
-    // touch and the lift, and runs dry as the stroke spends it, so the load
+    // touch and the lift, and runs dry as the stroke spends it, so the dip
     // is the difference between a crisp word and a stroke that rails and
     // breaks up on the paper — which is a mark calligraphers make on purpose.
-    dials: [OPACITY, ANGLE, LOAD],
+    dials: [OPACITY, ANGLE, INK],
     // The three hands anyone is taught. A calligrapher changes the nib and the
     // angle they hold it at, and that is the whole difference between them.
     presets: NIB_PRESETS,
@@ -826,9 +849,9 @@ export function registerBuiltinPlugins(): void {
   //
   // Both halves are declared rather than coded anywhere: `lifts` says this
   // rubbing out only takes what a rubber could take, `liftable` on the pencil
-  // and the crayon says what that is, and the renderer lays everything else back
-  // over the hole (see `relayFixed` in `render.ts`). Which means the tool that
-  // finally makes "sketch it, ink it, rub the sketch out" work is two flags, a
+  // says what that is, and the renderer lays everything else back over the
+  // hole (see `relayFixed` in `relay.ts`). Which means the tool that finally
+  // makes "sketch it, ink it, rub the sketch out" work is two flags, a
   // painter, and nothing else in the app.
 
   registerPlugin({
@@ -850,6 +873,13 @@ export function registerBuiltinPlugins(): void {
     // Its width shows as a circle, for the eraser's reason: a preview of a
     // rubbing out on a bare page has nothing to lift and nothing to show.
     sizePreview: "circle",
+    // The face grains half its width either side of the path, plus the lattice
+    // jitter and the drag the lifted flakes are carried on — a few grain cells,
+    // which on the narrowest rubber comes to more than the width itself. Twice
+    // the width covers it with room to spare, and against the unstated default
+    // of four it is the number that decides how much page a live rubbing out
+    // repaints per frame (see `PaintPlugin.reach` and `liftBounds`).
+    reach: 2,
     // One dial, and it is the hand rather than the ink: how hard you lean on it,
     // which is how deep into the sheet the face reaches. See `RUB`.
     dials: [RUB],

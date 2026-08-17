@@ -49,3 +49,20 @@ export function resizeSurface(
   surface.canvas.width = w;
   surface.canvas.height = h;
 }
+
+/** A surface sized to `width`×`height` and blank, whoever owns it. Resizing
+ *  only clears when the size actually changed (see above), so the slate is
+ *  wiped explicitly — under a fresh identity transform, because the last use
+ *  left its view transform behind. */
+export function wipeSurface(
+  surface: Surface,
+  width: number,
+  height: number,
+): Surface {
+  resizeSurface(surface, width, height);
+  surface.ctx.setTransform(1, 0, 0, 1, 0, 0);
+  surface.ctx.globalAlpha = 1;
+  surface.ctx.globalCompositeOperation = "source-over";
+  surface.ctx.clearRect(0, 0, surface.canvas.width, surface.canvas.height);
+  return surface;
+}
