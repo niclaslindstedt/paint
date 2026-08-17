@@ -123,14 +123,13 @@ import { registerGroup, registerPlugin } from "../registry.ts";
 import type { PaintPlugin } from "../types.ts";
 import {
   ANGLE,
-  BLEED,
   CHISEL,
   CHISEL_FLAT,
   FEATHER,
+  FLATNESS,
   FLOW,
   GRADE,
   GRANULATION,
-  HAIR,
   HARDNESS,
   INK,
   LOAD,
@@ -139,7 +138,6 @@ import {
   PRESSURE,
   RUB,
   SAMPLE,
-  SPLAY,
   STRENGTH,
   WATER,
 } from "./dials.ts";
@@ -148,7 +146,6 @@ import {
   CRAYON_PRESETS,
   ERASER_PRESETS,
   FILL_PRESETS,
-  FLAT_BRUSH_PRESETS,
   HIGHLIGHTER_PRESETS,
   MARKER_PRESETS,
   NIB_PRESETS,
@@ -159,15 +156,14 @@ import {
   WASH_PRESETS,
 } from "./presets.ts";
 import {
+  BRUSH_GAUGE,
   CRAYON_GAUGE,
   ERASER_GAUGE,
-  FLAT_BRUSH_GAUGE,
   HIGHLIGHTER_GAUGE,
   MARKER_GAUGE,
   NIB_GAUGE,
   PEN_GAUGE,
   PENCIL_GAUGE,
-  ROUND_BRUSH_GAUGE,
   SPRAY_GAUGE,
   STROKE_GAUGE,
   TYPE_GAUGE,
@@ -466,77 +462,75 @@ export function registerBuiltinPlugins(): void {
     }),
   });
 
+  // One brush where there used to be two. The round and the flat were two
+  // registrations of the same behaviour, told apart by what was on the end of
+  // the handle — and what a blade *does* is a projection the paint simulation
+  // works out per touch now (see `plugins/bristleSim.ts`), so the head is a
+  // dial rather than a second tool: flatness 0 is the round, 1 is the
+  // one-stroke flat, and the middle of the range is the filbert every rack
+  // sells between them.
+
   registerPlugin({
     id: "paintbrush",
     nameKey: "tools.paintbrush.name",
     descriptionKey: "tools.paintbrush.description",
     icon: BrushIcon,
     shortcut: "b",
-    // The round, numbered the way the rack is — and it opens on a #6, which is
-    // the brush most people would pick up first (see `gauges.ts`). A head lays
-    // down exactly as wide a mark as it is, so there is no scale on it any
-    // more; it used to be multiplied by two and a half, from before the number
-    // on the button was a distance.
-    gauge: ROUND_BRUSH_GAUGE,
+    // One rack for both heads: the round series up to a #10, then the inch
+    // fractions a flat is sold in (see `gauges.ts`). It opens on a #6, which
+    // is the brush most people would pick up first. A head lays down exactly
+    // as wide a mark as it is, so the number on the button is the ferrule.
+    gauge: BRUSH_GAUGE,
     defaultSize: mm(4.8),
-    // A head lays down a mark the width of the head (see the width budget in
-    // `bristle.ts`), plus whatever the paper wicks past its edge — under a
-    // whole width all told, where the unstated default assumes four. That is
-    // the difference between a zoomed-in page painting the marks it is showing
-    // and painting every mark within four brush-widths of the window.
-    reach: 1,
-    // A head of hair, and the five things about one that change the mark: how
-    // wet and gathered it is, how much paint it was dipped with — the charge
-    // the whole drag spends before it runs dry (see `capacityOf`) — what gauge
-    // the hair is, how far the bundle has worn open, and whether the paper
-    // under it wicks. Plus the opacity every marking tool offers.
-    // Body colour off a loaded head: wet enough to mix into what it is painted
-    // over on any paper, nowhere near as wet as a wash.
+    // The head reaches half its width either side of the path, plus the line
+    // gain and the couple of cells the paper wicks — with slack for the
+    // leaving hairs the live tail re-lays (see `PaintPlugin.reach`).
+    reach: 1.2,
+    // Body colour off a loaded head: wet enough to mix into what it is
+    // painted over on any paper, nowhere near as wet as a wash.
     wetness: 0.6,
-    dials: [OPACITY, HARDNESS, LOAD, HAIR, SPLAY, BLEED],
-    // Four heads rather than four widths — the hog, the dry brush and the
-    // glaze are what those five dials are *for*.
+    // The mark is laid front-to-back by the simulation — the reservoir walk,
+    // the comb and the touch bead all read the path *behind* them, and the
+    // lift's raggedness rides the still-provisional tail — so a growing
+    // gesture repaints only where it grew (see `PaintPlugin.grows`).
+    grows: true,
+    // A head of hair, and the four things about one that change the mark: how
+    // wet and gathered it is, how much paint it was dipped with — the charge
+    // the whole drag spends before it runs dry — how far the ferrule squeezes
+    // it toward a blade, and which way the blade is turned. Plus the opacity
+    // every marking tool offers. The angle rests at −45°, the tilt a
+    // right-handed wrist holds a flat at, and means nothing until the
+    // flatness leaves the round.
+    dials: [OPACITY, HARDNESS, LOAD, FLATNESS, ANGLE],
+    // Four brushes off the rack rather than four widths — the one-stroke
+    // flat, the filbert and the dry brush are what those dials are *for*.
     presets: BRUSH_PRESETS,
     behaviour: freehandBehaviour({
       style: "brush",
       useHardness: true,
+      angle: -45,
     }),
   });
 
-  // …and the other brush anyone owns. A flat is not a wide round: the ferrule
-  // squeezes the bundle into a blade, so it lays its whole width square across
-  // itself and closes to the thickness of the hair on its edge. That is one
-  // stroke that swells and thins as it goes round a curve without the hand
-  // doing anything, and it is why a sign-writer, a letterer and anyone laying a
-  // flat wash owns one. It is a *different brush* rather than a setting on the
-  // round, which is why it registers separately and carries the angle dial the
-  // round has no use for (see `BrushHead`).
+  // …and the flat it replaced, kept as a **painter with no button** (see
+  // `PaintPlugin.hidden`): a stroke's tool id is persisted, so every mark
+  // ever drawn with the flat brush still names `flatbrush` and still has to
+  // paint. It is the same behaviour resting at flatness 1 — the blade — and
+  // it appears in no toolbar and no settings list; the paintbrush above is
+  // how a flat is picked up now.
 
   registerPlugin({
     id: "flatbrush",
+    hidden: true,
     nameKey: "tools.flatbrush.name",
     descriptionKey: "tools.flatbrush.description",
     icon: FlatBrushIcon,
-    // Sold in fractions of an inch, opening on the half-inch one-stroke.
-    gauge: FLAT_BRUSH_GAUGE,
-    defaultSize: mm(12.7),
-    // The round's box, for the round's reason — a blade is never wider than its
-    // own width either.
-    reach: 1,
-    // The round's dials, plus the one thing a blade has that a cone does not:
-    // which way it is turned. Held at −45° out of the box, the same tilt the
-    // broad nib rests at, because it is the same right-handed wrist. The load
-    // dial rests at the same 1 as the round's and buys half the distance: a
-    // chisel ferrule squeezes most of the dip out of the bundle, so one charge
-    // of a flat runs about half as far as one charge of the round (see
-    // `reservoirOf`).
+    reach: 1.2,
     wetness: 0.6,
-    dials: [OPACITY, HARDNESS, LOAD, ANGLE, SPLAY, BLEED],
-    presets: FLAT_BRUSH_PRESETS,
     behaviour: freehandBehaviour({
       style: "brush",
-      head: "flat",
       useHardness: true,
+      flatness: 1,
       angle: -45,
     }),
   });

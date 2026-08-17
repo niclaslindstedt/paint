@@ -9,8 +9,7 @@
 
 import { SOLID_GROUND } from "../../ground.ts";
 import type { Point } from "../../types.ts";
-import { paintBrush } from "../bristle.ts";
-import { ROUND_HEAD, type BrushHead } from "../head.ts";
+import { paintBristle } from "../bristleSim.ts";
 import {
   paintNib,
   paintSoftPath,
@@ -87,16 +86,13 @@ type FreehandInk = {
    *  the same agreement as `chisel`. A tool that offers no angle dial simply
    *  draws at this one for ever. */
   angle?: number;
-  /** What is on the end of the handle, for the `brush` style: a cone of hair
-   *  that draws the same width whichever way you pull it, or a blade that lays
-   *  its full width square across itself and closes to nothing on its edge (see
-   *  `BrushHead`).
-   *
-   *  A property of the brush and not a dial, exactly like the marker's chisel:
-   *  you do not turn a round into a flat, you pick up a different brush — and
-   *  so a flat is a second registration of this same behaviour rather than a
-   *  setting on the first. */
-  head?: BrushHead["shape"];
+  /** Where this tool's flatness dial rests, for the `brush` style: 0 is the
+   *  round that draws the same width whichever way you pull it, 1 the blade
+   *  that lays its full width square across itself and closes to a hairline
+   *  along its edge — the same agreement as `chisel`. The paintbrush rests at
+   *  round; the hidden legacy flat rests at 1, which is what keeps every
+   *  stroke ever drawn with it a flat (see `builtin/index.ts`). */
+  flatness?: number;
 };
 
 /** Build a freehand tool behaviour with the given ink. */
@@ -161,38 +157,46 @@ export function freehandBehaviour(ink: FreehandInk = {}): ToolBehaviour {
       const sheet = detail.ground ?? SOLID_GROUND;
       switch (ink.style) {
         case "brush":
-          paintBrush(
-            ctx2d,
-            points,
-            stroke.size,
-            hardness,
+          // The brush *simulates* its paint (see `plugins/bristleSim.ts`):
+          // a finite dip spent along the drag, a comb of hairs, and the
+          // sheet deciding what a starving head can still catch. The mark's
+          // whole shape rides on two numbers with first-class dials — how
+          // far the head is squeezed toward a blade, and which way the blade
+          // is turned — so one tool is the round and the flat both.
+          paintBristle(ctx2d, points, stroke.size, {
             scale,
-            strokeDial(stroke, "hair"),
-            strokeDial(stroke, "splay"),
-            // The one dial whose rest is nothing rather than one: paper that
-            // does not wick is the ordinary case, so it has to be what a mark
-            // carrying no `bleed` at all paints as — and then the sheet adds
-            // its own, whether or not anyone asked. A loaded head on newsprint
-            // feathers; on the solid page the sheet adds nothing, so a drawing
-            // made before grounds existed paints unchanged.
-            strokeDial(stroke, "bleed", 0) + sheet.absorbency * 1.1,
-            // How much paint the head was dipped with — the multiplier on the
-            // run the whole mark spends before it goes dry (see `capacityOf`).
-            strokeDial(stroke, "load"),
-            ink.head === "flat"
-              ? {
-                  shape: "flat",
-                  // A flat is held at an angle the way a broad nib is, and the
-                  // same dial says which — so the two tools that have a flat on
-                  // them read the same number off the mark.
-                  angle: radians(strokeDial(stroke, "angle", ink.angle ?? 0)),
-                }
-              : ROUND_HEAD,
-            // …and the patch the caller is actually keeping, so a drag that
-            // crosses the window costs the part of it that shows rather than
-            // fifty hairs' worth of the whole thing (see `PaintDetail.clip`).
-            detail.clip,
-          );
+            hardness,
+            flatness: strokeDial(stroke, "flatness", ink.flatness ?? 0),
+            // A flat is held at an angle the way a broad nib is, and the
+            // same dial says which — so the two tools that have a flat on
+            // them read the same number off the mark.
+            angle: radians(strokeDial(stroke, "angle", ink.angle ?? 0)),
+            // How much paint the head was dipped with — the reservoir the
+            // whole drag spends before it goes dry.
+            load: strokeDial(stroke, "load"),
+            // The sheet: its grain is what a slab settles into and a
+            // starving head breaks up on, and a thirsty one drinks the
+            // reservoir and feathers the edges.
+            ground: sheet,
+            // The simulation works in paint film rather than in a fill, so
+            // it needs the colour as a value — and the page it is landing
+            // on, which says which way the film reads (see `washSim.ts`).
+            color: strokeColor(stroke),
+            page: detail.page ?? "#ffffff",
+            // …and whether this mark is still under the hand, which decides
+            // only which room holds its field (see `PaintDetail.live`).
+            live: detail.live === true,
+            // …and the patch the caller is actually keeping, read by the
+            // vector fallback the seam keeps for marks too small for a
+            // field (see `PaintDetail.clip`).
+            clip: detail.clip,
+            // The legacy texture dials, read by that fallback alone: marks
+            // drawn before the simulation carry them, and the painter that
+            // still draws the smallest marks still honours them.
+            hair: strokeDial(stroke, "hair"),
+            splay: strokeDial(stroke, "splay"),
+            bleed: strokeDial(stroke, "bleed", 0),
+          });
           return;
         case "wash":
           paintWashOn(

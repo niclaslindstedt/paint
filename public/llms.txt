@@ -19,9 +19,9 @@ connect a storage backend yourself.
 - Set every tool in the sizes it is really made in. A page pixel is one dot of
   an iPhone's screen, so widths are millimetres you can measure on the glass at
   1:1: the pencil offers the
-  four leads a mechanical pencil takes, the round brush a #2 through a one-inch
-  flat, type is set in points, and each tool's slider spends its middle four
-  tenths on the range that tool is genuinely manufactured in.
+  four leads a mechanical pencil takes, the paintbrush a #2 round through a
+  one-inch flat, type is set in points, and each tool's slider spends its
+  middle four tenths on the range that tool is genuinely manufactured in.
 - Reach for a tool the way its medium is actually used: every tool ships with a
   row of presets — the pencil as Sketch, Construction, Shading and Detail, the
   watercolour brush as a wash, wet-in-wet, a glaze and a dry brush, the
@@ -63,9 +63,10 @@ connect a storage backend yourself.
 - Press the eraser a second time for the rubber behind it: it lifts pencil the
   way a real one does — a little at a time, never all of it, and never the ink,
   paint or crayon laid beside it.
-- Switch more tools on in Settings → Tools (a round and a flat bristle brush,
-  marker, highlighter, crayon, calligraphy pen), and put the rows in the order
-  you want
+- Switch more tools on in Settings → Tools (a bristle paintbrush that runs
+  from a round to a one-stroke flat on a dial and simulates a finite dip of
+  paint over the page's grain, marker, highlighter, crayon, calligraphy pen),
+  and put the rows in the order you want
   the toolbar in. Every tool is a plugin behind one interface, so the list grows
   without the app changing shape.
 - Type on the page: the text tool opens a caret where you tap, in four
@@ -78,8 +79,9 @@ connect a storage backend yourself.
   remembered per tool, and each tool opens at a width of its own. Widths read in
   millimetres of page, from a technical pen's 0.5 to a decorator's 200.
 - Tune the tool in your hand under the nib picker's Advanced fold — how charged
-  the head is, its hair gauge, how far it has splayed and how far the paper
-  bleeds for the paintbrush, flow for the airbrush, pressure for the crayon, the
+  the head is, how much paint the dip took, how far the head is squeezed toward
+  a flat and which way the blade is turned for the paintbrush, flow for the
+  airbrush, pressure for the crayon, the
   lead's grade for the pencil, the chisel of a felt tip for the marker and the
   highlighter, the nib's angle for the calligraphy pen, strength for the eraser,
   pressure for the rubber, a feathered edge for the paint bucket and the

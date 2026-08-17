@@ -130,49 +130,30 @@ export const PENCIL_PRESETS: readonly BuiltinPreset[] = [
   },
 ];
 
-/** The round bristle brush. Four heads rather than four widths: the one it
- *  ships as, a coarse hog that leaves the streaks in, a splayed dry head that
- *  skips over the tooth, and a big soft one loaded thin enough to glaze over
- *  what is already there. */
+/** The paintbrush. Four *brushes off the rack* rather than four widths — and
+ *  two of them used to be a second tool: the round it ships as, the half-inch
+ *  one-stroke flat (the flatness dial turned all the way, which is what
+ *  replaced the flat brush), the filbert between the two, and the starved
+ *  dry brush that scumbles over the paper's grain instead of covering it. */
 export const BRUSH_PRESETS: readonly BuiltinPreset[] = [
   { id: "round", nameKey: "presets.paintbrush.round", size: mm(4.8) },
   {
-    id: "hog",
-    nameKey: "presets.paintbrush.hog",
+    id: "onestroke",
+    nameKey: "presets.paintbrush.onestroke",
+    size: mm(12.7),
+    dials: { flatness: 1 },
+  },
+  {
+    id: "filbert",
+    nameKey: "presets.paintbrush.filbert",
     size: mm(7.9),
-    dials: { hardness: 0.6, hair: 1.7, splay: 0.9 },
+    dials: { flatness: 0.55 },
   },
   {
     id: "dry",
     nameKey: "presets.paintbrush.dry",
     size: mm(7.9),
-    dials: { opacity: 0.6, hardness: 0.25, hair: 1.3, splay: 1.6 },
-  },
-  {
-    id: "glaze",
-    nameKey: "presets.paintbrush.glaze",
-    size: mm(12.7),
-    dials: { opacity: 0.25, hair: 0.8, splay: 0.5, bleed: 0.7 },
-  },
-];
-
-/** The flat. A blade is held at an angle and that angle is most of what it is
- *  for: the half-inch one-stroke at the italic tilt, the small one held nearer
- *  square that letters a sign, and the inch flat opened up and wet for laying a
- *  wash across a whole sky. */
-export const FLAT_BRUSH_PRESETS: readonly BuiltinPreset[] = [
-  { id: "onestroke", nameKey: "presets.flatbrush.onestroke", size: mm(12.7) },
-  {
-    id: "lettering",
-    nameKey: "presets.flatbrush.lettering",
-    size: mm(6.4),
-    dials: { angle: -30, splay: 0.4 },
-  },
-  {
-    id: "wash",
-    nameKey: "presets.flatbrush.wash",
-    size: mm(25.4),
-    dials: { opacity: 0.75, hardness: 0.5, splay: 0.7, bleed: 0.8 },
+    dials: { hardness: 0.25, load: 0.4 },
   },
 ];
 

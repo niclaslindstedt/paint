@@ -322,21 +322,13 @@ export const en = {
       name: "Hardness: {value}%",
       hint: "Soft feathers the edge; hard keeps it crisp.",
     },
-    hair: {
-      name: "Hair: {value}%",
-      hint: "Fine hair leaves many thin streaks, coarse hair a few broad ones.",
-    },
     load: {
       name: "Load: {value}%",
       hint: "How much paint the brush is dipped with. The stroke spends it as it goes, scratches dry, then trails a thin film until that fades too.",
     },
-    splay: {
-      name: "Splay: {value}%",
-      hint: "A new brush cuts a crisp side; a worn one frays.",
-    },
-    bleed: {
-      name: "Bleed: {value}%",
-      hint: "How far a wet edge wicks into the paper.",
+    flatness: {
+      name: "Flatness: {value}%",
+      hint: "Round lays the same width every way; flat lays its full width square across itself and a heavy line along its edge.",
     },
     flow: {
       name: "Flow: {value}%",
@@ -415,14 +407,9 @@ export const en = {
     },
     paintbrush: {
       round: "Round",
-      hog: "Hog bristle",
-      dry: "Dry brush",
-      glaze: "Glaze",
-    },
-    flatbrush: {
       onestroke: "One-stroke",
-      lettering: "Lettering",
-      wash: "Flat wash",
+      filbert: "Filbert",
+      dry: "Dry brush",
     },
     watercolor: {
       wash: "Wash",
@@ -651,9 +638,9 @@ export const en = {
         "A broad translucent wedge — a full band across the page, a hairline down it — that builds up where it overlaps.",
     },
     paintbrush: {
-      name: "Round brush",
+      name: "Paintbrush",
       description:
-        "A loaded bristle brush: the stroke swells in the middle and tapers off at both ends.",
+        "A bristle brush with a finite dip of paint: round or squeezed flat, it covers, streaks, breaks up on the paper's grain and runs dry as the stroke spends it.",
     },
     flatbrush: {
       name: "Flat brush",

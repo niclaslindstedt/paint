@@ -16,7 +16,6 @@
 
 import { isDarkColor } from "../canvas.ts";
 import type { Surface } from "../surface.ts";
-import { inked, type QuillField } from "./quillField.ts";
 import { keeping, washFilm } from "./washSim.ts";
 
 /** How much optical density one unit of film is worth — the number that turns
@@ -49,7 +48,15 @@ const FAINT = 1 / 512;
  *  page-wide flourish is the sort of bill a lookup was invented for. */
 export type ShadeLut = { rgba: Uint8Array };
 
-export function shadeLut(color: string, page: string): ShadeLut {
+/** `density` is how much optical density one unit of film is worth — the
+ *  medium's thickness. It defaults to the ink's; the paintbrush passes its
+ *  own, higher one, because body paint covers in one pass where an ink film
+ *  shades (see `bristleSim.ts`). Same curve, third medium. */
+export function shadeLut(
+  color: string,
+  page: string,
+  density = DENSITY,
+): ShadeLut {
   const dark = isDarkColor(page);
   const kept = keeping(color, dark);
   // The ink's own, slightly higher floor (see `KEEP_FLOOR`).
@@ -61,7 +68,7 @@ export function shadeLut(color: string, page: string): ShadeLut {
   const rgba = new Uint8Array(LUT_SIZE * 4);
   for (let i = 0; i < LUT_SIZE; i++) {
     const film = ((i + 0.5) * LUT_SPAN) / LUT_SIZE;
-    const shade = washFilm(keep, film * DENSITY, dark);
+    const shade = washFilm(keep, film * density, dark);
     if (!shade || shade[3] < FAINT) continue;
     rgba[i * 4] = byte(shade[0]);
     rgba[i * 4 + 1] = byte(shade[1]);
@@ -74,17 +81,21 @@ export function shadeLut(color: string, page: string): ShadeLut {
 /** Turn a patch of what the paper took into the field canvas's pixels — the
  *  patch is the whole field for a landed mark, and the dirty box of one
  *  advance for the gesture in flight. `false` where the browser will not give
- *  us an image to write into. */
+ *  us an image to write into.
+ *
+ *  The field is any patch with a film over it — the quill's and the
+ *  paintbrush's both, which is the point: what the paper took differs per
+ *  medium, what a film of it looks like does not. */
 export function drawPatch(
   surface: Surface,
-  field: QuillField,
+  field: { width: number; film: Float32Array },
   lut: ShadeLut,
   x0: number,
   y0: number,
   width: number,
   height: number,
 ): boolean {
-  const film = inked(field);
+  const film = field.film;
   const rgba = lut.rgba;
   const scale = LUT_SIZE / LUT_SPAN;
   let image: ImageData;

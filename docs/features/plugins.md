@@ -21,9 +21,9 @@ has opened a paint program already knows how to use, spray can included, plus
 the one medium this app has of its own. That is the _whole_ default toolbar:
 eleven buttons, families counted as the one button they are, and everything else
 off until you ask for it. Waiting in Settings → Tools: the rest of the media
-(the round and flat bristle brushes, marker, highlighter, crayon, calligraphy
-pen). The **rubber** is not one of them: it ships with the eraser, behind the
-eraser's own button — see below.
+(the paintbrush, marker, highlighter, crayon, calligraphy pen). The **rubber**
+is not one of them: it ships with the eraser, behind the eraser's own button —
+see below.
 
 The row reads in the order a hand actually uses it. The pen you draw with, the
 rest of the media, then the three tools that work on an _area_ rather than on a
@@ -31,9 +31,9 @@ line — rubbing one out, and filling one — then the two other families, type 
 which is what you usually reach for right after picking something out — and last
 the two tools that touch neither the ink nor the document:
 
-**pen · pencil · round brush · flat brush · watercolour · airbrush · marker ·
-highlighter · crayon · calligraphy pen · erasers · fills · shapes · select ·
-text · dropper · hand**
+**pen · pencil · paintbrush · watercolour · airbrush · marker · highlighter ·
+crayon · calligraphy pen · erasers · fills · shapes · select · text · dropper ·
+hand**
 
 The erasers sit at the end of the media shelf, one button left of the bucket,
 rather than second in the row beside the pen: taking a passage off and flooding
@@ -185,41 +185,39 @@ A tool that differs from the pen only in `lineWidth` is not a tool. The
 painters in `src/app/plugins/brushes.ts`, `bristle.ts`, `crayon.ts` and
 `graphite.ts` model what the mark is _made of_:
 
-- the **paintbrush** is a head of hair, and the mark it leaves is opaque paint
-  with the hairs' partings scratched through it. The hair is a fixed gauge, not
-  a share of the width — widen the brush and you get _more_ streaks rather than
-  fatter ones, the way a rack of real brushes works. The head lands blunt and
-  holds its width, it is too wide to follow a wiggle finer than itself and it
-  cannot turn inside its own width, and it carries a load it spends: a #6 round
-  covers about twelve centimetres of paper, which is about what one dip gives
-  you, then scrapes through a marked dry stretch where the body gives way to
-  scratches. Past that the paint has gone but the brush has not stopped
-  marking — what is left wetting the hairs is a **film**, and it keeps coming
-  off for about as far again: thin, pale, broken all over, and fading the whole
-  way until there is nothing left at all. Carry a stroke past its dip and it
-  ends in a ghost of itself rather than at an edge. How much paint one dip
-  charges is the **load** dial — starve it down to dry-brush within a stroke,
-  or charge it up to cross most of a page, and the ghost after it grows and
-  shrinks with the dip. The mark it leaves
-  is the **width of the head** — everything that ruffles the edge of a brushed
-  stroke, the clumping, the wander, the twist of the bundle and the fray of a
-  worn head, is budgeted out of the head rather than added to it, so a fringe
-  frays inwards and the number on the size button is a distance you can measure.
-  Drag it fast and it thins, which
-  the stroke knows for free — the canvas samples every 1.5 document pixels at
-  the slowest, so the gaps between stored points are how quickly you crossed
-  them. What decides how a mark reads is **how much paper is left showing**: a
-  charged head lays hairs wide enough to meet each other and pools a body in
-  between, so the mark closes into a slab with a few partings scratched through
-  it, while a dry one leaves the filaments' own width with bare sheet either
-  side. That is the hardness dial, and it spans a whole pressure series — dry
-  brush at the bottom, a loaded flat at the top — rather than restyling one
-  mark. The paper has a say too: a grain runs under every stroke and lifts the
-  whole head off the sheet for a moment as it passes, which is what breaks a
-  mark _across_ as well as along it. The grain is the **page's**, so it does not
-  shrink with the brush — a head narrower than the dips a wide one catches on
-  rides over them and leaves a line, which is why a small brush stays solid
-  where a wide one at the same setting is streaking;
+- the **paintbrush** _simulates its paint_, the way the pencil presses a lead
+  into the sheet and the calligraphy pen spends a bead of ink (see
+  `src/app/plugins/bristleSim.ts`): the head presses a finite dip of paint
+  through a comb of hairs onto the page's own grain, and what the paper took
+  is what you see. A charged head bridges the grain and lays an opaque slab
+  with the hairs' partings scratched through it — and the film settles a
+  little into the sheet's dips, so a canvas weave prints its over-and-under
+  straight through the slab and the sealed page dries even. The dip is spent
+  as the stroke travels: a #6 covers about twelve centimetres of paper, thins
+  to streaks as the outer hairs give out, breaks up into the paper's own
+  tooth — a starving head only reaches the high ground, which is what a
+  dry-brush scumble _is_ — and then trails the film left on the hairs for
+  about as far again, fading the whole way. A thirsty sheet drinks the
+  reservoir as it goes, so the same dip runs shorter on cotton than on the
+  sealed page, and wicks a little paint out along the fibres at the edges.
+  How much one dip charges is the **load** dial; how wet and gathered the
+  bundle is, is **hardness** — a loaded slab at the top of the range, a
+  scumble at the bottom. Drag it fast and it thins and skips, which the
+  stroke knows for free — the canvas samples every 1.5 document pixels at the
+  slowest, so the gaps between stored points are how quickly you crossed
+  them. And it is the round and the flat _in one handle_: **flatness** is how
+  far the ferrule squeezes the head toward a blade — 0 the round that lays
+  the same width whichever way you pull it, 1 the one-stroke flat that lays
+  its full width square across itself and closes to a heavy line along its
+  own edge, the middle a filbert — and **nib angle** is which way the blade
+  is turned. What a blade does is a projection worked out per touch, so one
+  stroke of a flat swells and thins round a curve without the hand doing
+  anything, and the paint the narrower band stops laying sideways it carries
+  as extra thickness instead. A landed mark is simulated once and kept as
+  pixels; the gesture under your finger is walked incrementally, so a frame
+  costs the touches that arrived rather than the length of the stroke; and a
+  mark too small for the field to show falls through to the vector-hair
+  painter that used to be the whole tool;
 - the **airbrush** is a spray cone — a radial gradient stamped along the path at
   a fraction of its own radius, faint enough that coverage comes from _overlap_,
   so passing twice really is twice the paint, with a sparse grain over the top.
@@ -249,17 +247,14 @@ painters in `src/app/plugins/brushes.ts`, `bristle.ts`, `crayon.ts` and
   the stick is, the face leans as you turn through a stroke so one side goes
   down solid and the other frays, and the ends fade in instead of starting
   square;
-- the **flat brush** is the same head of hair squeezed into a chisel ferrule,
-  and it is a second registration of the bristle painter rather than a setting
-  on the first — you do not turn a round into a flat, you pick up a different
-  brush. Pull it square across itself and it lays its whole width; pull it along
-  its own edge and it closes to the thickness of the bundle. That is one stroke
-  that swells and thins as it goes round a curve without the hand doing
-  anything, and it is why a sign-writer owns one. Which way the blade is turned
-  is the **nib angle** dial, the same one the broad nib carries. The ferrule's
-  squeeze also empties most of the bundle, so one dip of a flat runs about
-  half as far as one dip of the round before it scratches dry, and trails its
-  film for half as far after — the same **load** dial charges it with more;
+- the **flat brush** is no longer a second tool: it is the paintbrush's
+  flatness dial turned all the way up (the "One-stroke" preset), because what
+  a blade does is a projection the simulation works out per touch rather than
+  a different painter. The ferrule's squeeze still empties most of the
+  bundle, so a full flat runs about half as far as the round on the same dip.
+  Every stroke ever drawn with the old flat brush still names it and still
+  paints — the tool keeps a registration with no button (the same mechanism
+  as the dropped image's painter);
 - the **watercolour brush** is the one medium here where what you are painting
   with is _water_, and the pigment only goes where the water took it. Four
   things happen while a wet stroke dries on a sheet and all four are in the
@@ -440,15 +435,16 @@ declares a **gauge**: the range the real thing is made in, the five sizes worth
 a button, and how far past either end you may still go.
 
 The five buttons are sizes a shop actually sells, and each carries the trade's
-own designation where there is one — the brush row reads **#2 · #6 · #10 · #16 ·
-1"**, the pencil row **0.3 · 0.5 · 0.7 · 0.9 · 2.0 mm**, the type row **10 · 12 ·
-18 · 24 · 48 pt**.
+own designation where there is one — the brush row reads **#2 · #6 · #10 · ½" ·
+1"** (the round series up to where brushes start being sold in inches, which is
+how every flat is), the pencil row **0.3 · 0.5 · 0.7 · 0.9 · 2.0 mm**, the type
+row **10 · 12 · 18 · 24 · 48 pt**.
 
 Each tool **opens on one of its own five**, and on the one it is reached for
 most of the time rather than on the middle of the rack: the pen at 0.5 mm (the
 liner that outsells the rest put together), the pencil at 0.7 (0.5 is the lead a
 shop sells most of, but a sketching hand wants the blunter point), the marker at
-its 2 mm bullet, the round brush at a #6, the airbrush at a general-purpose
+its 2 mm bullet, the paintbrush at a #6, the airbrush at a general-purpose
 12 mm pattern. A default that is not one of the five is a fresh install whose
 size row has nothing lit up in it.
 
@@ -512,8 +508,7 @@ app:
 | Pencil          | Sketch · Construction · Shading · Detail |
 | Eraser          | Block · Detail · Kneaded                 |
 | Rubber          | Pocket rubber · Kneaded · Pencil top     |
-| Round brush     | Round · Hog bristle · Dry brush · Glaze  |
-| Flat brush      | One-stroke · Lettering · Flat wash       |
+| Paintbrush      | Round · One-stroke · Filbert · Dry brush |
 | Watercolour     | Wash · Wet-in-wet · Glaze · Dry brush    |
 | Airbrush        | General · Detail · Background            |
 | Marker          | Marker · Chisel · Fineliner              |
@@ -630,27 +625,27 @@ So a tool declares its own, and the bar is high: the panel is something you
 reach into mid-drawing, with one thumb, so a dial has to change what the mark
 _is_ rather than restyle what another dial already did. For most tools that is
 one or two. The paintbrush is the exception and earns it — a head of hair is
-loaded or dry, milled fine or coarse, new or worn open, and on paper that wicks
-or paper that does not, and no one of those four is any of the others:
+loaded or dry, dipped with much or little paint, squeezed toward a blade or
+left round, and turned one way or the other when it is a blade, and no one of
+those four is any of the others:
 
-| Tool                | Advanced                                   |
-| ------------------- | ------------------------------------------ |
-| **Round brush**     | opacity, hardness, hair, splay, bleed      |
-| **Flat brush**      | opacity, hardness, nib angle, splay, bleed |
-| **Watercolour**     | opacity, water, pigment, granulation       |
-| **Airbrush**        | hardness, flow                             |
-| **Pencil**          | lead, opacity                              |
-| **Crayon**          | opacity, pressure                          |
-| **Marker**          | opacity, chisel                            |
-| **Highlighter**     | opacity, chisel                            |
-| **Calligraphy pen** | opacity, nib angle                         |
-| **Eraser**          | strength                                   |
-| **Rubber**          | pressure                                   |
-| **Paint bucket**    | opacity, feather — behind its cog          |
-| **Gradient**        | opacity, feather — behind its cog          |
-| **Dropper**         | sample size — behind its cog               |
-| Pen, shapes, text   | opacity                                    |
-| Hand, select        | nothing — no section appears               |
+| Tool                | Advanced                                     |
+| ------------------- | -------------------------------------------- |
+| **Paintbrush**      | opacity, hardness, load, flatness, nib angle |
+| **Watercolour**     | opacity, water, pigment, granulation         |
+| **Airbrush**        | hardness, flow                               |
+| **Pencil**          | lead, opacity                                |
+| **Crayon**          | opacity, pressure                            |
+| **Marker**          | opacity, chisel                              |
+| **Highlighter**     | opacity, chisel                              |
+| **Calligraphy pen** | opacity, nib angle                           |
+| **Eraser**          | strength                                     |
+| **Rubber**          | pressure                                     |
+| **Paint bucket**    | opacity, feather — behind its cog            |
+| **Gradient**        | opacity, feather — behind its cog            |
+| **Dropper**         | sample size — behind its cog                 |
+| Pen, shapes, text   | opacity                                      |
+| Hand, select        | nothing — no section appears                 |
 
 Most of them are sliders. A dial with a handful of values is **pressed**
 instead: there is nothing between a 2B and a 3B, so the pencil's lead is a row
@@ -658,17 +653,18 @@ of chips — 8H through 9B, the fifteen grades a shop sells — rather than a sl
 to hunt along until the readout says the right thing.
 
 Each one is wired to something the painter actually does. **Hardness** is how
-charged the head is, and it is the brush's main control: turned up it is a
-loaded flat that covers solidly, turned down a spent one that leaves most of its
-length in streaks. **Hair** is which brush off the rack: the head is milled from
-filament of a fixed gauge, so fine hair leaves many thin partings and coarse
-hair a few broad ones — and neither changes the width. **Splay** is the state of
-that head rather than its make — a brush out of its wrapper cuts a side you
-could rule against, one washed a hundred times has a fringe on it and strays out
-of its lanes. **Bleed** is the only thing here that belongs to the _paper_: how
-far a wet edge wicks into the sheet before it dries, which is the brush's one
-soft edge. It rests at nothing, because bristle on cartridge paper does not
-bleed and a mark that always did would look damp. **Flow** is the airbrush's
+wet and gathered the paintbrush's bundle is, and it is the brush's main
+control: turned up it is a loaded head that covers solidly, turned down a
+spent one that leaves most of its length in streaks. **Load** is how much
+paint the dip took — the reservoir the whole drag spends, so a starved dip is
+dry-brush within a stroke and a heavy one crosses most of a page.
+**Flatness** is how far the ferrule squeezes the head toward a blade: the
+round at rest, the one-stroke flat all the way up, the filbert between — and
+**nib angle** is which way that blade is turned, the same dial the broad nib
+carries. (The old hair, splay and bleed dials went with the vector painter
+they tuned: the simulation grows its streaks and its soft edges out of the
+sheet itself, so marks drawn with them still read them only where the old
+painter still draws — at sizes too small for the field.) **Flow** is the airbrush's
 trigger, and because its coverage
 is built from overlapping passes rather than one opaque dab, turning it down
 really does mean more passes. **Pressure** is how hard the crayon bears down:
