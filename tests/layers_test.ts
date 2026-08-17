@@ -24,6 +24,8 @@ import {
   lockedMarks,
   nextLayerName,
   reorderLayers,
+  resetLayers,
+  stackIsReset,
   strokeLayer,
   strokesExcept,
   transparentLayers,
@@ -106,6 +108,45 @@ describe("a page made of nothing", () => {
     // transparent stack is stamped rather than implicit for exactly that
     // reason.
     expect(backgroundHidden(drawing())).toBe(false);
+  });
+});
+
+describe("starting over", () => {
+  it("keeps whether the page has a sheet, and nothing else of the stack", () => {
+    // A sheeted page goes back to the implicit default; a transparent one
+    // keeps its stamped stack. Whether the page is made of nothing is what the
+    // page *is* — like its colour, it is not thrown away with the marks.
+    const extra: Layer = { id: "l1", name: "Inks" };
+    expect(resetLayers(drawing({ layers: [sheet, base, extra] }))).toBe(
+      undefined,
+    );
+    const cleared = resetLayers(
+      drawing({ layers: [{ ...sheet, hidden: true }, base, extra] }),
+    );
+    expect(cleared).toEqual(transparentLayers());
+  });
+
+  it("knows when there is no stack left to throw away", () => {
+    // The bin dims on these: the implicit stack, its stamped twins, and both
+    // regardless of the page's colour — a reset no longer touches it.
+    expect(stackIsReset(drawing())).toBe(true);
+    expect(stackIsReset(drawing({ background: "#ffffff" }))).toBe(true);
+    expect(stackIsReset(drawing({ layers: defaultLayers() }))).toBe(true);
+    expect(stackIsReset(drawing({ layers: transparentLayers() }))).toBe(true);
+  });
+
+  it("still offers the bin a stack that has been worked on", () => {
+    const extra: Layer = { id: "l1", name: "Inks" };
+    expect(stackIsReset(drawing({ layers: [sheet, base, extra] }))).toBe(false);
+    expect(
+      stackIsReset(drawing({ layers: [sheet, { ...base, name: "Mine" }] })),
+    ).toBe(false);
+    expect(
+      stackIsReset(drawing({ layers: [sheet, { ...base, hidden: true }] })),
+    ).toBe(false);
+    expect(
+      stackIsReset(drawing({ layers: [{ ...sheet, locked: false }, base] })),
+    ).toBe(false);
   });
 });
 

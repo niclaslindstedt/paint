@@ -24,6 +24,7 @@ import {
   drawingLayers,
   isLocked,
   reorderLayers,
+  resetLayers,
   strokesExcept,
 } from "./layers.ts";
 import { turnBitmap } from "./images.ts";
@@ -422,9 +423,12 @@ export function usePaintStore(
   );
 
   /** Start the page over: every mark gone, the stack back to the sheet and one
-   *  layer, and the page colour handed back to the canvas theme. The sheet's
-   *  *size* is left alone — "start over" is about what is on the page, and
-   *  resizing it is the action next to this one.
+   *  layer. What the page *is* survives — its colour, its surface, and whether
+   *  it has a sheet at all were decided when it was made and are not marks on
+   *  it: a white page cleared in a dark app has to come back white, not swap
+   *  to the theme's dark sheet (see `canvas.ts`, `resetLayers`). The sheet's
+   *  *size* is left alone for the same reason — "start over" is about what is
+   *  on the page, and resizing it is the action next to this one.
    *
    *  One undo step for the lot, like every other page edit, so a mis-aimed
    *  press costs one press to take back. */
@@ -432,9 +436,8 @@ export function usePaintStore(
     if (!activeDrawing) return;
     patchActive({
       strokes: [],
-      layers: undefined,
+      layers: resetLayers(activeDrawing),
       activeLayerId: undefined,
-      background: undefined,
     });
   }, [activeDrawing, patchActive]);
 

@@ -32,6 +32,7 @@ import {
   isLocked,
   layerDisplayName,
   nextLayerName,
+  stackIsReset,
 } from "./layers.ts";
 import { LayerThumbnail } from "./LayerThumbnail.tsx";
 import {
@@ -289,12 +290,10 @@ export function SidePanel({
     });
 
   const doomed = layers.find((l) => l.id === confirmDelete);
-  // Nothing to throw away: no marks, no stack of its own, and a page still
-  // following the canvas theme.
-  const untouched =
-    drawing.strokes.length === 0 &&
-    !drawing.layers &&
-    drawing.background === undefined;
+  // Nothing to throw away: no marks, and no stack beyond the one starting over
+  // would leave. The page's colour and sheet survive a reset — they are what
+  // the page is, not what is on it — so neither lights the bin.
+  const untouched = drawing.strokes.length === 0 && stackIsReset(drawing);
 
   return (
     <aside
@@ -314,9 +313,10 @@ export function SidePanel({
           open={isOpen(PAGE_SECTION)}
           onToggle={() => toggle(PAGE_SECTION)}
         >
-          {/* Start over: every mark, every layer and the page colour, gone in
-              one undoable step. Dim on a drawing that is already blank, so the
-              bin can't offer to throw away nothing. */}
+          {/* Start over: every mark and every layer, gone in one undoable
+              step — the page keeps its colour and its sheet. Dim on a drawing
+              that is already blank, so the bin can't offer to throw away
+              nothing. */}
           <PanelButton
             label={t("page.reset")}
             tone="danger"

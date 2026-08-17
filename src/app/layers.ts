@@ -132,6 +132,37 @@ export function hasLayers(drawing: Drawing): boolean {
   return (drawing.layers?.length ?? 0) > 0;
 }
 
+/** The stack "start over" leaves behind: the fresh two-layer stack, carrying
+ *  over only whether the sheet is switched off. A page with its sheet on goes
+ *  back to the implicit default (`undefined`), one without keeps the stamped
+ *  transparent stack — starting over clears what is *on* the page, and whether
+ *  the page has a sheet is what the page is, decided when it was made, exactly
+ *  like its colour (see `canvas.ts`). */
+export function resetLayers(drawing: Drawing): Layer[] | undefined {
+  return backgroundHidden(drawing) ? transparentLayers() : undefined;
+}
+
+/** Whether the stack is already the one `resetLayers` would leave — no layers
+ *  of its own, no names given, no eyes or locks flipped beyond the sheet's.
+ *  The panel asks so the bin can dim on a drawing with no stack to throw away
+ *  (marks are the panel's own question — it can count them directly). */
+export function stackIsReset(drawing: Drawing): boolean {
+  const layers = drawingLayers(drawing);
+  const fresh = resetLayers(drawing) ?? defaultLayers();
+  return (
+    layers.length === fresh.length &&
+    layers.every((layer, i) => {
+      const want = fresh[i]!;
+      return (
+        layer.id === want.id &&
+        layer.name.trim() === "" &&
+        (layer.hidden === true) === (want.hidden === true) &&
+        (layer.locked === true) === (want.locked === true)
+      );
+    })
+  );
+}
+
 /** Where in the stack a stroke sits, as an index into `layers` (see the two
  *  rules at the top of the file). */
 function indexOfStroke(
