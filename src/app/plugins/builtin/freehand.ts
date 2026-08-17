@@ -12,12 +12,12 @@ import type { Point } from "../../types.ts";
 import { paintBrush } from "../bristle.ts";
 import { ROUND_HEAD, type BrushHead } from "../head.ts";
 import {
-  paintCalligraphy,
   paintNib,
   paintSoftPath,
   paintSpray,
   strokeHardness,
 } from "../brushes.ts";
+import { paintInk } from "../quillSim.ts";
 import { paintCrayon } from "../crayon.ts";
 import { extraDials, strokeDial } from "../dials.ts";
 import { applyInk, distance, paintPath, strokeColor } from "../ink.ts";
@@ -256,12 +256,29 @@ export function freehandBehaviour(ink: FreehandInk = {}): ToolBehaviour {
           );
           return;
         case "calligraphy":
-          paintCalligraphy(
+          paintInk(
             ctx2d,
             points,
             stroke.size,
             scale,
             radians(strokeDial(stroke, "angle", ink.angle ?? -45)),
+            // How much ink the nib was dipped with for this stroke — the
+            // pen's own dip, the way the brushes carry theirs. It is spent as
+            // the stroke travels, which is where the shading, the railing and
+            // the running dry all come from (see `quillSim.ts`).
+            strokeDial(stroke, "load"),
+            // The sheet: a thirsty one feathers the edge and breaks a starving
+            // stroke on its tooth; the solid page does neither.
+            sheet,
+            // The simulation works in ink film rather than in a fill, so it
+            // needs the colour as a value — and the page it is landing on,
+            // which says which way the film reads (see `washSim.ts`).
+            strokeColor(stroke),
+            detail.page ?? "#ffffff",
+            // …and whether this mark is still under the hand, which decides
+            // only which slot of the dried-mark store holds it (see
+            // `PaintDetail.live`).
+            detail.live === true,
           );
           return;
         case "nib":

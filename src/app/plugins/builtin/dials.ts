@@ -121,6 +121,28 @@ export const ANGLE: ToolDial = {
   unit: "deg",
 };
 
+/** How much ink the calligraphy pen's nib is dipped with, per stroke.
+ *
+ *  The same dial id as the brushes' `LOAD` and a different word for it, the way
+ *  `STRENGTH` is `OPACITY` — a dial is stored per tool, so the pen and the
+ *  brush can both have a dip without either reading the other's number. It is
+ *  the whole reservoir the ink simulation spends (see `quillSim.ts`): a full
+ *  nib writes a flourished word before it thins; a half-charged one pales,
+ *  rails and breaks up within a long swell, which is a mark calligraphers make
+ *  on purpose; past full is an overdipped nib that blobs where it first
+ *  touches down. It rests at a full dip, so an untouched pen writes the way a
+ *  pen fresh from the well does — and its track is shorter than the brushes',
+ *  because a nib holds one bead of ink and there is no ferrule to overcharge. */
+export const INK: ToolDial = {
+  id: "load",
+  nameKey: "dials.ink.name",
+  hintKey: "dials.ink.hint",
+  min: 0.2,
+  max: 1.3,
+  step: 0.05,
+  default: 1,
+};
+
 /** The pencil's lead, by its grade.
  *
  *  A pencil has exactly one axis and this is it: the H end is hard, pale and

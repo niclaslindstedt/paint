@@ -282,10 +282,7 @@ export function createLeadField(spec: LeadFieldSpec): LeadField {
   // How much relief this sheet has at all, which is how much graphite it can
   // hold: a hollow is somewhere for the stuff to go, and a sheet with no
   // hollows saturates the moment its face is covered.
-  const relief = Math.min(
-    1,
-    FIBRE_RELIEF + TOOTH_RELIEF * Math.max(0, spec.ground.bite),
-  );
+  const relief = sheetRelief(spec.ground);
   // The grade, as one number from hardest to softest. The ends are the medium's
   // own (see `graphite.ts`), so the dial and the field cannot drift apart.
   const soft = softness(spec.grade);
@@ -304,6 +301,19 @@ export function createLeadField(spec: LeadFieldSpec): LeadField {
     dig: DIG_HARD + (DIG_SOFT - DIG_HARD) * soft,
     shed: SHED_HARD + (SHED_SOFT - SHED_HARD) * soft,
   };
+}
+
+/** How deep this sheet goes at all — the deepest `sheetDip` can answer on it,
+ *  and so the ceiling every cell's dip stays under.
+ *
+ *  Exported for the ink field (`quillField.ts`), which reads it for a shortcut
+ *  the lead has no use for: a charged nib's meniscus bridges every dip
+ *  shallower than its own reach, so once the reach clears the *whole relief*
+ *  there is no cell anywhere whose dip could matter and the sheet need not be
+ *  worked out at all — which is the common case of every fully-inked stroke,
+ *  and half its cost. */
+export function sheetRelief(ground: GroundProfile): number {
+  return Math.min(1, FIBRE_RELIEF + TOOTH_RELIEF * Math.max(0, ground.bite));
 }
 
 /** Work the sheet out at one cell, if it has not been already. */
