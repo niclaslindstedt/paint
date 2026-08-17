@@ -64,7 +64,6 @@ describe("the shipped set", () => {
       "crayon",
       "eraser",
       "filler",
-      "flatbrush",
       "graphite",
       "highlighter",
       "marker",
@@ -192,9 +191,9 @@ describe("resolving one", () => {
       brush.dials!.map((d) => d.id).sort(),
     );
     // Declared…
-    expect(dry.dials.splay).toBe(1.6);
+    expect(dry.dials.load).toBe(0.4);
     // …and not declared, so it rests where the brush rests it.
-    expect(dry.dials.bleed).toBe(0);
+    expect(dry.dials.flatness).toBe(0);
   });
 
   it("comes back empty for a tool that ships none", () => {
@@ -206,26 +205,21 @@ describe("resolving one", () => {
 describe("wearing one", () => {
   it("puts the width and every dial in your hand, and the rest back", () => {
     const brush = pluginById("paintbrush")!;
-    const [wet, dry] = [
-      toolPresets(brush).find((p) => p.id === "glaze")!,
+    const [flat, dry] = [
+      toolPresets(brush).find((p) => p.id === "onestroke")!,
       toolPresets(brush).find((p) => p.id === "dry")!,
     ];
-    const glazed = withPreset(defaultSettings(), "paintbrush", wet);
-    expect(glazed.toolDials.paintbrush).toEqual({
-      opacity: 0.25,
-      hair: 0.8,
-      splay: 0.5,
-      bleed: 0.7,
+    const flatted = withPreset(defaultSettings(), "paintbrush", flat);
+    expect(flatted.toolDials.paintbrush).toEqual({
+      flatness: 1,
     });
-    // …and the one after it is that one and nothing else: the glaze's bleed
-    // does not survive into the dry brush, which is the half a
+    // …and the one after it is that one and nothing else: the one-stroke's
+    // flatness does not survive into the dry brush, which is the half a
     // slider-at-a-time apply would miss.
-    const dried = withPreset(glazed, "paintbrush", dry);
+    const dried = withPreset(flatted, "paintbrush", dry);
     expect(dried.toolDials.paintbrush).toEqual({
-      opacity: 0.6,
       hardness: 0.25,
-      hair: 1.3,
-      splay: 1.6,
+      load: 0.4,
     });
     expect(toolSize(dried, "paintbrush")).toBe(dry.size);
   });
@@ -238,7 +232,7 @@ describe("wearing one", () => {
     const tuned = withPreset(
       defaultSettings(),
       "paintbrush",
-      toolPresets(brush).find((p) => p.id === "hog")!,
+      toolPresets(brush).find((p) => p.id === "filbert")!,
     );
     expect(tuned.toolDials.paintbrush).toBeDefined();
     const back = withPreset(tuned, "paintbrush", toolPresets(brush)[0]!);

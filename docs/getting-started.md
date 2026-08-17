@@ -122,7 +122,8 @@ the marker to 5 mm, hold the drawing at 1:1, and the band under your thumb is
 five millimetres wide. Every tool opens on the size it is reached for most of
 the time. The pencil's five
 buttons are the four leads a mechanical pencil takes plus a 2 mm clutch lead,
-the round brush's are a #2 through a one-inch flat, and type is set in points.
+the paintbrush's are a #2 round through a one-inch flat, and type is set in
+points.
 The slider under them spends its middle four tenths on the range that tool is
 genuinely made in — the band is drawn on the track, and the readout says **as
 made** while you are inside it, **finer than made** or **wider than made** when
@@ -144,9 +145,9 @@ belongs to the tool it came from.
 
 Settings → **Tools** is the toolbar with its lid off: every tool the app has, in
 the order the buttons sit in, each with its glyph, an on/off switch, and a pair
-of arrows that move it along the row. Switch one on — a round or flat bristle
-brush, a marker, a highlighter, a crayon, a calligraphy pen — and it joins the
-toolbar
+of arrows that move it along the row. Switch one on — the paintbrush (round to
+one-stroke flat on a dial), a marker, a highlighter, a crayon, a calligraphy
+pen — and it joins the toolbar
 immediately, in its own place in the row rather than at the end. Move a row and
 the toolbar moves with it. Switching a tool off later only hides it; marks you
 already drew stay put.

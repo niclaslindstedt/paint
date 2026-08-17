@@ -156,7 +156,11 @@ describe("registry", () => {
     const hidden = allPlugins()
       .filter((p) => p.hidden)
       .map((p) => p.id);
-    expect(hidden).toEqual(["image"]);
+    // The dropped image, and the flat brush the paintbrush's flatness dial
+    // replaced — kept registered so every stroke ever drawn with it still
+    // paints, offered nowhere because the paintbrush is how a flat is picked
+    // up now.
+    expect(hidden).toEqual(["flatbrush", "image"]);
     for (const id of hidden) {
       expect(toolPlugins().map((p) => p.id)).not.toContain(id);
       expect(registeredEntries().map((e) => e.id)).not.toContain(id);
@@ -610,10 +614,11 @@ describe("the felt tips", () => {
     const angled = toolPlugins()
       .filter((p) => p.dials?.some((d) => d.id === "angle"))
       .map((p) => p.id);
-    // The flat brush and the broad nib: the two tools in the box with a flat
-    // on them, and the only two for which "which way is it turned" is a
-    // question. A round has no flat to turn.
-    expect(angled).toEqual(["flatbrush", "calligraphy"]);
+    // The paintbrush and the broad nib: the two tools in the box that can
+    // have a flat on them, and the only two for which "which way is it
+    // turned" is a question — the brush's means nothing until its flatness
+    // dial leaves the round.
+    expect(angled).toEqual(["paintbrush", "calligraphy"]);
     const angle = pluginById("calligraphy")!.dials!.find(
       (d) => d.id === "angle",
     )!;
@@ -724,7 +729,7 @@ describe("hardness", () => {
       allPlugins()
         .filter((p) => p.dials?.some((d) => d.id === "hardness"))
         .map((p) => p.id),
-    ).toEqual(["paintbrush", "flatbrush", "airspray"]);
+    ).toEqual(["paintbrush", "airspray"]);
   });
 });
 

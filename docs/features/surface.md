@@ -78,7 +78,7 @@ nothing, and a loaded brush on a sealed page behaves exactly as it always has.
 | Tool                               | On paper                                              |
 | ---------------------------------- | ----------------------------------------------------- |
 | **Watercolour**                    | The wettest thing in the box — mixes, bleeds, spreads |
-| **Round and flat brush**           | Mixes into what it is over; its edges wick            |
+| **Paintbrush**                     | Mixes into what it is over; its edges wick            |
 | **Marker, highlighter, broad nib** | Soak in; on rough they go furry                       |
 | **Pen**                            | Dry on any sized paper, feathers on rough             |
 | **Paint bucket**                   | Lays a wash: mixes with the marks it floods over      |

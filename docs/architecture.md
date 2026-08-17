@@ -726,24 +726,33 @@ lives by: **nothing outside it may branch on a tool id.**
   collects the words into a text stroke; the module also owns the typefaces, the
   font shorthand every surface sets type with, and the measurement the export
   crop and the repaint's culling both ask for.
-- `bristle.ts` — the paintbrush, which needs a module of its own because it is
-  the only painter modelling a physical _object_: a head that holds a load and
-  spends it, that is wider than the wiggles you ask it to follow, that cannot
-  turn inside its own width, and that leaves an opaque mark with the hairs'
-  partings scratched through it. It is that head being **dragged across paper**;
-  what the head _is_ lives beside it in `head.ts` — how the bundle breaks into
-  strands, how much paint it holds, and how a mark exactly as wide as the head
-  is fitted across the strands it turns out to have. Nothing in `head.ts` knows
-  about a stroke, which is what lets every physical claim in it (the gauge real
-  filament is milled at, what one dip covers, how far a worn head frays open) be
-  held to without painting a mark. A drag has two phases and they are two
-  modules: `bristle.ts` paints the charge, and `residue.ts` paints the **film**
-  left on the hairs after it — thin, pale and coming apart, for about as far
-  again as the paint lasted. What both need of a single hair — how readily it
-  leaves the paper, how long its skips run, where it lands and lifts, and the
-  little state machine that streams its run into a path — is `strand.ts`, so
-  the trail is the same head that laid the paint down rather than a second
-  brush drawn over the first.
+- `bristleField.ts` / `bristleSim.ts` / `bristleStore.ts` — the paintbrush the
+  app actually paints with: the quill's architecture at a third thickness of
+  medium. The field knows about paint and paper and nothing else — a film per
+  cell over the _same_ sheet the pencil presses into (`sheetDip`), taken fully
+  by a wet head and only on the high ground by a starving one, settling gently
+  into a textured stock's dips so a canvas weave prints through the slab. The
+  sim knows about the gesture: a head squeezed anywhere between a round and a
+  blade (the flatness dial, worked out per touch as a projection across the
+  path), a comb of hairs that land, wander and give out — the partings — and a
+  finite dip spent along the drag: cover, streak, scumble, trail, gone, sooner
+  on a sheet that drinks. A landed mark is simulated once and kept as pixels
+  in the store; the gesture under the hand is walked incrementally (settled
+  prefix, provisional tail, an undo log per frame) and _promoted_ into the
+  store at the lift; and everything the field cannot show falls through to the
+  vector painter below.
+- `bristle.ts` — the vector-hair painter that used to be the whole tool, kept
+  as the simulation's fall-through: it still draws every mark too small for a
+  field (and every mark on a browser with no canvas to simulate into), so it
+  is still read to. It models the head being **dragged across paper**; what
+  the head _is_ lives beside it in `head.ts` — how the bundle breaks into
+  strands, how much paint it holds (the same charge the simulation spends),
+  and how a mark exactly as wide as the head is fitted across the strands. A
+  drag has two phases and they are two modules: `bristle.ts` paints the
+  charge, and `residue.ts` paints the **film** left on the hairs after it.
+  What both need of a single hair is `strand.ts`, so the trail is the same
+  head that laid the paint down rather than a second brush drawn over the
+  first.
 - `aquarelle.ts` — watercolour, which is the one medium here where what is
   being painted with is _water_: the wash runs past the hair that laid it, its
   two edges wander independently, the rim dries darkest as the pool evaporates,
@@ -890,7 +899,7 @@ and applying one is a single write to the settings blob.
 
 `presets` is that same object declared from the other end — by the _tool_ rather
 than by the user. A medium is used at a handful of settings ("wet-in-wet", "2H
-construction line", "hog bristle") and five sliders is a tool a beginner cannot
+construction line", "one-stroke") and five sliders is a tool a beginner cannot
 build, so a plugin declares those and the panel offers them above the saved row.
 Both kinds meet at one type (`PresetSettings`), so matching a chip against the
 tool in hand and applying one are written once and never ask which they were
@@ -899,7 +908,7 @@ that setting in its `defaultSize` and dial defaults instead.
 
 `dials` is that pattern carrying a whole surface. Width is the control most
 tools share; past it they stop agreeing, so a tool lists what _it_ has to tune
-(the paintbrush's hair gauge, the watercolour brush's water, the bucket's
+(the paintbrush's flatness, the watercolour brush's water, the bucket's
 feather) and the panel renders the list under an **Advanced** heading without
 learning a single dial's name. The numbers are fractions of the tool's own normal, kept per tool in
 the settings blob, and **only the ones moved off their default** are handed to a

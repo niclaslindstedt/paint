@@ -74,34 +74,21 @@ export const ERASER_GAUGE: SizeGauge = {
   ],
 };
 
-/** The round brush, numbered the way the rack is. The numbers are the standard
- *  series — a #6 measures 4.8 mm across the ferrule, a #16 measures 12.7 — and
- *  the top step is where the series gives up and brushes start being sold in
- *  inches. */
-export const ROUND_BRUSH_GAUGE: SizeGauge = {
+/** The paintbrush — one rack for the round it rests as and the flat its
+ *  flatness dial squeezes it into. The bottom of it is the round series (a #6
+ *  measures 4.8 mm across the ferrule), the top is where brushes stop being
+ *  numbered and start being sold in fractions of an inch, which is how every
+ *  flat is; the range runs on to the two-inch one-stroke, past which a
+ *  painter's brush becomes a decorator's. */
+export const BRUSH_GAUGE: SizeGauge = {
   min: mm(1),
-  max: mm(75),
+  max: mm(100),
   steps: [
     { px: mm(2), note: "#2" },
     { px: mm(4.8), note: "#6" },
     { px: mm(7.9), note: "#10" },
-    { px: mm(12.7), note: "#16" },
-    { px: mm(25.4), note: '1"' },
-  ],
-};
-
-/** The flat — the "one-stroke" brush, sold in fractions of an inch from a
- *  quarter up. Past two inches it stops being a painter's brush and becomes a
- *  decorator's, which is where the range ends. */
-export const FLAT_BRUSH_GAUGE: SizeGauge = {
-  min: mm(3),
-  max: mm(100),
-  steps: [
-    { px: mm(6.4), note: '¼"' },
     { px: mm(12.7), note: '½"' },
-    { px: mm(19), note: '¾"' },
     { px: mm(25.4), note: '1"' },
-    { px: mm(50.8), note: '2"' },
   ],
 };
 

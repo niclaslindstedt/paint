@@ -185,24 +185,24 @@ describe("the shipped set", () => {
     //
     // The exceptions are named here rather than waved through by a raised
     // limit. A head of hair is loaded or dry, dipped with much or little
-    // paint, milled fine or coarse, new or worn open, and on paper that wicks
-    // or paper that does not, and no one of those five is any of the others; a
-    // wash is water, pigment and what the sheet does with what is left; a
-    // dipped pen is how much page shows, which way the flat is turned, and how
-    // much ink the dip took — the reservoir the whole ink simulation spends
-    // (see `quillSim.ts`). A tool turning up on this list that is not one of
-    // these four is a tool that has grown a settings screen.
+    // paint, squeezed toward a blade or left round, and turned one way or the
+    // other when it is a blade, and no one of those four is any of the
+    // others; a wash is water, pigment and what the sheet does with what is
+    // left; a dipped pen is how much page shows, which way the flat is
+    // turned, and how much ink the dip took — the reservoir the whole ink
+    // simulation spends (see `quillSim.ts`). A tool turning up on this list
+    // that is not one of these three is a tool that has grown a settings
+    // screen.
     const over = allPlugins().filter((p) => (p.dials?.length ?? 0) > 2);
     expect(over.map((p) => p.id)).toEqual([
       "paintbrush",
-      "flatbrush",
       "watercolor",
       "calligraphy",
     ]);
   });
 
   it("keeps even those inside a panel you can still use with a thumb", () => {
-    for (const id of ["paintbrush", "flatbrush", "watercolor", "calligraphy"]) {
+    for (const id of ["paintbrush", "watercolor", "calligraphy"]) {
       expect(pluginById(id)!.dials!.length).toBeLessThanOrEqual(6);
     }
   });
@@ -235,8 +235,8 @@ describe("the shipped set", () => {
 
   it("reads a fraction out as a percentage and a distance in millimetres", () => {
     const brush = pluginById("paintbrush")!;
-    const hair = brush.dials!.find((d) => d.id === "hair")!;
-    expect(dialReadout(hair, 1.35)).toBe("135");
+    const load = brush.dials!.find((d) => d.id === "load")!;
+    expect(dialReadout(load, 1.35)).toBe("135");
     // The bucket's feather is the one dial that measures the page, and the
     // page is measured in millimetres now — the number on the stroke is still
     // document pixels, the readout is what changed.

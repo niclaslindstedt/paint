@@ -204,33 +204,27 @@ export const HARDNESS: ToolDial = {
   step: 0.05,
 };
 
-/** The gauge of the paintbrush's hair. The head is milled from filament of a
- *  fixed thickness (see `bristle.ts`), and this is which rack you took the
- *  brush off: fine sable leaves many thin partings, coarse hog leaves few broad
- *  ones. It changes the streaks, never the width. */
-export const HAIR: ToolDial = {
-  id: "hair",
-  nameKey: "dials.hair.name",
-  hintKey: "dials.hair.hint",
-  min: 0.5,
-  max: 2,
-  step: 0.05,
-};
-
-/** How far the paintbrush's head has come apart with use — the *state* of the
- *  bundle, where `HAIR` is what it was milled from.
+/** How far the paintbrush's head is squeezed toward a blade.
  *
- *  A brush out of its wrapper cuts a side you could rule against; one that has
- *  been washed a hundred times has a fringe on it, strays out of its lanes, and
- *  lays down a mark whose outer third is loose hair. Turned down it is the
- *  crisp flat, turned up it is the old favourite. */
-export const SPLAY: ToolDial = {
-  id: "splay",
-  nameKey: "dials.splay.name",
-  hintKey: "dials.splay.hint",
+ *  At rest it is the round — a cone of hair that lays the same width
+ *  whichever way you pull it. Turned all the way up it is the one-stroke
+ *  flat: a chisel ferrule that lays its full width square across itself and
+ *  closes to a heavy hairline along its own edge, which is the stroke that
+ *  swells and thins round a curve without the hand doing anything. The
+ *  middle of the range is the filbert on every rack between the two.
+ *
+ *  It used to be two tools — you picked up a different brush — and the two
+ *  are one brush with this dial now: what the blade *does* is a projection
+ *  the simulation works out per touch (see `projected` in
+ *  `plugins/bristleSim.ts`), so nothing but this number separates them. */
+export const FLATNESS: ToolDial = {
+  id: "flatness",
+  nameKey: "dials.flatness.name",
+  hintKey: "dials.flatness.hint",
   min: 0,
-  max: 2,
+  max: 1,
   step: 0.05,
+  default: 0,
 };
 
 /** How much paint the brush is dipped with — the charge the whole drag spends
@@ -243,7 +237,8 @@ export const SPLAY: ToolDial = {
  *  *distance* and nothing else — the mark's width, streaks and edge belong to
  *  `HARDNESS` and the head — and it multiplies what the ferrule already holds,
  *  which is why the round outlasts the flat with both dials at rest: a cone
- *  keeps about twice the dip a chisel ferrule does (see `reservoirOf`). */
+ *  keeps about twice the dip a chisel ferrule does (see `FLAT_RESERVOIR` in
+ *  `plugins/bristleSim.ts`). */
 export const LOAD: ToolDial = {
   id: "load",
   nameKey: "dials.load.name",
@@ -251,23 +246,6 @@ export const LOAD: ToolDial = {
   min: 0.25,
   max: 3,
   step: 0.05,
-};
-
-/** How far a wet edge wicks into the sheet before it dries.
- *
- *  The one softness the brush has, and the one dial here that belongs to the
- *  *paper* rather than to the tool: bristle lays a hard edge on cartridge stock
- *  and a feathered one on blotting paper, and nothing about the head changes
- *  between them. It rests at nothing — a mark that always bled would look damp,
- *  and every drawing already made was made on paper that did not. */
-export const BLEED: ToolDial = {
-  id: "bleed",
-  nameKey: "dials.bleed.name",
-  hintKey: "dials.bleed.hint",
-  min: 0,
-  max: 2,
-  step: 0.05,
-  default: 0,
 };
 
 /** How much paint the airbrush lets through per pass. Coverage there is built

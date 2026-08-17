@@ -175,7 +175,6 @@ describe("parseSettings", () => {
       const parsed = parseSettings(JSON.stringify({ hardness: 0.25 }));
       expect(parsed.toolDials).toEqual({
         paintbrush: { hardness: 0.25 },
-        flatbrush: { hardness: 0.25 },
         airspray: { hardness: 0.25 },
       });
     });

@@ -295,21 +295,13 @@ export const sv: Catalog = {
       name: "Hårdhet: {value} %",
       hint: "Mjuk tonar ut kanten; hård håller den skarp.",
     },
-    hair: {
-      name: "Strån: {value} %",
-      hint: "Fina strån ger många tunna streck, grova några få breda.",
-    },
     load: {
       name: "Färgmängd: {value} %",
       hint: "Hur mycket färg penseln doppas med. Draget gör av med den efter hand, skrapar torrt och drar sedan ett tunt streck som bleknar bort.",
     },
-    splay: {
-      name: "Spretighet: {value} %",
-      hint: "En ny pensel ger en skarp kant, en sliten fransar sig.",
-    },
-    bleed: {
-      name: "Blödning: {value} %",
-      hint: "Hur långt en våt kant suger sig in i papperet.",
+    flatness: {
+      name: "Platthet: {value} %",
+      hint: "Rund lägger samma bredd åt alla håll; platt lägger hela bredden tvärs över sig själv och ett tungt streck längs kanten.",
     },
     flow: {
       name: "Flöde: {value} %",
@@ -371,14 +363,9 @@ export const sv: Catalog = {
     },
     paintbrush: {
       round: "Rund",
-      hog: "Svinborst",
-      dry: "Torrpensel",
-      glaze: "Lasering",
-    },
-    flatbrush: {
       onestroke: "Enkeldrag",
-      lettering: "Textning",
-      wash: "Lavering",
+      filbert: "Kattunga",
+      dry: "Torrpensel",
     },
     watercolor: {
       wash: "Lavering",
@@ -594,9 +581,9 @@ export const sv: Catalog = {
         "En bred genomskinlig kil — ett helt band tvärs över sidan, hårfint nedför den — som byggs upp där den korsas.",
     },
     paintbrush: {
-      name: "Rundpensel",
+      name: "Pensel",
       description:
-        "En laddad pensel: draget sväller på mitten och tonar ut i båda ändar.",
+        "En pensel med en ändlig doppning färg: rund eller pressad platt täcker den, strimmar, bryts upp mot papperets korn och sinar allt eftersom draget gör av med den.",
     },
     flatbrush: {
       name: "Flatpensel",

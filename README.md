@@ -31,8 +31,9 @@ the same [`oss-framework`](https://github.com/niclaslindstedt/oss-framework).
 - **Tools are plugins.** Every tool, the pen included, is registered through
   one interface. It opens on the toolbox you already know — pen, pencil,
   eraser, watercolour brush, airbrush, bucket and gradient, text, the shapes, a
-  selection marquee and the dropper — and the media it adds to that (a round and
-  a flat bristle brush, a marker, a crayon, a calligraphy nib, a highlighter)
+  selection marquee and the dropper — and the media it adds to that (a bristle
+  paintbrush that goes from a round to a one-stroke flat on a dial, a marker, a
+  crayon, a calligraphy nib, a highlighter)
   wait in
   Settings → Tools, so the toolbar stays as simple as you want it and grows when
   you need it. Rearrange the row there too, and it rearranges here. Each tool
@@ -41,8 +42,8 @@ the same [`oss-framework`](https://github.com/niclaslindstedt/oss-framework).
   screen, so a width is a distance you can measure on the glass — set the marker
   to 5 mm, hold the drawing at 1:1, and the band under your thumb is five
   millimetres. The pencil comes in 0.3 / 0.5 / 0.7 /
-  0.9 / 2.0 mm of lead, the round brush in a #2 through a one-inch flat, type in
-  points. Each tool's slider spends its middle four tenths on the range that
+  0.9 / 2.0 mm of lead, the paintbrush in a #2 round through a one-inch flat,
+  type in points. Each tool's slider spends its middle four tenths on the range that
   tool is genuinely made in — the band is drawn on the track and the readout
   says **as made** when you are inside it — with a tenth below for finer than
   anybody makes and the top half running off to a nib as wide as the page. Each
@@ -52,10 +53,10 @@ the same [`oss-framework`](https://github.com/niclaslindstedt/oss-framework).
   brush, and each of those is a width and three dials at once. So the tools ship
   with those: a row of **presets** at the top of the tool's panel, each chip
   showing the mark it actually makes. The pencil comes as Sketch, Construction,
-  Shading and Detail (a grade and a width together _are_ a pencil); the round
-  brush as a hog bristle, a dry brush and a glaze; the calligraphy pen as the
-  three hands anyone is taught; the bucket as a flat fill, a soft edge and a
-  pale wash. Every row opens with the tool exactly as it comes, so one press
+  Shading and Detail (a grade and a width together _are_ a pencil); the
+  paintbrush as a round, a one-stroke flat, a filbert and a dry brush; the
+  calligraphy pen as the three hands anyone is taught; the bucket as a flat
+  fill, a soft edge and a pale wash. Every row opens with the tool exactly as it comes, so one press
   puts back whatever you have done to it. Tools with only one setting worth
   handing anybody — the shapes, type — skip the row and simply open on it.
 - **Save the tool, not the setting.** Once you have found the 4B at 0.7 mm with
@@ -100,15 +101,16 @@ the same [`oss-framework`](https://github.com/niclaslindstedt/oss-framework).
   lead catches the crowns of the weave and skips the troughs. The grain dial you
   set when you made the page moves all of it. Slider-tuned like the wash, and it
   falls back the same way.
-- **Brushes that are their medium.** The round brush is a head of hair: it lays
-  down opaque paint with the hairs' partings scratched through it, frays at the
-  sides, and runs dry towards the end of a long drag. The flat is the same head
-  in a chisel ferrule — full width pulled across itself, a hairline pulled along
-  its edge, so one stroke swells and thins round a curve on its own. Turn it down and you get
-  the whole pressure series off a reference sheet — a loaded flat that covers
-  edge to edge, a medium mark streaked through, a dry brush that is mostly
-  paper — and it can be worn open until its side is a fringe, or set on paper
-  that wicks its edges soft. The airbrush is a spray cone that builds up where
+- **Brushes that are their medium.** The paintbrush _simulates its paint_ the
+  way the pencil and the calligraphy pen simulate theirs: a head of hair
+  presses a finite dip of paint onto the page's own grain, covers in an opaque
+  slab scratched through with the hairs' partings, thins to streaks as the dip
+  is spent, breaks up into a dry-brush scumble on the paper's tooth, and
+  trails a fading film for as far again — sooner on a sheet that drinks, with
+  edges that wick on paper that does. One **flatness** dial runs it from the
+  round that lays the same width every way to the one-stroke flat that swells
+  and thins round a curve on its own, with the filbert in between; hardness
+  spans the pressure series from loaded slab to scumble. The airbrush is a spray cone that builds up where
   you linger. The pencil is graphite caught on the paper's tooth, grey whatever
   the ink is set to, with a lead that runs from a hard pale H to a soft dark B.
   The marker and the highlighter are two shapes of felt tip — a round bullet and
@@ -283,13 +285,14 @@ npm run preview
   circle). It
   opens the widths, a slider for new ones, and — under an **Advanced** heading,
   open rather than folded away — the knobs belonging to the tool in your hand:
-  how charged the head is, its hair gauge, how far it has splayed and how far
-  the paper bleeds for the bristle brushes, water, pigment and granulation for
+  how charged the head is, how much paint it was dipped with, how far it is
+  squeezed toward a flat and which way the blade is turned for the paintbrush,
+  water, pigment and granulation for
   the watercolour brush, flow for the airbrush, pressure for the crayon, the
   lead's grade for the pencil — 8H through 9B, as a row of chips rather than a
   slider, because there is nothing between a 2B and a 3B — the chisel of a felt
-  tip for the marker and the highlighter, the angle of the nib for the flat
-  brush and the calligraphy pen, strength for the eraser, pressure for the
+  tip for the marker and the highlighter, the angle of the nib for the
+  calligraphy pen, strength for the eraser, pressure for the
   rubber, a feathered edge for the paint bucket and the gradient, how much page
   one press of the dropper reads, and opacity for most of the rest. Above the
   widths are two rows of whole tools, one press each: **Presets**, the ways the
