@@ -54,8 +54,8 @@ import {
 import { paintRegion } from "./plugins/brushes.ts";
 import { pluginById } from "./plugins/registry.ts";
 import { applyInk, paintPath, paintRect, paintSegment } from "./plugins/ink.ts";
-import { leadDetail, leadEngine, type LeadEngine } from "./plugins/lead.ts";
-import { washDetail, washEngine, type WashEngine } from "./plugins/wash.ts";
+import { leadDetail } from "./plugins/lead.ts";
+import { washDetail } from "./plugins/wash.ts";
 import { FULL_DETAIL, type PaintDetail } from "./plugins/types.ts";
 import { createSurface, resizeSurface, type Surface } from "./surface.ts";
 import type { Drawing, Ground, Layer, Stroke } from "./types.ts";
@@ -327,37 +327,19 @@ export type RenderOptions = InkContext & {
    *  the dialog: the mark cache compares it by identity, so a fresh one per
    *  frame would repaint the page per frame (see `cache.ts`). */
   preview?: EffectPreview;
-  /** Which watercolour engine paints the washes on this repaint (see
-   *  `plugins/wash.ts`).
+  /** How finely the watercolour simulation resolves on this repaint (see
+   *  `MIN_WASH_DETAIL`).
    *
-   *  Absent — which is nearly every caller — means the one the app has in
+   *  Absent — which is nearly every caller — means the detail the app has in
    *  force, so the thumbnails, the size preview, the page the colour dropper
-   *  reads and the exported PNG cannot disagree about it. Two callers do set
-   *  it: the canvas, which passes the same value it read so the mark cache can
-   *  *see* it change (see `frame.ts`), and the settings page, which paints a
-   *  sample of each engine side by side. */
-  washEngine?: WashEngine;
-  /** …and how finely that engine resolves (see `MIN_WASH_DETAIL`). Absent means
-   *  the detail the app has in force, for the same reason the engine's absence
-   *  does — and it is set by the same caller for the same reason: the canvas
-   *  passes the value it read so the mark cache can see it change, because a
-   *  coarser field is a different picture of the same document. */
+   *  reads and the exported PNG cannot disagree about it. One caller sets it:
+   *  the canvas, which passes the same value it read so the mark cache can *see*
+   *  it change (see `frame.ts`), because a coarser field is a different picture
+   *  of the same document. */
   washDetail?: number;
-  /** Which pencil draws the graphite marks on this repaint (see
-   *  `plugins/lead.ts`).
-   *
-   *  Absent — which is nearly every caller — means the one the app has in
-   *  force, for the wash engine's reason: the thumbnails, the size preview, the
-   *  page the colour dropper reads and the exported PNG cannot be allowed to
-   *  disagree about it. The same two callers set it, and for the same two
-   *  reasons: the canvas, so the mark cache can *see* it change, and the
-   *  pencil's own panel, which draws a sample of each engine side by side. */
-  leadEngine?: LeadEngine;
-  /** …and how finely it works them out (see `MIN_LEAD_DETAIL`). Absent means the
-   *  detail the app has in force, for the same reason the engine's absence does
-   *  — and it is set by the same caller for the same reason: the canvas passes
-   *  the value it read so the mark cache can see it change, because a coarser
-   *  field is a different picture of the same document. */
+  /** …and how finely the graphite simulation works the pencil marks out (see
+   *  `MIN_LEAD_DETAIL`). Absent means the same thing and it is set by the same
+   *  caller for the same reason. */
   leadDetail?: number;
   /** Marks to leave off this repaint, by stroke id.
    *
@@ -1181,8 +1163,8 @@ export function paintStrokes(
 }
 
 /** The detail to paint at: what the caller said, or what the context's own
- *  transform says, plus the sheet the marks are landing on and the two engines
- *  in force. All of them are resolved once per repaint rather than once per
+ *  transform says, plus the sheet the marks are landing on and how finely the
+ *  two simulations are set to resolve. All of them are resolved once per repaint rather than once per
  *  stroke. */
 function detailFor(
   ctx: CanvasRenderingContext2D,
@@ -1195,9 +1177,7 @@ function detailFor(
     // a fill: it is what says which way a stain runs, and it is the same
     // reading of the same page `inkBlend` makes below (see `PaintDetail.page`).
     page: options.pageColor,
-    wash: options.washEngine ?? washEngine(),
     washDetail: options.washDetail ?? washDetail(),
-    lead: options.leadEngine ?? leadEngine(),
     leadDetail: options.leadDetail ?? leadDetail(),
     // The same box the stroke cull uses, handed down so a painter can skip the
     // stamps that cannot reach it as well (see `PaintDetail.clip`). A mark that

@@ -93,27 +93,39 @@ export const RUBBER_PRESETS: readonly BuiltinPreset[] = [
  *  rather than one with a slider on it. These are the four in the tin — the HB
  *  you sketch with, the hard pale one you set the construction lines out in,
  *  the soft broad one you lay the shadows in with, and the sharp one you go
- *  back over the detail with. */
+ *  back over the detail with.
+ *
+ *  **The whole row sits a step up its rack from where it used to.** These four
+ *  were chosen against a pencil that scattered specks along the path, and that
+ *  pencil drew the same line at any width — so the fine end of the tin could be
+ *  as fine as a real one is. The simulation is a lead pressed into the page's
+ *  own tooth (see `plugins/lead.ts`), and a lead has to be a few grain cells
+ *  across before there is any tooth under it to find: below that the mark has no
+ *  paper in it, and on a page shown smaller than 1:1, or with the detail slider
+ *  down, it falls through to the old painter altogether. A 0.3 mm detail lead
+ *  was under that line most of the time it was in anybody's hand. The tin is now
+ *  0.5 / 0.7 / 0.9 and a 3 mm face for the shading — every one of them a lead
+ *  that draws *this* sheet rather than a hairline that could be drawn on any. */
 export const PENCIL_PRESETS: readonly BuiltinPreset[] = [
-  { id: "sketch", nameKey: "presets.graphite.sketch", size: mm(0.7) },
+  { id: "sketch", nameKey: "presets.graphite.sketch", size: mm(0.9) },
   {
     id: "construction",
     nameKey: "presets.graphite.construction",
-    size: mm(0.5),
+    size: mm(0.7),
     // A 2H, laid in light enough to draw over and rub out after.
     dials: { grade: 0.7, opacity: 0.55 },
   },
   {
     id: "shading",
     nameKey: "presets.graphite.shading",
-    size: mm(2),
+    size: mm(3),
     // The 6B on its side.
     dials: { grade: 1.68 },
   },
   {
     id: "detail",
     nameKey: "presets.graphite.detail",
-    size: mm(0.3),
+    size: mm(0.5),
     dials: { grade: 1.12 },
   },
 ];
@@ -169,25 +181,37 @@ export const FLAT_BRUSH_PRESETS: readonly BuiltinPreset[] = [
  *  water, and what the paper does with it — so the presets are the four
  *  techniques those settings *are*: the ordinary wash, the flood that runs
  *  wet-in-wet, the thin glaze laid over dry paint, and the near-dry brush that
- *  skips across the grain. */
+ *  skips across the grain.
+ *
+ *  **The row sits a step up its rack too, for the pencil's reason one size
+ *  larger.** A wash is now water on a sheet that dries a step at a time (see
+ *  `plugins/wash.ts`), and everything worth having out of that — the rim that
+ *  gathers where the water stopped, the bloom where a wet stroke ran back into
+ *  a drying one, the granulation rolling into the paper's dips — is worked out
+ *  on a grid pitched to the page rather than to the brush. A #4 dry-brush mark
+ *  is a couple of dozen cells across: the rim is a pixel of it and the mottle
+ *  reads as noise. The same techniques at a #8 and up have the page in them to
+ *  show what the sheet did, which is the entire reason for painting with this
+ *  brush. The mop on the wet-in-wet is the expensive end of the box and it is
+ *  the right end for a flood — that is the mark that blooms. */
 export const WASH_PRESETS: readonly BuiltinPreset[] = [
-  { id: "wash", nameKey: "presets.watercolor.wash", size: mm(6.3) },
+  { id: "wash", nameKey: "presets.watercolor.wash", size: mm(9.5) },
   {
     id: "wet",
     nameKey: "presets.watercolor.wet",
-    size: mm(9.5),
+    size: mm(19),
     dials: { water: 1.7, pigment: 0.55, granulation: 0.9 },
   },
   {
     id: "glaze",
     nameKey: "presets.watercolor.glaze",
-    size: mm(6.3),
+    size: mm(9.5),
     dials: { opacity: 0.55, water: 1.1, pigment: 0.4, granulation: 0.35 },
   },
   {
     id: "dry",
     nameKey: "presets.watercolor.dry",
-    size: mm(3.2),
+    size: mm(6.3),
     dials: { water: 0.35, pigment: 1.5, granulation: 0.8 },
   },
 ];

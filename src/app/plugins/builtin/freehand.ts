@@ -20,17 +20,9 @@ import {
 import { paintCrayon } from "../crayon.ts";
 import { extraDials, strokeDial } from "../dials.ts";
 import { applyInk, distance, paintPath, strokeColor } from "../ink.ts";
-import {
-  DEFAULT_LEAD_DETAIL,
-  DEFAULT_LEAD_ENGINE,
-  paintGraphiteWith,
-} from "../lead.ts";
+import { DEFAULT_LEAD_DETAIL, paintGraphiteOn } from "../lead.ts";
 import { paintRubbing } from "../rubber.ts";
-import {
-  DEFAULT_WASH_DETAIL,
-  DEFAULT_WASH_ENGINE,
-  paintWashWith,
-} from "../wash.ts";
+import { DEFAULT_WASH_DETAIL, paintWashOn } from "../wash.ts";
 import {
   FULL_DETAIL,
   type DraftStroke,
@@ -195,12 +187,7 @@ export function freehandBehaviour(ink: FreehandInk = {}): ToolBehaviour {
           );
           return;
         case "wash":
-          paintWashWith(
-            // Which of the two watercolour engines is painting — a view of the
-            // page rather than anything on it, handed down with the scale and
-            // the sheet (see `plugins/wash.ts`). Both read the dials below the
-            // same way, so this changes the rendering and nothing else.
-            detail.wash ?? DEFAULT_WASH_ENGINE,
+          paintWashOn(
             ctx2d,
             points,
             stroke.size,
@@ -280,20 +267,14 @@ export function freehandBehaviour(ink: FreehandInk = {}): ToolBehaviour {
           );
           return;
         case "graphite":
-          paintGraphiteWith(
-            // Which of the two pencils is drawing — a view of the page rather
-            // than anything on it, handed down with the scale and the sheet
-            // (see `plugins/lead.ts`). Both read the grade the same way, so
-            // this changes the rendering and nothing else.
-            detail.lead ?? DEFAULT_LEAD_ENGINE,
+          paintGraphiteOn(
             ctx2d,
             points,
             stroke.size,
             scale,
             strokeDial(stroke, "grade"),
-            // The sheet, which is the whole of what the simulation has that the
-            // stroke model does not: how coarse the paper is, how deep, and
-            // whether it dips at random or goes over and under.
+            // The sheet the lead is being pressed into: how coarse the paper is,
+            // how deep, and whether it dips at random or goes over and under.
             sheet,
             // The lead's own grey as a value: the field lays down a *load* and
             // works out the alpha itself, so it needs the colour rather than a

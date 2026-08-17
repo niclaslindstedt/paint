@@ -27,11 +27,11 @@
 //     themselves are cheap.
 //
 // Anything painted from here has to fold `rendererKey()` into its key: the
-// renderer reads the engines in force as globals, so two tiles painted either
-// side of an engine change are two different pictures under the same props.
+// renderer reads the detail settings in force as globals, so two tiles painted
+// either side of a change are two different pictures under the same props.
 
-import { leadDetail, leadEngine } from "./plugins/lead.ts";
-import { washDetail, washEngine } from "./plugins/wash.ts";
+import { leadDetail } from "./plugins/lead.ts";
+import { washDetail } from "./plugins/wash.ts";
 
 /** Device pixels per CSS pixel, capped: past three a tile costs more to paint
  *  than it can show. */
@@ -41,10 +41,10 @@ export function tileRatio(): number {
 }
 
 /** Everything about the *renderer* that changes a tile's pixels without
- *  changing any of its props — the wash and lead engines in force, and how
- *  finely each resolves (see `plugins/wash.ts`, `plugins/lead.ts`). */
+ *  changing any of its props — how finely the wash and the graphite simulations
+ *  are set to resolve (see `plugins/wash.ts`, `plugins/lead.ts`). */
 export function rendererKey(): string {
-  return [washEngine(), washDetail(), leadEngine(), leadDetail()].join("|");
+  return [washDetail(), leadDetail()].join("|");
 }
 
 /** Tiles already painted, oldest evicted first. */

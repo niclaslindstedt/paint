@@ -423,11 +423,14 @@ export function registerBuiltinPlugins(): void {
     icon: PencilIcon,
     shortcut: "g",
     // The four leads a mechanical pencil takes, plus the 2 mm clutch lead. It
-    // opens on 0.7 — 0.5 is the lead a shop sells most of, but this is a tool
+    // opens on 0.9 — 0.5 is the lead a shop sells most of, but this is a tool
     // for *sketching*, and a sketching hand wants the blunter point and the
-    // lead that does not snap when it is leaned on.
+    // lead that does not snap when it is leaned on. It opened on 0.7 back when
+    // a pencil mark was specks scattered along the path; a lead pressed into
+    // the page's tooth needs a face wide enough for the tooth to show in it
+    // (see `./presets.ts`).
     gauge: PENCIL_GAUGE,
-    defaultSize: mm(0.7),
+    defaultSize: mm(0.9),
     // The one axis a pencil has — how soft the lead is — and the opacity every
     // marking tool offers, for laying a light guide line in.
     dials: [GRADE, OPACITY],
@@ -445,11 +448,11 @@ export function registerBuiltinPlugins(): void {
     // `PaintPlugin.fixedInk`) — the grade below is the only colour control a
     // pencil has, and it is already on the panel.
     fixedInk: true,
-    // …and, under the dials, the one rendering choice a pencil has: which of
-    // the two engines draws its marks (see `plugins/lead.ts`). The stroke model
-    // scatters graphite along the path; the simulation presses a lead into
-    // *this page's own sheet* and draws what the paper kept, which is why it is
-    // the pencil's option and not a setting somewhere about paper.
+    // …and, under the dials, the one rendering setting a pencil has: how finely
+    // the simulation works a mark out (see `plugins/lead.ts`). A pencil presses
+    // a lead into *this page's own sheet* and draws what the paper kept, and
+    // that costs a field per mark — so how much of the field to run is the
+    // pencil's option and not a setting somewhere about paper.
     options: LEAD_OPTIONS,
     behaviour: freehandBehaviour({
       style: "graphite",
@@ -538,9 +541,12 @@ export function registerBuiltinPlugins(): void {
     icon: WashBrushIcon,
     shortcut: "w",
     // A watercolourist's rack: rounds from a rigger's #1 to a #12, and a mop
-    // for the sky. It opens on a #8, which is most of a painting.
+    // for the sky. It opens on a #12 — it used to open on the #8 that is most
+    // of a painting, and a wash that is *dried* rather than stroked wants the
+    // page in it for the rim and the granulation to happen on (see
+    // `./presets.ts`).
     gauge: WASH_GAUGE,
-    defaultSize: mm(6.3),
+    defaultSize: mm(9.5),
     // Three things, and a watercolourist changes exactly these between one
     // stroke and the next: how much water is on the brush, how much colour is
     // in the water, and what the sheet does with what is left behind.
@@ -551,10 +557,9 @@ export function registerBuiltinPlugins(): void {
     // paints exactly as it always has.
     wetness: 1,
     dials: [OPACITY, WATER, PIGMENT, GRANULATION],
-    // …and the two settings that are about the *painting* rather than about the
-    // next mark: which of the two watercolours this build paints with, and how
-    // finely the heavier one resolves. They live under the widths with the
-    // dials, because they are judged by painting with them (see
+    // …and the one setting that is about the *painting* rather than about the
+    // next mark: how finely the simulation resolves. It lives under the widths
+    // with the dials, because it is judged by painting with it (see
     // `plugins/washOptions.ts`).
     options: WASH_OPTIONS,
     // Wet-in-wet, glaze and dry brush: the techniques those three dials are the
