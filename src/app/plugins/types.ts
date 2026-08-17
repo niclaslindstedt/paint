@@ -544,13 +544,16 @@ export type PaintPlugin = {
    *  `render.ts`). Which marks those are is the other half of this pair:
    *  `liftable` on the tool that drew them. */
   lifts?: boolean;
-  /** True when this tool's medium **sits on the sheet** rather than soaking into
-   *  it, so a rubber can take it off again — graphite and wax.
+  /** True when this tool's medium **sits on the sheet** loosely enough that a
+   *  rubber can take it off again — graphite.
    *
-   *  The default is the other way round, and deliberately: ink, paint, felt tip,
-   *  a bucket of colour and a dropped photograph all stay put under a rubber,
-   *  and a tool that says nothing about itself is one of those. Only the two dry
-   *  media declare it.
+   *  The default is the other way round, and deliberately: ink, paint, felt
+   *  tip, a bucket of colour and a dropped photograph all stay put under a
+   *  rubber, and a tool that says nothing about itself is one of those. Wax
+   *  sits on the sheet too and *still* doesn't qualify — a rubber worked at a
+   *  crayon mark smears it rather than lifting it — so only the pencil
+   *  declares it: the rubber is the pencil's companion, and that pairing is
+   *  said entirely by this flag.
    *
    *  It is read by exactly one thing — the rubber's compositing — and, as
    *  ever, by the flag rather than by the id: a charcoal or a pastel tool would

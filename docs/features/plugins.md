@@ -291,17 +291,19 @@ produce identical grain instead of a mark that shimmers when you pan.
 
 ### What a rubber will not take off
 
-Graphite and wax sit on the sheet and come away; ink, paint, felt tip, a bucket
-of colour and a dropped photograph have soaked into it and do not, however hard
-you rub. So the rubber leaves all of those exactly where they are — which is
-what finally makes the oldest workflow in drawing work here: **sketch it in
-pencil, ink over the sketch, then rub the sketch out.**
+Graphite sits loose on the sheet and comes away; everything else stays. Ink,
+paint, felt tip, a bucket of colour and a dropped photograph have soaked into
+the paper, and a wax crayon mark smears under a rubber rather than lifting —
+so however hard you rub, only the pencil comes off. The rubber leaves all the
+rest exactly where it is — which is what finally makes the oldest workflow in
+drawing work here: **sketch it in pencil, ink over the sketch, then rub the
+sketch out.**
 
 Two flags say all of it, and nothing anywhere reads a tool's name: `lifts` on
-the rubber, `liftable` on the pencil and the crayon. The renderer does the rest
+the rubber, `liftable` on the pencil. The renderer does the rest
 — an erasing mark can only be a hole, so it takes everything for the length of
 one composite and the marks it could never have lifted are laid straight back
-over it (`relayFixed` in `render.ts`). Ink comes back at exactly the strength it
+over it (`relayFixed` in `relay.ts`). Ink comes back at exactly the strength it
 had, because the mask it comes back through _is_ the fraction that went. The
 plain **eraser** is still there and still indifferent: it is a hole, it goes
 through ink and pencil at the same rate, and at full strength it takes the page

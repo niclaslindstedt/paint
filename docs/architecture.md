@@ -828,14 +828,22 @@ canvas and the toolbar read a property instead of learning a name.
 `lifts` and `liftable` are that seam carrying a whole feature. A canvas gives up
 pixels one way only, so the **rubber** takes off everything it covers exactly as
 the eraser does; what makes it a rubber is that the renderer then lays the marks
-it could never have lifted straight back over the hole (`relayFixed`). The mask
-they come back through is the erasing lanes painted the ordinary way round,
-which is _to the pixel_ the fraction that went, so opaque ink returns at the
-strength it had. The two flags are the whole of the tool knowledge involved:
-`lifts` on the rubber, `liftable` on graphite and wax. What it costs is stacking
-order inside the rubbed patch — the ink goes back on top rather than back into
-its place in the stack — and the pixels that pays for are pixels being rubbed
-away anyway.
+it could never have lifted straight back over the hole (`relayFixed` in
+`relay.ts`). The mask they come back through is the erasing lanes painted the
+ordinary way round, which is _to the pixel_ the fraction that went, so opaque
+ink returns at the strength it had. The two flags are the whole of the tool
+knowledge involved: `lifts` on the rubber, `liftable` on graphite — and only
+graphite: wax smears under a rubber rather than lifting, so a crayon mark stays
+put with the ink. What it costs is stacking order inside the rubbed patch — the
+ink goes back on top rather than back into its place in the stack — and the
+pixels that pays for are pixels being rubbed away anyway.
+
+The flags are also what the pass is _scoped_ by. A rubbing out can only change
+the picture where its reach crosses liftable ink (`liftBounds`), so the canvas
+holds the live erase-and-relay to that patch and skips both where there is
+none; and while a gesture is under the hand, the committed ink it is cut from
+is painted once onto a held surface and reused frame to frame instead of being
+re-rendered — re-simulated, for a wash — on every pointer sample.
 
 `picksColor` carries one obligation past the flag, for the reason `selects`
 does: the behaviour answers `pick(p, ctx)` with the colour that press read off

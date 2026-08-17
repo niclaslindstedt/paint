@@ -12,6 +12,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { registerBuiltinPlugins } from "../src/app/plugins/builtin/index.ts";
 import { BACKGROUND_LAYER_ID, BASE_LAYER_ID } from "../src/app/layers.ts";
 import { registerPlugin, resetPlugins } from "../src/app/plugins/registry.ts";
+import { dropHeldRelay, liftBounds, relayFixed } from "../src/app/relay.ts";
 import {
   anyErases,
   anyLifts,
@@ -213,7 +214,8 @@ describe("the sheet, under the marks", () => {
 // other way to give up pixels — and then everything it could never have lifted
 // is laid straight back over the hole (`relayFixed`). Which marks those are is
 // two descriptor flags and nothing else: `lifts` on the rubber, `liftable` on
-// the two media that sit on the sheet rather than soaking into it.
+// the pencil — and only the pencil: wax smears under a rubber rather than
+// lifting, so the crayon's marks go back over the hole with the ink's.
 
 describe("a rubbing out that only lifts what a rubber can", () => {
   it("is named by the flags and not by the tool", () => {
@@ -267,6 +269,57 @@ describe("a rubbing out that only lifts what a rubber can", () => {
       expect(
         mask!.ctx.painted.every((p) => p.composite === "source-over"),
       ).toBe(true);
+    } finally {
+      dom.restore();
+    }
+  });
+
+  it("puts a crayon mark back — wax smears rather than lifts", () => {
+    // The rubber is the pencil's companion and nobody else's: a crayon mark is
+    // relaid over the hole exactly as an inked line is.
+    const dom = withFakeDocument();
+    try {
+      const ctx = createFakeCanvas(400, 300).ctx;
+      renderDrawing(
+        ctx,
+        drawing([mark("pencil"), mark("crayon"), mark("rubber")]),
+        null,
+        ink,
+      );
+      // The two relay surfaces, and on the first of them both marks again: the
+      // pen's one stroke and the crayon's grain.
+      expect(dom.created).toHaveLength(2);
+      const [relaid] = dom.created;
+      expect(relaid!.ctx.calls.stroke ?? 0).toBeGreaterThan(1);
+    } finally {
+      dom.restore();
+    }
+  });
+
+  it("owes nothing back over marks it has a claim on", () => {
+    // Every mark under this rub is liftable — by the flag, not by any name —
+    // so there is nothing to put back and no relay surface is ever asked for.
+    registerPlugin({
+      id: "chalk",
+      nameKey: "tools.graphite.name",
+      descriptionKey: "tools.graphite.description",
+      icon: () => null,
+      liftable: true,
+      behaviour: {
+        start: (p) => ({
+          tool: "chalk",
+          size: 4,
+          shape: { kind: "path", points: [p] },
+        }),
+        move: (draft) => draft,
+        paint: (ctx2d) => ctx2d.stroke(),
+      },
+    });
+    const dom = withFakeDocument();
+    try {
+      const ctx = createFakeCanvas(400, 300).ctx;
+      renderDrawing(ctx, drawing([mark("chalk"), mark("rubber")]), null, ink);
+      expect(dom.created).toHaveLength(0);
     } finally {
       dom.restore();
     }
@@ -330,6 +383,97 @@ describe("a rubbing out that only lifts what a rubber can", () => {
       // …and the sheet under the lot.
       "destination-over",
     ]);
+  });
+});
+
+// A rubbing out can only change the picture where its reach crosses ink a
+// rubber can take, and `liftBounds` is that patch — the box the canvas holds
+// the whole live coat to, and skips it on when there is none (see `frame.ts`).
+
+describe("where a rubbing out can change the picture", () => {
+  it("is nowhere over ink alone", () => {
+    expect(liftBounds([mark("rubber")], [mark("pencil")])).toBeNull();
+    expect(liftBounds([mark("rubber")], [])).toBeNull();
+  });
+
+  it("is nowhere over a crayon mark — wax is not the rubber's to take", () => {
+    expect(liftBounds([mark("rubber")], [mark("crayon")])).toBeNull();
+  });
+
+  it("is the patch where its reach crosses pencil", () => {
+    const box = liftBounds([mark("rubber")], [mark("graphite")]);
+    expect(box).not.toBeNull();
+    // Both marks run the same path, so the patch covers it with the painters'
+    // slack and no more.
+    expect(box!.x).toBeLessThanOrEqual(20);
+    expect(box!.y).toBeLessThanOrEqual(20);
+    expect(box!.x + box!.width).toBeGreaterThanOrEqual(80);
+    expect(box!.y + box!.height).toBeGreaterThanOrEqual(60);
+  });
+
+  it("is cut to the clip the caller is keeping", () => {
+    const far = { x: 1000, y: 1000, width: 10, height: 10 };
+    expect(liftBounds([mark("rubber")], [mark("graphite")], far)).toBeNull();
+  });
+});
+
+// While a rubbing out is under the hand, only its mask changes from one frame
+// to the next: the ink it is cut from is the committed marks, which are the
+// same marks they were a millisecond ago. So the live path paints that ink
+// once, onto a held surface, and reuses it — re-rendering it per pointer
+// sample is what made rubbing at a page of washes crawl.
+
+describe("the ink a live rubbing out is cut from", () => {
+  it("is painted once and held between frames", () => {
+    const dom = withFakeDocument();
+    dropHeldRelay();
+    try {
+      const ctx = createFakeCanvas(400, 300).ctx;
+      const before = [mark("pencil"), mark("graphite")];
+      const rub = mark("rubber");
+
+      relayFixed(ctx, [rub], { ...ink, live: true }, before);
+      // Three surfaces: the held window of fixed ink, and the patch-sized pair
+      // the cut is made on.
+      expect(dom.created).toHaveLength(3);
+      const held = dom.created[0]!;
+      const laid = held.ctx.calls.stroke ?? 0;
+      // The pen's line is on the held ink; the pencil's is not — the rubber
+      // has a claim on it, so it is being erased rather than put back.
+      expect(laid).toBeGreaterThan(0);
+
+      relayFixed(ctx, [rub], { ...ink, live: true }, before);
+      // The next frame minted nothing and repainted no ink — only the mask.
+      expect(dom.created).toHaveLength(3);
+      expect(held.ctx.calls.stroke ?? 0).toBe(laid);
+    } finally {
+      dropHeldRelay();
+      dom.restore();
+    }
+  });
+
+  it("is repainted when the marks under it change", () => {
+    const dom = withFakeDocument();
+    dropHeldRelay();
+    try {
+      const ctx = createFakeCanvas(400, 300).ctx;
+      const rub = mark("rubber");
+      const first = [mark("pencil")];
+
+      relayFixed(ctx, [rub], { ...ink, live: true }, first);
+      const held = dom.created[0]!;
+      const laid = held.ctx.calls.stroke ?? 0;
+
+      // A mark landed between gestures: the held ink is stale and says so.
+      relayFixed(ctx, [rub], { ...ink, live: true }, [
+        ...first,
+        mark("pencil"),
+      ]);
+      expect(held.ctx.calls.stroke ?? 0).toBeGreaterThan(laid);
+    } finally {
+      dropHeldRelay();
+      dom.restore();
+    }
   });
 });
 
