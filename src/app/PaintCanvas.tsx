@@ -331,6 +331,15 @@ export function PaintCanvas({
   // The repaint this frame has already scheduled, so a burst of pointer moves
   // costs one paint rather than one each.
   const pending = useRef<number | null>(null);
+  // True while the view is still under the fingers — a pinch in progress, a
+  // wheel still streaming. Frames painted meanwhile may carry the cached
+  // pixels to the new view instead of repainting the document (see
+  // `CacheSpec.zooming`); whoever turns it on owes the settle frame that turns
+  // it off, which is what `settleZoom` and the wheel's timer below are.
+  const zooming = useRef(false);
+  // The wheel has no "gesture ended" event, so its settle frame rides a short
+  // timer re-armed by every zooming notch.
+  const wheelSettle = useRef<number | null>(null);
 
   // The page as it is actually painted, for the tools that read it (the fills
   // and the dropper). Made fresh for each press and kept for that gesture: the
@@ -481,6 +490,7 @@ export function PaintCanvas({
       viewport: viewportRef.current,
       ...inks.current,
       selection: inks.current.selection?.box ?? null,
+      zooming: zooming.current,
       draft: draftRef.current,
       moving: moving ? { ...moving, offset: moveBy.current } : null,
       cache: cacheRef,
@@ -504,9 +514,24 @@ export function PaintCanvas({
   useEffect(
     () => () => {
       if (pending.current !== null) cancelAnimationFrame(pending.current);
+      if (wheelSettle.current !== null) clearTimeout(wheelSettle.current);
     },
     [],
   );
+
+  /** The sharp frame a run of carried ones is paid off by: the gesture has
+   *  settled, so the next frame repaints the document for real. A no-op when
+   *  nothing was zooming, so it is safe to call from every path that could
+   *  have ended one. */
+  const settleZoom = useCallback(() => {
+    if (wheelSettle.current !== null) {
+      clearTimeout(wheelSettle.current);
+      wheelSettle.current = null;
+    }
+    if (!zooming.current) return;
+    zooming.current = false;
+    requestPaint();
+  }, [requestPaint]);
 
   // Repaint whenever the document, the view, the window or the page's colours
   // change — and when a bitmap finishes decoding, which changes what the same
@@ -738,6 +763,9 @@ export function PaintCanvas({
       lastTap.current = null;
       if (viewRef.current && a && b) {
         pinchStart.current = { view: viewRef.current, a, b };
+        // Frames may be carried rather than repainted until the pinch ends —
+        // `release` runs the settle frame that pays them off.
+        zooming.current = true;
       }
       return;
     }
@@ -848,7 +876,10 @@ export function PaintCanvas({
     pointers.current.delete(e.pointerId);
     // A pinch ends when it stops being one. The finger still down does *not*
     // resume drawing — it would lay a mark from wherever the zoom left it.
-    if (pointers.current.size < 2) pinchStart.current = null;
+    if (pointers.current.size < 2 && pinchStart.current) {
+      pinchStart.current = null;
+      settleZoom();
+    }
   };
 
   const finish = (e: React.PointerEvent<HTMLCanvasElement>) => {
@@ -972,19 +1003,28 @@ export function PaintCanvas({
       e.preventDefault();
       const rect = canvas.getBoundingClientRect();
       const anchor = { x: e.clientX - rect.left, y: e.clientY - rect.top };
-      const next =
-        e.ctrlKey || e.metaKey
-          ? zoomAt(
-              current,
-              current.scale * Math.exp(-e.deltaY * WHEEL_ZOOM_RATE),
-              anchor,
-            )
-          : panBy(current, -e.deltaX, -e.deltaY);
+      const zoom = e.ctrlKey || e.metaKey;
+      if (zoom) {
+        // A trackpad pinch is a stream of these with no "gesture ended", so
+        // the settle frame rides a short timer re-armed by every notch: the
+        // stream carries cached pixels at frame rate, and the sharp repaint
+        // lands the moment it pauses.
+        zooming.current = true;
+        if (wheelSettle.current !== null) clearTimeout(wheelSettle.current);
+        wheelSettle.current = window.setTimeout(settleZoom, 140);
+      }
+      const next = zoom
+        ? zoomAt(
+            current,
+            current.scale * Math.exp(-e.deltaY * WHEEL_ZOOM_RATE),
+            anchor,
+          )
+        : panBy(current, -e.deltaX, -e.deltaY);
       applyView(next);
     };
     canvas.addEventListener("wheel", handler, { passive: false });
     return () => canvas.removeEventListener("wheel", handler);
-  }, [applyView]);
+  }, [applyView, settleZoom]);
 
   // The one thing the cursor can't read off a descriptor: whether the page (or
   // a selection on it) is being dragged right now.

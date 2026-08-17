@@ -17,9 +17,14 @@
 import { describe, expect, it } from "vitest";
 
 import { paperTooth } from "../src/app/plugins/graphite.ts";
-import { paintRubbing } from "../src/app/plugins/rubber.ts";
+import { dropHeldRubbing, paintRubbing } from "../src/app/plugins/rubber.ts";
 import type { Point } from "../src/app/types.ts";
-import { createFakeContext, type FakeContext } from "./support/fakeCanvas.ts";
+import {
+  createFakeCanvas,
+  createFakeContext,
+  withFakeDocument,
+  type FakeContext,
+} from "./support/fakeCanvas.ts";
 
 /** A gentle sampled curve, the shape a hand actually rubs along. */
 function curve(length = 200, at = 150): Point[] {
@@ -188,5 +193,118 @@ describe("the sheet the rubber reads", () => {
     // way out to the width the rubber was set to.
     expect(lifts(ctx).length).toBeGreaterThan(8);
     expect(spread(ctx, [at])).toBeGreaterThan(3);
+  });
+});
+
+// The rubbing under the hand goes through a held walk — each press laid once
+// into a union per weight, the still-changing tail laid over a copy per frame
+// (see `paintLiveRubbing`). The one claim that matters is that the arrangement
+// is invisible: at any frame, the lanes on screen are exactly the lanes the
+// full drag would have laid for the same gesture. A press laid too early, laid
+// twice, or laid at a weight the end could still have changed all move or
+// duplicate lane endpoints, so comparing the endpoint multiset catches every
+// way the walk could drift.
+
+describe("the rubbing under the hand", () => {
+  /** Every lane laid across a set of surfaces, as rounded endpoint keys. */
+  function laneKeys(
+    runs: readonly [number, number, number, number][],
+  ): string[] {
+    return runs.map((run) => run.map((v) => v.toFixed(4)).join(","));
+  }
+
+  it("lays exactly the lanes the full drag would have", () => {
+    const dom = withFakeDocument();
+    dropHeldRubbing();
+    try {
+      const points = curve(80);
+      const live = createFakeCanvas(400, 300).ctx;
+      live.globalAlpha = 1;
+
+      // The gesture, advanced a few samples at a time — every prefix shares
+      // its point objects with the full path, exactly as a draft does.
+      const frames: Point[][] = [];
+      for (let upto = 2; upto < points.length; upto += 3) {
+        frames.push(points.slice(0, upto));
+      }
+      frames.push(points);
+      let tailFrom = 0;
+      for (const prefix of frames) {
+        // Where the combining surface's record stood before the last frame,
+        // so its final tail can be read off the end.
+        tailFrom = dom.created[3]?.ctx.strokes.length ?? 0;
+        paintRubbing(live, prefix, 14, 1, 1, undefined, true);
+      }
+
+      // The lanes on screen after the last frame: everything settled into the
+      // weight unions — however many frames laid them, and across a regrow —
+      // plus the tail the last frame laid over them.
+      const settled = dom.created
+        .filter((_, at) => at !== 3)
+        .flatMap((surface) => surface.ctx.strokes.flatMap((s) => s.runs));
+      const tail = dom.created[3]!.ctx.strokes.slice(tailFrom).flatMap(
+        (s) => s.runs,
+      );
+
+      // …and the lanes one full drag lays for the same gesture.
+      const whole = createFakeContext();
+      whole.globalAlpha = 1;
+      paintRubbing(whole, points, 14, 1, 1);
+      const wanted = whole.strokes.flatMap((s) => s.runs);
+
+      expect(settled.length + tail.length).toBe(wanted.length);
+      expect([...laneKeys(settled), ...laneKeys(tail)].sort()).toEqual(
+        laneKeys(wanted).sort(),
+      );
+    } finally {
+      dropHeldRubbing();
+      dom.restore();
+    }
+  });
+
+  it("costs the presses that arrived, not the presses that ever were", () => {
+    const dom = withFakeDocument();
+    dropHeldRubbing();
+    try {
+      const points = curve(200);
+      const live = createFakeCanvas(400, 300).ctx;
+      live.globalAlpha = 1;
+      paintRubbing(
+        live,
+        points.slice(0, points.length - 3),
+        14,
+        1,
+        1,
+        undefined,
+        true,
+      );
+      const settledOnce = dom.created
+        .filter((_, at) => at !== 3)
+        .map((surface) => surface.ctx.strokes.flatMap((s) => s.runs).length);
+
+      // One more frame near the end of a long scrub: the unions gain at most
+      // the few presses that settled, never the gesture again.
+      paintRubbing(live, points, 14, 1, 1, undefined, true);
+      const settledTwice = dom.created
+        .filter((_, at) => at !== 3)
+        .map((surface) => surface.ctx.strokes.flatMap((s) => s.runs).length);
+      const grewBy =
+        settledTwice.reduce((a, b) => a + b, 0) -
+        settledOnce.reduce((a, b) => a + b, 0);
+      expect(grewBy).toBeGreaterThan(0);
+      expect(grewBy).toBeLessThan(400);
+    } finally {
+      dropHeldRubbing();
+      dom.restore();
+    }
+  });
+
+  it("pays the full drag wherever a held walk cannot run", () => {
+    // No DOM to hold the unions in: the live paint is the whole drag it
+    // always was, and nothing on the page changes.
+    const ctx = createFakeContext();
+    ctx.globalAlpha = 1;
+    paintRubbing(ctx, curve(80), 14, 1, 1, undefined, true);
+    expect(lifts(ctx).length).toBeGreaterThan(0);
   });
 });

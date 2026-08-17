@@ -317,6 +317,11 @@ export function freehandBehaviour(ink: FreehandInk = {}): ToolBehaviour {
             // being repainted where it grew costs the patch rather than the
             // scribble (see `PaintDetail.clip`).
             detail.clip,
+            // …and whether this mark is still under the hand, which decides
+            // only whether the dried-mark store is consulted: a landed mark
+            // dries once and is blitted on every repaint after (see
+            // `leadStore.ts`).
+            detail.live === true,
           );
           return;
         case "rubber":
@@ -334,6 +339,10 @@ export function freehandBehaviour(ink: FreehandInk = {}): ToolBehaviour {
             // rubbing out that is the pencil ink under the hand, and the grain
             // outside it is never laid (see `PaintDetail.clip`).
             detail.clip,
+            // …and whether this mark is still under the hand, which routes it
+            // through the held walk that lays each press once instead of the
+            // whole gesture twice a frame (see `paintLiveRubbing`).
+            detail.live === true,
           );
           return;
         default:

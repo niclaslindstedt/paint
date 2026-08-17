@@ -40,6 +40,14 @@ import type { Point } from "../types.ts";
 import { HB_LEAD } from "./graphite.ts";
 import { HAIRLINE, PIXEL, driftNoise, pathLength, trace } from "./grain.ts";
 import { bear, createLeadField, laid } from "./leadField.ts";
+import {
+  heldMark,
+  keep,
+  roomFor,
+  surfaceFor,
+  weakly,
+  type Ask,
+} from "./leadStore.ts";
 
 /** The most cells one mark will be worked out at. A page-wide sweep with a
  *  clutch lead would otherwise ask for a million; past this the field is
@@ -156,7 +164,12 @@ function sheetFor(width: number, height: number): Surface | null {
  *
  *  `clip` is the part of the page the caller is actually keeping (see
  *  `PaintDetail.clip`). It is a permission to skip and nothing more: what lands
- *  inside it is the same either way. */
+ *  inside it is the same either way.
+ *
+ *  `live` says this is the gesture still under the hand (see
+ *  `PaintDetail.live`): its points are a fresh array every sample, so it is
+ *  never asked of the dried-mark store and never dried into it — the store
+ *  holds landed marks, and the landing itself is what dries one. */
 export function paintSimulatedLead(
   ctx: CanvasRenderingContext2D,
   points: readonly Point[],
@@ -167,6 +180,7 @@ export function paintSimulatedLead(
   color = "#000000",
   detail = DEFAULT_LEAD_DETAIL,
   clip?: Rect,
+  live = false,
 ): boolean {
   const first = points[0];
   if (!first || size <= 0) return false;
@@ -210,6 +224,20 @@ export function paintSimulatedLead(
   if (half / cell < LEAST_HEAD / 2) return false;
 
   const pad = reach + MARGIN_CELLS * cell;
+
+  // A landed mark dries once and is blitted for ever after (see
+  // `leadStore.ts`). Asked before the window is consulted, because what the
+  // store holds is the *whole* mark: a pan's strip repaints then cost a blit
+  // per mark instead of a field per mark per frame.
+  if (!live) {
+    const ask: Ask = { points, size, grade: lead, ground, color, cell };
+    const held = heldMark(ask);
+    if (held) {
+      place(ctx, held.surface, held);
+      return true;
+    }
+    if (dryIntoStore(ctx, ask, { half, fray, pad, box })) return true;
+  }
   // The patch to actually work out: the mark, cut down to the window if there
   // is one. Only the *keeping* is cut — the walk below still lays every dab
   // whose lead could have reached in here, which is what makes the cells at the
@@ -256,6 +284,51 @@ export function paintSimulatedLead(
   if (!drawInto(surface, field.width, field.height, laid(field), color)) {
     return false;
   }
+  place(ctx, surface, { x, y, width, height, cell });
+  return true;
+}
+
+/** Work a landed mark's **whole** field out and dry it into the store, or
+ *  `false` when it can't be held — no room on the shelf, no surface to be had,
+ *  or a mark so big its unwindowed box would blow the span cap, which the
+ *  windowed path below can still work out without coarsening it. The caller
+ *  then paints exactly as it did before the store existed. */
+function dryIntoStore(
+  ctx: CanvasRenderingContext2D,
+  ask: Ask,
+  mark: { half: number; fray: number; pad: number; box: Rect },
+): boolean {
+  const { cell } = ask;
+  const whole = grow(mark.box, mark.pad);
+  const x = Math.floor(whole.x / cell) * cell;
+  const y = Math.floor(whole.y / cell) * cell;
+  const width = Math.ceil((whole.x + whole.width - x) / cell);
+  const height = Math.ceil((whole.y + whole.height - y) / cell);
+  if (width < 3 || height < 3) return false;
+  if (width * height > SPAN_CAP) return false;
+  const room = roomFor(width, height);
+  if (!room.admit) return false;
+  const surface = surfaceFor(width, height, room);
+  if (!surface) return false;
+  const field = createLeadField({
+    x,
+    y,
+    width,
+    height,
+    cell,
+    ground: ask.ground,
+    grade: ask.grade,
+  });
+  drag(field, ask.points, mark.half, mark.fray, cell, {
+    x,
+    y,
+    width: width * cell,
+    height: height * cell,
+  });
+  if (!drawInto(surface, field.width, field.height, laid(field), ask.color)) {
+    return false;
+  }
+  keep({ ...ask, points: weakly(ask.points), x, y, width, height, surface });
   place(ctx, surface, { x, y, width, height, cell });
   return true;
 }

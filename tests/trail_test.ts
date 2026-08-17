@@ -127,6 +127,7 @@ function screen() {
       leadDetail: 1,
       decodedAt: 0,
       preview: null,
+      zooming: false,
       draft: null,
       selection: null,
       moving: null,
