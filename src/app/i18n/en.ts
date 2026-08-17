@@ -565,7 +565,7 @@ export const en = {
     rubber: {
       name: "Rubber",
       description:
-        "The pencil eraser, as one really behaves: it lifts pencil and crayon a little at a time, leaves the paper's grain showing, and never quite takes all of it. Ink, paint and marker stay where they are.",
+        "The pencil eraser, as one really behaves: it lifts pencil a little at a time, leaves the paper's grain showing, and never quite takes all of it. Ink, paint, crayon and marker stay where they are.",
     },
     line: { name: "Line", description: "A straight line between two points." },
     rectangle: {

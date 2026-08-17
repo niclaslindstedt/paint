@@ -306,6 +306,10 @@ export function freehandBehaviour(ink: FreehandInk = {}): ToolBehaviour {
             stroke.size,
             scale,
             strokeDial(stroke, "pressure"),
+            // …and the patch the caller is actually keeping — for a live
+            // rubbing out that is the pencil ink under the hand, and the grain
+            // outside it is never laid (see `PaintDetail.clip`).
+            detail.clip,
           );
           return;
         default:

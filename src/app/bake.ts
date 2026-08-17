@@ -41,7 +41,8 @@ import { effectReach, type Effect } from "./effects.ts";
 import { paintEffect } from "./effectPaint.ts";
 import { drawingLayers, groupByLayer, hasLayers, isLocked } from "./layers.ts";
 import { IMAGE_TOOL_ID } from "./plugins/builtin/image.ts";
-import { paintStrokes, relayFixed, type InkContext } from "./render.ts";
+import { relayFixed } from "./relay.ts";
+import { paintStrokes, type InkContext } from "./render.ts";
 import { createSurface } from "./surface.ts";
 import type { Drawing, Stroke } from "./types.ts";
 

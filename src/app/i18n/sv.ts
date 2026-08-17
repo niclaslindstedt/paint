@@ -504,7 +504,7 @@ export const sv: Catalog = {
     rubber: {
       name: "Radergummi",
       description:
-        "Blyertsgummit, som ett sådant faktiskt beter sig: det lyfter blyerts och krita lite i taget, låter papprets struktur skina igenom och får aldrig bort allt. Bläck, färg och tusch sitter kvar.",
+        "Blyertsgummit, som ett sådant faktiskt beter sig: det lyfter blyerts lite i taget, låter papprets struktur skina igenom och får aldrig bort allt. Bläck, färg, krita och tusch sitter kvar.",
     },
     line: { name: "Linje", description: "En rak linje mellan två punkter." },
     rectangle: {

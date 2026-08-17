@@ -60,9 +60,9 @@ connect a storage backend yourself.
   keyboard, a right-click or a long press. Ctrl/Cmd+V pastes marks, a picture or words back
   into the drawing — words open the caption box so the typeface and size are
   yours to set first.
-- Press the eraser a second time for the rubber behind it: it lifts pencil and
-  crayon the way a real one does — a little at a time, never all of it, and
-  never the ink drawn over them.
+- Press the eraser a second time for the rubber behind it: it lifts pencil the
+  way a real one does — a little at a time, never all of it, and never the ink,
+  paint or crayon laid beside it.
 - Switch more tools on in Settings → Tools (a round and a flat bristle brush,
   marker, highlighter, crayon, calligraphy pen), and put the rows in the order
   you want

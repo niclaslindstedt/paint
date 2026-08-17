@@ -709,9 +709,12 @@ export function registerBuiltinPlugins(): void {
     // `docs/features/surface.md`.)
     dials: [OPACITY, PRESSURE],
     presets: CRAYON_PRESETS,
-    // Wax is caught on the tooth the same way graphite is, and comes away the
-    // same way — worse, in fact, since it smears. The other lifting medium.
-    liftable: true,
+    // Wax is caught on the tooth the same way graphite is, but it does not
+    // come away the same way: a rubber worked at a crayon mark *smears* it
+    // into the sheet rather than lifting it, which any child's colouring book
+    // can demonstrate. So the crayon does not declare `liftable` — the rubber
+    // is the pencil's companion, and a wax mark stays put under it with the
+    // ink and the paint.
     behaviour: freehandBehaviour({ style: "crayon" }),
   });
 
@@ -832,9 +835,9 @@ export function registerBuiltinPlugins(): void {
   //
   // Both halves are declared rather than coded anywhere: `lifts` says this
   // rubbing out only takes what a rubber could take, `liftable` on the pencil
-  // and the crayon says what that is, and the renderer lays everything else back
-  // over the hole (see `relayFixed` in `render.ts`). Which means the tool that
-  // finally makes "sketch it, ink it, rub the sketch out" work is two flags, a
+  // says what that is, and the renderer lays everything else back over the
+  // hole (see `relayFixed` in `relay.ts`). Which means the tool that finally
+  // makes "sketch it, ink it, rub the sketch out" work is two flags, a
   // painter, and nothing else in the app.
 
   registerPlugin({
@@ -856,6 +859,13 @@ export function registerBuiltinPlugins(): void {
     // Its width shows as a circle, for the eraser's reason: a preview of a
     // rubbing out on a bare page has nothing to lift and nothing to show.
     sizePreview: "circle",
+    // The face grains half its width either side of the path, plus the lattice
+    // jitter and the drag the lifted flakes are carried on — a few grain cells,
+    // which on the narrowest rubber comes to more than the width itself. Twice
+    // the width covers it with room to spare, and against the unstated default
+    // of four it is the number that decides how much page a live rubbing out
+    // repaints per frame (see `PaintPlugin.reach` and `liftBounds`).
+    reach: 2,
     // One dial, and it is the hand rather than the ink: how hard you lean on it,
     // which is how deep into the sheet the face reaches. See `RUB`.
     dials: [RUB],

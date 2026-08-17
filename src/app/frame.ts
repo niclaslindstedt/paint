@@ -54,12 +54,14 @@ import type { EffectPreview } from "./render.ts";
 import { visibleStrokes } from "./layers.ts";
 import { paintMarquee } from "./plugins/builtin/select.ts";
 import type { DraftStroke } from "./plugins/types.ts";
+import { liftBounds, relayFixed } from "./relay.ts";
 import {
   anyErases,
   onSheet,
   paintStrokes,
-  relayFixed,
+  strokeLifts,
   underlay,
+  type RenderOptions,
 } from "./render.ts";
 import { translateStrokes } from "./selection.ts";
 import { trailAhead, trailPainted, type Trail } from "./trail.ts";
@@ -241,6 +243,17 @@ export function paintFrame(frame: Frame): void {
   // mostly past the edge, should cost what is showing (see `PaintDetail.clip`).
   const onPage = windowOnPage(spec);
   const inFlight = draft ? [...dragged, draft] : dragged;
+  // What is already on the page, for the coats below that owe ink back over a
+  // hole. Resolved once, and only on the frames that need it.
+  const committed = anyErases(inFlight) ? visibleStrokes(drawing) : [];
+  // A rubbing out that only lifts what a rubber can lift changes the picture
+  // only where its reach crosses pencil ink (see `liftBounds`). The whole coat
+  // — the erase, the ink laid back, the sheet under it — is held to that
+  // patch, and skipped outright when there is none: that is every frame of
+  // rubbing at ink and washes, and it is the difference between such a frame
+  // being a blit and being the cost of every wash the rub's box crosses.
+  const lifting = draft !== null && strokeLifts(draft);
+  const scope = lifting ? liftBounds([draft], committed, onPage) : null;
   // Both coats are held to the sheet as well, exactly as the page under them
   // was (see `onSheet`): a gesture that wanders off the paper leaves nothing on
   // the desk beside it, and the screen therefore shows what an export would.
@@ -253,27 +266,67 @@ export function paintFrame(frame: Frame): void {
     // sample rather than once per mark, so it is the one told so — the
     // watercolour simulation works a live mark out on a smaller field and
     // settles it into the full one when the brush lifts (see `PaintDetail.live`).
-    if (draft) {
+    if (draft && !lifting) {
       paintStrokes(ctx, [draft], { ...options, clip: onPage, live: true });
+    } else if (draft && scope) {
+      // The lifting gesture, erased only inside its patch — a hard clip rather
+      // than the painter's advisory one, because the ink below is only laid
+      // back inside it, and an erase that strayed past the box would stay a
+      // hole for the rest of the gesture.
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(scope.x, scope.y, scope.width, scope.height);
+      ctx.clip();
+      paintStrokes(ctx, [draft], { ...options, clip: scope, live: true });
+      ctx.restore();
+      // The ink it could never have lifted, back over the hole — cut on
+      // surfaces the relay holds between the frames of the gesture (see
+      // `relay.ts`) — and the sheet back under the patch.
+      relayFixed(
+        ctx,
+        [draft],
+        { ...options, clip: scope, live: true },
+        committed,
+      );
+      underlayWithin(ctx, drawing, options, scope);
     }
 
-    // Both coats above landed on pixels that already have the sheet in them — the
-    // cache hands back a finished picture, page and all. A mark that rubs out
-    // therefore takes the page with it, so the sheet goes back under whatever the
-    // hole exposed (see `underlay`). Only when something actually erased: this is
-    // every frame of an eraser stroke, and no frame of anything else.
-    if (anyErases(inFlight)) {
-      // …and a rubbing out that only lifts what a rubber can lift took the ink
-      // with it too, for the same reason: those pixels are a finished picture and
-      // it cannot tell what made them. The marks it could not have lifted go back
-      // first, under nothing and over the hole (see `relayFixed`).
-      relayFixed(ctx, inFlight, options, visibleStrokes(drawing));
+    // The dragged coat, and a draft that erases plainly, landed on pixels that
+    // already have the sheet in them — the cache hands back a finished
+    // picture, page and all. A mark that rubs out therefore takes the page
+    // with it, so the sheet goes back under whatever the hole exposed (see
+    // `underlay`). Only when something actually erased: this is every frame of
+    // an eraser stroke, and no frame of anything else.
+    const plainly = lifting ? dragged : inFlight;
+    if (anyErases(plainly)) {
+      // …and a dragged rubbing out took ink it could not have lifted with it
+      // too, for the same reason. It goes back first, under nothing and over
+      // the hole (see `relayFixed`).
+      relayFixed(ctx, plainly, options, committed);
       underlay(ctx, drawing, options);
     }
   });
 
   paintChrome(ctx, drawing, outline, view.scale, dpr);
   trailPainted(frame.trail, spec, draft, outline);
+}
+
+/** `underlay`, held to one patch of the page — the only part of it a scoped
+ *  rubbing out can have taken the sheet off. Outside the patch nothing was
+ *  erased, so the sheet is still there and a full under-fill would cost the
+ *  window to change nothing. */
+function underlayWithin(
+  ctx: CanvasRenderingContext2D,
+  drawing: Drawing,
+  options: RenderOptions,
+  scope: Rect,
+): void {
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(scope.x, scope.y, scope.width, scope.height);
+  ctx.clip();
+  underlay(ctx, drawing, options);
+  ctx.restore();
 }
 
 /** The chrome, in document coordinates: the selection's outline and the sheet's

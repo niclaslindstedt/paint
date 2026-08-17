@@ -65,9 +65,9 @@ the same [`oss-framework`](https://github.com/niclaslindstedt/oss-framework).
   the tool it was saved from.
 - **Two ways to rub something out, one button.** The **eraser** is a hole: it
   takes off whatever it covers, at whatever strength you set it to. Press it
-  again for the **rubber**, which is a real one — it lifts pencil and crayon a
-  little at a time, leaves the paper's grain showing through what is left, never
-  quite takes all of it, and leaves ink, paint and marker exactly where they
+  again for the **rubber**, which is a real one — it lifts pencil a little at a
+  time, leaves the paper's grain showing through what is left, never quite
+  takes all of it, and leaves ink, paint, crayon and marker exactly where they
   are. So you can sketch in pencil, ink over the sketch, and rub the sketch out.
 - **Eleven shapes, one button.** Rectangle, ellipse, line, arrow, rounded
   rectangle, triangle, diamond, pentagon, hexagon, star and double arrow share a

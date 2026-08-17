@@ -37,8 +37,9 @@
 // What it will not do is take ink off. The sparing is the renderer's half of
 // the story rather than this painter's — a lifting mark takes everything it
 // covers, and the marks a rubber could never have lifted are laid back over the
-// hole afterwards (see `relayFixed` in `render.ts`).
+// hole afterwards (see `relayFixed` in `relay.ts`).
 
+import type { Rect } from "../geometry.ts";
 import type { Point } from "../types.ts";
 import { PAPER_TOOTH, paperTooth } from "./graphite.ts";
 import {
@@ -168,6 +169,7 @@ function dragFace(
   along: readonly Trace[],
   half: number,
   cell: number,
+  clip?: Rect,
 ): void {
   const count = along.length;
   const span = along[count - 1]!.at;
@@ -175,9 +177,28 @@ function dragFace(
   // a rubber rocks onto the sheet and rocks off it, and a rubbing out that
   // started at full weight would leave a step across the passage.
   const ramp = Math.max(1, Math.min(span * 0.3, 2 + half));
+  // How far a press at one point of the path can possibly land grain from it:
+  // across the contact patch, plus the lattice jitter, the drag the flakes are
+  // carried on, and the lane's own width. A couple of cells of slack on a box
+  // hundreds of pixels wide, which is the price of never dropping a cell that
+  // would have landed inside it (see `PaintDetail.clip`).
+  const slack = half + cell * 5;
 
   for (let i = 0; i < count; i++) {
     const p = along[i]!;
+    // A press that cannot reach the patch being kept costs nothing but this
+    // test. Everything about the presses that *are* laid is untouched — the
+    // settle, the bearing and the grain all read off the whole mark and the
+    // page — so the clip drops draws and never changes one.
+    if (
+      clip &&
+      (p.x < clip.x - slack ||
+        p.x > clip.x + clip.width + slack ||
+        p.y < clip.y - slack ||
+        p.y > clip.y + clip.height + slack)
+    ) {
+      continue;
+    }
     const { nx, ny } = normalAt(along, i);
     // Along the mark — the direction the lifted graphite is carried in.
     const tx = -ny;
@@ -250,13 +271,21 @@ function grainCell(length: number, size: number, scale: number): number {
  *  `pressure` is how hard the hand is bearing down, as a fraction of an ordinary
  *  rub. It reaches how *deep into the sheet* the face gets and nothing else — so
  *  leaning on the rubber fades the ghost rather than widening the mark, which is
- *  the same relationship the pencil's grade has to its line. */
+ *  the same relationship the pencil's grade has to its line.
+ *
+ *  `clip` is the patch the caller is actually keeping (see `PaintDetail.clip`):
+ *  presses that cannot reach it are never laid, and the ones that are grain
+ *  identically to an unclipped paint — the cell, the lattice and the hand all
+ *  read off the whole mark and the page, never off the box. It is what keeps a
+ *  live rubbing out costing the patch under the hand rather than the whole
+ *  gesture, twice a frame (once as the hole, once as the relay's mask). */
 export function paintRubbing(
   ctx: CanvasRenderingContext2D,
   points: readonly Point[],
   size: number,
   scale = 1,
   pressure = 1,
+  clip?: Rect,
 ): void {
   const first = points[0];
   if (!first) return;
@@ -279,7 +308,7 @@ export function paintRubbing(
   const face = openFace(cell, press);
   const along = trace(points, cell * 0.85);
   if (along.length < 2) stampFace(face, first, half, cell);
-  else dragFace(face, along, half, cell);
+  else dragFace(face, along, half, cell, clip);
   face.paint(ctx, alpha);
   ctx.globalAlpha = alpha;
 }

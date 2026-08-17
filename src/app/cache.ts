@@ -62,12 +62,12 @@
 import type { Rect } from "./geometry.ts";
 import { backgroundHidden, paintedLayers, visibleStrokes } from "./layers.ts";
 import { groundProfile, groundStains } from "./ground.ts";
+import { relayFixed } from "./relay.ts";
 import {
   anyErases,
   anyStains,
   onSheet,
   paintStrokes,
-  relayFixed,
   renderDrawing,
   underlay,
   type KeepWet,

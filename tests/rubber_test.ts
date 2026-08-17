@@ -147,6 +147,37 @@ describe("the sheet the rubber reads", () => {
     expect(ctx.strokes[0]!.alpha).toBeLessThan(1);
   });
 
+  it("lays only the presses that can reach the patch it is handed", () => {
+    // The clip is a permission to skip, never an instruction to change: every
+    // cell it keeps is a cell the unclipped paint laid, bit for bit — the
+    // grain reads off the whole mark and the page, not off the box — and every
+    // cell that lands inside the box is kept. What the live canvas leans on
+    // when it repaints a rubbing out only where there is pencil under it.
+    const points = curve();
+    const whole = createFakeContext();
+    paintRubbing(whole, points, 12, 1, 1);
+    const clip = { x: 90, y: 130, width: 70, height: 50 };
+    const kept = createFakeContext();
+    paintRubbing(kept, points, 12, 1, 1, clip);
+
+    const all = lifts(whole);
+    const inside = lifts(kept);
+    expect(inside.length).toBeGreaterThan(0);
+    expect(inside.length).toBeLessThan(all.length);
+
+    const cell = (run: readonly number[]) => run.join(",");
+    const laid = new Set(all.map(cell));
+    for (const run of inside) expect(laid.has(cell(run))).toBe(true);
+
+    const within = ([x1, y1, x2, y2]: [number, number, number, number]) =>
+      [x1, x2].every((x) => x >= clip.x && x <= clip.x + clip.width) &&
+      [y1, y2].every((y) => y >= clip.y && y <= clip.y + clip.height);
+    const keptCells = new Set(inside.map(cell));
+    for (const run of all.filter(within)) {
+      expect(keptCells.has(cell(run))).toBe(true);
+    }
+  });
+
   it("dabs rather than drags when the gesture never moved", () => {
     // A kneaded eraser pressed onto a highlight and lifted straight off. One
     // point is a patch of grain, not a dot and not nothing.

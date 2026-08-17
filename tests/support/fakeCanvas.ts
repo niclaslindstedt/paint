@@ -54,7 +54,7 @@ export type FakeDraw = {
   /** How it was composited. A blit is how a surface built off to one side gets
    *  back onto the page, and *which way round* is the whole of what the surface
    *  was for — `destination-in` cuts one picture to the shape of another (see
-   *  `relayFixed` in `render.ts`), `source-over` simply lays it on top. */
+   *  `relayFixed` in `relay.ts`), `source-over` simply lays it on top. */
   composite: GlobalCompositeOperation;
 };
 
