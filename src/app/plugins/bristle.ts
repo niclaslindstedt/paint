@@ -36,8 +36,11 @@ import {
   BLADE,
   capacityOf,
   coreShare,
+  DRY_LOAD,
+  drynessOf,
   fitHead,
   loadAt,
+  reservoirOf,
   ROUND_HEAD,
   TWIST_STRAY,
   WANDER_STRAY,
@@ -197,8 +200,13 @@ const POOL_GRAIN = 2.6;
  *     the *head* instead is what turns a wide mark into woven rope;
  *   - a **width that lands blunt and holds**, because a head is as wide the
  *     moment it touches down as it is ever going to be (see `widthProfile`);
- *   - **paint that runs out**, which is what actually ends a stroke: the far end
- *     of a long drag opens up into separate hairs (see `loadAt`).
+ *   - **paint that runs out**, which is what actually ends a stroke: the far
+ *     end of a long drag opens up into separate hairs through a marked dry
+ *     stretch, and past it the head lays down nothing at all — a brush with no
+ *     more colour cannot keep painting (see `loadAt` and `drynessOf`). `load`
+ *     is how much was dipped: 1 is one ordinary charge, and the run scales
+ *     with it — and with the shape of the ferrule, because a flat holds about
+ *     half what the round's cone does (see `reservoirOf`).
  *
  *  The four numbers past the geometry are four different things about the
  *  brush, and none of them is a restyling of another:
@@ -234,12 +242,18 @@ export function paintBrush(
   gauge = 1,
   fray = 1,
   bleed = 0,
+  load = 1,
   head: BrushHead = ROUND_HEAD,
   clip?: Rect,
 ): void {
   const alpha = ctx.globalAlpha;
   const hard = Math.max(0, Math.min(1, hardness));
   const half = size / 2;
+  // How far this drag runs before the paint is out: the round's dip (see
+  // `capacityOf`), times what this ferrule's reservoir keeps of it (see
+  // `reservoirOf`), times how much the load dial says was dipped.
+  const capacity =
+    capacityOf(size, hard) * reservoirOf(head.shape) * Math.max(0.05, load);
   // The head's width on the screen it is bound for. A brush drawn four pixels
   // wide has room for four hairs, however many the medium would splay.
   const onScreen = size * scale;
@@ -249,10 +263,12 @@ export function paintBrush(
     // would have covered to is what they average out to anyway — and how much
     // that is, is the whole of the difference between a loaded head and a dry
     // one, so it has to survive the collapse or a page zoomed out would show
-    // every brush mark on it at the same weight.
+    // every brush mark on it at the same weight. The run-out survives it too:
+    // the line stops where the paint did, or a page zoomed away from would
+    // grow back the tail the head never painted.
     ctx.save();
     ctx.globalAlpha = alpha * (0.42 + hard * 0.58);
-    paintPath(ctx, points, size);
+    paintPath(ctx, chargedRun(points, capacity), size);
     ctx.restore();
     return;
   }
@@ -310,8 +326,6 @@ export function paintBrush(
     clumps,
     pens,
   } = fitHead(size, hard, scale, gauge, worn);
-  // How far along the drag the head has emptied — see `capacityOf`.
-  const capacity = capacityOf(size, hard);
   // How far a wet edge wicks into the sheet, in document pixels — the `bleed`
   // dial, measured against the head because a fat brush puts down more water.
   // Zero unless the dial has been moved, and zero as well once the halo is
@@ -402,8 +416,13 @@ export function paintBrush(
     clip,
     half * splay + wick + spacing + PIXEL / Math.max(0.01, scale),
   );
+  // The sample past which there is no paint left to lay down. A hard stop, not
+  // a style: every loop below ends here, so however far the hand carries on
+  // after the head is spent, the tail costs nothing and leaves nothing.
+  let lastWet = count - 1;
+  while (lastWet > 0 && loads[lastWet]! <= 0) lastWet--;
   const first = shown ? shown.first : 0;
-  const last = shown ? shown.last : count - 1;
+  const last = Math.min(shown ? shown.last : count - 1, lastWet);
   if (first > last) return;
 
   ctx.save();
@@ -469,6 +488,12 @@ export function paintBrush(
       Math.floor((count - 1) / 2),
     );
     ctx.beginPath();
+    // The pool is the *spare* paint, and it is the first thing the run-out
+    // takes: the body ends where the dry stretch begins (see `DRY_LOAD`) —
+    // bluntly, the way it ends short of the stroke's own tips — and from there
+    // to the stop the mark is hairs alone, which is what a dry phase is.
+    let lastPooled = last;
+    while (lastPooled > 0 && loads[lastPooled]! < DRY_LOAD) lastPooled--;
     // Held to the visible run as well as to the pool's own inset. A band that
     // stops off screen stops bluntly, which is what it does at its own ends
     // anyway — so the picture inside the patch is the picture a whole ribbon
@@ -481,7 +506,7 @@ export function paintBrush(
       nys,
       pool,
       Math.max(pooled, first),
-      Math.min(count - 1 - pooled, last),
+      Math.min(count - 1 - pooled, lastPooled),
     );
     // The pool wicks too, and it has to be stroked before it is filled: the halo
     // is centred on the outline, so half of it lands inside the body where the
@@ -597,16 +622,21 @@ export function paintBrush(
       // gives a mark that is combed but never interrupted.
       const tooth = teeth[i]!;
       const wetness = dry.at(p.at / skipRun);
-      // Capped short of certainty: a head that has run out is a head laying
-      // down a scratchy mark, not one laying down nothing, and a stroke that
-      // faded to nothing would be one the user could not finish.
+      // Two thresholds added together, and they are two different things.
       //
-      // The load's share of that is the largest term by some way, and it is
-      // meant to be: what ends a brushed stroke is the paint going, not the
-      // hand lifting (see `capacityOf`). It is also the term that decides what
-      // a long drag *costs* — a lifted hair is a run of samples that never
-      // reach the path — so the far end of one gets cheaper as it gets drier,
-      // which is the right way round.
+      // The first is *texture* — how streaky this stretch of an inked mark is —
+      // and it is capped short of certainty and scaled down to what a head
+      // this narrow can show, because a mark with paint left on it never
+      // vanishes into its own texture. The load's share of it is the largest
+      // term by some way, and it is meant to be: it is what opens the far end
+      // of a drag into hairs before the paint is gone.
+      //
+      // The second is the paint actually *going*, so it is neither capped nor
+      // scaled: it climbs through the marked dry stretch (see `drynessOf`)
+      // and past every wetness a hair can have, which is what finally lifts
+      // the whole head off the paper. A brush with no more colour cannot keep
+      // painting, however small the brush — and `lastWet` above is the same
+      // stop again, so the spent tail is not even walked.
       const dryness =
         Math.min(
           0.72,
@@ -614,7 +644,9 @@ export function paintBrush(
             Math.min(0.2, p.speed / 120) +
             (1 - loads[i]!) * 0.55 +
             (0.5 - tooth) * 0.22,
-        ) * grainShare;
+        ) *
+          grainShare +
+        drynessOf(loads[i]!) * 1.35;
       if (wetness < dryness) {
         strand.lift(ctx);
         continue;
@@ -647,6 +679,31 @@ export function paintBrush(
     ctx.stroke();
   }
   ctx.restore();
+}
+
+/** The lead of a polyline the head still had paint for: the points inside
+ *  `range` of travel, the last one cut onto it exactly.
+ *
+ *  For the collapsed mark only — the full painter reads the same distance per
+ *  sample through `loadAt` and lifts hair by hair. A line has no hairs to
+ *  lift, so it is simply cut where the paint ran out. */
+function chargedRun(points: readonly Point[], range: number): readonly Point[] {
+  let travelled = 0;
+  for (let i = 1; i < points.length; i++) {
+    const a = points[i - 1]!;
+    const b = points[i]!;
+    const step = Math.hypot(b.x - a.x, b.y - a.y);
+    if (travelled + step < range) {
+      travelled += step;
+      continue;
+    }
+    const f = step > 0 ? (range - travelled) / step : 0;
+    return [
+      ...points.slice(0, i),
+      { x: a.x + (b.x - a.x) * f, y: a.y + (b.y - a.y) * f },
+    ];
+  }
+  return points;
 }
 
 /** Which samples of a traced path can put ink inside `clip`, padded by how far

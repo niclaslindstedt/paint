@@ -322,6 +322,10 @@ export const en = {
       name: "Hair: {value}%",
       hint: "Fine hair leaves many thin streaks, coarse hair a few broad ones.",
     },
+    load: {
+      name: "Load: {value}%",
+      hint: "How much paint the brush is dipped with. The stroke spends it as it goes, scratches dry, and stops.",
+    },
     splay: {
       name: "Splay: {value}%",
       hint: "A new brush cuts a crisp side; a worn one frays.",

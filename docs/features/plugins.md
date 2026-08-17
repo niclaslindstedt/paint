@@ -190,9 +190,13 @@ painters in `src/app/plugins/brushes.ts`, `bristle.ts`, `crayon.ts` and
   a share of the width — widen the brush and you get _more_ streaks rather than
   fatter ones, the way a rack of real brushes works. The head lands blunt and
   holds its width, it is too wide to follow a wiggle finer than itself and it
-  cannot turn inside its own width, and it carries a load it spends: a #6 round
-  covers about four centimetres of paper before the far end of the drag opens up
-  into separate hairs, which is about what one dip gives you. The mark it leaves
+  cannot turn inside its own width, and it carries a load it spends — and only
+  that load: a #6 round covers about four centimetres of paper, which is about
+  what one dip gives you, then scrapes through a marked dry stretch where the
+  body gives way to scratches, and then stops leaving anything at all, because
+  a brush with no more colour on it cannot keep painting. How much paint one
+  dip charges is the **load** dial — starve it down to dry-brush within a
+  stroke, or charge it up to cross most of a page. The mark it leaves
   is the **width of the head** — everything that ruffles the edge of a brushed
   stroke, the clumping, the wander, the twist of the bundle and the fray of a
   worn head, is budgeted out of the head rather than added to it, so a fringe
@@ -248,7 +252,10 @@ painters in `src/app/plugins/brushes.ts`, `bristle.ts`, `crayon.ts` and
   its own edge and it closes to the thickness of the bundle. That is one stroke
   that swells and thins as it goes round a curve without the hand doing
   anything, and it is why a sign-writer owns one. Which way the blade is turned
-  is the **nib angle** dial, the same one the broad nib carries;
+  is the **nib angle** dial, the same one the broad nib carries. The ferrule's
+  squeeze also empties most of the bundle, so one dip of a flat runs about
+  half as far as one dip of the round before it scratches dry — the same
+  **load** dial charges it with more;
 - the **watercolour brush** is the one medium here where what you are painting
   with is _water_, and the pigment only goes where the water took it. Four
   things happen while a wet stroke dries on a sheet and all four are in the
