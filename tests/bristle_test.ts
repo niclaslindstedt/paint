@@ -3,14 +3,14 @@ import { describe, expect, it } from "vitest";
 
 import { mm } from "../src/app/units.ts";
 
+import { paintBrush } from "../src/app/plugins/bristle.ts";
 import {
   capacityOf,
   coreShare,
   hairLayout,
   loadAt,
-  paintBrush,
   type BrushHead,
-} from "../src/app/plugins/bristle.ts";
+} from "../src/app/plugins/head.ts";
 import type { Point } from "../src/app/types.ts";
 
 import { createFakeContext } from "./support/fakeCanvas.ts";
@@ -100,6 +100,57 @@ function spreadOf(head: BrushHead, size = mm(12)): number {
   // width.
   const mid = (Math.max(...ys) + Math.min(...ys)) / 2;
   return Math.max(...ys.map((y) => Math.abs(y - mid)));
+}
+
+/** A dead-straight drag, sampled the way the canvas samples a slow hand — so
+ *  anything the mark measures across is the head's doing and not the path's. */
+function straight(length: number, y = 400): Point[] {
+  const points: Point[] = [];
+  for (let x = 0; x <= length; x += 1.5) points.push({ x, y });
+  return points;
+}
+
+/** Every point the painter put on a path, with the pen it was about to be
+ *  stroked with.
+ *
+ *  The fake context records a run as the chord between its two ends (see
+ *  `FakeStroke.runs`), which is enough to count hairs and nothing like enough
+ *  to measure one: a hair's whole excursion across the head is in the curve
+ *  between them. So the path calls themselves are what is read here. */
+function pathOf(paint: (ctx: ReturnType<typeof createFakeContext>) => void) {
+  const ctx = createFakeContext();
+  const at: { x: number; y: number; pen: number }[] = [];
+  const put = (x: number, y: number) =>
+    at.push({ x, y, pen: ctx.lineWidth as number });
+  const moveTo = ctx.moveTo.bind(ctx);
+  const lineTo = ctx.lineTo.bind(ctx);
+  const curveTo = ctx.quadraticCurveTo.bind(ctx);
+  ctx.moveTo = (x: number, y: number) => {
+    put(x, y);
+    moveTo(x, y);
+  };
+  ctx.lineTo = (x: number, y: number) => {
+    put(x, y);
+    lineTo(x, y);
+  };
+  ctx.quadraticCurveTo = (cx: number, cy: number, x: number, y: number) => {
+    put(x, y);
+    curveTo(cx, cy, x, y);
+  };
+  paint(ctx);
+  return { ctx, at };
+}
+
+/** How wide a mark actually comes out, from the outer edge of one side's
+ *  outermost hair to the other's — hair thickness included, because that is
+ *  where the ink stops. */
+function widthOf(size: number, hardness = 1, fray = 1): number {
+  const { at } = pathOf((ctx) =>
+    paintBrush(ctx, straight(900), size, hardness, 1, 1, fray),
+  );
+  const top = Math.min(...at.map((p) => p.y - p.pen / 2));
+  const bottom = Math.max(...at.map((p) => p.y + p.pen / 2));
+  return bottom - top;
 }
 
 describe("hairLayout", () => {
@@ -331,6 +382,130 @@ describe("paintBrush", () => {
       spreadOf({ shape: "round", angle: Math.PI / 2 }),
       6,
     );
+  });
+
+  it("lays a mark the width of the head, whatever the dials", () => {
+    // The contract the size button makes. Everything that ruffles the edge of a
+    // brushed stroke — the clump, the wander, the twist, the fray, the
+    // thickness of the outermost strand — used to be *added* to a lane already
+    // sitting on the rim, so a #6 round set to 4.8 mm measured nearer 6.7. It
+    // is budgeted out of the head now (see "The width of the mark"), and the
+    // whole rack has to keep to it.
+    for (const size of [mm(1), mm(4.8), mm(12.7), mm(50)]) {
+      for (const hard of [0.2, 0.6, 1]) {
+        const width = widthOf(size, hard);
+        // A hair in the fray strays past the rim by a percent or two at the odd
+        // moment, which is what a strand straying out of a bundle does. What it
+        // may not do is make the mark another size.
+        expect(width).toBeLessThan(size * 1.05);
+        // …and not by shrinking away from it either: a mark half the size on
+        // the button is the same complaint the other way round.
+        expect(width).toBeGreaterThan(size * 0.72);
+      }
+    }
+  });
+
+  it("keeps a worn head inside the head as well", () => {
+    // The fray dial opens the bundle a little and that little is `splay`; what
+    // it must never do is make the mark another size. A fringe frays *inwards*.
+    for (const worn of [0, 1, 2]) {
+      expect(widthOf(mm(12.7), 0.8, worn)).toBeLessThan(mm(12.7) * 1.2);
+    }
+  });
+
+  it("runs a head out inside a drawing rather than across two of them", () => {
+    // What ends a brushed stroke is the paint going, and a head that lasted a
+    // hundred and fifty millimetres never ran out inside a page — so every mark
+    // was the solid end of the stroke and the far end coming apart into hairs
+    // was something you had to cross the sheet twice to see.
+    const spent = capacityOf(mm(4.8), 1);
+    expect(spent).toBeGreaterThan(mm(20));
+    expect(spent).toBeLessThan(mm(60));
+    // Which shows up as a mark: the far half of a long drag has appreciably
+    // less hair on the paper than its first half.
+    const { at } = pathOf((ctx) =>
+      paintBrush(ctx, straight(spent * 2), mm(4.8), 1, 1),
+    );
+    const near = at.filter((p) => p.x < spent).length;
+    const far = at.filter((p) => p.x >= spent).length;
+    expect(far).toBeGreaterThan(0);
+    expect(far).toBeLessThan(near * 0.75);
+  });
+
+  it("costs the patch it is asked for rather than the whole drag", () => {
+    // A brush is one path per *hair*, so a mark that crosses the window cannot
+    // be culled a stroke at a time the way the airbrush's cones can — the hair
+    // lifts over the stretches that are off screen instead. That is the
+    // difference between a zoomed-in pan costing the strip of page it exposed
+    // and costing every mark that crosses it end to end.
+    const patch = { x: 400, y: 380, width: 80, height: 60 };
+    const whole = pathOf((ctx) =>
+      paintBrush(ctx, straight(3000), mm(4.8), 0.9, 1),
+    );
+    const cut = pathOf((ctx) =>
+      paintBrush(
+        ctx,
+        straight(3000),
+        mm(4.8),
+        0.9,
+        1,
+        1,
+        1,
+        0,
+        undefined,
+        patch,
+      ),
+    );
+    expect(cut.at.length).toBeGreaterThan(0);
+    expect(cut.at.length).toBeLessThan(whole.at.length * 0.1);
+
+    // …and nothing it did draw is anywhere the patch could not see. A head
+    // reaches half its width off the path it follows and a sample either side
+    // of that, which the padding here is comfortably outside.
+    const pad = mm(4.8) * 1.5;
+    for (const { x, y } of cut.at) {
+      expect(x).toBeGreaterThan(patch.x - pad);
+      expect(x).toBeLessThan(patch.x + patch.width + pad);
+      expect(y).toBeGreaterThan(patch.y - pad);
+      expect(y).toBeLessThan(patch.y + patch.height + pad);
+    }
+  });
+
+  it("paints the same mark inside a patch as it does without one", () => {
+    // The other half of that, and the one that makes it safe: what a patch
+    // frame puts on the screen has to be what a full repaint would have put
+    // there. So every point the culled mark laid down inside the patch has to
+    // be a point the whole mark laid down, exactly.
+    //
+    // Inside the patch and not in the ring of slack around it: out there a hair
+    // is cut short and a band is squared off, both of which land somewhere the
+    // caller is not keeping. That is the whole reason the slack is there.
+    const patch = { x: 300, y: 300, width: 240, height: 200 };
+    const whole = pathOf((ctx) =>
+      paintBrush(ctx, straight(1200), mm(4.8), 0.9, 1),
+    );
+    const cut = pathOf((ctx) =>
+      paintBrush(
+        ctx,
+        straight(1200),
+        mm(4.8),
+        0.9,
+        1,
+        1,
+        1,
+        0,
+        undefined,
+        patch,
+      ),
+    );
+    const key = (p: { x: number; y: number; pen: number }) =>
+      `${p.x.toFixed(6)},${p.y.toFixed(6)},${p.pen.toFixed(6)}`;
+    const drawn = new Set(whole.at.map(key));
+    const inside = cut.at.filter(
+      (p) => p.x > patch.x && p.x < patch.x + patch.width,
+    );
+    expect(inside.length).toBeGreaterThan(50);
+    for (const point of inside) expect(drawn.has(key(point))).toBe(true);
   });
 
   it("paints at the stroke's own opacity", () => {

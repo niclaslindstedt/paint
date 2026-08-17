@@ -52,6 +52,52 @@ export function driftNoise(t: number, seed: number): number {
   return a + (b - a) * u;
 }
 
+/** A reader for `driftNoise` along a path that is walked **in order**, which is
+ *  every caller that samples it: the same curve, without re-hashing the lattice
+ *  for a cell it is still inside.
+ *
+ *  `driftNoise` costs two hashes per call and a stroke asks it once per sample
+ *  *per hair*, so a wide head over a long drag hashes the same two lattice
+ *  points a hundred times over. A walk holds the cell it is in and the two
+ *  values that bound it, and hashes only when it crosses into the next one —
+ *  which, with the drift periods the painters use, is every few samples rather
+ *  than every one.
+ *
+ *  It answers exactly what `driftNoise` would, so nothing it is swapped into
+ *  paints a different mark. Made once and `reset` per run rather than per
+ *  strand, so a head of fifty hairs is one object and not fifty. */
+export type DriftWalk = {
+  /** Point the walk at `seed`. */
+  reset(seed: number): void;
+  /** The noise at `t` — the same number `driftNoise(t, seed)` answers. Jumping
+   *  about costs a rehash rather than a wrong answer; walking forwards is
+   *  simply where the saving is. */
+  at(t: number): number;
+};
+
+export function driftWalk(): DriftWalk {
+  let seed = 0;
+  let cell = Number.NaN;
+  let low = 0;
+  let high = 0;
+  return {
+    reset(next: number): void {
+      seed = next;
+      cell = Number.NaN;
+    },
+    at(t: number): number {
+      const here = Math.floor(t);
+      if (here !== cell) {
+        cell = here;
+        low = hashedRandom(here, seed, 17);
+        high = hashedRandom(here + 1, seed, 17);
+      }
+      const f = t - here;
+      return low + (high - low) * (f * f * (3 - 2 * f));
+    },
+  };
+}
+
 /** The same thing over a surface: smooth pseudo-random noise in [0, 1) at a
  *  point on the page, rather than at a distance along a stroke.
  *

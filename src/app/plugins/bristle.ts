@@ -1,63 +1,49 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-// The bristle brush.
+// The bristle brush: a head dragged across paper.
 //
-// The one painter with a whole module to itself, because it is the only one
-// modelling a physical *object* rather than a way of laying down colour. An
-// airbrush is a cone and a crayon is a wobble, but a brush is a head of hair on
-// a handle: it holds a load and spends it, it is wider than the wiggles you ask
-// it to follow, it cannot turn inside its own width, and the mark it leaves is
-// opaque with the hairs' partings scratched through it. Each of those is a
-// function below, and together they are most of what separates a brush stroke
-// from a thick line.
+// The one painter with a module to itself, because it is the only one modelling
+// a physical *object* rather than a way of laying down colour. An airbrush is a
+// cone and a crayon is a wobble, but a brush is a head of hair on a handle: it
+// holds a load and spends it, it is wider than the wiggles you ask it to
+// follow, it cannot turn inside its own width, and the mark it leaves is opaque
+// with the hairs' partings scratched through it. Each of those is a function
+// below, and together they are most of what separates a brush stroke from a
+// thick line.
+//
+// What the head *is* — how the bundle breaks into strands, how much paint it
+// holds, and how a mark exactly as wide as the head is fitted across those
+// strands — lives next door in `head.ts`. Nothing there knows about a stroke;
+// everything here is about dragging one.
 //
 // The numbers here are the medium's, in document pixels, and the screen only
 // ever takes detail away — never adds it. That is what keeps a mark looking the
 // same as you zoom into it and makes the PNG export exactly what the tool
 // intended.
 
+import type { Rect } from "../geometry.ts";
 import type { Point } from "../types.ts";
 import { mm } from "../units.ts";
 import {
+  driftWalk,
   HAIRLINE,
-  PIXEL,
-  driftNoise,
   hashedRandom,
   normalAt,
+  PIXEL,
   trace,
   type Trace,
 } from "./grain.ts";
+import {
+  BLADE,
+  capacityOf,
+  coreShare,
+  fitHead,
+  loadAt,
+  ROUND_HEAD,
+  TWIST_STRAY,
+  WANDER_STRAY,
+  type BrushHead,
+} from "./head.ts";
 import { paintPath } from "./ink.ts";
-
-/** What is on the end of the handle.
- *
- *  A `round` is a cone of hair: it lays down the same width whichever way you
- *  pull it, which is why it is the brush you draw with. A `flat` is a blade —
- *  a bundle squeezed into a chisel ferrule — and it lays down its full width
- *  only when you pull it square across itself. Turn it and the mark closes to
- *  the thickness of the blade, which is the entire reason a sign-writer owns
- *  one: a single stroke that swells and thins as it goes round a curve.
- *
- *  It is a property of the *brush*, not a dial: you do not turn a round into a
- *  flat, you pick up a different brush. So it arrives here from the plugin
- *  descriptor the way the marker's chisel does (see `builtin/index.ts`). */
-export type BrushHead = {
-  shape: "round" | "flat";
-  /** Which way the blade is turned, in radians off the horizontal. Meaningless
-   *  on a round, which has no flat to turn. */
-  angle: number;
-};
-
-/** The round head every brush is unless it says otherwise. */
-export const ROUND_HEAD: BrushHead = { shape: "round", angle: 0 };
-
-/** How thick a flat blade is, as a share of its width — what is left of the
- *  mark when the brush is pulled along its own edge.
- *
- *  Not zero, and not close to it: a chisel ferrule squeezes the bundle flat but
- *  a bundle of hair still has a body, and an edge-on flat leaves a line you can
- *  letter with rather than nothing at all. About a seventh is what a
- *  one-stroke brush actually measures. */
-const BLADE = 0.14;
 
 /** Stiffen a traced path to what a head that wide could actually have drawn.
  *
@@ -77,83 +63,36 @@ const BLADE = 0.14;
 function stiffen(along: Trace[], radius: number, spacing: number): Trace[] {
   const window = Math.floor(radius / Math.max(0.5, spacing));
   if (window < 1 || along.length < 3) return along;
-  const out: Trace[] = new Array(along.length);
-  for (let i = 0; i < along.length; i++) {
-    const k = Math.min(window, i, along.length - 1 - i);
+  const n = along.length;
+  // Running sums, so a window of any width costs one subtraction per sample
+  // rather than one addition per sample per tap. A two-inch flat smooths over
+  // tens of samples either side, and a long drag has thousands of them: summed
+  // the obvious way that is the single most expensive thing in the painter
+  // before a hair has been placed, and it is the same numbers added over and
+  // over.
+  const sumX = new Float64Array(n + 1);
+  const sumY = new Float64Array(n + 1);
+  for (let i = 0; i < n; i++) {
+    sumX[i + 1] = sumX[i]! + along[i]!.x;
+    sumY[i + 1] = sumY[i]! + along[i]!.y;
+  }
+  const out: Trace[] = new Array(n);
+  for (let i = 0; i < n; i++) {
+    const k = Math.min(window, i, n - 1 - i);
     if (k === 0) {
       out[i] = along[i]!;
       continue;
     }
-    let sx = 0;
-    let sy = 0;
-    for (let j = i - k; j <= i + k; j++) {
-      sx += along[j]!.x;
-      sy += along[j]!.y;
-    }
-    const n = k * 2 + 1;
-    out[i] = { ...along[i]!, x: sx / n, y: sy / n };
+    const lo = i - k;
+    const hi = i + k + 1;
+    const span = k * 2 + 1;
+    out[i] = {
+      ...along[i]!,
+      x: (sumX[hi]! - sumX[lo]!) / span,
+      y: (sumY[hi]! - sumY[lo]!) / span,
+    };
   }
   return out;
-}
-
-/** How much of its load the head still has after travelling `at` document
- *  pixels, 1 down to nearly 0.
- *
- *  A brush is charged once and then spends it. That is the shape of a real
- *  drag and the thing that makes the two ends of one look nothing alike: it
- *  starts as a solid slab, and somewhere along its length the paint stops
- *  covering and the mark opens up into the separate hairs that are laying it
- *  down. Every dry-brush and every hand-lettered stroke ends that way.
- *
- *  How that happens is not a fade, and that is the whole of the curve here. A
- *  loaded head **plateaus**: it covers solidly for most of its range and then
- *  gives out over the last stretch, which is why the lifted stroke on a
- *  reference sheet is three-quarters slab and one-quarter hair rather than an
- *  even gradient. A dry one is the opposite — it is nearly spent the moment it
- *  touches down, and stays that way. One exponent, driven by how loaded the
- *  head is, is both of those.
- *
- *  It never quite reaches nothing: a brush with a dry patch is not a brush with
- *  no paint, and a stroke that faded out entirely would be a stroke the user
- *  could not finish. */
-export function loadAt(at: number, capacity: number, hard: number): number {
-  const spent = Math.min(1, at / capacity);
-  return Math.max(0.08, 1 - spent ** (0.45 + hard * 1.9));
-}
-
-/** How far a head that loaded runs before it is spent, in document pixels.
- *
- *  Two things set it, and both are the brush rather than the stroke: a wide
- *  head holds more paint than a narrow one, and a charged head holds more than
- *  a dry one. The range is wide on purpose — a loaded two-inch flat covers most
- *  of a page before it opens up, a dry one is streaking within a head-width —
- *  because that range *is* the difference between the top and bottom of a
- *  pressure series.
- *
- *  Mostly proportional to the head, with a floor under it so a rigger is not
- *  spent in a centimetre. A charged #6 round — five millimetres of hair —
- *  covers something like fifteen centimetres of paper here, which is about what
- *  one dip does. */
-export function capacityOf(size: number, hard: number): number {
-  return (mm(10) + size * 10) * (0.45 + hard * 1.9);
-}
-
-/** How wide the pooled middle of the mark is, as a share of the head's
- *  half-width — 0 for anything but a well-charged head.
- *
- *  What makes a mark *solid* is not this: it is the hairs themselves, wet
- *  enough to be wider than the gaps they sit in and so overlapping into one
- *  body (see the line width in the painter). This is the extra on top — the
- *  paint that pools in the middle of a charged head, where the load is deepest
- *  and there is nowhere for it to go.
- *
- *  Which is why it stays a spine and never becomes a slab. Every gap it covers
- *  is a parting that does not get drawn, and the partings *are* the texture: a
- *  full-width flood would repaint the whole subtractive mark as a rectangle.
- *  Half the head is as far as it goes, and below a charged head it is nothing
- *  at all — a light or dry mark is hairs and paper, with no body under it. */
-export function coreShare(hard: number): number {
-  return Math.max(0, (hard - 0.22) / 0.78) ** 0.9 * 0.62;
 }
 
 /** The radius of the curve the path is taking at `i`, measured over a span of
@@ -202,48 +141,16 @@ function widthProfile(
     0.62 + 0.38 * Math.sqrt(lifting),
   );
   const speed = trace[i]!.speed;
-  const thinning = 1 / (1 + (speed / 26) * speedThinning);
-  return taper * Math.max(0.55, thinning);
+  // …and how much a quick one thins. A head dragged fast rides up and lays down
+  // less of itself, which is real — but it was worth nearly half the width at
+  // the top end, and a mark that is only the size on the button when the hand
+  // is standing still is not a brush of that size. Halved, and floored well
+  // above where it was: what a round brush is *for* is laying the same width
+  // whichever way and however fast you pull it, and everything a flat does
+  // differently it does through its blade rather than through this.
+  const thinning = 1 / (1 + (speed / 46) * speedThinning);
+  return taper * Math.max(0.72, thinning);
 }
-
-// --- What a brush head is actually made of -----------------------------------
-//
-// A real brush does not get *hairier* as it gets bigger — it gets **more
-// hairs**. Artists' filament is milled in a narrow band of thicknesses: a fine
-// sable is drawn at about 0.075 mm and the coarsest hog or house-brush bristle
-// at about 0.3 mm. Head widths span nothing like that range: a size 2 round is
-// 2 mm across the ferrule and a wide flat is 50 mm. So a head twenty-five times
-// the width carries hair only some four times the thickness — and about six
-// times as many streaks per centimetre of edge.
-//
-// That ratio is the whole of the rule below, and now that a document pixel is a
-// real distance (see `units.ts`) every number in it is the millimetre it stands
-// for. The pitch between hairs grows as roughly the third root of the head,
-// which over the app's whole 1–150 mm range moves a streak from 0.13 mm to
-// 0.39 mm — the real filament band, near enough. A mark made with the fattest
-// brush is a mark full of fine hair lines, not four fat noodles, which is what
-// a linear `size / count` gives and what no brush has ever left on paper.
-
-/** The gap between hairs on a head of `HAIR_HEAD` — a fine-to-middling sable,
- *  a little under a fifth of a millimetre. */
-const HAIR_PITCH = mm(0.18);
-
-/** The head width the pitch above is written for: a half-inch brush, which is
- *  the middle of the rack in every sense. */
-const HAIR_HEAD = mm(12);
-
-/** How fast hair coarsens as the head widens — the exponent on the ratio above.
- *  0 would be one hair gauge for every brush in the rack; 1 would be the
- *  noodles. Real filament ranges over ~4× while heads range over ~50×, and the
- *  logs of those land here. */
-const HAIR_COARSENING = 0.38;
-
-/** The coarsest and finest a hair is allowed to get however extreme the head —
- *  the two ends of what is actually milled: fine sable, and hog. The fine end
- *  stops a shade above the real 0.075 mm, because a strand thinner than a page
- *  pixel is one the mark cannot show however carefully it is placed. */
-const HAIR_PITCH_MIN = mm(0.1);
-const HAIR_PITCH_MAX = mm(0.32);
 
 /** The paper's grain, in document pixels: how far you travel before the sheet
  *  is a different height under the head. Everything a mark does that belongs to
@@ -265,50 +172,6 @@ const TOOTH = mm(1.8);
  *  paint is several grains across, so a wet mark is blotchy at a scale you can
  *  see rather than speckled at one you cannot. */
 const POOL_GRAIN = 2.6;
-
-/** The most strands one mark will ever be drawn from. Well past what a head
- *  this wide splays into visibly; it is here so a page-wide brush cannot walk
- *  the whole path a hundred times over. */
-const MAX_HAIRS = 56;
-
-/** How a head of a given width breaks into hairs.
- *
- *  Two numbers come out: how many strands to draw, and how far apart they sit.
- *  The pitch is the medium's — it is what makes a wide brush's streaks stay as
- *  fine as a narrow one's — and the count is the head divided by it, less
- *  whatever the screen cannot resolve.
- *
- *  `gauge` is which rack the brush came off: the filament this head is milled
- *  from, as a fraction of the ordinary. It multiplies the pitch *after* the
- *  clamps, because those bound what a brush of a given width is made of and
- *  this is the user saying they wanted a different brush — a fine sable at 0.5,
- *  a coarse hog at 2. It changes the streaks, never the width.
- *
- *  `merged` is the bookkeeping for the screen: when the screen can only tell
- *  twenty strands apart on a head the medium splays into forty, each drawn
- *  strand stands for two and is widened to match. Without it a stroke would
- *  visibly thin out as you zoomed away from it — the same trap the airbrush's
- *  dab count and the crayon's strands answer, and the same answer. */
-export function hairLayout(
-  size: number,
-  scale = 1,
-  gauge = 1,
-): { pitch: number; count: number; merged: number } {
-  const pitch =
-    Math.max(
-      HAIR_PITCH_MIN,
-      Math.min(
-        HAIR_PITCH_MAX,
-        HAIR_PITCH * (size / HAIR_HEAD) ** HAIR_COARSENING,
-      ),
-    ) * Math.max(0.1, gauge);
-  const wanted = Math.max(3, Math.min(MAX_HAIRS, Math.round(size / pitch)));
-  // Two hairs inside one device pixel are one hair drawn twice. A little over a
-  // pixel apart, because a strand needs a gap beside it to read as a strand.
-  const resolvable = Math.max(2, Math.round((size * scale) / (PIXEL * 1.3)));
-  const count = Math.min(wanted, resolvable);
-  return { pitch, count, merged: wanted / count };
-}
 
 /** The bristle brush.
  *
@@ -353,7 +216,15 @@ export function hairLayout(
  *   - `bleed` is the paper's doing, not the brush's: how far a wet edge wicks
  *     into the sheet before it dries. It is the only thing here that softens an
  *     edge, and it rests at nothing, because bristle on cartridge paper does
- *     not bleed and a mark that always did would look damp. */
+ *     not bleed and a mark that always did would look damp.
+ *
+ *  `clip` is the patch of page the caller is actually keeping (see
+ *  `PaintDetail.clip`), and it is the difference between a zoomed-in pan
+ *  costing the strip of paper it exposed and costing every mark that crosses
+ *  it end to end. A brush is one path per *hair* rather than one stamp per
+ *  sample, so it cannot be culled a stroke at a time the way the airbrush's
+ *  cones can — the hair is lifted over the stretches of the drag that are off
+ *  screen instead, which saves exactly the same work one sample at a time. */
 export function paintBrush(
   ctx: CanvasRenderingContext2D,
   points: readonly Point[],
@@ -364,6 +235,7 @@ export function paintBrush(
   fray = 1,
   bleed = 0,
   head: BrushHead = ROUND_HEAD,
+  clip?: Rect,
 ): void {
   const alpha = ctx.globalAlpha;
   const hard = Math.max(0, Math.min(1, hardness));
@@ -407,7 +279,11 @@ export function paintBrush(
     if (head.shape === "flat") {
       ctx.ellipse(p.x, p.y, half, half * BLADE, head.angle, 0, Math.PI * 2);
     } else {
-      ctx.ellipse(p.x, p.y, half, half * 0.82, 0.6, 0, Math.PI * 2);
+      // A cone of hair pressed onto paper prints very nearly the circle it is.
+      // Not exactly — nothing wet lands as a drawn disc — but the squashed oval
+      // this used to leave was the shape of a flat, and on the one tool whose
+      // whole character is that it draws the same width in every direction.
+      ctx.ellipse(p.x, p.y, half, half * 0.94, 0.6, 0, Math.PI * 2);
     }
     ctx.fill();
     ctx.restore();
@@ -420,21 +296,54 @@ export function paintBrush(
   // third of the stroke so a short dash is still a dash and not two tapers.
   const leadIn = Math.max(1, Math.min(count * 0.2, (size * 0.2) / spacing));
   const runOut = Math.max(1, Math.min(count * 0.3, (size * 0.5) / spacing));
-  // How far the head splays. A dry head has nothing gathering it, so it opens
-  // out a little — but only a little: put a pressure series side by side and
-  // the five marks are the same width. What separates them is how much of that
-  // width is *covered*, and that is `coreShare` and the hairs below, not this.
-  //
-  // A worn head opens further, and that part is the `fray` dial. It is the one
-  // thing here allowed to widen the mark, and it does so barely: a splayed
-  // brush is a brush with a *fringe*, not a wider brush.
+  // The head itself: its strands, where each of them sits across it, and how
+  // far the lanes could be spread and still leave a mark `size` wide (see
+  // `head.ts`). All of it settled before a hair is drawn.
   const worn = Math.max(0, Math.min(2, fray));
-  const splay = 1 + (1 - hard) * 0.12 + Math.max(0, worn - 1) * 0.16;
-  // Where the body of the head ends and its side begins, as a share of the
-  // half-width. Everything that frays a mark is gated on being past it, so this
-  // one number is the difference between a flat that cuts a clean edge and one
-  // whose outer third is loose hair. A new brush keeps it right at the rim.
-  const edgeStart = 0.94 - worn * 0.22;
+  const {
+    splay,
+    gap,
+    inset,
+    count: bristles,
+    lanes,
+    edges,
+    clumps,
+    pens,
+  } = fitHead(size, hard, scale, gauge, worn);
+  // How far along the drag the head has emptied — see `capacityOf`.
+  const capacity = capacityOf(size, hard);
+  // How far a wet edge wicks into the sheet, in document pixels — the `bleed`
+  // dial, measured against the head because a fat brush puts down more water.
+  // Zero unless the dial has been moved, and zero as well once the halo is
+  // thinner than a device pixel, where it is a second pass of the same line
+  // for a softness nobody can see.
+  const wickReach =
+    Math.max(1.5, size * 0.09) * Math.max(0, Math.min(2, bleed));
+  const wick = wickReach * scale >= PIXEL ? wickReach : 0;
+
+  // The direction across the stroke at each sample. Hoisted out of the bristle
+  // loop: it is a property of the *path*, and computing it per hair was the
+  // same divide and square root done sixteen times over.
+  //
+  // The load left in the head and the paper's tooth are hoisted for exactly the
+  // same reason — both are properties of *where you are along the stroke*, the
+  // same for every hair crossing that place, and both are read once per hair
+  // per sample. On a wide head that is fifty identical noise reads and fifty
+  // identical exponentiations per sample.
+  const nxs = new Float64Array(count);
+  const nys = new Float64Array(count);
+  const loads = new Float64Array(count);
+  const teeth = new Float64Array(count);
+  const tooth = driftWalk();
+  tooth.reset(3);
+  for (let i = 0; i < count; i++) {
+    const { nx, ny } = normalAt(along, i);
+    nxs[i] = nx;
+    nys[i] = ny;
+    loads[i] = loadAt(along[i]!.at, capacity, hard);
+    teeth[i] = tooth.at(along[i]!.at / TOOTH);
+  }
+
   const widths = new Float64Array(count);
   // The corner the path turns, measured over about a half-width of travel.
   const span = Math.max(1, Math.round(half / Math.max(1, spacing)));
@@ -458,21 +367,15 @@ export function paintBrush(
     // nothing more. That single projection is the whole of what a chisel
     // ferrule does, and it is why one stroke of a flat swells and thins as it
     // goes round a curve without the hand doing anything at all.
-    const { nx, ny } = normalAt(along, i);
     const across =
       head.shape === "flat"
-        ? Math.max(BLADE, Math.abs(bladeX * nx + bladeY * ny))
+        ? Math.max(BLADE, Math.abs(bladeX * nxs[i]! + bladeY * nys[i]!))
         : 1;
     widths[i] =
       widthProfile(along, i, leadIn, runOut, 1) *
       Math.min(1, Math.max(0.15, reach)) *
       across;
   }
-  // The hairs, at the medium's own pitch (see `hairLayout`) — many and fine on
-  // a wide head, few and fine on a narrow one.
-  const { count: bristles, merged } = hairLayout(size, scale, gauge);
-  // How far along the drag the head has emptied — see `capacityOf`.
-  const capacity = capacityOf(size, hard);
   // How much of the medium's texture a head this narrow can show at all.
   //
   // The grain is the *paper's*, so it does not shrink with the brush: a liner
@@ -484,35 +387,24 @@ export function paintBrush(
   const grainShare = 0.35 + 0.65 * Math.min(1, (size / (TOOTH * 1.6)) ** 0.7);
   // How far the mark runs, so a hair can be cut short of either end of it.
   const total = along[count - 1]!.at;
-  // How far a wet edge wicks into the sheet, in document pixels — the `bleed`
-  // dial, measured against the head because a fat brush puts down more water.
-  // Zero unless the dial has been moved, and zero as well once the halo is
-  // thinner than a device pixel, where it is a second pass of the same line
-  // for a softness nobody can see.
-  const wickReach =
-    Math.max(1.5, size * 0.09) * Math.max(0, Math.min(2, bleed));
-  const wick = wickReach * scale >= PIXEL ? wickReach : 0;
 
-  // The direction across the stroke at each sample. Hoisted out of the bristle
-  // loop: it is a property of the *path*, and computing it per hair was the
-  // same divide and square root done sixteen times over.
+  // Which samples can put ink where the caller is keeping any (see `clip`), and
+  // the first and last that can. A sample reaches half a head plus a wet edge
+  // off its own point, and a curve drawn through the midpoints reaches a sample
+  // either side, so the box is grown by that much before it is asked.
   //
-  // The load left in the head and the paper's tooth are hoisted for exactly the
-  // same reason — both are properties of *where you are along the stroke*, the
-  // same for every hair crossing that place, and both are read once per hair
-  // per sample. On a wide head that is fifty identical `driftNoise` calls and
-  // fifty identical exponentiations per sample.
-  const nxs = new Float64Array(count);
-  const nys = new Float64Array(count);
-  const loads = new Float64Array(count);
-  const teeth = new Float64Array(count);
-  for (let i = 0; i < count; i++) {
-    const { nx, ny } = normalAt(along, i);
-    nxs[i] = nx;
-    nys[i] = ny;
-    loads[i] = loadAt(along[i]!.at, capacity, hard);
-    teeth[i] = driftNoise(along[i]!.at / TOOTH, 3);
-  }
+  // Everything above this line is one pass over the path and costs what the
+  // path costs. Everything below it is one pass over the path *per hair*, which
+  // on a wide head is fifty of them — so this is the one place in the painter
+  // where knowing what is on screen is worth the asking.
+  const shown = visibleAlong(
+    along,
+    clip,
+    half * splay + wick + spacing + PIXEL / Math.max(0.01, scale),
+  );
+  const first = shown ? shown.first : 0;
+  const last = shown ? shown.last : count - 1;
+  if (first > last) return;
 
   ctx.save();
   ctx.lineCap = "round";
@@ -561,97 +453,61 @@ export function paintBrush(
   // A spine of constant width is the one thing in a brushed stroke that looks
   // extruded, because its two long edges are a pair of curves nothing on paper
   // ever draws.
-  const core = new Float64Array(count);
-  for (let i = 0; i < count; i++) {
-    core[i] =
-      widths[i]! *
-      (0.15 + 0.85 * loads[i]!) *
-      (0.55 + driftNoise(along[i]!.at / (TOOTH * POOL_GRAIN), 3) * 0.8);
+  const pool = half * coreShare(hard) * splay;
+  if (pool > 0) {
+    const core = new Float64Array(count);
+    const pooling = driftWalk();
+    pooling.reset(3);
+    for (let i = 0; i < count; i++) {
+      core[i] =
+        widths[i]! *
+        (0.15 + 0.85 * loads[i]!) *
+        (0.55 + pooling.at(along[i]!.at / (TOOTH * POOL_GRAIN)) * 0.8);
+    }
+    const pooled = Math.min(
+      Math.round(Math.min(size * 0.35, total * 0.25) / Math.max(0.5, spacing)),
+      Math.floor((count - 1) / 2),
+    );
+    ctx.beginPath();
+    // Held to the visible run as well as to the pool's own inset. A band that
+    // stops off screen stops bluntly, which is what it does at its own ends
+    // anyway — so the picture inside the patch is the picture a whole ribbon
+    // would have left there.
+    ribbon(
+      ctx,
+      along,
+      core,
+      nxs,
+      nys,
+      pool,
+      Math.max(pooled, first),
+      Math.min(count - 1 - pooled, last),
+    );
+    // The pool wicks too, and it has to be stroked before it is filled: the halo
+    // is centred on the outline, so half of it lands inside the body where the
+    // fill then covers it. Stroked after, that inside half would print as a
+    // paler ring just within the edge of every heavy mark.
+    if (wick > 0) wickPass(ctx, alpha, 0, wick);
+    ctx.fill();
   }
-  const pooled = Math.round(
-    Math.min(size * 0.35, total * 0.25) / Math.max(0.5, spacing),
-  );
-  const from = Math.min(pooled, Math.floor((count - 1) / 2));
-  ctx.beginPath();
-  ribbon(ctx, along, core, nxs, nys, half * coreShare(hard) * splay, from);
-  // The pool wicks too, and it has to be stroked before it is filled: the halo
-  // is centred on the outline, so half of it lands inside the body where the
-  // fill then covers it. Stroked after, that inside half would print as a
-  // paler ring just within the edge of every heavy mark.
-  if (wick > 0) wickPass(ctx, alpha, 0, wick);
-  ctx.fill();
 
-  // What the hairs are actually spaced at once they have been fitted across
-  // this head — the pitch is what set their *number*, and the head has to be
-  // covered by exactly that many. Solving for the gap that puts the outermost
-  // hair's outer side on the edge of the head keeps the mark the width it says
-  // it is, instead of the width plus one hair.
-  const gap = (size * splay) / bristles;
-  const inset = half * splay - gap / 2;
+  // The three drifts a hair reads as it travels: whether it is on the paper,
+  // how far it has wandered out of its lane, and where the bundle has twisted
+  // to. One walker each rather than a hash per sample — a wide head asks the
+  // same lattice cell for the same answer a dozen times in a row (see
+  // `driftWalk`), and this loop is the one place in the app where that
+  // multiplies by fifty.
+  const dry = driftWalk();
+  const drift = driftWalk();
+  const twisting = driftWalk();
+  twisting.reset(7);
 
   // The hairs.
   for (let b = 0; b < bristles; b++) {
-    // Where this hair sits across the head. Evenly spaced would be a comb: wet
-    // hairs stick to their neighbours, so the head is really a row of little
-    // tufts with partings between them. A hashed nudge of up to half a gap is
-    // what puts those in — and where the nudge pulls two neighbours apart it
-    // opens a parting that runs the whole length of the mark, which is what the
-    // long white hairlines in a brushed stroke are. The same for ever, because
-    // it is hashed off the hair's index and not drawn at random.
     const lane = bristles === 1 ? 0 : (b / (bristles - 1) - 0.5) * 2;
-    // How far into the *side* of the head this hair is, 0 through the whole
-    // body of it and 1 at the very outside. A head is uniform almost all the
-    // way across and only comes apart at its two sides, so everything that
-    // frays a mark — thinner hairs, drier ones, ones that stray out of line —
-    // is gated on this rather than on the lane. Spread across the whole width
-    // instead, the fray eats a third of the mark from each side and what is
-    // left is a black bar with a comb either side of it.
-    const edge =
-      Math.max(0, (Math.abs(lane) - edgeStart) / (1 - edgeStart)) ** 1.5;
-    const clump = (hashedRandom(b * 5.3, 61) - 0.5) * 1.05 * gap;
-    // How far out this hair actually reaches. Hairs are not cut to a common
-    // length: without this the outer ones share an envelope and the mark ends
-    // in a drawn outline rather than in a frayed edge — which is exactly what
-    // it did at a sixth of this spread, because a rim of hairs all landing
-    // within a few percent of the same offset *is* a traced contour.
-    const reach = 1 + edge * (hashedRandom(b * 3.9, 23) - 0.4) * 0.42 * worn;
-    const across = (lane * reach * inset + clump) / Math.max(1, half);
-    // A hair is a hair wide — the pitch it sits at, give or take, and *not* a
-    // share of the head. This is the whole point of `hairLayout`: widen the
-    // head and you get more of these, never fatter ones. The only thing that
-    // fattens them is a screen too coarse to show them all, where each strand
-    // left is standing in for the ones that were dropped.
-    //
-    // Wider than the gap it sits in, so neighbours overlap and the wet part of
-    // the mark closes up into one solid piece. What separates them is a hair
-    // *lifting*, not a gap left between them — dry hairs make the texture,
-    // thin ones would only make a mesh.
-    //
-    // Except at the edges: a head is fullest in the middle and thins to its
-    // sides, and the hairs that show up alone — the ones in the fray — are the
-    // outermost. Leaving them as fat as the ones buried in the middle is what
-    // makes a frayed edge read as rope rather than as hair.
-    //
-    // And it is *wet* hairs that are wider than their gap. Paint is what
-    // bridges one hair to the next: a charged head lays a closed mark down
-    // because the hairs' loads meet in the middle, and a dry one leaves the
-    // filament's own width with bare paper either side of it. So the same
-    // number that decides how much of the head floods (`coreShare`) has to
-    // decide this too, or a dry brush comes out as a solid mark wearing a
-    // handful of scratches.
-    ctx.lineWidth = Math.max(
-      0.5,
-      gap *
-        merged *
-        (0.56 + hard * 0.5) *
-        // Not all much of a muchness: a head is a row of *clumps*, so a few
-        // strands are several hairs stuck together and most are one. Squared,
-        // so the broad ones are the exception they are on paper — an even
-        // spread of widths reads as a comb, which is the giveaway that a mark
-        // was ruled rather than brushed.
-        (0.65 + hashedRandom(b * 11.7, 5) ** 2 * 1) *
-        (1 - edge * 0.4),
-    );
+    const edge = edges[b]!;
+    const across = (lanes[b]! * inset + clumps[b]!) / Math.max(1, half);
+    ctx.lineWidth = pens[b]!;
     // How readily this hair leaves the paper — the fraction of the drag it
     // spends off it, before the load and the paper's tooth have their say.
     //
@@ -711,8 +567,18 @@ export function paintBrush(
     // a list read once and thrown away.
     ctx.beginPath();
     const strand = openStrand();
-    for (let i = 0; i < count; i++) {
+    dry.reset(b + 91);
+    drift.reset(b);
+    for (let i = first; i <= last; i++) {
       const p = along[i]!;
+      // Somewhere the caller is not keeping, if it said (see `shown`). The hair
+      // lifts over it exactly as it lifts over a dry patch, and what it skips is
+      // off screen — so the mark inside the patch is the mark a whole one would
+      // have left there, for the cost of the part that shows.
+      if (shown && !shown.at[i]) {
+        strand.lift(ctx);
+        continue;
+      }
       // Before the far end of this hair, or past it: the head has not touched
       // down yet, or has already rolled off.
       if (p.at < lands || p.at > total - lifts) {
@@ -730,16 +596,23 @@ export function paintBrush(
       // breaks *across* a mark rather than only along it. Alone, per-hair drift
       // gives a mark that is combed but never interrupted.
       const tooth = teeth[i]!;
-      const wetness = driftNoise(p.at / skipRun, b + 91);
+      const wetness = dry.at(p.at / skipRun);
       // Capped short of certainty: a head that has run out is a head laying
-      // down a scratchy mark, not one laying down nothing, and past about two
-      // thirds the far end of a long drag simply disappears.
+      // down a scratchy mark, not one laying down nothing, and a stroke that
+      // faded to nothing would be one the user could not finish.
+      //
+      // The load's share of that is the largest term by some way, and it is
+      // meant to be: what ends a brushed stroke is the paint going, not the
+      // hand lifting (see `capacityOf`). It is also the term that decides what
+      // a long drag *costs* — a lifted hair is a run of samples that never
+      // reach the path — so the far end of one gets cheaper as it gets drier,
+      // which is the right way round.
       const dryness =
         Math.min(
-          0.68,
+          0.72,
           dryEdge +
             Math.min(0.2, p.speed / 120) +
-            (1 - loads[i]!) * 0.45 +
+            (1 - loads[i]!) * 0.55 +
             (0.5 - tooth) * 0.22,
         ) * grainShare;
       if (wetness < dryness) {
@@ -754,9 +627,10 @@ export function paintBrush(
       // The wave reaches the far side of the head a moment after the near side
       // — a real head does not pivot about its centre — and that lag is what
       // stops the hairs from tracing a stack of parallel contour lines.
-      const twist = (driftNoise((p.at + lane * 25) / 150, 7) - 0.5) * 0.08;
+      const twist =
+        (twisting.at((p.at + lane * 25) / 150) - 0.5) * TWIST_STRAY * 2;
       const wander =
-        (driftNoise(p.at / 90, b) - 0.5) * gap * 0.55 * (0.5 + worn * 0.5);
+        (drift.at(p.at / 90) - 0.5) * gap * WANDER_STRAY * (0.5 + worn * 0.5);
       const offset = (across + twist) * half * widths[i]! + wander;
       strand.to(ctx, p.x + nxs[i]! * offset, p.y + nys[i]! * offset);
     }
@@ -773,6 +647,39 @@ export function paintBrush(
     ctx.stroke();
   }
   ctx.restore();
+}
+
+/** Which samples of a traced path can put ink inside `clip`, padded by how far
+ *  a head sitting on one of them reaches — plus the first and last that can, so
+ *  a caller can skip the two ends of a drag outright rather than walking them.
+ *
+ *  `null` when there is no patch to keep to, which is every caller that wants
+ *  the whole mark: the PNG export, a thumbnail, a size preview. Nothing then
+ *  tests anything, and the painter walks the path exactly as it always did.
+ *
+ *  A flat array of flags rather than a list of runs because it is read once per
+ *  sample per hair and the read has to be a bounds-free index. */
+function visibleAlong(
+  along: readonly Trace[],
+  clip: Rect | undefined,
+  pad: number,
+): { at: Uint8Array; first: number; last: number } | null {
+  if (!clip) return null;
+  const left = clip.x - pad;
+  const right = clip.x + clip.width + pad;
+  const top = clip.y - pad;
+  const bottom = clip.y + clip.height + pad;
+  const at = new Uint8Array(along.length);
+  let first = along.length;
+  let last = -1;
+  for (let i = 0; i < along.length; i++) {
+    const p = along[i]!;
+    if (p.x < left || p.x > right || p.y < top || p.y > bottom) continue;
+    at[i] = 1;
+    if (i < first) first = i;
+    last = i;
+  }
+  return { at, first, last };
 }
 
 /** Stroke the current path as a damp halo around whatever is about to be drawn
@@ -848,9 +755,11 @@ function openStrand() {
  *  the current path, ready to fill. Shared by the brush body and anything else
  *  that wants a stroke with a profile rather than a width.
  *
- *  `inset` trims that many samples off each end, so the band can stop short of
- *  the path it follows without tapering — a squared-off end rather than a point
- *  or a bead. */
+ *  `from` and `to` are the first and last sample the band covers, so it can stop
+ *  short of the path it follows without tapering — a squared-off end rather
+ *  than a point or a bead. They are also where a caller cuts the band to the
+ *  patch it is keeping: an end that lands off screen is squared off out there,
+ *  where nobody is looking. */
 function ribbon(
   ctx: CanvasRenderingContext2D,
   path: readonly Trace[],
@@ -858,15 +767,12 @@ function ribbon(
   allNxs: Float64Array,
   allNys: Float64Array,
   half: number,
-  inset = 0,
+  from = 0,
+  to = path.length - 1,
 ): void {
-  const trim = Math.max(0, Math.min(inset, Math.floor((path.length - 2) / 2)));
-  const along = trim > 0 ? path.slice(trim, path.length - trim) : path;
-  const widths =
-    trim > 0 ? allWidths.subarray(trim, allWidths.length - trim) : allWidths;
-  const nxs = trim > 0 ? allNxs.subarray(trim, allNxs.length - trim) : allNxs;
-  const nys = trim > 0 ? allNys.subarray(trim, allNys.length - trim) : allNys;
-  const count = along.length;
+  const start = Math.max(0, from);
+  const end = Math.min(path.length - 1, to);
+  const count = end - start + 1;
   if (count < 2) return;
   // The outline, as a flat run of x, y pairs: up one side and back down the
   // other. Flat rather than an array of points because it is walked once to
@@ -874,10 +780,11 @@ function ribbon(
   // pair that is read twice.
   const loop = new Float64Array(count * 4);
   for (let i = 0; i < count; i++) {
-    const w = half * widths[i]!;
-    const p = along[i]!;
-    const nx = nxs[i]! * w;
-    const ny = nys[i]! * w;
+    const at = start + i;
+    const w = half * allWidths[at]!;
+    const p = path[at]!;
+    const nx = allNxs[at]! * w;
+    const ny = allNys[at]! * w;
     loop[i * 2] = p.x + nx;
     loop[i * 2 + 1] = p.y + ny;
     // The far side is filled from the end backwards, which is the reversal the

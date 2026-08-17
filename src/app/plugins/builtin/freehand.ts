@@ -9,7 +9,8 @@
 
 import { SOLID_GROUND } from "../../ground.ts";
 import type { Point } from "../../types.ts";
-import { paintBrush, ROUND_HEAD, type BrushHead } from "../bristle.ts";
+import { paintBrush } from "../bristle.ts";
+import { ROUND_HEAD, type BrushHead } from "../head.ts";
 import {
   paintCalligraphy,
   paintNib,
@@ -192,6 +193,10 @@ export function freehandBehaviour(ink: FreehandInk = {}): ToolBehaviour {
                   angle: radians(strokeDial(stroke, "angle", ink.angle ?? 0)),
                 }
               : ROUND_HEAD,
+            // …and the patch the caller is actually keeping, so a drag that
+            // crosses the window costs the part of it that shows rather than
+            // fifty hairs' worth of the whole thing (see `PaintDetail.clip`).
+            detail.clip,
           );
           return;
         case "wash":

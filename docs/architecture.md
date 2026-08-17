@@ -475,7 +475,12 @@ be much less than a full render:
   as you zoom into it and the PNG export (always 1:1) is unchanged. It also
   carries the **patch being painted**, so a painter built out of hundreds of
   stamps can skip the ones that cannot reach it: repainting a corner of an
-  airbrush stroke costs the cones in that corner rather than all of them — and
+  airbrush stroke costs the cones in that corner rather than all of them. The
+  brush spends it the other way about, because it is one path per _hair_ rather
+  than one stamp per sample and so cannot be culled a stamp at a time — it lifts
+  each hair over the stretches of the drag that are off screen, which is the
+  same saving one sample at a time, and it is what makes a pan across a page of
+  brushwork cost the strip of paper it exposed. Also carried is
   whether the mark is **still under the hand** (`PaintDetail.live`), which is a
   budget rather than a look: a landed mark is painted once and kept, where the
   gesture in flight is repainted from its first point every pointer sample, so a
@@ -722,7 +727,13 @@ lives by: **nothing outside it may branch on a tool id.**
   the only painter modelling a physical _object_: a head that holds a load and
   spends it, that is wider than the wiggles you ask it to follow, that cannot
   turn inside its own width, and that leaves an opaque mark with the hairs'
-  partings scratched through it.
+  partings scratched through it. It is that head being **dragged across paper**;
+  what the head _is_ lives beside it in `head.ts` — how the bundle breaks into
+  strands, how much paint it holds, and how a mark exactly as wide as the head
+  is fitted across the strands it turns out to have. Nothing in `head.ts` knows
+  about a stroke, which is what lets every physical claim in it (the gauge real
+  filament is milled at, what one dip covers, how far a worn head frays open) be
+  held to without painting a mark.
 - `aquarelle.ts` — watercolour, which is the one medium here where what is
   being painted with is _water_: the wash runs past the hair that laid it, its
   two edges wander independently, the rim dries darkest as the pool evaporates,

@@ -190,8 +190,14 @@ painters in `src/app/plugins/brushes.ts`, `bristle.ts`, `crayon.ts` and
   a share of the width — widen the brush and you get _more_ streaks rather than
   fatter ones, the way a rack of real brushes works. The head lands blunt and
   holds its width, it is too wide to follow a wiggle finer than itself and it
-  cannot turn inside its own width, and it carries a load it spends: the far end
-  of a long drag opens up into separate hairs. Drag it fast and it thins, which
+  cannot turn inside its own width, and it carries a load it spends: a #6 round
+  covers about four centimetres of paper before the far end of the drag opens up
+  into separate hairs, which is about what one dip gives you. The mark it leaves
+  is the **width of the head** — everything that ruffles the edge of a brushed
+  stroke, the clumping, the wander, the twist of the bundle and the fray of a
+  worn head, is budgeted out of the head rather than added to it, so a fringe
+  frays inwards and the number on the size button is a distance you can measure.
+  Drag it fast and it thins, which
   the stroke knows for free — the canvas samples every 1.5 document pixels at
   the slowest, so the gaps between stored points are how quickly you crossed
   them. What decides how a mark reads is **how much paper is left showing**: a
