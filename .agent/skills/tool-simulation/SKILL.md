@@ -97,7 +97,11 @@ Tuning lessons that cost real time:
 
 The bar (from the calligraphy session, and it held): pan/zoom/other tools at
 60 fps, live drawing at 60 fps whatever the stroke length, a one-off cost per
-mark is fine.
+mark is fine. Pan and zoom _gestures_ are already met one level up — the frame
+cache scrolls a pure pan and carries a zoom in flight as one blit
+(`CacheSpec.zooming` in `cache.ts`) — so a simulation only has to be fast at
+settled repaints (the dried-mark store) and live drawing (the incremental
+walk); never tune a medium for the frames a gesture throws away.
 
 1. **Work the field in document space** (`PITCH = 1` doc px), never screen
    space — the mark is then the same picture at every zoom, which is what
