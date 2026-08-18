@@ -311,6 +311,10 @@ export const sv: Catalog = {
       name: "Tryck: {value} %",
       hint: "Tryck hårdare för att fylla papprets korn; lätta för att låta det synas.",
     },
+    press: {
+      name: "Tryck: {value} %",
+      hint: "Hur hårt du trycker på stiftet. Tryck hårdare för en tät svärta; lätta för ett ljust streck där papperet syns igenom.",
+    },
     feather: {
       name: "Mjuk kant: {value} mm",
       hint: "Tonar ut fyllningens kant i stället för att tvärt avsluta den.",

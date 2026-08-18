@@ -91,13 +91,19 @@ export function setLeadDetail(detail: number): void {
  *  `detail` is the simulation's alone, which is why it is last but one: it says
  *  how finely to work the field out (see `MIN_LEAD_DETAIL`), and turning it down
  *  is one more way a mark falls through — a lead only a couple of coarse cells
- *  across has no tooth left to find. */
+ *  across has no tooth left to find.
+ *
+ *  `press` is not: it is how hard the hand bore down, and **both** engines take
+ *  it. A mark that fell through to the stroke model because the view was pulled
+ *  back has to keep the weight it was drawn with, or a zoom would re-press
+ *  every line on the page. */
 export function paintGraphiteOn(
   ctx: CanvasRenderingContext2D,
   points: readonly Point[],
   size: number,
   scale = 1,
   grade = HB_LEAD,
+  press = 1,
   ground: GroundProfile = SOLID_GROUND,
   color = "#000000",
   detail = DEFAULT_LEAD_DETAIL,
@@ -110,6 +116,7 @@ export function paintGraphiteOn(
     size,
     scale,
     grade,
+    press,
     ground,
     color,
     detail,
@@ -117,5 +124,5 @@ export function paintGraphiteOn(
     live,
   );
   if (drawn) return;
-  paintGraphite(ctx, points, size, scale, grade);
+  paintGraphite(ctx, points, size, scale, grade, press);
 }

@@ -112,15 +112,20 @@ export const PENCIL_PRESETS: readonly BuiltinPreset[] = [
     id: "construction",
     nameKey: "presets.graphite.construction",
     size: mm(0.7),
-    // A 2H, laid in light enough to draw over and rub out after.
-    dials: { grade: 0.7, opacity: 0.55 },
+    // A 2H under a light hand: the lead rides the crowns of the paper and
+    // leaves a line you can draw over and rub out after. The lightness is the
+    // *hand* rather than an opacity turned down, which is a different picture
+    // at the same greyness — the sheet shows through the mark instead of the
+    // mark being faded (see `PRESS` in `./dials.ts`).
+    dials: { grade: 0.7, pressure: 0.6 },
   },
   {
     id: "shading",
     nameKey: "presets.graphite.shading",
     size: mm(3),
-    // The 6B on its side.
-    dials: { grade: 1.68 },
+    // The 6B on its side, leaned on: this is the one the darks go in with, and
+    // a shadow laid in at a sketching weight is a shadow you cannot see.
+    dials: { grade: 1.68, pressure: 1.35 },
   },
   {
     id: "detail",

@@ -302,6 +302,12 @@ export function freehandBehaviour(ink: FreehandInk = {}): ToolBehaviour {
             stroke.size,
             scale,
             strokeDial(stroke, "grade"),
+            // …and how hard the hand was bearing down on it, which is the other
+            // half of what a pencil line is: the grade is the lead, this is the
+            // hand (see `PRESS` in `builtin/dials.ts`). Recorded on the mark
+            // like every other dial, so re-setting it later cannot re-press a
+            // line already drawn.
+            strokeDial(stroke, "pressure"),
             // The sheet the lead is being pressed into: how coarse the paper is,
             // how deep, and whether it dips at random or goes over and under.
             sheet,

@@ -190,6 +190,39 @@ export const GRADE: ToolDial = {
   ],
 };
 
+/** How hard the hand is bearing down on the pencil.
+ *
+ *  The same id as the crayon's `PRESSURE` and the rubber's `RUB`, and the third
+ *  implement with a hand leaning on it — a dial is stored per tool, so none of
+ *  the three reads either of the others' number.
+ *
+ *  It is the axis a pencil has that the grade is not. The grade is *which lead
+ *  is in your hand*; this is what you are doing with it, and no sketcher draws
+ *  at one weight: a construction line is laid on with the side of a light hand
+ *  and rides the crowns of the paper, and the dark that goes in last is the same
+ *  lead leaned on until it reaches the bottom of the tooth. What it moves is how
+ *  far into the sheet the lead is driven (see `leadField.ts`), so bearing down
+ *  fills the paper's valleys in and eases the mark from broken to solid — and
+ *  never makes the line one pixel wider.
+ *
+ *  **Not the opacity beside it.** That one is a flat alpha over the finished
+ *  mark, which is how you lay a guide line in to trace over. This one changes
+ *  what the lead did to the paper, which is a different picture at the same
+ *  greyness: a pale heavy mark is solid and low-contrast, a pale light one is
+ *  the sheet showing through.
+ *
+ *  It goes past 1 as far as it goes under it, because leaning on a pencil is
+ *  what half of drawing with one is — and when a stylus one day reports its own
+ *  pressure, this is the number it will be moving. */
+export const PRESS: ToolDial = {
+  id: "pressure",
+  nameKey: "dials.press.name",
+  hintKey: "dials.press.hint",
+  min: 0.3,
+  max: 1.6,
+  step: 0.05,
+};
+
 /** Edge crispness — the dial that used to live in the open under the width, and
  *  the reason this whole seam exists: it was only ever right for two tools, and
  *  it meant something different to each of them. Soft is a splayed dry head on

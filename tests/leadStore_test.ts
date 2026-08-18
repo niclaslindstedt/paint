@@ -54,7 +54,7 @@ describe("a landed pencil mark", () => {
     const screen = createFakeCanvas(400, 300).ctx;
     const points = curve();
     expect(
-      paintSimulatedLead(screen, points, mm(0.7), 1, HB_LEAD, SOLID_GROUND),
+      paintSimulatedLead(screen, points, mm(0.7), 1, HB_LEAD, 1, SOLID_GROUND),
     ).toBe(true);
     expect(fieldsWorked()).toBe(1);
 
@@ -62,7 +62,15 @@ describe("a landed pencil mark", () => {
     // not one more field worked out, one blit each.
     for (let i = 0; i < 60; i++) {
       expect(
-        paintSimulatedLead(screen, points, mm(0.7), 1, HB_LEAD, SOLID_GROUND),
+        paintSimulatedLead(
+          screen,
+          points,
+          mm(0.7),
+          1,
+          HB_LEAD,
+          1,
+          SOLID_GROUND,
+        ),
       ).toBe(true);
     }
     expect(fieldsWorked()).toBe(1);
@@ -75,12 +83,12 @@ describe("a landed pencil mark", () => {
     // different picture of the same mark, worked out once and then held.
     const screen = createFakeCanvas(400, 300).ctx;
     const points = curve();
-    paintSimulatedLead(screen, points, mm(0.7), 1, HB_LEAD, SOLID_GROUND);
-    paintSimulatedLead(screen, points, mm(0.7), 2, HB_LEAD, SOLID_GROUND);
+    paintSimulatedLead(screen, points, mm(0.7), 1, HB_LEAD, 1, SOLID_GROUND);
+    paintSimulatedLead(screen, points, mm(0.7), 2, HB_LEAD, 1, SOLID_GROUND);
     expect(fieldsWorked()).toBe(2);
     // …and back: both zooms are on the shelf now.
-    paintSimulatedLead(screen, points, mm(0.7), 1, HB_LEAD, SOLID_GROUND);
-    paintSimulatedLead(screen, points, mm(0.7), 2, HB_LEAD, SOLID_GROUND);
+    paintSimulatedLead(screen, points, mm(0.7), 1, HB_LEAD, 1, SOLID_GROUND);
+    paintSimulatedLead(screen, points, mm(0.7), 2, HB_LEAD, 1, SOLID_GROUND);
     expect(fieldsWorked()).toBe(2);
   });
 
@@ -93,6 +101,7 @@ describe("a landed pencil mark", () => {
       mm(0.7),
       1,
       HB_LEAD,
+      1,
       SOLID_GROUND,
       "#333338",
     );
@@ -102,10 +111,11 @@ describe("a landed pencil mark", () => {
       mm(0.7),
       1,
       HB_LEAD,
+      1,
       SOLID_GROUND,
       "#663322",
     );
-    paintSimulatedLead(screen, points, mm(0.7), 1, HB_LEAD, {
+    paintSimulatedLead(screen, points, mm(0.7), 1, HB_LEAD, 1, {
       ...SOLID_GROUND,
       tooth: 3,
       bite: 0.5,
@@ -127,6 +137,7 @@ describe("the gesture under the hand", () => {
       mm(0.7),
       1,
       HB_LEAD,
+      1,
       SOLID_GROUND,
       "#333338",
       1,
@@ -137,7 +148,7 @@ describe("the gesture under the hand", () => {
     // The live paint worked a field (on the shared sheet), but the same ask
     // landed dries a fresh one: nothing was kept.
     expect(
-      paintSimulatedLead(screen, points, mm(0.7), 1, HB_LEAD, SOLID_GROUND),
+      paintSimulatedLead(screen, points, mm(0.7), 1, HB_LEAD, 1, SOLID_GROUND),
     ).toBe(true);
     expect(fieldsWorked()).toBe(2);
     expect(surfaces()).toBeGreaterThan(minted - 1);

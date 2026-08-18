@@ -38,7 +38,8 @@ connect a storage backend yourself.
   bare, a second pass filling in what the first could not reach, a black it
   cannot go past however long you shade, and the crowns of a canvas weave
   catching while the troughs skip. The page's surface and grain dial decide all
-  of it. A detail slider in the pencil's own panel trades fineness for speed, and
+  of it, along with a pressure dial for how hard the hand is bearing down —
+  light rides the crowns, heavy fills the tooth in. A detail slider in the pencil's own panel trades fineness for speed, and
   a browser that cannot run it still draws the line.
 - Choose what the page is made of when the drawing is made, alongside its size:
   a solid digital sheet, four papers (cartridge, cold-pressed, rough,

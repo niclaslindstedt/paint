@@ -227,10 +227,18 @@ painters in `src/app/plugins/brushes.ts`, `bristle.ts`, `crayon.ts` and
   crayon: the flakes chip off where they land rather than smearing, the grain is
   finer because a sharp lead reaches into tooth a blunt wax face rides over, and
   the tool mixes its own grey rather than taking the ink you picked — because a
-  pencil that drew in red would be a textured pen. The lead's **grade** is its
-  one axis, and it is both halves of what a lead is: hard and pale at the H end,
+  pencil that drew in red would be a textured pen. The lead's **grade** is one
+  axis, and it is both halves of what a lead is: hard and pale at the H end,
   soft and dark at the B end, picking the grey it draws in as well as how much
-  of it sticks, and reaching the deposit and never the width;
+  of it sticks, and reaching the deposit and never the width. **Pressure** is
+  the other, and it is the hand rather than the stick: it decides how far into
+  the sheet the lead is driven, so easing off leaves the paper showing through a
+  broken line and bearing down fills the tooth in — and it makes the line no
+  wider either. Speed is deliberately almost nothing here, because graphite
+  comes off by abrasion (work done over distance) rather than by flowing like
+  ink, and because the speed a stroke reports is the gap between its stored
+  samples — a mark that leaned on it would be a mark that changed with the
+  device that drew it;
 - the **marker** and the **highlighter** are two shapes of felt tip, not one
   painter at two widths. The nib is an ellipse stamped along the path, and how
   far it is squashed is the **chisel** dial: a marker rests mostly round and

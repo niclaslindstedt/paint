@@ -190,11 +190,15 @@ describe("the shipped set", () => {
     // others; a wash is water, pigment and what the sheet does with what is
     // left; a dipped pen is how much page shows, which way the flat is
     // turned, and how much ink the dip took — the reservoir the whole ink
-    // simulation spends (see `quillSim.ts`). A tool turning up on this list
-    // that is not one of these three is a tool that has grown a settings
+    // simulation spends (see `quillSim.ts`); and a pencil is which lead is in
+    // your hand and how hard you are leaning on it, which are the two halves
+    // of every sketch ever made and not one dial wearing two names — the
+    // grade is the stick, the pressure is the hand. A tool turning up on this
+    // list that is not one of these four is a tool that has grown a settings
     // screen.
     const over = allPlugins().filter((p) => (p.dials?.length ?? 0) > 2);
     expect(over.map((p) => p.id)).toEqual([
+      "graphite",
       "paintbrush",
       "watercolor",
       "calligraphy",
@@ -202,7 +206,7 @@ describe("the shipped set", () => {
   });
 
   it("keeps even those inside a panel you can still use with a thumb", () => {
-    for (const id of ["paintbrush", "watercolor", "calligraphy"]) {
+    for (const id of ["graphite", "paintbrush", "watercolor", "calligraphy"]) {
       expect(pluginById(id)!.dials!.length).toBeLessThanOrEqual(6);
     }
   });

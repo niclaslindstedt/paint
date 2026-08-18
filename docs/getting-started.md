@@ -35,6 +35,12 @@ the ink nor the drawing.
   shop sells. That is the colour control: a hard lead scratches a pale grey line
   you can still see the sheet through, a soft one goes down nearly black. The
   widths are the ones a mechanical pencil takes: 0.3, 0.5, 0.7, 0.9 and 2.0 mm.
+  The other dial is **pressure** — how hard you are leaning on it. Ease off and
+  the lead rides the crowns of the paper and leaves a broken guide line; bear
+  down and it reaches into the tooth and lays a solid dark. It is not the
+  opacity beside it: one changes what the lead did to the paper, the other
+  fades the finished mark. Drawing fast does not pale a line — graphite comes
+  off by rubbing, so what decides a mark is the hand on it, not the hurry.
 - **Watercolour** (`W`) is a wet wash on paper. It spreads past the brush that
   laid it, dries darkest at the rim, granulates into the sheet, and never
   covers what is under it — so a second pass over the first deepens it the way

@@ -44,6 +44,10 @@ export type Ask = {
   points: readonly Point[];
   size: number;
   grade: number;
+  /** How hard the hand was bearing down — the pencil's other axis, and as much
+   *  a part of what a mark dried into as its grade is (see `PRESS` in
+   *  `builtin/dials.ts`). */
+  press: number;
   ground: GroundProfile;
   color: string;
   /** The pitch the field was worked at — the one input that carries the zoom
@@ -72,6 +76,7 @@ function sameMark(a: Dried, b: Ask): boolean {
     a.points.deref() === b.points &&
     a.size === b.size &&
     a.grade === b.grade &&
+    a.press === b.press &&
     a.color === b.color &&
     a.cell === b.cell &&
     sameSheet(a.ground, b.ground)
