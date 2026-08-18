@@ -152,18 +152,29 @@ function openLead(cell: number) {
   };
 }
 
+/** How little of its shed a lead loses to being hurried, and how fast the hand
+ *  has to be going to lose most of that. The simulation's own two numbers (see
+ *  `HURRY_KEEP` in `leadSim.ts`): graphite comes off by abrasion, which is work
+ *  done over distance rather than over time, so speed is a small term here and
+ *  a small term there. Two engines that read the same gesture differently would
+ *  be two different hands. */
+const HURRY_KEEP = 0.86;
+const HURRY_SPEED = 30;
+
 /** The lead dragged along the path: for each step down the mark, a row of
  *  deposits laid across the contact patch.
  *
  *  A pencil is held far more steadily than a crayon — it is a hard point, not a
  *  worn face — so there is no lean and no ploughed furrow here. What is left is
- *  the two things a hand does: it hurries, and it bears down and eases off. */
+ *  the two things a hand does: it hurries, and it bears down and eases off —
+ *  and the one thing it is told, which is how hard to bear down at all. */
 function dragLead(
   lead: ReturnType<typeof openLead>,
   along: readonly Trace[],
   half: number,
   cell: number,
   grade: number,
+  press: number,
 ): void {
   const count = along.length;
   const span = along[count - 1]!.at;
@@ -181,9 +192,9 @@ function dragLead(
     const settled = Math.sqrt(Math.min(1, Math.min(p.at, span - p.at) / ramp));
     // The hand bearing down and easing off over a few centimetres of travel.
     const bearing = 0.78 + 0.22 * driftNoise(p.at / 26, 43);
-    // Dragged fast, the lead has less time to shed.
-    const hurry = Math.max(0.5, 1 / (1 + p.speed / 42));
-    const press = Math.max(0.05, bearing * settled * hurry * grade);
+    // Hurried, the lead skips a little — and only a little (see `HURRY_KEEP`).
+    const hurry = HURRY_KEEP + (1 - HURRY_KEEP) / (1 + p.speed / HURRY_SPEED);
+    const laying = Math.max(0.05, bearing * settled * hurry * grade * press);
 
     // The contact patch. A soft lead flattens and covers a touch wider than a
     // hard one, which is the other half of what a grade means.
@@ -203,7 +214,7 @@ function dragLead(
       const across = Math.abs(u);
       const shape = 1 - smoothstep(core, w + fray * 0.5, across);
       if (shape <= 0) continue;
-      lead.lay(p.x + nx * u, p.y + ny * u, tx, ty, shape * press);
+      lead.lay(p.x + nx * u, p.y + ny * u, tx, ty, shape * laying);
     }
   }
 }
@@ -215,6 +226,7 @@ function stampLead(
   half: number,
   cell: number,
   grade: number,
+  press: number,
 ): void {
   const w = half * 0.92;
   const fray = Math.min(w * 0.55, 0.7 + w * 0.08);
@@ -227,7 +239,7 @@ function stampLead(
       const across = Math.hypot(dx, dy);
       const shape = 1 - smoothstep(core, w + fray * 0.5, across);
       if (shape <= 0) continue;
-      lead.lay(at.x + dx, at.y + dy, tx, ty, shape * 0.92 * grade);
+      lead.lay(at.x + dx, at.y + dy, tx, ty, shape * 0.92 * grade * press);
     }
   }
 }
@@ -331,24 +343,31 @@ function pageIsLight(background: string): boolean {
  *  `grade` is the lead, as a fraction of an HB: below 1 is the H end — hard,
  *  pale, riding the peaks — and above it the B end, soft and dark. It reaches
  *  only the *deposit*, never the geometry, so a 6B is a blacker line and not a
- *  wider one. */
+ *  wider one.
+ *
+ *  `press` is how hard the hand is bearing down, a fraction of the ordinary
+ *  with 1 being it, and it reaches the deposit the same way — leaning on a
+ *  pencil drives it into tooth a light hand rides straight over, and makes it
+ *  no wider either. */
 export function paintGraphite(
   ctx: CanvasRenderingContext2D,
   points: readonly Point[],
   size: number,
   scale = 1,
   grade = 1,
+  press = 1,
 ): void {
   const first = points[0];
   if (!first) return;
   const alpha = ctx.globalAlpha;
   const lead = Math.max(0.05, grade);
+  const lean = Math.max(0, press);
 
   if (size * scale < HAIRLINE) {
     // Pulled back far enough that the whole mark is inside one pixel: the
     // grain is finer than that, so what is left of a pencil is a line at the
     // weight the specks average out to.
-    ctx.globalAlpha = alpha * Math.min(1, 0.72 * lead);
+    ctx.globalAlpha = alpha * Math.min(1, 0.72 * lead * lean);
     paintPath(ctx, points, size);
     ctx.globalAlpha = alpha;
     return;
@@ -359,8 +378,8 @@ export function paintGraphite(
   const half = Math.max(cell * 0.5, size / 2);
   const marks = openLead(cell);
   const along = trace(points, cell * 0.85);
-  if (along.length < 2) stampLead(marks, first, half, cell, lead);
-  else dragLead(marks, along, half, cell, lead);
+  if (along.length < 2) stampLead(marks, first, half, cell, lead, lean);
+  else dragLead(marks, along, half, cell, lead, lean);
   marks.paint(ctx, alpha);
   ctx.globalAlpha = alpha;
 }

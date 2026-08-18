@@ -99,8 +99,10 @@ the same [`oss-framework`](https://github.com/niclaslindstedt/oss-framework).
   patch twice fills in what the first pass could not reach, a patch of paper
   holds only so much graphite before it stops taking any, and on cotton duck the
   lead catches the crowns of the weave and skips the troughs. The grain dial you
-  set when you made the page moves all of it. Slider-tuned like the wash, and it
-  falls back the same way.
+  set when you made the page moves all of it, and so does the **pressure** dial:
+  a light hand rides the crowns and leaves a broken guide line, a heavy one gets
+  into the tooth and lays a solid dark, and neither makes the line any wider.
+  Slider-tuned like the wash, and it falls back the same way.
 - **Brushes that are their medium.** The paintbrush _simulates its paint_ the
   way the pencil and the calligraphy pen simulate theirs: a head of hair
   presses a finite dip of paint onto the page's own grain, covers in an opaque

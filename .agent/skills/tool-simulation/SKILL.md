@@ -163,7 +163,9 @@ character cannot show, which is what makes falling back invisible.
 ## Wiring checklist (repo-specific)
 
 - Per-stroke inputs (ink load, pressure) are **dials**; dial defaults must
-  equal the painter's own default argument. Strings go in **both** `en.ts`
+  equal the painter's own default argument — **and every one of them has to
+  join the dried-mark store's `Ask` and its `sameMark`**, or the store blits a
+  mark drawn at one setting where another was asked for. Strings go in **both** `en.ts`
   and `sv.ts`. `tests/dials_test.ts` names every tool with >2 dials — a new
   axis means joining that list with a reason.
 - The painter gets page/ground/live through `PaintDetail` — already threaded;

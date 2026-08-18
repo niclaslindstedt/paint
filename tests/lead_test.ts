@@ -99,6 +99,7 @@ describe("how hard the simulation is set to work", () => {
         mm(0.7),
         1,
         HB_LEAD,
+        1,
         groundProfile({ stock: "cold" }),
         "#333338",
         detail,
@@ -113,7 +114,7 @@ describe("a simulation that cannot run", () => {
     const ctx = createFakeContext();
     // No DOM: there is no canvas to work the field on.
     expect(
-      paintSimulatedLead(ctx, curve(), mm(0.7), 1, HB_LEAD, SOLID_GROUND),
+      paintSimulatedLead(ctx, curve(), mm(0.7), 1, HB_LEAD, 1, SOLID_GROUND),
     ).toBe(false);
   });
 
@@ -123,7 +124,7 @@ describe("a simulation that cannot run", () => {
     // model has its own answer for this (a plain path at the weight the specks
     // average out to) and it is a better one than a field of two cells.
     expect(
-      paintSimulatedLead(ctx, curve(), mm(0.3), 0.05, HB_LEAD, SOLID_GROUND),
+      paintSimulatedLead(ctx, curve(), mm(0.3), 0.05, HB_LEAD, 1, SOLID_GROUND),
     ).toBe(false);
   });
 
@@ -138,6 +139,7 @@ describe("a simulation that cannot run", () => {
       mm(0.9),
       1,
       HB_LEAD,
+      1,
       groundProfile({ stock: "cold" }),
       "#333338",
     );

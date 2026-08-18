@@ -135,6 +135,35 @@ const MARGIN_CELLS = 2;
  *  sheen rather than ink. */
 const DENSITY = 0.86;
 
+/** How little of its shed a lead loses to being hurried, and how fast the hand
+ *  has to be going to lose most of that.
+ *
+ *  **A pencil is not a pen, and this is the number that says so.** Ink flows out
+ *  of a nib over *time*, so a fast pen line is a thin one; graphite comes off by
+ *  abrasion, and abrasion is work done over *distance* — the lead scrapes the
+ *  same tooth whether the hand crossed it in a tenth of a second or a whole one.
+ *  The mark is already laid by distance (`trace` steps the path, and `share`
+ *  divides one pass between the dabs that make it), so what is left for speed to
+ *  say is small: a hurried hand skips a little, bounces off the crowns, and
+ *  bears down slightly less into the flick.
+ *
+ *  It has to be small for a second reason, and this one is not physics: `speed`
+ *  is the gap between *stored samples*, so the same hand reports twice the speed
+ *  on a 60 Hz phone as on a 120 Hz tablet. A term that dominated the mark would
+ *  be a mark that depends on the device that drew it. */
+const HURRY_KEEP = 0.86;
+const HURRY_SPEED = 30;
+
+/** How hard the hand is ever allowed to bear down, past which the dial stops
+ *  reaching anything.
+ *
+ *  Above 1 is not nonsense — 1 is the ordinary hand, and a lead driven past it
+ *  reaches below the deepest of the sheet's tooth and sheds accordingly, which
+ *  is exactly what leaning on a soft pencil does. It stops here because a cell
+ *  saturates anyway (`LeadField.cap`), so past this the dial would be moving a
+ *  number nothing on the page can show. */
+const MOST_FORCE = 1.6;
+
 /** How quickly a cell darkens as graphite goes into it. Beer–Lambert over the
  *  load, so the first bit of graphite in a bare cell shows strongly and the
  *  last bit before it saturates hardly shows at all — which is the shape of
@@ -169,13 +198,19 @@ function sheetFor(width: number, height: number): Surface | null {
  *  `live` says this is the gesture still under the hand (see
  *  `PaintDetail.live`): its points are a fresh array every sample, so it is
  *  never asked of the dried-mark store and never dried into it — the store
- *  holds landed marks, and the landing itself is what dries one. */
+ *  holds landed marks, and the landing itself is what dries one.
+ *
+ *  `press` is how hard the hand was bearing down, a fraction of the ordinary
+ *  with 1 being it (see `PRESS` in `builtin/dials.ts`). It rides beside the
+ *  grade because the two of them are the whole of what a pencil line is: the
+ *  grade is which lead is in your hand, this is what you are doing with it. */
 export function paintSimulatedLead(
   ctx: CanvasRenderingContext2D,
   points: readonly Point[],
   size: number,
   scale = 1,
   grade = HB_LEAD,
+  press = 1,
   ground: GroundProfile = SOLID_GROUND,
   color = "#000000",
   detail = DEFAULT_LEAD_DETAIL,
@@ -187,6 +222,7 @@ export function paintSimulatedLead(
   if (size * scale < HAIRLINE) return false;
 
   const lead = Math.max(0.05, grade);
+  const lean = Math.max(0, press);
   const box = bounds(points);
   // The lead's contact patch, and how ragged its edge is — a couple of grain
   // cells whatever the width, because a chipped edge is a chipped edge. The
@@ -230,7 +266,15 @@ export function paintSimulatedLead(
   // store holds is the *whole* mark: a pan's strip repaints then cost a blit
   // per mark instead of a field per mark per frame.
   if (!live) {
-    const ask: Ask = { points, size, grade: lead, ground, color, cell };
+    const ask: Ask = {
+      points,
+      size,
+      grade: lead,
+      press: lean,
+      ground,
+      color,
+      cell,
+    };
     const held = heldMark(ask);
     if (held) {
       place(ctx, held.surface, held);
@@ -275,7 +319,7 @@ export function paintSimulatedLead(
     ground,
     grade: lead,
   });
-  drag(field, points, half, fray, cell, {
+  drag(field, points, half, fray, cell, lean, {
     x,
     y,
     width: width * cell,
@@ -319,7 +363,7 @@ function dryIntoStore(
     ground: ask.ground,
     grade: ask.grade,
   });
-  drag(field, ask.points, mark.half, mark.fray, cell, {
+  drag(field, ask.points, mark.half, mark.fray, cell, ask.press, {
     x,
     y,
     width: width * cell,
@@ -378,6 +422,10 @@ function meet(a: Rect, b: Rect | undefined): Rect | null {
  *  gesture: it settles at the ends, it bears down and eases off over a few
  *  centimetres of travel, and it hurries.
  *
+ *  `press` is that hand's own weight, and it multiplies all three: it is the
+ *  one number here the user sets rather than the gesture supplying (see
+ *  `MOST_FORCE`).
+ *
  *  Dabs are spaced by whichever is coarser, a cell or a third of the contact
  *  patch: two touches closer than a cell have nothing between them to resolve,
  *  and a broad lead covers so much ground per dab that stepping it by a cell
@@ -390,6 +438,7 @@ function drag(
   half: number,
   fray: number,
   cell: number,
+  press: number,
   patch: { x: number; y: number; width: number; height: number },
 ): void {
   const spacing = Math.max(cell * 0.9, half / 3);
@@ -398,7 +447,14 @@ function drag(
   if (!first) return;
   if (along.length < 2) {
     // A press and a lift: a patch of grain rather than a dot.
-    bear(field, first.x, first.y, half * 0.92, fray, 0.92);
+    bear(
+      field,
+      first.x,
+      first.y,
+      half * 0.92,
+      fray,
+      Math.min(MOST_FORCE, 0.92 * press),
+    );
     return;
   }
 
@@ -425,9 +481,12 @@ function drag(
     }
     const settled = Math.sqrt(Math.min(1, Math.min(p.at, span - p.at) / ramp));
     const bearing = 0.78 + 0.22 * driftNoise(p.at / 26, 43);
-    // Dragged fast, the lead has less time to shed.
-    const hurry = Math.max(0.5, 1 / (1 + p.speed / 42));
-    const force = Math.max(0.05, Math.min(1, bearing * settled * hurry));
+    // Hurried, the lead skips a little — and only a little (see `HURRY_KEEP`).
+    const hurry = HURRY_KEEP + (1 - HURRY_KEEP) / (1 + p.speed / HURRY_SPEED);
+    const force = Math.max(
+      0.05,
+      Math.min(MOST_FORCE, bearing * settled * hurry * press),
+    );
     // The contact patch itself breathes a little: a soft lead flattens and
     // covers a touch wider than a hard one, and no hand holds a pencil at one
     // exact angle for the length of a line.

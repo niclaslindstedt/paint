@@ -338,6 +338,10 @@ export const en = {
       name: "Pressure: {value}%",
       hint: "Bear down to fill the paper's grain in; ease off to let it show.",
     },
+    press: {
+      name: "Pressure: {value}%",
+      hint: "How hard you lean on the lead. Bear down for a solid dark; ease off for a light line the paper shows through.",
+    },
     feather: {
       name: "Feather: {value} mm",
       hint: "Fades the fill's edge out instead of stopping it.",

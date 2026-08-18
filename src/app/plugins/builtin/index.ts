@@ -135,6 +135,7 @@ import {
   LOAD,
   OPACITY,
   PIGMENT,
+  PRESS,
   PRESSURE,
   RUB,
   SAMPLE,
@@ -429,9 +430,12 @@ export function registerBuiltinPlugins(): void {
     // (see `./presets.ts`).
     gauge: PENCIL_GAUGE,
     defaultSize: mm(0.9),
-    // The one axis a pencil has — how soft the lead is — and the opacity every
-    // marking tool offers, for laying a light guide line in.
-    dials: [GRADE, OPACITY],
+    // The two axes a pencil has — which lead is in it, and how hard the hand
+    // is bearing down on it — and the opacity every marking tool offers, for
+    // laying a light guide line in. The first two are not one dial with two
+    // names: the grade is the stick, the pressure is the hand, and the whole of
+    // sketching is holding one steady while working the other.
+    dials: [GRADE, PRESS, OPACITY],
     // The four pencils in the tin: a grade and a width together *are* a pencil,
     // which is the case this whole feature was built on.
     presets: PENCIL_PRESETS,

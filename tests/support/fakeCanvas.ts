@@ -70,6 +70,15 @@ export type FakeContext = CanvasRenderingContext2D & {
   strokes: FakeStroke[];
   /** Every call that painted, in order, with the compositing it painted with. */
   painted: PaintedCall[];
+  /** Every `putImageData`, in order — the pixels a field engine dried into.
+   *
+   *  The simulated media (the pencil's lead, the ink, the wash) do not stroke
+   *  anything: they work a load out cell by cell and write the whole patch at
+   *  once, so nothing in `strokes` or `painted` has any trace of what the mark
+   *  came out like. This is where a test reads the mark itself — how dark it
+   *  is, how much of it is paper — rather than only counting that one was
+   *  made. */
+  images: FakeImage[];
   /** Each `clip()`, in order.
    *
    *  A clip leaves no mark of its own — its whole effect is on paint that
@@ -79,6 +88,13 @@ export type FakeContext = CanvasRenderingContext2D & {
    *  the sheet's own rectangle, established before the first mark goes down
    *  (see `onSheet`). */
   clips: FakeClip[];
+};
+
+/** One `putImageData`: the patch of pixels a field wrote. */
+export type FakeImage = {
+  width: number;
+  height: number;
+  data: Uint8ClampedArray;
 };
 
 /** One `clip()`: the rectangle it was taken from — `null` where the path was
@@ -142,6 +158,7 @@ export function createFakeContext(
   const draws: FakeDraw[] = [];
   const strokes: FakeStroke[] = [];
   const painted: PaintedCall[] = [];
+  const images: FakeImage[] = [];
   const clips: FakeClip[] = [];
   // The rectangle the path was given, and whether that is *all* it was given —
   // between them, what a `clip()` arriving now would be clipping to.
@@ -175,6 +192,7 @@ export function createFakeContext(
     draws,
     strokes,
     painted,
+    images,
     clips,
     globalAlpha: 1,
     globalCompositeOperation: "source-over",
@@ -194,7 +212,16 @@ export function createFakeContext(
       tick("createImageData");
       return { width: w, height: h, data: new Uint8ClampedArray(w * h * 4) };
     },
-    putImageData: () => tick("putImageData"),
+    putImageData: (image: FakeImage) => {
+      tick("putImageData");
+      // Copied rather than held: an engine is free to reuse its image, and a
+      // test comparing two marks must not be reading one of them twice.
+      images.push({
+        width: image.width,
+        height: image.height,
+        data: new Uint8ClampedArray(image.data),
+      });
+    },
     createPattern: () => {
       tick("createPattern");
       return {} as CanvasPattern;
