@@ -213,11 +213,24 @@ painters in `src/app/plugins/brushes.ts`, `bristle.ts`, `crayon.ts` and
   is turned. What a blade does is a projection worked out per touch, so one
   stroke of a flat swells and thins round a curve without the hand doing
   anything, and the paint the narrower band stops laying sideways it carries
-  as extra thickness instead. A landed mark is simulated once and kept as
-  pixels; the gesture under your finger is walked incrementally, so a frame
-  costs the touches that arrived rather than the length of the stroke; and a
-  mark too small for the field to show falls through to the vector-hair
-  painter that used to be the whole tool;
+  as extra thickness instead. The **two ends** of the mark are two different
+  marks, because they are two different things a hand does. A head swept onto
+  the paper takes it with part of the bundle and opens to the full width of
+  the ferrule over the first stretch of the stroke — it does not stamp a disc
+  the diameter of the brush where you touched down. A head _placed_ on the
+  spot has already landed, and starts at its full width; the tool reads the
+  difference off how fast your hand was moving, so a tap leaves the print of
+  the head and a flick does not. And a lift is not a touch-down backwards: by
+  then every hair in the bundle is bent backwards along the stroke, so the
+  pressure comes off over the last stretch and the mark frays out into a fan
+  of trailing hair ends rather than closing with an edge. Across the band,
+  the round bears like the cone it is — solid down the middle, softening to
+  its two sides — where a chisel ferrule is cut square and lays the slab with
+  two ruled sides that a flat is bought for. A landed mark is simulated once
+  and kept as pixels; the gesture under your finger is walked incrementally,
+  so a frame costs the touches that arrived rather than the length of the
+  stroke; and a mark too small for the field to show falls through to the
+  vector-hair painter that used to be the whole tool;
 - the **airbrush** is a spray cone — a radial gradient stamped along the path at
   a fraction of its own radius, faint enough that coverage comes from _overlap_,
   so passing twice really is twice the paint, with a sparse grain over the top.

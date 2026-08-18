@@ -17,3 +17,8 @@ coverage/
 # Node
 node_modules/
 dist/
+
+# What the tool-simulation harnesses render into the working directory
+*-sheet.png
+*-shot.png
+*-zoom.png

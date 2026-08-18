@@ -1,14 +1,21 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-// Dragging a charged head with the paint field.
+// Painting a brush mark with the paint field: the seam, and the page it needs.
 //
-// `bristleField.ts` knows about paint and paper and nothing else. This is the
-// part that knows about a *gesture* — and about the head on the end of the
-// handle: how far it is squeezed toward a blade, which hairs are on the paper,
-// and the one thing the old geometric painter could never quite mean: **a
-// finite dip of paint**. It opens a field over the patch of page the mark can
-// reach, walks the path pressing the head's cross-section into the sheet, and
-// spends the reservoir as it goes; what the paper took is then turned into
-// pixels.
+// The paintbrush is four modules, and this is the one the app calls. Under it:
+//
+//   - `bristleField.ts` — paint and paper, and nothing else;
+//   - `bristleHead.ts` — what is on the end of the handle, and how hard it is
+//     bearing: the dip, the bundle, which hairs are down at a distance along a
+//     drag;
+//   - `bristlePrint.ts` — what that head leaves at the *ends* of a mark and
+//     under a press, which a walk of cross-sections cannot say;
+//   - `bristleWalk.ts` — dragging it: the whole path for a mark that landed,
+//     and the path so far for the one still under the hand.
+//
+// What is left here is where the pixels come from: how big a field to open and
+// how coarse to work it, turning the film the paper took into a bitmap, holding
+// the gesture in flight between frames, keeping a landed mark in the store, and
+// the fall-through to the old vector painter for the marks none of it can show.
 //
 // What the field buys over the vector hairs it replaces:
 //
@@ -17,7 +24,10 @@
 //     flatness of 0 is the round that draws the same width whichever way you
 //     pull it, 1 is the blade that lays its full width square across itself
 //     and closes to a heavy hairline along its edge, and everything between
-//     is a filbert. Two brushes became one dial.
+//     is a filbert. Two brushes became one dial. The *shape* is more than
+//     that projection, though: a cone bears off across its own width and a
+//     chisel does not (`bearing`), and neither of them ends a mark where the
+//     last cross-section does (`bristlePrint.ts`).
 //   - **The comb.** Which hairs are down, and how much each is laying, is
 //     worked out per touch (`combOver`): the partings run the length of the
 //     mark, the outer hairs give out first, the paper's tooth lifts the whole
@@ -65,24 +75,25 @@ import { createSurface, type Surface } from "../surface.ts";
 import type { Rect } from "../geometry.ts";
 import type { Point } from "../types.ts";
 import { paintBrush } from "./bristle.ts";
+import { createBristleField } from "./bristleField.ts";
+import { HAIRLINE, PIXEL } from "./grain.ts";
 import {
-  createBristleField,
-  press,
-  type BristleField,
-} from "./bristleField.ts";
+  BRUSH_WETNESS,
+  FALLBACK_PALE,
+  MARGIN_CELLS,
+  PAINT_DENSITY,
+  paintDryness,
+  paintFlow,
+  projected,
+} from "./bristleHead.ts";
 import {
-  HAIRLINE,
-  PIXEL,
-  driftWalk,
-  hashedRandom,
-  smoothstep,
-  trace,
-  type DriftWalk,
-  type Trace,
-} from "./grain.ts";
-import { BLADE, hairLayout } from "./head.ts";
+  advanceDrag,
+  drag,
+  openDrag,
+  type DragState,
+  type Patch,
+} from "./bristleWalk.ts";
 import { paintPath } from "./ink.ts";
-import { mm } from "../units.ts";
 import { drawPatch, shadeLut, type ShadeLut } from "./quillShade.ts";
 import { place, sameGround } from "./quillStore.ts";
 import {
@@ -95,6 +106,19 @@ import {
   type Ask,
   type Dried,
 } from "./bristleStore.ts";
+
+// The walk's own exports travel on through this module, which is the seam the
+// app paints a brush mark through and therefore the one door the tests and the
+// tuning harnesses knock on.
+export {
+  advanceDrag,
+  drag,
+  openDrag,
+  paintDryness,
+  paintFlow,
+  projected,
+  type DragState,
+};
 
 /** How much page one cell of the field stands for: one document pixel — the
  *  wash's reading, for the wash's reason: the field is worked out on the
@@ -125,455 +149,6 @@ const HEADROOM = 192;
  *  Below it there is nothing to comb and nothing to break — and the vector
  *  painter draws a better small mark than a two-cell smudge. */
 const LEAST_ACROSS = 3;
-
-/** How much page to leave round the mark, in cells: the feather's two, the
- *  line gain, and one of slack. */
-const MARGIN_CELLS = 4;
-
-/** How much optical density one unit of paint film is worth — the number
- *  that makes this medium *body paint* where the quill's 0.55 is ink: one
- *  honest pass reads nearly opaque, a thinned or starved passage shades, and
- *  a crossing barely deepens. It has to stay short of full saturation or the
- *  streaks the comb scratches through the slab would have nothing to show. */
-const PAINT_DENSITY = 2.1;
-
-/** How readily this medium wicks into a thirsty sheet — the feather's
- *  strength: the same wetness the brush declares on its descriptor
- *  (`wetness: 0.6`), read the same way. */
-const BRUSH_WETNESS = 0.6;
-
-/** How much a thirsty sheet drinks out of the reservoir as the head travels —
- *  smaller than the pen's, because paint is thick and gives its medium up
- *  slowly. */
-const DRINK = 0.35;
-
-/** The run one dip buys, in document pixels: a floor so a liner is not spent
- *  in a centimetre, plus so much per pixel of head — the same charge the
- *  vector painter spends (`capacityOf`), kept in step so a mark that falls
- *  back runs dry where the field would have. */
-const CHARGE_FLOOR = mm(9);
-const CHARGE_RUN = 10.5;
-
-/** What a chisel ferrule leaves of the round's reservoir: a flat lays a wider
- *  mark off a shallower store, so a full flat runs about half as far as the
- *  round on the same dip (see `reservoirOf` in `head.ts`, whose number this
- *  is). */
-const FLAT_RESERVOIR = 0.5;
-
-/** How far past its last paint the head keeps marking, as a multiple of the
- *  charge it just spent, and how thick that film of residue starts: the
- *  trail every reference stroke peters out through. */
-const RESIDUE_RUN = 1;
-const RESIDUE_FILM = 0.3;
-
-/** The film one touch of a fully fed, unhurried head aims to leave. */
-const BASE_FILM = 1;
-
-/** How the hand's speed moves the film. Paint shades far less than ink — a
- *  fast drag thins and skips a little rather than paling to a wash — so the
- *  span is modest and the floor high. */
-const SPEED_SCALE = 14;
-const SPEED_SHARP = 1.5;
-const SPEED_SPAN = 0.4;
-const THIN_FAST = 0.66;
-
-/** The heavier deposit where a charged head first touches down, and how far
- *  into the stroke it carries (in head widths). A press, not the pen's bead:
- *  paint blobs less than ink pools. */
-const TOUCH_BEAD = 0.3;
-const TOUCH_REACH = 0.6;
-
-/** How far back from the lift the mark comes apart into leaving hairs, as a
- *  share of the head — and how ragged the touch-down end is, likewise. Both
- *  are the cut bundle's few-tenths-of-a-head disagreement about where each
- *  hair starts and stops (see `hairTraits`, whose numbers these echo). */
-const LIFT_SHARE = 0.35;
-const LAND_SHARE = 0.25;
-
-/** The paper's grain, in document pixels — the pitch of cold-pressed ridges,
- *  the same number the vector painter reads (`TOOTH` in `bristle.ts`): how
- *  far the head travels before the sheet is a different height under it. */
-const TOOTH = mm(1.8);
-
-/** How pale a starved stroke goes when the plain-line fallback has to draw it
- *  — the stand-in for the reservoir, so a low-load stroke does not snap to
- *  full-strength paint when the view is pulled back to a hairline. */
-const FALLBACK_PALE = 0.45;
-
-/** How raw samples' smoothed speeds settle: a sample's speed is averaged over
- *  its two neighbours either side (see `trace`), so it can still move until
- *  two more samples exist beyond it. */
-const SPEED_WINDOW = 2;
-
-/** How much paint is left in the head, 0–1ish, and the two curves everything
- *  downstream reads off it: how freely the paint still comes off the hairs,
- *  and how starved the head presses. Pure and exported for the tests — the
- *  whole "runs dry" picture rests on these two lines. A loaded head
- *  *plateaus*: it covers solidly for most of its run and gives out over the
- *  last stretch, which is why the smoothstep shoulders sit low. */
-export function paintFlow(reserve: number): number {
-  return 0.12 + 0.88 * smoothstep(0.04, 0.45, reserve);
-}
-
-export function paintDryness(reserve: number): number {
-  return 1 - smoothstep(0, 0.22, reserve);
-}
-
-/** The half-width of the mark where the head crosses the path like this — the
- *  head's footprint projected across the stroke.
- *
- *  `bn` is how much of the blade lies across the path, `bt` how much along
- *  it (the two are cos and sin of one angle), and `minor` how thick the head
- *  is against its blade: 1 for a round, `BLADE` for a full flat. A round
- *  comes out `half` whichever way the path runs; a flat swells to its full
- *  width square across itself and closes to `half × BLADE` along its own
- *  edge — which is the entire reason a sign-writer owns one. Exported for
- *  the tests: this one line is what the flatness dial *is*. */
-export function projected(
-  half: number,
-  minor: number,
-  bn: number,
-  bt: number,
-): number {
-  return half * Math.hypot(bn, minor * bt);
-}
-
-// --- The head, fixed for the length of one stroke -----------------------------
-
-type Pen = {
-  /** The half-width at rest, after the sheet's line gain. */
-  half: number;
-  /** How thick the head is against its blade (1 round … `BLADE` flat), and
-   *  which way the blade is turned. */
-  minor: number;
-  bladeX: number;
-  bladeY: number;
-  /** How far one dip runs, where the touch bead reaches, and how far back
-   *  from either end the hairs disagree. */
-  capacity: number;
-  /** How far the trail of film runs past the last of the paint — scaled off
-   *  the charge that was actually dipped, so a light dip trails briefly. */
-  residueRun: number;
-  touchReach: number;
-  liftWindow: number;
-  load: number;
-  hard: number;
-  spacing: number;
-  /** How much of the grain's interruptions a head this narrow can show. */
-  grainShare: number;
-  /** The hairs: how many, what each lays, how readily each leaves the paper,
-   *  how long its skips run, and where it lands and lifts. Parallel, `hairs`
-   *  long, settled before anything is laid. */
-  hairs: number;
-  thick: Float64Array;
-  dryEdge: Float64Array;
-  skipRun: Float64Array;
-  lands: Float64Array;
-  lifts: Float64Array;
-  /** One drift walker per hair, and one for the tooth the whole head reads —
-   *  reused across touches because the walk visits them in arc order. */
-  walkers: DriftWalk[];
-  toothWalk: DriftWalk;
-  /** The comb one touch presses down — scratch, rewritten per touch. */
-  comb: Float32Array;
-};
-
-function penFor(
-  size: number,
-  flatness: number,
-  angle: number,
-  hardness: number,
-  load: number,
-  cell: number,
-  ground: GroundProfile,
-): Pen {
-  const hard = Math.max(0, Math.min(1, hardness));
-  const flat = Math.max(0, Math.min(1, flatness));
-  const soak = Math.max(0, Math.min(1, ground.absorbency));
-  // The paper's two claims on the head: a thirsty sheet widens the line a
-  // little the moment the paint lands, and drinks the reservoir as it runs.
-  const half = (size / 2) * (1 + 0.05 * soak);
-  // One *full* dip's run: the vector painter's own charge (`capacityOf`),
-  // times what the ferrule keeps of it. The load dial is the reservoir the
-  // walk starts with, not a second scale on this — a half dip runs half of
-  // this because it starts half spent.
-  const capacity =
-    (((CHARGE_FLOOR + size * CHARGE_RUN) * (0.45 + hard * 1.6)) /
-      (1 + DRINK * soak)) *
-    (1 - flat * (1 - FLAT_RESERVOIR));
-  const { count } = hairLayout(size);
-  const thick = new Float64Array(count);
-  const dryEdge = new Float64Array(count);
-  const skipRun = new Float64Array(count);
-  const lands = new Float64Array(count);
-  const lifts = new Float64Array(count);
-  const walkers: DriftWalk[] = new Array(count);
-  const liftWindow = size * LIFT_SHARE;
-  const landRagged = size * LAND_SHARE;
-  const edgeStart = 0.78;
-  for (let b = 0; b < count; b++) {
-    const lane = count === 1 ? 0 : (b / (count - 1) - 0.5) * 2;
-    // How far into the *side* of the head this hair is: everything that frays
-    // a mark is gated on it, so the body cuts clean and the rim combs open —
-    // the same shape `fitHead` gives the vector painter.
-    const edge =
-      Math.max(0, (Math.abs(lane) - edgeStart) / (1 - edgeStart)) ** 1.5;
-    // Not all much of a muchness: a head is a row of clumps, so a few strands
-    // lay heavily and most lay their share — squared, so the broad ones stay
-    // the exception they are on paper.
-    thick[b] = 0.72 + 0.56 * hashedRandom(b * 11.7, 5) ** 2;
-    // The outer hairs go first whatever the head — they carry the least paint
-    // and take the least pressure — and a dry, ungathered bundle skips all
-    // over (see `hairTraits`, whose curve this is).
-    dryEdge[b] =
-      0.03 +
-      (1 - hard) * 0.3 +
-      lane * lane * (1 - hard) * 0.22 +
-      edge * 0.42 * (1.4 - hard) +
-      hashedRandom(b * 7.1, b * 3.3) * 0.07;
-    // How long this hair's dry stretches run — per hair, so the skips across
-    // the head are not all the same length, which would be a dashed line.
-    // Long: a parting in a loaded slab runs most of the stroke, and a run
-    // much shorter than the head reads as stipple rather than as combing.
-    skipRun[b] = Math.max(30, size * (0.9 + hashedRandom(b * 2.7, 33) * 2.4));
-    // Where this hair touches down and rolls off: a cut bundle is level only
-    // near enough, and the lift end frays further than the landing.
-    lands[b] = hashedRandom(b * 4.7, 13) ** 1.6 * landRagged;
-    lifts[b] = hashedRandom(b * 6.1, 29) ** 1.4 * liftWindow;
-    const walk = driftWalk();
-    walk.reset(b * 17 + 3);
-    walkers[b] = walk;
-  }
-  const toothWalk = driftWalk();
-  toothWalk.reset(3);
-  return {
-    half,
-    minor: BLADE + (1 - BLADE) * (1 - flat),
-    bladeX: Math.cos(angle),
-    bladeY: Math.sin(angle),
-    capacity,
-    residueRun: capacity * RESIDUE_RUN * Math.max(0.05, Math.min(1.3, load)),
-    touchReach: TOUCH_REACH * size,
-    liftWindow,
-    load,
-    hard,
-    // Touches close enough together that consecutive sections tile the band
-    // with no gap at this cell size.
-    spacing: Math.max(0.5, cell * 0.8),
-    // The grain is the paper's, so it does not shrink with the brush: a
-    // liner rides the sheet a house brush catches on (the vector painter's
-    // own reading).
-    grainShare: 0.35 + 0.65 * Math.min(1, (size / (TOOTH * 1.6)) ** 0.7),
-    hairs: count,
-    thick,
-    dryEdge,
-    skipRun,
-    lands,
-    lifts,
-    walkers,
-    toothWalk,
-    comb: new Float32Array(count),
-  };
-}
-
-/** Work out which hairs are down at this touch, and how much of the film each
- *  is laying — the comb `press` reads a lane at a time.
- *
- *  Everything in it is a function of the path *up to and at* this touch (arc
- *  distance, speed, reserve) plus `fromEnd`, which only ever matters inside
- *  the lift window — that is the whole of the `grows` contract, kept here in
- *  one place. */
-function combOver(
-  pen: Pen,
-  at: number,
-  fromEnd: number,
-  speed: number,
-  dry: number,
-): Float32Array {
-  const comb = pen.comb;
-  const tooth = pen.toothWalk.at(at / TOOTH);
-  // Two thresholds added together, and they are two different things: the
-  // first is *texture* — how streaky this stretch is — capped short of
-  // certainty and scaled to what a head this narrow can show; the second is
-  // the paint going, and it is capped too, deliberately short of lifting
-  // every hair: what actually ends the mark is the sheet refusing a starving
-  // head (`catching`) and the trail of film fading out (`residueRun`), so
-  // the comb's job here is only to thin the head out toward those.
-  const base = Math.min(0.3, speed / 70) + (0.5 - tooth) * 0.15;
-  const spent = Math.min(0.6, dry * 0.75);
-  for (let b = 0; b < pen.hairs; b++) {
-    if (at < pen.lands[b]! || fromEnd < pen.lifts[b]!) {
-      comb[b] = 0;
-      continue;
-    }
-    const wet = pen.walkers[b]!.at(at / pen.skipRun[b]!);
-    const dryness =
-      Math.min(0.75, pen.dryEdge[b]! + base) * pen.grainShare + spent;
-    if (wet < dryness) {
-      comb[b] = 0;
-      continue;
-    }
-    // On the paper, and bearing down by however far past its threshold the
-    // drift is — which is what keeps a hair's run from being a wire of one
-    // even thickness.
-    comb[b] = pen.thick[b]! * (0.66 + 0.34 * smoothstep(0, 0.3, wet - dryness));
-  }
-  return comb;
-}
-
-/** Lay one touch of the head and spend the reservoir — the single place a
- *  touch's film is decided, walked by the landed path and the live path alike
- *  so the two cannot drift apart. `nx`/`ny` is the unit normal across the
- *  path there; `s` carries the reservoir and where it ran out; `log` collects
- *  a provisional touch's deposits so the next frame can take them back out. */
-function daub(
-  field: BristleField,
-  pen: Pen,
-  p: Trace,
-  nx: number,
-  ny: number,
-  fromEnd: number,
-  s: { reserve: number; spentAt: number },
-  log?: number[],
-): void {
-  const dry = paintDryness(s.reserve);
-  // A slow hand lays a fuller film, a fast sweep thins — read straight off
-  // the samples the canvas stored.
-  const hurry = 1 / (1 + (p.speed / SPEED_SCALE) ** SPEED_SHARP);
-  let film =
-    BASE_FILM * paintFlow(s.reserve) * (THIN_FAST + SPEED_SPAN * hurry);
-  if (s.reserve <= 0) {
-    // Past the last of the paint: the film left on the hairs, thin and fading
-    // over about as far again as the charge ran — and past that, nothing, so
-    // however far the hand carries on the tail costs nothing and leaves
-    // nothing.
-    const gone = (p.at - s.spentAt) / pen.residueRun;
-    if (gone >= 1) return;
-    film =
-      BASE_FILM *
-      RESIDUE_FILM *
-      (1 - gone) ** 1.2 *
-      (THIN_FAST + SPEED_SPAN * hurry);
-  } else {
-    // The heavier press where a charged head first touches down. An overdipped
-    // head blobs harder; a starving one has nothing to press out.
-    if (p.at < pen.touchReach) {
-      film *=
-        1 +
-        TOUCH_BEAD *
-          Math.min(1.3, pen.load) *
-          (1 - p.at / pen.touchReach) *
-          smoothstep(0.25, 0.8, s.reserve);
-    }
-    // …and the mark thins a little as the head rolls off, inside the lift
-    // window the leaving hairs already own. Exactly 1 at the window's edge,
-    // so a settled touch cannot feel the end moving away from it.
-    if (fromEnd < pen.liftWindow) {
-      film *= 0.72 + 0.28 * (fromEnd / pen.liftWindow);
-    }
-  }
-  // How much of the blade lies across the path here — the projection that is
-  // the whole difference between a round and a flat. The paint the blade
-  // stops laying sideways it carries into the narrower band instead, so an
-  // edge-on flat writes a heavy line, not a faint one.
-  const bn = pen.bladeX * nx + pen.bladeY * ny;
-  const bt = pen.bladeX * -ny + pen.bladeY * nx;
-  const w = projected(pen.half, pen.minor, bn, bt);
-  if (w < field.cell * 0.5) return;
-  film *= Math.min(1.6, Math.sqrt(pen.half / w));
-  const comb = combOver(pen, p.at, fromEnd, p.speed, dry);
-  press(field, p.x, p.y, nx * w, ny * w, film, dry, pen.spacing, comb, log);
-  if (s.reserve > 0) {
-    const left = s.reserve - ((film / BASE_FILM) * pen.spacing) / pen.capacity;
-    s.reserve = Math.max(0, left);
-    if (s.reserve === 0) s.spentAt = p.at;
-  }
-}
-
-/** The unit normal across the walk at touch `i`. */
-function normalAt(
-  along: readonly Trace[],
-  i: number,
-): { nx: number; ny: number } {
-  const prev = along[Math.max(0, i - 1)]!;
-  const next = along[Math.min(along.length - 1, i + 1)]!;
-  const dx = next.x - prev.x;
-  const dy = next.y - prev.y;
-  const len = Math.hypot(dx, dy) || 1;
-  return { nx: -dy / len, ny: dx / len };
-}
-
-/** A press and a lift with no drag: the print of the head — a disc for a
- *  round, the blade's bar for a flat, and the ellipse between for everything
- *  between — laid as parallel sections across the footprint's thin axis. */
-function dab(field: BristleField, pen: Pen, at: Trace, log?: number[]): void {
-  const across = pen.half * pen.minor;
-  const rows = Math.max(1, Math.ceil((2 * across) / pen.spacing));
-  const film =
-    BASE_FILM *
-    (1 + TOUCH_BEAD * Math.min(1.3, pen.load)) *
-    paintFlow(pen.load);
-  const dry = paintDryness(pen.load);
-  // The blade's own direction and its normal — the footprint's two axes.
-  const bx = pen.bladeX;
-  const by = pen.bladeY;
-  // A press puts the whole bundle down at once, so the comb skips the
-  // landing and leaving gates a drag walks its hairs through.
-  const comb = pen.comb;
-  for (let b = 0; b < pen.hairs; b++) comb[b] = pen.thick[b]!;
-  for (let r = 0; r <= rows; r++) {
-    const v = rows === 0 ? 0 : (r / rows - 0.5) * 2;
-    const chord = pen.half * Math.sqrt(Math.max(0, 1 - v * v));
-    if (chord < field.cell * 0.4) continue;
-    const cx = at.x - by * v * across;
-    const cy = at.y + bx * v * across;
-    press(
-      field,
-      cx,
-      cy,
-      bx * chord,
-      by * chord,
-      film,
-      dry,
-      Math.max(pen.spacing, (2 * across) / Math.max(1, rows)),
-      comb,
-      log,
-    );
-  }
-}
-
-/** Drag the head along the whole path, spending the reservoir as it goes —
- *  the landed mark's walk, and the specification the live path settles
- *  towards. Exported for the tests and the tuning harness: the streaks, the
- *  press, the lift and the running dry are all claims about what this leaves
- *  behind, and none of them needs a canvas. */
-export function drag(
-  field: BristleField,
-  points: readonly Point[],
-  size: number,
-  flatness: number,
-  angle: number,
-  hardness: number,
-  load: number,
-  cell: number,
-): void {
-  const pen = penFor(size, flatness, angle, hardness, load, cell, field.ground);
-  const along = trace(points, pen.spacing);
-  const first = along[0];
-  if (!first) return;
-  if (along.length === 1) {
-    dab(field, pen, first);
-    return;
-  }
-  const s = { reserve: Math.max(0, load), spentAt: 0 };
-  const last = along.length - 1;
-  const total = along[last]!.at;
-  for (let i = 0; i <= last; i++) {
-    const p = along[i]!;
-    const { nx, ny } = normalAt(along, i);
-    daub(field, pen, p, nx, ny, total - p.at, s);
-  }
-}
 
 /** Let go of every mark held — the landed store and the live field alike — so
  *  the next ask works it out again; and, when asked, hold the store to
@@ -815,128 +390,6 @@ export function paintSimulatedPaint(
   place(ctx, at);
   return true;
 }
-
-// --- The gesture under the hand ----------------------------------------------
-
-/** The canvas-free half of the gesture in flight: the field, the head, and
- *  how far the walk has settled into it. Exported, with `openDrag` and
- *  `advanceDrag`, for the tests — the claim that a gesture advanced sample by
- *  sample lays the same film as one full `drag` of the finished path is the
- *  whole correctness of the live path, and it needs no canvas to check. */
-export type DragState = {
-  /** The gesture as of the last advance — the next one must be this with more
-   *  on the end, or the caller starts the field over (see `grownBy`). */
-  points: readonly Point[];
-  pen: Pen;
-  field: BristleField;
-  /** How many touches are settled into the field for good, and the reservoir
-   *  as of the last settled one. */
-  settled: number;
-  reserve: number;
-  spentAt: number;
-  /** The provisional touches' deposits, as `(cell, amount)` pairs —
-   *  everything the next advance subtracts back out before it lays the tail
-   *  again. */
-  undo: number[];
-};
-
-/** Open a walk over a field for a gesture that has not laid anything yet. */
-export function openDrag(
-  field: BristleField,
-  size: number,
-  flatness: number,
-  angle: number,
-  hardness: number,
-  load: number,
-): DragState {
-  return {
-    points: [],
-    pen: penFor(
-      size,
-      flatness,
-      angle,
-      hardness,
-      load,
-      field.cell,
-      field.ground,
-    ),
-    field,
-    settled: 0,
-    reserve: Math.max(0, load),
-    spentAt: 0,
-    undo: [],
-  };
-}
-
-/** Walk the gesture on to `points` — which must be the state's own path with
- *  more on the end. The provisional tail of the last advance is taken back
- *  out, every touch that nothing can change any more is settled for good —
- *  its smoothed speed fixed, its normal's neighbours in place, and the lift
- *  window moved past it — and the still-moving tail is laid provisionally
- *  again, the leaving hairs riding its end. Answers the patch of field the
- *  advance touched. */
-export function advanceDrag(state: DragState, points: readonly Point[]): Patch {
-  const { field, pen } = state;
-  const dirty = newPatch();
-  const reachBy = pen.half + MARGIN_CELLS * field.cell;
-
-  // Take back the provisional tail from the last advance…
-  const undo = state.undo;
-  for (let i = 0; i < undo.length; i += 2) {
-    const at = undo[i]!;
-    field.film[at] = Math.max(0, field.film[at]! - undo[i + 1]!);
-    const col = at % field.width;
-    const row = (at - col) / field.width;
-    widen(
-      dirty,
-      field,
-      field.x + (col + 0.5) * field.cell,
-      field.y + (row + 0.5) * field.cell,
-      field.cell,
-    );
-  }
-
-  // …then walk on: settle every touch that can no longer change, and lay the
-  // still-moving tail provisionally.
-  const along = trace(points, pen.spacing);
-  const last = along.length - 1;
-  const total = along[last]!.at;
-  const log: number[] = [];
-  if (last === 0) {
-    // Still a single press: one provisional print, taken back if it grows.
-    dab(field, pen, along[0]!, log);
-    widen(dirty, field, along[0]!.x, along[0]!.y, reachBy);
-  } else {
-    // A touch settles only once its speed is final *and* the lift window has
-    // moved past it — the window is where the end still reaches back.
-    const settledAt = Math.min(
-      settledSpan(points),
-      total - pen.liftWindow - pen.spacing,
-    );
-    const s = { reserve: state.reserve, spentAt: state.spentAt };
-    let settled = state.settled;
-    while (settled < last && along[settled]!.at <= settledAt) {
-      const p = along[settled]!;
-      const { nx, ny } = normalAt(along, settled);
-      daub(field, pen, p, nx, ny, total - p.at, s);
-      widen(dirty, field, p.x, p.y, reachBy);
-      settled++;
-    }
-    state.settled = settled;
-    state.reserve = s.reserve;
-    state.spentAt = s.spentAt;
-    for (let i = settled; i <= last; i++) {
-      const p = along[i]!;
-      const { nx, ny } = normalAt(along, i);
-      daub(field, pen, p, nx, ny, total - p.at, s, log);
-      widen(dirty, field, p.x, p.y, reachBy);
-    }
-  }
-  state.undo = log;
-  state.points = points;
-  return dirty;
-}
-
 /** The one stroke still being dragged, kept between pointer samples so a
  *  frame costs the touches that arrived rather than the length of the
  *  gesture: the walk, and the pixels it has already been flushed to. */
@@ -966,46 +419,6 @@ function grownBy(prior: readonly Point[], next: readonly Point[]): boolean {
   }
   return true;
 }
-
-/** The path length up to the last raw sample whose smoothed speed can no
- *  longer change — touches at or before it are safe to settle, once the lift
- *  window has moved past them too. */
-function settledSpan(points: readonly Point[]): number {
-  const final = points.length - 1 - SPEED_WINDOW;
-  if (final <= 0) return 0;
-  let span = 0;
-  for (let i = 1; i <= final; i++) {
-    const a = points[i - 1]!;
-    const b = points[i]!;
-    span += Math.hypot(b.x - a.x, b.y - a.y);
-  }
-  return span;
-}
-
-/** A dirty patch of field, grown touch by touch and flushed once per frame. */
-type Patch = { left: number; top: number; right: number; bottom: number };
-
-function newPatch(): Patch {
-  return { left: Infinity, top: Infinity, right: -Infinity, bottom: -Infinity };
-}
-
-function widen(
-  patch: Patch,
-  field: BristleField,
-  x: number,
-  y: number,
-  by: number,
-): void {
-  const left = (x - by - field.x) / field.cell;
-  const top = (y - by - field.y) / field.cell;
-  const right = (x + by - field.x) / field.cell;
-  const bottom = (y + by - field.y) / field.cell;
-  if (left < patch.left) patch.left = left;
-  if (top < patch.top) patch.top = top;
-  if (right > patch.right) patch.right = right;
-  if (bottom > patch.bottom) patch.bottom = bottom;
-}
-
 /** Open a fresh live field over the gesture so far, with growing room. */
 function openHand(
   points: readonly Point[],

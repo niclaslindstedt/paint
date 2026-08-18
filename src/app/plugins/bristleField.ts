@@ -103,6 +103,10 @@ const FEATHER_FALL = 0.45;
  *  edge of the band. */
 const CORNER = 0.86;
 
+/** How much of the section is bearing down with its whole weight before the
+ *  head starts to curve away from the paper — see `bearing`. */
+const DOME_PLATEAU = 0.72;
+
 /** A patch of page with a sheet and a paint film. */
 export type BristleField = {
   /** Where the top-left cell is, in document pixels. */
@@ -209,6 +213,54 @@ export function settling(dip: number, bite: number, relief: number): number {
   return Math.max(SETTLE_LEAST, Math.min(SETTLE_MOST, settle));
 }
 
+/** How much of its film the head is bearing onto the paper at `u` across the
+ *  section, 0–1 — and the one line that is the whole difference between a
+ *  **round** head and a **flat** one on paper.
+ *
+ *  A chisel ferrule cuts the bundle off square, so every hair along the blade
+ *  meets the sheet with the same length of hair behind it and the band it
+ *  sweeps is a slab with two ruled sides. That is `dome = 0`, and it is what
+ *  this used to do for every head there is — which is exactly why a round drew
+ *  a flat's mark: two parallel razor edges and a top-hat of paint between them.
+ *
+ *  A cone does not. Its footprint is a disc, so a lane out near the rim is
+ *  under the head for the chord of a circle rather than for its whole width —
+ *  the paint it can lay falls away as the head curves off the paper, and the
+ *  mark comes out solid down its middle and softening to its two sides. That
+ *  is `dome = 1`, and the filbert on the rack between the two shapes is the
+ *  values between.
+ *
+ *  The chord is normalised against a **plateau** rather than used raw, because
+ *  paint is not laid in proportion to how long a hair dwells: the sheet takes
+ *  what it takes and then it is covered. So the middle of the head bears fully
+ *  and only the outer fifth or so shades away, which is a round's soft edge
+ *  rather than a lens-shaped mark. Exported for the tests: the claim that a
+ *  round has no ruled sides is a claim about this function. */
+export function bearing(u: number, dome: number): number {
+  if (dome <= 0) return 1;
+  const chord = Math.sqrt(Math.max(0, 1 - u * u));
+  return 1 - dome + dome * Math.min(1, chord / DOME_PLATEAU);
+}
+
+/** The head as one touch presses it down: which hairs are laying, how far the
+ *  footprint curves off the paper across the section, and how far the bundle
+ *  has twisted out of its lanes by here.
+ *
+ *  One object per *stroke*, rewritten per touch — the walk owns it, `press`
+ *  only reads it (see `bristleSim.ts`). */
+export type HeadPress = {
+  /** How much of `film` each hair is laying, 0 for a hair off the paper. */
+  comb: Float32Array;
+  /** How elliptical the footprint is across the path (see `bearing`). */
+  dome: number;
+  /** How far the bundle has twisted across the head, in the same units as `u`
+   *  — a share of the half-width, so 1 would carry the middle hair out to the
+   *  rim. Which hair a place across the section is under drifts along the
+   *  stroke, so the partings wander the way a head's do instead of ruling the
+   *  mark from end to end. */
+  shift: number;
+};
+
 /** One touch of the head's cross-section: the row of hairs pressed onto the
  *  sheet at a point, and whatever the paper takes of the film each offers.
  *
@@ -220,11 +272,12 @@ export function settling(dip: number, bite: number, relief: number): number {
  *  deposit per sample is normalised by both, so the same stroke leaves the
  *  same film however finely the walk or the head happen to be sampled.
  *
- *  `comb` is the head itself: how much of `film` each hair is laying at this
- *  touch, 0 for a hair that is off the paper — the walk works it out once per
- *  touch (the hairs drift and lift along the stroke), and a sample at `u`
- *  across the section reads the hair whose lane it is in. The partings the
- *  zeros leave are most of what makes the mark a brush's.
+ *  `head` is the head itself (see `HeadPress`): how much of `film` each hair
+ *  is laying at this touch — the walk works it out once per touch, and a
+ *  sample at `u` across the section reads the hair whose lane it is in, so the
+ *  partings the zeros leave are most of what makes the mark a brush's — plus
+ *  how far the footprint curves off the paper toward the section's two ends
+ *  (`bearing`) and how far the bundle has twisted out of its lanes by here.
  *
  *  `dry` is how starved the head is, 0–1: it moves the mark from the solid
  *  slab to streaks to the broken scumble of the paper's own grain (see
@@ -242,7 +295,7 @@ export function press(
   film: number,
   dry: number,
   spacing: number,
-  comb: Float32Array,
+  head: HeadPress,
   log?: number[],
 ): void {
   if (film <= 0) return;
@@ -283,7 +336,14 @@ export function press(
   const bite = field.bite;
   const relief = field.relief;
   const feathers = wick > 0 && starved < 0.7;
+  const comb = head.comb;
   const hairs = comb.length;
+  // How far the head curves off the paper across the section, and where the
+  // bundle's twist has carried the lanes by here — both constant over the
+  // touch, so the inner loop only ever adds.
+  const dome = head.dome;
+  const domed = dome > 0;
+  const shift = head.shift * hairs * 0.5;
 
   const invCell = 1 / cell;
   const uStep = 2 / samples;
@@ -300,10 +360,22 @@ export function press(
     // Which hair this sample is under. The comb is indexed by lane rather
     // than by page position, so a flat turning edge-on compresses the same
     // streaks into a narrower band instead of re-dealing them.
-    let hair = ((u + 1) * 0.5 * hairs) | 0;
+    let hair = ((u + 1) * 0.5 * hairs + shift) | 0;
     if (hair >= hairs) hair = hairs - 1;
-    const laying = comb[hair]!;
+    else if (hair < 0) hair = 0;
+    let laying = comb[hair]!;
     if (laying <= 0) continue;
+    // …and how much of itself the head is bearing here. A cone curves off the
+    // paper toward its rim (`bearing`); a chisel does not, and its band keeps
+    // the two ruled sides that are what a flat is for.
+    if (domed) {
+      // The same line as `bearing`, with the clamp written out because this is
+      // the innermost loop of the engine.
+      const chord = Math.sqrt(Math.max(0, 1 - u * u));
+      const bear = chord >= DOME_PLATEAU ? 1 : chord / DOME_PLATEAU;
+      laying *= 1 - dome + dome * bear;
+      if (laying <= 0) continue;
+    }
     const col = Math.floor(i === samples ? (x + ex - field.x) * invCell : gx);
     const row = Math.floor(i === samples ? (y + ey - field.y) * invCell : gy);
     if (col < 0 || col >= width || row < 0 || row >= height) continue;

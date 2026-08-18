@@ -17,6 +17,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { groundProfile, SOLID_GROUND } from "../src/app/ground.ts";
 import type { GroundProfile } from "../src/app/ground.ts";
 import {
+  bearing,
   catching,
   createBristleField,
   paintCoverage,
@@ -125,6 +126,108 @@ describe("the head", () => {
     const band = right - left;
     expect(band).toBeGreaterThan(SIZE * 0.55);
     expect(band).toBeLessThan(SIZE * 0.9);
+  });
+
+  it("bears down across the section like a cone, and like a blade squared off", () => {
+    // A round curves away from the paper toward its rim, so what it lays
+    // falls off across the band and the two sides of the mark are not ruled.
+    expect(bearing(0, 1)).toBeCloseTo(1);
+    expect(bearing(0.5, 1)).toBeCloseTo(1);
+    expect(bearing(0.95, 1)).toBeLessThan(0.5);
+    expect(bearing(1, 1)).toBeCloseTo(0);
+    // A chisel ferrule is cut square: every hair along the blade meets the
+    // sheet with the same length of hair behind it, all the way to the rim.
+    for (const u of [0, 0.5, 0.95, 1]) expect(bearing(u, 0)).toBe(1);
+    // …and the filbert between them keeps some of each.
+    expect(bearing(0.95, 0.5)).toBeGreaterThan(bearing(0.95, 1));
+    expect(bearing(0.95, 0.5)).toBeLessThan(1);
+  });
+});
+
+describe("the two ends of a mark", () => {
+  /** How far past `endX` the mark reaches along the row the path ran down. */
+  function past(field: BristleField, endX: number, y = 70): number {
+    const film = painted(field);
+    let far = 0;
+    for (let x = endX; x < field.width; x++) {
+      if (film[y * field.width + x]! > 0.02) far = x - endX;
+    }
+    return far;
+  }
+
+  it("does not stamp the head's own print at the head of a stroke", () => {
+    // A swept touch-down takes the sheet with part of the bundle and opens to
+    // the ferrule over the first stretch — so the mark does *not* begin with
+    // a disc the diameter of the brush, which is wider than the stroke it
+    // would be starting.
+    const field = fieldOver(600, 200);
+    drag(field, run(400, 14), SIZE, 0, 0, 1, 1, 1);
+    const film = painted(field);
+    const across = (x: number) => {
+      let n = 0;
+      for (let y = 0; y < 200; y++) if (film[y * 600 + x]! > 0.02) n++;
+      return n;
+    };
+    // The entry is narrower than the body it opens into…
+    expect(across(32)).toBeLessThan(across(200) * 0.85);
+    // …and nothing reaches a half-head back behind where the hand touched.
+    let behind = 0;
+    for (let x = 0; x < 30; x++) if (across(x) > 0) behind = 30 - x;
+    expect(behind).toBeLessThan(SIZE * 0.4);
+  });
+
+  it("draws the lift out into trailing hairs rather than closing it", () => {
+    const field = fieldOver(600, 200);
+    const points = run(400, 14);
+    drag(field, points, SIZE, 0, 0, 1, 1, 1);
+    const end = points[points.length - 1]!.x;
+    // Something carries on past the last point the hand reached — the hairs
+    // are bent backwards by then and come off the sheet still bent…
+    expect(past(field, end)).toBeGreaterThan(2);
+    // …and it is a fan out of the middle, not the whole width of the head:
+    // the band has already narrowed by the time the hand let go.
+    const film = painted(field);
+    const wide = (x: number) => {
+      let n = 0;
+      for (let y = 0; y < 200; y++) if (film[y * 600 + x]! > 0.02) n++;
+      return n;
+    };
+    expect(wide(end - 2)).toBeLessThan(wide(end - Math.round(SIZE)) * 0.9);
+  });
+
+  it("prints the whole head for a press, and the same print when it jitters", () => {
+    // A finger resting on the glass never holds still. The mark it leaves has
+    // to be the mark a still one leaves — a press that shifted two pixels used
+    // to lose its whole blot, and before that a quarter of it as a wedge.
+    const still = fieldOver(300, 300);
+    drag(still, [{ x: 150, y: 150 }], SIZE, 0, 0, 1, 1, 1);
+    const moved = fieldOver(300, 300);
+    drag(
+      moved,
+      [
+        { x: 150, y: 150 },
+        { x: 151, y: 151 },
+        { x: 150, y: 152 },
+      ],
+      SIZE,
+      0,
+      0,
+      1,
+      1,
+      1,
+    );
+    const a = painted(still);
+    const b = painted(moved);
+    let inked = 0;
+    let lost = 0;
+    for (let i = 0; i < a.length; i++) {
+      if (a[i]! > 0.02) inked++;
+      if (a[i]! > 0.02 && b[i]! <= 0.02) lost++;
+    }
+    // A press prints the head: a disc about as wide as the ferrule.
+    expect(inked).toBeGreaterThan(Math.PI * (SIZE / 2) ** 2 * 0.6);
+    // …and the jittered one is the same mark, give or take its rim.
+    expect(lost / inked).toBeLessThan(0.15);
   });
 });
 
