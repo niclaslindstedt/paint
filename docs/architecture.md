@@ -746,16 +746,23 @@ lives by: **nothing outside it may branch on a tool id.**
   collects the words into a text stroke; the module also owns the typefaces, the
   font shorthand every surface sets type with, and the measurement the export
   crop and the repaint's culling both ask for.
-- `bristleField.ts` / `bristleSim.ts` / `bristleStore.ts` — the paintbrush the
-  app actually paints with: the quill's architecture at a third thickness of
-  medium. The field knows about paint and paper and nothing else — a film per
-  cell over the _same_ sheet the pencil presses into (`sheetDip`), taken fully
-  by a wet head and only on the high ground by a starving one, settling gently
-  into a textured stock's dips so a canvas weave prints through the slab. The
-  sim knows about the gesture: a head squeezed anywhere between a round and a
-  blade (the flatness dial, worked out per touch as a projection across the
-  path), a comb of hairs that land, wander and give out — the partings — and a
-  finite dip spent along the drag: cover, streak, scumble, trail, gone, sooner
+- `bristleField.ts` / `bristleHead.ts` / `bristlePrint.ts` / `bristleWalk.ts` /
+  `bristleSim.ts` / `bristleStore.ts` — the paintbrush the app actually paints
+  with: the quill's architecture at a third thickness of medium. The field
+  knows about paint and paper and nothing else — a film per cell over the
+  _same_ sheet the pencil presses into (`sheetDip`), taken fully by a wet head
+  and only on the high ground by a starving one, settling gently into a
+  textured stock's dips so a canvas weave prints through the slab. The head is
+  what is on the end of the handle and how hard it is bearing: a bundle
+  squeezed anywhere between a round and a blade (the flatness dial, worked out
+  per touch as a projection across the path), a comb of hairs that wander and
+  give out — the partings — bearing across the mark like the cone it is or
+  square like a chisel, and opening onto the sheet as the hand sweeps it down.
+  The print is what a walk of cross-sections cannot say: the two ends of a
+  mark, which look nothing like each other — a touch-down that opens from part
+  of the bundle rather than stamping a disc, and a lift that frays into the
+  bent-back hairs it was dragging. The walk drags all that along a path and
+  spends a finite dip as it goes: cover, streak, scumble, trail, gone, sooner
   on a sheet that drinks. A landed mark is simulated once and kept as pixels
   in the store; the gesture under the hand is walked incrementally (settled
   prefix, provisional tail, an undo log per frame) and _promoted_ into the

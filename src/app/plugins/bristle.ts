@@ -66,8 +66,19 @@ import { hairTraits, openStrand } from "./strand.ts";
  *  it. The window closes to nothing at the two ends, which keeps the mark
  *  starting and finishing where the hand did — it is the middle of a gesture a
  *  wide head rounds off, not its extent. A small head barely notices; that is
- *  the point, and it is why a pencil-sized brush still takes your handwriting. */
-function stiffen(along: Trace[], radius: number, spacing: number): Trace[] {
+ *  the point, and it is why a pencil-sized brush still takes your handwriting.
+ *
+ *  The paint simulation reads it too (see `bristleSim.ts`), and for a second
+ *  reason on top of this one: the samples the canvas stores are a *polyline*,
+ *  so a quick gesture turns a corner at every one of them, and a walk that
+ *  presses a cross-section at each touch fans those corners open into wedges
+ *  of bare paper on the outside of every bend. A head that cannot follow the
+ *  corner does not leave one. */
+export function stiffen(
+  along: Trace[],
+  radius: number,
+  spacing: number,
+): Trace[] {
   const window = Math.floor(radius / Math.max(0.5, spacing));
   if (window < 1 || along.length < 3) return along;
   const n = along.length;

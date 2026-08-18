@@ -189,6 +189,21 @@ npx vite-node $S/probe-ink.ts            # film numbers + timings
 npx vite-node $S/verify-incremental.ts   # live walk == one-shot walk
 ```
 
+…and the same three for the paintbrush, which are the worked examples for a
+medium whose character is a _shape_ rather than a flow:
+
+```sh
+npx vite-node $S/brush-sheet.ts          # taps, drags, a press that jittered,
+                                         # the dry preset, a flat to compare
+npx vite-node $S/brush-probe.ts          # band width vs the ferrule, comb
+                                         # contrast, what a print/frame costs
+npx vite-node $S/brush-shot.ts           # ONE stroke, big, shaped like the
+                                         # reference photograph, in its colour
+```
+
 All node-only (`pngio.ts` writes/reads PNGs with `zlib`); nothing to install.
-The three ink scripts double as worked examples — copy, swap the imports, and
-rewrite the rows/windows for the medium you are simulating.
+Copy the nearest pair, swap the imports, and rewrite the rows/windows for the
+medium you are simulating. `brush-shot.ts` is worth copying for any medium you
+have a photograph of: one mark at the size and colour of the reference, so the
+render and the photograph can be held side by side rather than compared against
+a memory of one.
