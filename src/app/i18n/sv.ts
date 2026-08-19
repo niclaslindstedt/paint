@@ -368,6 +368,10 @@ export const sv: Catalog = {
       name: "Tryck: {value} %",
       hint: "Tryck hårdare för att fylla papprets korn; lätta för att låta det synas.",
     },
+    soft: {
+      name: "Mjukhet: {value} %",
+      hint: "Vilken vaxkrita: hård är en märkpenna av vax, 100 % vaxkritan, mjuk en oljepastell som lägger färgen i sjok.",
+    },
     press: {
       name: "Tryck: {value} %",
       hint: "Hur hårt du trycker på stiftet. Tryck hårdare för en tät svärta; lätta för ett ljust streck där papperet syns igenom.",
@@ -449,9 +453,10 @@ export const sv: Catalog = {
       broad: "Bred",
     },
     crayon: {
-      coloring: "Färgläggning",
+      coloring: "Vaxkrita",
+      pastel: "Oljepastell",
+      china: "Märkpenna av vax",
       shading: "Skuggning",
-      solid: "Täckande",
     },
     calligraphy: {
       italic: "Italic",
@@ -663,7 +668,8 @@ export const sv: Catalog = {
     },
     crayon: {
       name: "Vaxkrita",
-      description: "En vaxig, kornig krita som hoppar över papprets struktur.",
+      description:
+        "En vaxkrita dragen över papprets struktur: den hoppar över dalarna, klumpar sig på kornet och blir täckande när du trycker. Mjukheten går från märkpenna av vax till oljepastell.",
     },
     calligraphy: {
       name: "Kalligrafipenna",

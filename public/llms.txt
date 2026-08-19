@@ -71,7 +71,8 @@ connect a storage backend yourself.
 - Switch more tools on in Settings → Tools (a graphite pencil, a watercolour
   brush that spreads and granulates, a bristle paintbrush that runs
   from a round to a one-stroke flat on a dial and simulates a finite dip of
-  paint over the page's grain, crayon, calligraphy pen),
+  paint over the page's grain, a wax crayon that runs from china marker to
+  oil pastel, calligraphy pen),
   and put the rows in the order you want
   the toolbar in. Every tool is a plugin behind one interface, so the list grows
   without the app changing shape.
@@ -87,7 +88,7 @@ connect a storage backend yourself.
 - Tune the tool in your hand under the nib picker's Advanced fold — how charged
   the head is, how much paint the dip took, how far the head is squeezed toward
   a flat and which way the blade is turned for the paintbrush, flow for the
-  airbrush, pressure for the crayon, the
+  airbrush, softness and pressure for the crayon, the
   lead's grade and the hand on it for the pencil, the chisel of a felt tip for
   the marker and the highlighter, the nib's angle and its dip of ink for the
   calligraphy pen, strength for the eraser,

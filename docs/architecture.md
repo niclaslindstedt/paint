@@ -865,10 +865,16 @@ lives by: **nothing outside it may branch on a tool id.**
   opens every drawing. That fall-through is all that is left of the second
   watercolour this app used to offer: it is what a mark too small to dry looks
   like, not an engine anyone picks.
-- `crayon.ts` — the wax, which needs one for the opposite reason: it is the only
-  painter modelling the _page_. A fixed lattice of paper tooth decides where wax
-  sticks, anchored in document coordinates, so it is the same sheet under every
-  mark and the texture is a property of the paper rather than of the stick.
+- `crayon.ts` — the wax. The crayon is a **sheet** model now, the pencil's
+  arrangement one shelf along: `waxSim.ts` drags a stick's face over the same
+  paper the lead reads (`sheetDip`), `waxField.ts` owns what one touch leaves —
+  the crumbs catching in clumps that smear with the drag, the valleys filling
+  under a second pass, the burnish a cell cannot go past — and `waxStore.ts` is
+  its dried-mark shelf. The `soft` dial picks the stick, china marker to oil
+  pastel, the way the pencil's grade picks the lead. What is left in
+  `crayon.ts` is the seam and the old geometric grain painter under it, kept as
+  the **fallback** for marks no field can run — a hairline at a far zoom, a
+  face finer than a couple of cells, a browser with no canvas.
 - `graphite.ts` — the **stroke** model of a pencil, which is the crayon's near
   neighbour and deliberately not the same painter: graphite chips off where it
   lands instead of smearing, finds a finer tooth than a blunt wax face does, and

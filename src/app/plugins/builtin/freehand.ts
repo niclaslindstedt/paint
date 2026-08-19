@@ -251,12 +251,35 @@ export function freehandBehaviour(ink: FreehandInk = {}): ToolBehaviour {
           );
           return;
         case "crayon":
+          // The crayon *simulates* its wax (see `plugins/waxSim.ts`): a
+          // stick's face dragged over the page's own sheet, and the mark is
+          // whatever the tooth caught. Its two dials are the whole of what a
+          // crayon is — which stick, and how hard the hand.
           paintCrayon(
             ctx2d,
             points,
             stroke.size,
             scale,
             strokeDial(stroke, "pressure"),
+            // Which stick is in the hand — china marker to oil pastel (see
+            // `SOFT` in `./dials.ts`). Recorded on the mark like every other
+            // dial, so re-choosing later cannot re-wax a line already drawn.
+            strokeDial(stroke, "soft"),
+            // The sheet the wax is being dragged over: how coarse the paper
+            // is, how deep, and whether it dips at random or goes over and
+            // under.
+            sheet,
+            // The wax's colour as a value: the field lays down a *load* and
+            // works out the alpha itself (see `waxSim.ts`).
+            strokeColor(stroke),
+            // …and the patch the caller is actually keeping, so a scribble
+            // repainted where it grew costs the patch rather than the
+            // scribble (see `PaintDetail.clip`).
+            detail.clip,
+            // …and whether this mark is still under the hand, which decides
+            // only whether the dried-mark store is consulted (see
+            // `waxStore.ts`).
+            detail.live === true,
           );
           return;
         case "calligraphy":

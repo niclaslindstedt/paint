@@ -287,11 +287,16 @@ describe("a rubbing out that only lifts what a rubber can", () => {
         null,
         ink,
       );
-      // The two relay surfaces, and on the first of them both marks again: the
-      // pen's one stroke and the crayon's grain.
-      expect(dom.created).toHaveLength(2);
-      const [relaid] = dom.created;
-      expect(relaid!.ctx.calls.stroke ?? 0).toBeGreaterThan(1);
+      // Three canvases: the wax simulation's own field (the crayon mark dries
+      // into the store the first time it is painted — see `waxStore.ts`), and
+      // the two relay surfaces. On the first relay surface both marks go back:
+      // the pen's one stroke, and the crayon's grain as a blit of its dried
+      // field beside the mask's own.
+      expect(dom.created).toHaveLength(3);
+      const relaid = dom.created[1];
+      expect(relaid!.ctx.calls.stroke ?? 0).toBe(1);
+      expect(relaid!.ctx.draws.length).toBeGreaterThan(1);
+      expect(relaid!.ctx.draws.at(-1)!.composite).toBe("destination-in");
     } finally {
       dom.restore();
     }

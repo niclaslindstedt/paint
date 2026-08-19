@@ -184,8 +184,8 @@ draft is thrown away.
 ## Brushes are their medium
 
 A tool that differs from the pen only in `lineWidth` is not a tool. The
-painters in `src/app/plugins/brushes.ts`, `bristle.ts`, `crayon.ts` and
-`graphite.ts` model what the mark is _made of_:
+painters in `src/app/plugins/brushes.ts`, `bristle.ts`, `waxSim.ts` and
+`leadSim.ts` model what the mark is _made of_:
 
 - the **paintbrush** _simulates its paint_, the way the pencil presses a lead
   into the sheet and the calligraphy pen spends a bead of ink (see
@@ -274,16 +274,29 @@ painters in `src/app/plugins/brushes.ts`, `bristle.ts`, `crayon.ts` and
   draws the same weight whichever way you pull it, a highlighter rests nearly
   flat and held square across the page, so an underline gets the full band and a
   stroke down the page gets a hairline;
-- the **crayon** is wax caught on the paper's tooth. The page carries a fixed
-  lattice of peaks and valleys; wax lands on the peaks and smears along the way
-  you were going, and the valleys stay the colour of the sheet. The tooth
+- the **crayon** is a stick of wax _simulated_ over the page's own sheet, the
+  pencil's arrangement one shelf along: the paper's height decides what the
+  face can reach, and the mark is whatever the tooth caught. Wax comes off in
+  crumbs that catch in **clumps** — chains of little streaks pointing the way
+  the hand went, with clean paper between them — and each pass stands the
+  surface up under the next, so colouring something in genuinely closes it:
+  the second pass reaches valleys the first rode over, up to the waxy
+  near-solid a leaned-on stick **burnishes** to and cannot go past. The tooth
   belongs to the **paper, not the stick**, so a wide crayon is a wider band of
-  the same fine speckle rather than a thin one blown up — and because two marks
-  that cross read the same lattice, they skip the same valleys and the page
-  reads as one sheet. The edges chip and fray over a few pixels however broad
-  the stick is, the face leans as you turn through a stroke so one side goes
-  down solid and the other frays, and the ends fade in instead of starting
-  square;
+  the same clumped speckle rather than a thin one blown up — and because two
+  marks that cross read the same sheet, they agree about where it is low and
+  the page reads as one sheet, while each smears its clumps its own way, the
+  way two real strokes do. The face leans as you turn through a stroke so one
+  side goes down solid and the other frays, its worn facets plough shallow
+  furrows along the mark, the edges chip over a few pixels however broad the
+  stick is, and the ends fade in instead of starting square. **Softness** is
+  the crayon's grade, the way the pencil's is its lead: the hard end is a
+  china marker, 100% the wax crayon, the soft end an oil pastel that digs to
+  the bottom of the tooth and slabs colour on at an ordinary touch — and the
+  preset row hands out exactly those three sticks. Where no field can run — a
+  hairline at a far zoom, a face finer than a couple of cells, a browser with
+  no canvas — the old geometric grain painter catches the mark inside the
+  seam, so everything always draws;
 - the **flat brush** is no longer a second tool: it is the paintbrush's
   flatness dial turned all the way up (the "One-stroke" preset), because what
   a blade does is a projection the simulation works out per touch rather than
@@ -731,7 +744,10 @@ wax only sticks to the peaks it is pressed onto, so a light hand leaves the
 paper's speckle showing and a heavy one fills the valleys in — and the **rubber
 carries the same word for the other end of the same idea**, how far into that
 tooth its face deforms, which fades the ghost a rubbing out leaves rather than
-removing it. **Lead** is the
+removing it. **Softness** is which stick of wax is in the crayon — the hard
+end a china marker, the soft end an oil pastel — reaching how deep the face
+digs and how freely it crumbles, so a softer stick is a fuller, creamier mark
+and never a wider one. **Lead** is the
 pencil's grade, by name — 8H is hard and pale and rides the paper, 9B is soft
 and dark and fills its tooth in — and like pressure it reaches the deposit
 rather than the width. **Water** is how charged the watercolour brush is: turned

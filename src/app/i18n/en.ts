@@ -399,6 +399,10 @@ export const en = {
       name: "Pressure: {value}%",
       hint: "Bear down to fill the paper's grain in; ease off to let it show.",
     },
+    soft: {
+      name: "Softness: {value}%",
+      hint: "Which stick of wax: hard is a china marker, 100% the wax crayon, soft an oil pastel that slabs colour on.",
+    },
     press: {
       name: "Pressure: {value}%",
       hint: "How hard you lean on the lead. Bear down for a solid dark; ease off for a light line the paper shows through.",
@@ -497,9 +501,10 @@ export const en = {
       broad: "Broad",
     },
     crayon: {
-      coloring: "Colouring",
+      coloring: "Wax crayon",
+      pastel: "Oil pastel",
+      china: "China marker",
       shading: "Shading",
-      solid: "Solid",
     },
     calligraphy: {
       italic: "Italic",
@@ -725,7 +730,7 @@ export const en = {
     crayon: {
       name: "Crayon",
       description:
-        "A waxy, grainy stick that skips over the tooth of the page.",
+        "A stick of wax dragged over the paper's tooth: it skips the valleys, clumps on the grain, and burnishes solid when you lean on it. Softness runs from china marker to oil pastel.",
     },
     calligraphy: {
       name: "Calligraphy pen",
