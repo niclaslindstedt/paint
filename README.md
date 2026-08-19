@@ -12,7 +12,7 @@
 
 Paint is a small installable web app for sketching a concept: boxes, arrows, a
 circled bit, a scribble. It opens on a page, a paint program's toolbox — pen,
-pencil, eraser, watercolour brush, airbrush, paint bucket and gradient, text,
+marker, highlighter, eraser, airbrush, paint bucket and gradient, text,
 the shapes, a selection marquee and the colour dropper — and nothing else in the way. Drawings are vector strokes kept in your browser; nothing leaves the device
 unless you connect storage yourself.
 
@@ -29,11 +29,12 @@ the same [`oss-framework`](https://github.com/niclaslindstedt/oss-framework).
   thing as a `.pct` — every layer, and the marks that made them — and open it
   again exactly as you left it.
 - **Tools are plugins.** Every tool, the pen included, is registered through
-  one interface. It opens on the toolbox you already know — pen, pencil,
-  eraser, watercolour brush, airbrush, bucket and gradient, text, the shapes, a
-  selection marquee and the dropper — and the media it adds to that (a bristle
-  paintbrush that goes from a round to a one-stroke flat on a dial, a marker, a
-  crayon, a calligraphy nib, a highlighter)
+  one interface. It opens on the toolbox you already know — pen, marker,
+  highlighter, eraser, airbrush, bucket and gradient, text, the shapes, a
+  selection marquee and the dropper — and the media that simulate their medium
+  (a graphite pencil, a watercolour brush that spreads and granulates, a bristle
+  paintbrush that goes from a round to a one-stroke flat on a dial, a crayon, a
+  calligraphy nib)
   wait in
   Settings → Tools, so the toolbar stays as simple as you want it and grows when
   you need it. Rearrange the row there too, and it rearranges here. Each tool

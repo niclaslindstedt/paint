@@ -27,28 +27,17 @@ what undoes it, the rest of the media, and last the two tools that touch neither
 the ink nor the drawing.
 
 - **Pen** (`P`) draws a freehand line at the width you set it to.
-- **Eraser** (`E`) rubs marks off the page. Turn its **strength** down and one
-  pass fades them instead of removing them.
-- **Pencil** (`G`) is for sketching: graphite on the paper's tooth. It has one
-  colour and it came in the lead, so the ink button is struck out while it is in
-  your hand — pick the **lead** by name instead, 8H through 9B, the grades a
-  shop sells. That is the colour control: a hard lead scratches a pale grey line
-  you can still see the sheet through, a soft one goes down nearly black. The
-  widths are the ones a mechanical pencil takes: 0.3, 0.5, 0.7, 0.9 and 2.0 mm.
-  The other dial is **pressure** — how hard you are leaning on it. Ease off and
-  the lead rides the crowns of the paper and leaves a broken guide line; bear
-  down and it reaches into the tooth and lays a solid dark. It is the pencil's
-  way of drawing a pale mark, and the reason there is no opacity beside it: a
-  light hand leaves the sheet showing through the mark, where an alpha would
-  simply fade the mark. Drawing fast does not pale a line — graphite comes
-  off by rubbing, so what decides a mark is the hand on it, not the hurry.
-- **Watercolour** (`W`) is a wet wash on paper. It spreads past the brush that
-  laid it, dries darkest at the rim, granulates into the sheet, and never
-  covers what is under it — so a second pass over the first deepens it the way
-  a real glaze does. **Water**, **pigment** and **granulation** are the three
-  things to change between strokes.
 - **Airbrush** (`S`) lays down a soft cloud of paint that builds up the longer
   you hold it over one spot.
+- **Marker** (`M`) is a felt tip: spirit ink that soaks in, so a second pass
+  over the same line darkens it. Its **chisel** dial squashes the nib — leave it
+  mostly round and it draws the same weight whichever way you pull it.
+- **Highlighter** (`H`) is the same nib squashed nearly flat and held square
+  across the page, so an underline drawn left to right gets the full band and a
+  stroke drawn down the page gets a hairline. It opens at 5 mm, which is a line
+  of type.
+- **Eraser** (`E`) rubs marks off the page. Turn its **strength** down and one
+  pass fades them instead of removing them.
 - **Paint bucket** (`F`) fills the empty space you tap, up to the marks around
   it. Press its button a second time for the other way of filling one —
   **Gradient** (`Y`), which floods the same area and pours a _ramp_ of colour
@@ -73,6 +62,31 @@ the ink nor the drawing.
   it — and double-tapping with it fits the whole page, again for 1:1.
 - `Ctrl/Cmd + Z` undoes the last mark, `Ctrl/Cmd + Shift + Z` redoes it. Every
   mark is one step.
+
+The media that _simulate_ their medium are one tap away in Settings →
+**Tools**, and they slot into their own place in the row when you switch them
+on. Two of them are what this app has of its own:
+
+- **Pencil** (`G`) is for sketching: graphite on the paper's tooth. It has one
+  colour and it came in the lead, so the ink button is struck out while it is in
+  your hand — pick the **lead** by name instead, 8H through 9B, the grades a
+  shop sells. That is the colour control: a hard lead scratches a pale grey line
+  you can still see the sheet through, a soft one goes down nearly black. The
+  widths are the ones a mechanical pencil takes: 0.3, 0.5, 0.7, 0.9 and 2.0 mm.
+  The other dial is **pressure** — how hard you are leaning on it. Ease off and
+  the lead rides the crowns of the paper and leaves a broken guide line; bear
+  down and it reaches into the tooth and lays a solid dark. It is the pencil's
+  way of drawing a pale mark, and the reason there is no opacity beside it: a
+  light hand leaves the sheet showing through the mark, where an alpha would
+  simply fade the mark. Drawing fast does not pale a line — graphite comes
+  off by rubbing, so what decides a mark is the hand on it, not the hurry.
+- **Watercolour** (`W`) is a wet wash on paper. It spreads past the brush that
+  laid it, dries darkest at the rim, granulates into the sheet, and never
+  covers what is under it — so a second pass over the first deepens it the way
+  a real glaze does. **Water**, **pigment** and **granulation** are the three
+  things to change between strokes.
+
+The bristle paintbrush, the crayon and the calligraphy pen wait there too.
 
 The **right-hand panel** is what you can do to the drawing rather than to a
 mark. On a wide screen it is docked beside the canvas, and the panel button in

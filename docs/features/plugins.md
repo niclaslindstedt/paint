@@ -14,14 +14,16 @@ There are three kinds, and the only difference is how they are switched on:
 | **Optional**   | everything else                  | Off until you switch it on          |
 
 Core is the irreducible three — pen, the rubbing-out family, hand. On out of the box: the
-graphite pencil, the watercolour brush, the airbrush, the fills (the paint
+airbrush, the marker, the highlighter, the fills (the paint
 bucket, and the gradient behind it), text, the shapes, the selection tools and
 the colour dropper — the toolbox anyone who
 has opened a paint program already knows how to use, spray can included, plus
-the one medium this app has of its own. That is the _whole_ default toolbar:
+the two felt tips a hand reaches for on a page it is thinking on. That is the
+_whole_ default toolbar:
 eleven buttons, families counted as the one button they are, and everything else
-off until you ask for it. Waiting in Settings → Tools: the rest of the media
-(the paintbrush, marker, highlighter, crayon, calligraphy pen). The **rubber**
+off until you ask for it. Waiting in Settings → Tools: the media that simulate
+their medium (the graphite pencil, the watercolour brush, the paintbrush, the
+crayon, the calligraphy pen). The **rubber**
 is not one of them: it ships with the eraser, behind the eraser's own button —
 see below.
 

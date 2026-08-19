@@ -188,19 +188,19 @@ describe("registry", () => {
   });
 
   it("opens on a paint program's toolbox and nothing else", () => {
-    // What a first run finds: a pen, a rubber, a pencil, a watercolour brush,
-    // a spray can, a bucket, the shapes, the marquee, type, a dropper and the
-    // hand — the tools anyone who has opened a paint program already knows,
-    // plus the one medium this app is actually *for*. This list is the whole
-    // default toolbar, families counted as the one button they are, so a tool
-    // added later has to be switched on before it is seen.
+    // What a first run finds: a pen, a marker, a highlighter, a spray can, a
+    // rubber, a bucket, the shapes, the marquee, type, a dropper and the hand —
+    // the tools anyone who has opened a paint program already knows, plus the
+    // two felt tips a hand reaches for on a page it is thinking on. This list
+    // is the whole default toolbar, families counted as the one button they
+    // are, so a tool added later has to be switched on before it is seen.
     expect(
       toolbarEntries(defaultEnabledPlugins(), []).map((e) => e.id),
     ).toEqual([
       "pencil",
-      "graphite",
-      "watercolor",
       "airspray",
+      "marker",
+      "highlighter",
       "eraser",
       "filler",
       "shapes",
@@ -209,13 +209,13 @@ describe("registry", () => {
       "dropper",
       "hand",
     ]);
-    // …and the rest of the media deliberately not: they are the app's own
-    // additions, and they are one tap away in Settings → Tools.
+    // …and the media that simulate their medium deliberately not: they are the
+    // app's own additions, and they are one tap away in Settings → Tools.
     for (const id of [
+      "graphite",
+      "watercolor",
       "paintbrush",
       "flatbrush",
-      "marker",
-      "highlighter",
       "crayon",
       "calligraphy",
     ]) {
