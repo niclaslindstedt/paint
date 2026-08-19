@@ -38,14 +38,16 @@
 // the two ways of filling an area, and the two ways of taking a mark off — and
 // all four are below.
 //
-// **What a first run finds is the shape of Paint**: a pen, a pencil, an eraser,
-// a watercolour brush, an airbrush, a bucket, type, the shapes, the marquee, a
-// dropper and the hand — the toolbox anyone who has opened a paint program has
-// already used, spray can included, plus the two things that toolbox never had:
-// something to sketch with, and something to *paint* with. The rest of the media
-// (the round and flat bristle brushes, the marker, the crayon, the highlighter,
-// the broad nib) are one tap away in Settings → Tools; they are not what an
-// empty page should open holding.
+// **What a first run finds is the shape of Paint**: a pen, a marker, a
+// highlighter, an airbrush, an eraser, a bucket, type, the shapes, the marquee,
+// a dropper and the hand — the toolbox anyone who has opened a paint program
+// has already used, spray can included, plus the two felt tips that are what a
+// hand reaches for on a page it is thinking on. The tools that *simulate* a
+// medium — the graphite pencil and the watercolour brush, along with the
+// bristle brushes, the crayon and the broad nib — are one tap away in
+// Settings → Tools: they are the app's own additions rather than what an empty
+// page should open holding, and the two heaviest of them are the two that model
+// paper physics.
 //
 // **Every tool that has a width also declares the sizes it is really made in**
 // (`gauge`) — the five a shop sells, the range it stocks, and how far past
@@ -416,7 +418,6 @@ export function registerBuiltinPlugins(): void {
 
   registerPlugin({
     id: "graphite",
-    defaultOn: true,
     nameKey: "tools.graphite.name",
     descriptionKey: "tools.graphite.description",
     icon: PencilIcon,
@@ -549,7 +550,6 @@ export function registerBuiltinPlugins(): void {
 
   registerPlugin({
     id: "watercolor",
-    defaultOn: true,
     nameKey: "tools.watercolor.name",
     descriptionKey: "tools.watercolor.description",
     icon: WashBrushIcon,
@@ -636,6 +636,7 @@ export function registerBuiltinPlugins(): void {
 
   registerPlugin({
     id: "marker",
+    defaultOn: true,
     nameKey: "tools.marker.name",
     descriptionKey: "tools.marker.description",
     icon: MarkerIcon,
@@ -671,6 +672,7 @@ export function registerBuiltinPlugins(): void {
 
   registerPlugin({
     id: "highlighter",
+    defaultOn: true,
     nameKey: "tools.highlighter.name",
     descriptionKey: "tools.highlighter.description",
     icon: HighlighterIcon,

@@ -247,8 +247,16 @@ export { PX_PER_MM } from "./units.ts";
  *  7 — the watercolour brush joins it. Every other tool in the box is one a
  *      paint program has always had; this is the one medium the app has of its
  *      own, and a toolbox that hides it behind a settings page is a toolbox
- *      that never gets it out. */
-export const SETTINGS_VERSION = 7;
+ *      that never gets it out.
+ *  8 — the felt tips take their place: the marker and the highlighter ship
+ *      switched on, and the graphite pencil and the watercolour brush go back
+ *      behind the settings page they came from. This app is for sketching a
+ *      concept, and the two pens a hand reaches for on a page it is thinking on
+ *      are a marker and a highlighter; the two tools that *simulate* a medium
+ *      are the ones you go and get on purpose, and they are the two that make a
+ *      first stroke cost a paper simulation. An install that already has them
+ *      keeps them — the seeding only ever adds. */
+export const SETTINGS_VERSION = 8;
 
 /** Everything a fresh install starts from *except* which tools are switched on
  *  — that one comes from the registry, so it can't be a constant here (see

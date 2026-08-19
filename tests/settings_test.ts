@@ -297,6 +297,26 @@ describe("parseSettings", () => {
       ]);
     });
   });
+
+  describe("the felt-tip upgrade", () => {
+    it("hands an older install the two pens without taking anything away", () => {
+      // Version 7 opened on the graphite pencil and the watercolour brush;
+      // version 8 opens on the marker and the highlighter instead. Seeding only
+      // ever *adds*, and that is the point: a user who has been sketching with
+      // the pencil for a year does not lose it because the box it ships in
+      // changed.
+      const blob = {
+        settingsVersion: 7,
+        enabledPlugins: ["graphite", "watercolor", "airspray"],
+      };
+      const parsed = parseSettings(JSON.stringify(blob));
+      expect(parsed.enabledPlugins).toContain("marker");
+      expect(parsed.enabledPlugins).toContain("highlighter");
+      expect(parsed.enabledPlugins).toContain("graphite");
+      expect(parsed.enabledPlugins).toContain("watercolor");
+      expect(parsed.settingsVersion).toBe(SETTINGS_VERSION);
+    });
+  });
 });
 
 describe("widths in millimetres", () => {

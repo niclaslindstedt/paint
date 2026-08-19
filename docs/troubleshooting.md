@@ -2,8 +2,8 @@
 
 ## A tool is missing from the toolbar
 
-The optional tools (paintbrush, marker, highlighter, crayon, calligraphy pen)
-are off out of the box — switch
+The optional tools (pencil, watercolour brush, paintbrush, crayon, calligraphy
+pen) are off out of the box — switch
 them on under Settings → **Tools**. If a tool you switched on still isn't there,
 check that Settings saved (the toolbar updates the moment you toggle it) and
 reload.
