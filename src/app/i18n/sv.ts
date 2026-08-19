@@ -251,6 +251,7 @@ export const sv: Catalog = {
     colorUnused: "Det här verktyget ritar inte med färgen",
     tool: "Verktyg",
     toolbar: "Verktyg",
+    moreTools: "Fler verktyg…",
     selectionActions: "Markering",
     selectionFrame: "Markering",
     adjustSelection: "Justera markeringen",
