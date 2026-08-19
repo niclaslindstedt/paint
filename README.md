@@ -59,8 +59,8 @@ the same [`oss-framework`](https://github.com/niclaslindstedt/oss-framework).
   fill, a soft edge and a pale wash. Every row opens with the tool exactly as it comes, so one press
   puts back whatever you have done to it. Tools with only one setting worth
   handing anybody — the shapes, type — skip the row and simply open on it.
-- **Save the tool, not the setting.** Once you have found the 4B at 0.7 mm with
-  the opacity eased off, press the **star** beside the tool's name, call it "my
+- **Save the tool, not the setting.** Once you have found the 4B at 0.7 mm
+  under a light hand, press the **star** beside the tool's name, call it "my
   sketching pencil" and give it a mark to know it by, and it is one press away
   from then on. A saved tool carries its width and every dial, and it belongs to
   the tool it was saved from.
@@ -294,9 +294,13 @@ npm run preview
   lead's grade for the pencil — 8H through 9B, as a row of chips rather than a
   slider, because there is nothing between a 2B and a 3B — the chisel of a felt
   tip for the marker and the highlighter, the angle of the nib for the
-  calligraphy pen, strength for the eraser, pressure for the
+  calligraphy pen and how much ink its nib was dipped with, strength for the
+  eraser, pressure for the
   rubber, a feathered edge for the paint bucket and the gradient, how much page
-  one press of the dropper reads, and opacity for most of the rest. Above the
+  one press of the dropper reads, and opacity for the pen, the felt tips, the
+  shapes and type. The simulated media — pencil, paintbrush, watercolour brush,
+  crayon, broad nib — have no opacity: each is made lighter the way that medium
+  is, by the hand, the pigment or the dip. Above the
   widths are two rows of whole tools, one press each: **Presets**, the ways the
   tool's own medium is used, shipped with it and each showing the mark it makes,
   and **Saved**, the ones you named yourself.

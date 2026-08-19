@@ -510,10 +510,9 @@ sometimes, and for them there was no sometimes.
 
 ## Presets: the tool as it is actually held
 
-Five sliders is a tool a professional can build and a beginner cannot. Nobody
-arrives at dry-brush by dragging the splay up, the hardness down and the opacity
-off to see what happens — they arrive at it by being handed it and told what it
-is called. So most tools **ship with the handful of settings their medium is
+Four sliders is a tool a professional can build and a beginner cannot. Nobody
+arrives at dry-brush by dragging the hardness down and the load off to see what
+happens — they arrive at it by being handed it and told what it is called. So most tools **ship with the handful of settings their medium is
 actually used at**, and the panel offers them as a row of chips above everything
 else in it.
 
@@ -569,8 +568,8 @@ have to build by hand.
 
 ## Saved tools
 
-A width and five dials is a lot of decisions, and the ones worth making are
-worth making once. Finding the 4B at 0.7 mm with the opacity eased off that a
+A width and four dials is a lot of decisions, and the ones worth making are
+worth making once. Finding the 4B at 0.7 mm under a light hand that a
 drawing wants takes a minute of fiddling; wanting it again tomorrow takes the
 same minute. So the panel's title row carries a **star**. Press it, give the tool a name —
 "my sketching pencil" — and a **mark** from the same catalogue a drawing's own
@@ -650,23 +649,34 @@ loaded or dry, dipped with much or little paint, squeezed toward a blade or
 left round, and turned one way or the other when it is a blade, and no one of
 those four is any of the others:
 
-| Tool                | Advanced                                     |
-| ------------------- | -------------------------------------------- |
-| **Paintbrush**      | opacity, hardness, load, flatness, nib angle |
-| **Watercolour**     | opacity, water, pigment, granulation         |
-| **Airbrush**        | hardness, flow                               |
-| **Pencil**          | lead, opacity                                |
-| **Crayon**          | opacity, pressure                            |
-| **Marker**          | opacity, chisel                              |
-| **Highlighter**     | opacity, chisel                              |
-| **Calligraphy pen** | opacity, nib angle                           |
-| **Eraser**          | strength                                     |
-| **Rubber**          | pressure                                     |
-| **Paint bucket**    | opacity, feather — behind its cog            |
-| **Gradient**        | opacity, feather — behind its cog            |
-| **Dropper**         | sample size — behind its cog                 |
-| Pen, shapes, text   | opacity                                      |
-| Hand, select        | nothing — no section appears                 |
+| Tool                | Advanced                            |
+| ------------------- | ----------------------------------- |
+| **Paintbrush**      | hardness, load, flatness, nib angle |
+| **Watercolour**     | water, pigment, granulation         |
+| **Airbrush**        | hardness, flow                      |
+| **Pencil**          | lead, pressure                      |
+| **Crayon**          | pressure                            |
+| **Marker**          | opacity, chisel                     |
+| **Highlighter**     | opacity, chisel                     |
+| **Calligraphy pen** | nib angle, ink                      |
+| **Eraser**          | strength                            |
+| **Rubber**          | pressure                            |
+| **Paint bucket**    | opacity, feather — behind its cog   |
+| **Gradient**        | opacity, feather — behind its cog   |
+| **Dropper**         | sample size — behind its cog        |
+| Pen, shapes, text   | opacity                             |
+| Hand, select        | nothing — no section appears        |
+
+**The simulated media have no opacity, on purpose.** The pencil, the paintbrush,
+the watercolour brush, the crayon and the broad nib do not draw a line and tint
+it — each works its mark out from a physical model, and each already has the
+dial that makes one lighter the way that medium does: the hand on the pencil and
+the crayon, the pigment in the water, the dip on the brush and on the nib. A
+flat alpha over the finished mark is a different picture at the same greyness —
+it fades the paper back out of the mark, which is the one thing the simulation
+is there to put in — so those tools offer the medium's own control and not both.
+Marks drawn before this carry their opacity still, and paint exactly as they
+did.
 
 Most of them are sliders. A dial with a handful of values is **pressed**
 instead: there is nothing between a 2B and a 3B, so the pencil's lead is a row
@@ -699,9 +709,10 @@ and dark and fills its tooth in — and like pressure it reaches the deposit
 rather than the width. **Water** is how charged the watercolour brush is: turned
 up the mark spreads past the hair, both edges wander off the gesture and what is
 left in the middle is dilute; turned down it is nearly dry-brush. **Pigment** is
-how much colour is dissolved in that water, which is a different question from
-opacity — opacity turns the whole mark down, this changes the stain, and the
-dried rim follows the pigment. **Granulation** is the paper and the colour
+how much colour is dissolved in that water, and it is how a wash is made pale:
+turning a whole mark down would dim the rim and the granulation with it, while
+thinning the pigment leaves the sheet's own work at full strength and only the
+stain weaker — which is what a glaze is. **Granulation** is the paper and the colour
 rather than the brush: ultramarine on rough stock mottles enough to see across a
 room, phthalo on hot-pressed does not mottle at all. **Chisel** is the shape
 of a felt tip, from a round bullet to a flat wedge, and **nib angle** is the

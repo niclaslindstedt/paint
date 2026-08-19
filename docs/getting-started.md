@@ -37,9 +37,10 @@ the ink nor the drawing.
   widths are the ones a mechanical pencil takes: 0.3, 0.5, 0.7, 0.9 and 2.0 mm.
   The other dial is **pressure** — how hard you are leaning on it. Ease off and
   the lead rides the crowns of the paper and leaves a broken guide line; bear
-  down and it reaches into the tooth and lays a solid dark. It is not the
-  opacity beside it: one changes what the lead did to the paper, the other
-  fades the finished mark. Drawing fast does not pale a line — graphite comes
+  down and it reaches into the tooth and lays a solid dark. It is the pencil's
+  way of drawing a pale mark, and the reason there is no opacity beside it: a
+  light hand leaves the sheet showing through the mark, where an alpha would
+  simply fade the mark. Drawing fast does not pale a line — graphite comes
   off by rubbing, so what decides a mark is the hand on it, not the hurry.
 - **Watercolour** (`W`) is a wet wash on paper. It spreads past the brush that
   laid it, dries darkest at the rim, granulates into the sheet, and never
@@ -141,7 +142,7 @@ Picking a width does not close the panel — it is also where the tool is saved
 and tuned, so it stays put until you press somewhere else.
 
 The **star** beside the tool's name is how you keep one. Once you have set a
-tool up the way you like it — a 4B at 0.7 mm with the opacity eased off — press
+tool up the way you like it — a 4B at 0.7 mm under a light hand — press
 the star, give it a name ("my sketching pencil") and a mark to know it by, and
 it is one press away from then on, as a chip under **Saved** at the top of that
 tool's panel. A saved tool carries its width and every one of its dials, and it

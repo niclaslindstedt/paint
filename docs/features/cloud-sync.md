@@ -67,8 +67,8 @@ file: `settings.json`. It holds the kit rather than the drawings — which tools
 are switched on, the order you put them in, every width and dial and saved
 preset, the colours you mixed, and how the app looks.
 
-That is there because a kit is worth carrying. Finding the 4B at 0.7 mm with the
-opacity eased off is real work, and doing it again on the laptop is the same
+That is there because a kit is worth carrying. Finding the 4B at 0.7 mm under a
+light hand is real work, and doing it again on the laptop is the same
 work twice. Connect the same folder — or the same Dropbox — on the other machine
 and the tools are already set up the way you left them.
 

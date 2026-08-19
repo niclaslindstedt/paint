@@ -2,6 +2,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { freehandBehaviour } from "../src/app/plugins/builtin/freehand.ts";
+import { applyInk } from "../src/app/plugins/ink.ts";
 import { registerBuiltinPlugins } from "../src/app/plugins/builtin/index.ts";
 import {
   dialChoice,
@@ -187,28 +188,54 @@ describe("the shipped set", () => {
     // limit. A head of hair is loaded or dry, dipped with much or little
     // paint, squeezed toward a blade or left round, and turned one way or the
     // other when it is a blade, and no one of those four is any of the
-    // others; a wash is water, pigment and what the sheet does with what is
-    // left; a dipped pen is how much page shows, which way the flat is
-    // turned, and how much ink the dip took — the reservoir the whole ink
-    // simulation spends (see `quillSim.ts`); and a pencil is which lead is in
-    // your hand and how hard you are leaning on it, which are the two halves
-    // of every sketch ever made and not one dial wearing two names — the
-    // grade is the stick, the pressure is the hand. A tool turning up on this
-    // list that is not one of these four is a tool that has grown a settings
-    // screen.
+    // others; and a wash is water, pigment and what the sheet does with what
+    // is left. A tool turning up on this list that is not one of these two is
+    // a tool that has grown a settings screen.
     const over = allPlugins().filter((p) => (p.dials?.length ?? 0) > 2);
-    expect(over.map((p) => p.id)).toEqual([
-      "graphite",
-      "paintbrush",
-      "watercolor",
-      "calligraphy",
-    ]);
+    expect(over.map((p) => p.id)).toEqual(["paintbrush", "watercolor"]);
   });
 
   it("keeps even those inside a panel you can still use with a thumb", () => {
     for (const id of ["graphite", "paintbrush", "watercolor", "calligraphy"]) {
-      expect(pluginById(id)!.dials!.length).toBeLessThanOrEqual(6);
+      expect(pluginById(id)!.dials!.length).toBeLessThanOrEqual(4);
     }
+  });
+
+  it("gives the simulated media no opacity", () => {
+    // Every one of these works its mark out from a physical model and already
+    // carries the dial that lightens it the way the medium does — the hand on
+    // the pencil and the crayon, the pigment in the water, the dip on the
+    // brush and the nib. A flat alpha over the finished mark fades the paper
+    // back out of it, which is the one thing the simulation is there to put
+    // in, so the panel offers the medium's own control and not both.
+    for (const id of [
+      "graphite",
+      "paintbrush",
+      "watercolor",
+      "crayon",
+      "calligraphy",
+    ]) {
+      const dials = pluginById(id)!.dials!;
+      expect(dials.map((d) => d.id)).not.toContain("opacity");
+      expect(dials.length).toBeGreaterThan(0);
+    }
+  });
+
+  it("still paints a mark that already carries one", () => {
+    // The dial went; the field did not. `Stroke.opacity` is read by every
+    // painter exactly as it was, so a wash laid down at 55% before the panel
+    // lost the slider still paints at 55% — a document does not change because
+    // a tool did.
+    const stroke: Stroke = {
+      id: "s",
+      tool: "watercolor",
+      size: 10,
+      opacity: 0.55,
+      shape: { kind: "path", points: [{ x: 0, y: 0 }] },
+    };
+    const context = { globalAlpha: 1 } as CanvasRenderingContext2D;
+    applyInk(context, stroke);
+    expect(context.globalAlpha).toBe(0.55);
   });
 
   it("offers dials only on tools that touch the page at all", () => {

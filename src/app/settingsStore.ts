@@ -3,8 +3,8 @@
 // beside the document and the `images/` tree.
 //
 // The reason it is a *file on the backend* rather than another localStorage key
-// is that a kit is worth carrying. Finding the 4B at 0.7 mm with the opacity
-// eased off is real work, and so is the toolbar you arranged and the eleven
+// is that a kit is worth carrying. Finding the 4B at 0.7 mm under a light hand
+// is real work, and so is the toolbar you arranged and the eleven
 // colours you mixed; doing all of it again on the laptop is the same work
 // twice. Connect the same folder (or the same Dropbox) on the other machine and
 // the tools are already the ones you set up.

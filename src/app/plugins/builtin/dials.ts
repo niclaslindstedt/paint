@@ -22,10 +22,26 @@ import { mm } from "../../units.ts";
 import { HARDEST_LEAD, SOFTEST_LEAD } from "../graphite.ts";
 import type { ToolDial } from "../types.ts";
 
-/** How much of the page shows through. The one dial nearly every marking tool
- *  offers, because it is the one thing every mark has: it lands on
- *  `Stroke.opacity`, multiplied into whatever the tool's own ink already was,
- *  so a highlighter turned down to a third is a third of a highlighter. */
+/** How much of the page shows through. The dial the *drawn* tools offer,
+ *  because it is the one thing a drawn mark has: it lands on `Stroke.opacity`,
+ *  multiplied into whatever the tool's own ink already was, so a highlighter
+ *  turned down to a third is a third of a highlighter.
+ *
+ *  **The simulated media do not offer it.** The pencil, the paintbrush, the
+ *  watercolour brush, the crayon and the broad nib each work their mark out
+ *  from a physical model — how far the lead is driven into the sheet's tooth,
+ *  how much paint is left on the head, how much colour is dissolved in the
+ *  water, how much of the dip the nib has spent — and every one of them
+ *  already carries the dial that makes a mark lighter *the way that medium
+ *  does*. A flat alpha over the finished mark is a different picture at the
+ *  same greyness (see `PRESS`): it fades the paper back out of the mark, which
+ *  is the one thing those simulations exist to put in. Two ways to lighten a
+ *  stroke, one of them undoing the tool, is worse than one — so they carry the
+ *  medium's own and leave this to the tools whose mark is ink on a path.
+ *
+ *  Marks already drawn are untouched: `Stroke.opacity` is read by every
+ *  painter exactly as it was, so a wash laid down at 55% still paints at 55%.
+ *  What went is the slider that made new ones. */
 export const OPACITY: ToolDial = {
   id: "opacity",
   nameKey: "dials.opacity.name",
@@ -205,11 +221,12 @@ export const GRADE: ToolDial = {
  *  fills the paper's valleys in and eases the mark from broken to solid — and
  *  never makes the line one pixel wider.
  *
- *  **Not the opacity beside it.** That one is a flat alpha over the finished
- *  mark, which is how you lay a guide line in to trace over. This one changes
- *  what the lead did to the paper, which is a different picture at the same
- *  greyness: a pale heavy mark is solid and low-contrast, a pale light one is
- *  the sheet showing through.
+ *  **It is why there is no opacity beside it.** An alpha over the finished mark
+ *  and a hand eased off are two different pictures at the same greyness: a pale
+ *  heavy mark is solid and low-contrast, a pale light one is the sheet showing
+ *  through — and the second is what a guide line laid in to trace over actually
+ *  looks like. A simulated medium can draw it, so this is the dial the pencil
+ *  offers and the flat alpha is not (see `OPACITY`).
  *
  *  It goes past 1 as far as it goes under it, because leaning on a pencil is
  *  what half of drawing with one is — and when a stylus one day reports its own
@@ -295,7 +312,9 @@ export const FLOW: ToolDial = {
 
 /** How hard the crayon is bearing down. Wax only sticks to the peaks it is
  *  pressed onto, so a light hand leaves the paper's speckle showing through and
- *  a heavy one fills the valleys in until the mark is solid. */
+ *  a heavy one fills the valleys in until the mark is solid — which is the
+ *  crayon's own way of drawing a pale mark, and why it offers no opacity (the
+ *  same argument as the pencil's `PRESS`). */
 export const PRESSURE: ToolDial = {
   id: "pressure",
   nameKey: "dials.pressure.name",
@@ -388,9 +407,10 @@ export const WATER: ToolDial = {
 };
 
 /** How much colour is in that water — a pale tint you can read a pencil line
- *  through, or a full-strength stain. Separate from opacity on purpose: opacity
- *  turns the whole mark down, this changes what is *dissolved in it*, and the
- *  dried rim follows the pigment rather than the mark. */
+ *  through, or a full-strength stain. It is how a wash is made pale here, and
+ *  the reason the brush needs no opacity: turning a mark down dims the rim and
+ *  the granulation with it, while thinning the pigment leaves the sheet's own
+ *  work at full strength and only the stain weaker, which is what a glaze is. */
 export const PIGMENT: ToolDial = {
   id: "pigment",
   nameKey: "dials.pigment.name",
