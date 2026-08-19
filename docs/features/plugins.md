@@ -619,6 +619,16 @@ nobody had drawn — a mark invented for the preview so that the preview would
 have something to show. The nib is round and the number is the nib, so the
 circle is both the simpler drawing and the truer one.
 
+A row of widths is drawn at one scale — the one that fits the broadest of them —
+so it reads fine-to-broad the way a row of nibs does. Type is the exception, and
+says so (`sizePreview: "life"`). An "A" is the same letter at 10 pt and at
+48 pt, so a row fitted to its own cells drew five identical letters and told you
+nothing about any of them; now each sample is drawn at the size it will actually
+land at — one document pixel to one device pixel, the page at 100% — hung from
+the corner where the letter meets its baseline, and the button clips whatever
+will not fit. Half a letter at the right size says what a whole one at the wrong
+size cannot.
+
 A tool has nothing to add for this. The simulation drives the contract every
 tool already implements: `start` at a point and `end` is what a press _is_; a
 tool that drops a press because its mark needs two anchors (the shapes) is given
@@ -846,7 +856,8 @@ Three steps, none of which touch the canvas, the store, or the toolbar:
    that already has a button (a twelfth shape is one line in the `SHAPES`
    table). A tool with no width says `sizeless` and gets the cog instead of the
    size button; one whose mark cannot picture itself says
-   `sizePreview: "circle"`.
+   `sizePreview: "circle"`, and one whose preview has nothing to say but the
+   number says `sizePreview: "life"`.
 3. Add those two strings to `src/app/i18n/en.ts` (and `sv.ts`) — plus one per
    preset, under `presets.<tool id>`. Keep the panel's own copy short: a control
    that has to be explained in the panel every time it is opened belongs in

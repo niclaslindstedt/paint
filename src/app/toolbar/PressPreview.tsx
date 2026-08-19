@@ -20,6 +20,7 @@ import {
   tileRatio,
 } from "../tiles.ts";
 import type { Stroke } from "../types.ts";
+import { nativeScale } from "../viewport.ts";
 
 // The nib preview: a press with the tool in your hand, painted for real.
 //
@@ -42,6 +43,12 @@ import type { Stroke } from "../types.ts";
 //     amount that fits the broadest width on the row — so the row reads
 //     fine-to-broad the way a row of nibs does, instead of five marks each
 //     fitted to its own cell and all the same size.
+//   - **…unless the size is the whole point.** A tool can ask to be shown at
+//     life size instead (`sizePreview: "life"` — the type tool), and then
+//     nothing is fitted: the mark is drawn at the page's own 100%, one document
+//     pixel to one device pixel, and the tile clips whatever will not fit. Half
+//     a letter at the size it will land at says what a whole letter shrunk to
+//     the cell cannot, which is how big your type actually is.
 //
 // Two kinds of tool fall back to the plain dot below: one whose press leaves no
 // mark at all (the hand, the dropper), and one that asks for a circle because
@@ -92,7 +99,21 @@ const INK_FLOOR = 12;
  *  eventually fill a map that nothing ever emptied. */
 const MEASURED_MAX = 64;
 
-const measured = new Map<string, number>();
+const measured = new Map<string, InkMeasure>();
+
+/** What one trial paint says about a medium, every number a multiple of the
+ *  geometry the strokes claim — so one measurement answers for every width on
+ *  the row (see `reachFor`).
+ *
+ *  `reach` is how far past that geometry the ink goes. `left` and `bottom` are
+ *  where the ink actually starts, measured from the middle of the box, and they
+ *  matter only where the tile shows *part* of a mark: a stroke's box is a line
+ *  of type with the white under the letter in it, so a clipped sample hung on
+ *  the box can be a tile of nothing at all. The corner where the letter meets
+ *  its baseline has ink in it by construction. */
+type InkMeasure = { reach: number; left: number; bottom: number };
+
+const NO_INK: InkMeasure = { reach: 1, left: 0, bottom: 0 };
 
 /** A tile kept for measuring, made once — the same trick `textBox` uses to
  *  measure type, and for the same reason: a canvas per question is a canvas per
@@ -106,10 +127,10 @@ let trial: CanvasRenderingContext2D | null | undefined;
  *  Measured off the widest mark on a row and applied to the rest of it: the
  *  ratio is a property of the *medium* rather than of the width, so measuring
  *  every cell would be the same answer several times over. */
-function inkReach(marks: readonly Stroke[], ink: InkContext): number {
+function inkReach(marks: readonly Stroke[], ink: InkContext): InkMeasure {
   const at = pressBox(marks);
   const geometry = pressExtent(marks);
-  if (!at || geometry <= 0) return 1;
+  if (!at || geometry <= 0) return NO_INK;
   if (trial === undefined) {
     const canvas =
       typeof document === "undefined" ? null : document.createElement("canvas");
@@ -119,7 +140,7 @@ function inkReach(marks: readonly Stroke[], ink: InkContext): number {
     }
     trial = canvas?.getContext("2d", { willReadFrequently: true }) ?? null;
   }
-  if (!trial) return 1;
+  if (!trial) return NO_INK;
 
   const scale = (TRIAL * TRIAL_FIT) / geometry;
   trial.setTransform(1, 0, 0, 1, 0, 0);
@@ -131,6 +152,8 @@ function inkReach(marks: readonly Stroke[], ink: InkContext): number {
   const pixels = trial.getImageData(0, 0, TRIAL, TRIAL).data;
   const middle = TRIAL / 2;
   let reach = 0;
+  let left = TRIAL;
+  let bottom = -1;
   for (let y = 0; y < TRIAL; y++) {
     for (let x = 0; x < TRIAL; x++) {
       if (pixels[(y * TRIAL + x) * 4 + 3]! < INK_FLOOR) continue;
@@ -141,10 +164,19 @@ function inkReach(marks: readonly Stroke[], ink: InkContext): number {
         Math.abs(x + 0.5 - middle),
         Math.abs(y + 0.5 - middle),
       );
+      if (x < left) left = x;
+      if (y > bottom) bottom = y;
     }
   }
-  if (reach <= 0) return 1;
-  return Math.max(1, (reach * 2) / scale / geometry);
+  if (reach <= 0 || bottom < 0) return NO_INK;
+  return {
+    reach: Math.max(1, (reach * 2) / scale / geometry),
+    // The trial is painted centred, so where the ink starts *is* the offset —
+    // backed out of the trial's own scale and into multiples of the geometry,
+    // which is what makes one measurement answer for the whole row.
+    left: (left - middle) / scale / geometry,
+    bottom: (bottom + 1 - middle) / scale / geometry,
+  };
 }
 
 /** `inkReach`, remembered. The key is what changes the *medium* — the tool and
@@ -156,7 +188,7 @@ function reachFor(
   key: string,
   marks: readonly Stroke[],
   ink: InkContext,
-): number {
+): InkMeasure {
   const known = measured.get(key);
   if (known !== undefined) return known;
   const reach = inkReach(marks, ink);
@@ -207,14 +239,14 @@ export type PressTile = {
  *  asking "what does it look like?" (the queue's). */
 function pressFor(tile: PressTile): {
   press: Stroke[];
-  reach: () => number;
+  reach: () => InkMeasure;
   widest: number;
 } {
   const { plugin, size, of, color, background, dials, colors, filled } = tile;
   // A tool that asks for a circle is not simulated at all: there is no press
   // to paint, and the dot below is the whole preview.
   if (sizePreview(plugin) === "circle") {
-    return { press: [], reach: () => 1, widest: 0 };
+    return { press: [], reach: () => NO_INK, widest: 0 };
   }
   // The yardstick: the broadest width on the row — or the width in hand when
   // it is broader still, which is what the slider is doing while it is being
@@ -241,6 +273,53 @@ function pressFor(tile: PressTile): {
   };
 }
 
+/** How big to draw the press in its tile, in document pixels per CSS pixel.
+ *
+ *  Two answers, and which one a tool gets is its own to declare. The ordinary
+ *  one fits the row (`pressScale`) against the geometry *grown by however far
+ *  this medium's ink reaches past it*, so what is fitted is the mark that lands
+ *  rather than the box the stroke claims.
+ *
+ *  The other is life size, for a tool whose preview has nothing to say but the
+ *  number (`sizePreview: "life"`). It is the scale the canvas calls 100% — one
+ *  document pixel to one device pixel — so the sample measures on the glass
+ *  what it will measure on the page, and the tile clips the rest. Nothing is
+ *  measured for it either: the ink allowance exists to stop a fitted mark being
+ *  cropped, and this one is *meant* to be. */
+function drawScale(
+  tile: PressTile,
+  marks: ReturnType<typeof pressFor>,
+  box: number,
+): { scale: number; offX: number; offY: number } {
+  const extent = pressExtent(marks.press);
+  const ink = marks.reach();
+  if (sizePreview(tile.plugin) === "life") {
+    const ratio = typeof window === "undefined" ? 1 : window.devicePixelRatio;
+    const scale = nativeScale(ratio);
+    // Hung on the corner where the mark starts rather than centred on its box:
+    // a sample too big for the tile has to be clipped *somewhere*, and the one
+    // corner guaranteed to have ink in it is the one the letter stands on. It
+    // is also how type reads — a row of samples sharing a baseline and a left
+    // margin, each running as far up and to the right as its size takes it.
+    const half = (box / 2 - ((1 - FILL) / 2) * box) / scale;
+    return {
+      scale,
+      offX: ink.left * extent + half,
+      offY: ink.bottom * extent - half,
+    };
+  }
+  return {
+    scale: pressScale(
+      extent * ink.reach,
+      marks.widest * ink.reach,
+      box * FILL,
+      MIN_MARK,
+    ),
+    offX: 0,
+    offY: 0,
+  };
+}
+
 /** …and the painting half: the press, fitted and centred on a tile of its own.
  *  `null` for a press that leaves no mark, or where a 2D context is not to be
  *  had. */
@@ -257,21 +336,12 @@ function paintPress(
   const { canvas, ctx } = made;
   const side = canvas.width;
 
-  // The geometry, grown by however far this medium's ink reaches past it —
-  // so what is fitted to the tile is the mark that lands, not the box the
-  // stroke claims.
-  const reach = marks.reach();
-  const scale = pressScale(
-    pressExtent(marks.press) * reach,
-    marks.widest * reach,
-    box * FILL,
-    MIN_MARK,
-  );
+  const { scale, offX, offY } = drawScale(tile, marks, box);
   // Centred on the tile by the mark's own box: a caption hangs from its
   // top-left and a dab sits on the press, and neither should decide where the
   // preview sits.
   ctx.setTransform(dpr * scale, 0, 0, dpr * scale, side / 2, side / 2);
-  ctx.translate(-(at.x + at.width / 2), -(at.y + at.height / 2));
+  ctx.translate(-(at.x + at.width / 2 + offX), -(at.y + at.height / 2 + offY));
   // `paintStrokes` reads the detail off this transform, so the textured
   // painters drop the specks and hairs that would land inside one device
   // pixel here without being told the preview is small.

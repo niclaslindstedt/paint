@@ -1056,6 +1056,11 @@ export function registerBuiltinPlugins(): void {
     // and a caption measured in millimetres of page is a caption nobody can
     // compare against anything (see `TYPE_GAUGE`).
     gauge: TYPE_GAUGE,
+    // …and its own kind of preview. A press with this tool is a *letter*, and
+    // a letter fitted to its cell is the same letter at every size — so the
+    // sample is drawn at the size it will land at instead, and the cell clips
+    // what it can't hold (see `sizePreview`).
+    sizePreview: "life",
     defaultSize: DEFAULT_TEXT_SIZE,
     dials: [OPACITY],
     // No presets, for the shapes' reason with one of its own on top: the size
