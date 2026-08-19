@@ -1,24 +1,27 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 // The page's colour scheme, and the ink that has to stay legible on it.
 //
-// A sketchpad inside a dark app should be a dark sheet drawn on in light ink —
-// a white page in a black shell is a torch in the face, and switching the app
-// to a light theme should flip both back. So neither the page colour nor the
-// default ink is a fixed constant: both are *resolved* from the app's own theme.
+// Neither the page colour nor the default ink is a fixed constant: both are
+// *resolved* — from the app's own defaults first (`defaults.ts`), and from the
+// theme where those say to follow it. Out of the box the defaults are a white
+// sheet and black ink on every device, because that is what paper and a pen
+// are; set them to "follow the theme" and the older answer comes back, where a
+// sketchpad inside a dark app is a dark sheet drawn on in light ink and
+// switching the app to a light theme flips both.
 //
 // A drawing may override the sheet, and that override is **document state**
 // rather than a preference: a page colour is picked when the drawing is made
 // (see `NewImageModal`), travels with it, syncs with it, and is left alone when
-// the app theme changes. There is no app-wide "draw on a dark page" switch —
-// a page that follows the theme, and a page that was given a colour of its own,
-// are the only two answers, and the second is asked once where every other
-// question about what the page *is* is asked.
+// the app theme changes — and by the default page colour as much as by the
+// theme. A page that was given a colour of its own keeps it; the default is
+// only ever the answer for a page that never said.
 
 import {
   themeFamily,
   type ThemeAppearance,
 } from "@niclaslindstedt/oss-framework/theme";
 
+import { paintDefaults } from "./defaults.ts";
 import type { TKey } from "./i18n/index.ts";
 
 /** The page a light canvas paints on, and the ink that reads on it. */
@@ -137,16 +140,22 @@ export function checkerColors(dark: boolean): readonly [string, string] {
 }
 
 /** The page colour to paint **when there is one**: the drawing's own pinned
- *  colour, or the sheet the app theme calls for.
+ *  colour, then the default page colour, then the sheet the app theme calls
+ *  for.
  *
- *  Whether there is one at all is a separate question, and not this function's:
- *  a page with its sheet switched off is never filled, and the answer here is
- *  only what it would go back to (see `layers.ts`). */
+ *  The middle answer is the app's own starting state (`defaults.ts`): out of
+ *  the box a page nobody has given a colour to is white, on a light app and a
+ *  dark one alike, because paper is white. Set that default back to "follow the
+ *  theme" and the last answer takes over again.
+ *
+ *  Whether there is a page at all is a separate question, and not this
+ *  function's: a page with its sheet switched off is never filled, and the
+ *  answer here is only what it would go back to (see `layers.ts`). */
 export function resolvePageColor(
   background: string | undefined,
   dark: boolean,
 ): string {
-  return background ?? (dark ? DARK_PAGE : LIGHT_PAGE);
+  return background ?? paintDefaults().page ?? (dark ? DARK_PAGE : LIGHT_PAGE);
 }
 
 /** The ink to draw with: the user's picked colour when they have picked one,
@@ -156,7 +165,19 @@ export function resolveInk(color: string | null, dark: boolean): string {
   return color ?? defaultInk(dark);
 }
 
-/** The default ink for a light or dark page. */
+/** The default ink for a mark landing on a light or dark **page** — not a light
+ *  or dark app. Every caller resolves the page first and asks about *that*
+ *  (`isDarkColor(pageColor)`): a black page in a light app draws in light ink,
+ *  and a white one in a dark app draws in dark, because what a mark has to read
+ *  against is the sheet under it.
+ *
+ *  The default ink (`defaults.ts`) is used whenever it reads on that sheet, and
+ *  stood down for the theme's own ink when it would not — a black default on a
+ *  black page is not a colour, it is an invisible mark, and no starting state
+ *  is worth that. Picking a colour is still explicit and still wins: this is
+ *  only what an unpicked mark falls back to. */
 export function defaultInk(dark: boolean): string {
+  const ink = paintDefaults().ink;
+  if (ink && isDarkColor(ink) !== dark) return ink;
   return dark ? DARK_INK : LIGHT_INK;
 }

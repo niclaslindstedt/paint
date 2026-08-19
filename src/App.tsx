@@ -27,7 +27,11 @@ import {
   namespaceFaviconHref,
 } from "@niclaslindstedt/oss-framework/namespaces";
 
-import { isDarkAppearance, resolvePageColor } from "./app/canvas.ts";
+import {
+  isDarkAppearance,
+  isDarkColor,
+  resolvePageColor,
+} from "./app/canvas.ts";
 import { canvasPresetById, toolbarFor } from "./app/canvasPresets.ts";
 import { CanvasScreen } from "./app/CanvasScreen.tsx";
 import { SideMenuContent } from "./app/SideMenuContent.tsx";
@@ -41,11 +45,9 @@ import { imageStroke } from "./app/plugins/builtin/image.ts";
 import { resolveActiveTool } from "./app/plugins/registry.ts";
 import { setLeadDetail } from "./app/plugins/lead.ts";
 import { setWashDetail } from "./app/plugins/wash.ts";
-import {
-  applyBackdropVars,
-  useAppSettings,
-  withKit,
-} from "./app/useAppSettings.ts";
+import { setPaintDefaults } from "./app/defaults.ts";
+import { paintDefaultsFrom, withKit } from "./app/kit.ts";
+import { applyBackdropVars, useAppSettings } from "./app/useAppSettings.ts";
 import { useNamespaces } from "./app/useNamespaces.ts";
 import { freshId, usePaintStore } from "./app/usePaintStore.ts";
 import { useSettingsSync } from "./app/useSettingsSync.ts";
@@ -114,15 +116,13 @@ export function App() {
     );
   }, [appearance.ui.density]);
 
-  // Namespaces (workspaces). The registry + active pointer live in the app; the
-  // document store keys off the active slug, so switching a namespace swaps the
-  // whole sketchbook and its undo history.
+  // Namespaces (workspaces). The registry + active pointer live in the app.
   const ns = useNamespaces();
-  const store = usePaintStore(ns.activeSlug);
   const {
     settings,
     setSettings,
     update,
+    applyDefaults,
     setPluginEnabled,
     moveTool,
     addCustomColor,
@@ -135,6 +135,24 @@ export function App() {
     setToolColor,
     resetToolDials,
   } = useAppSettings();
+
+  // Publish the four defaults every resolver reads — the page a drawing that
+  // pinned no colour is painted on, and the ink an unpicked mark is drawn in
+  // (see `defaults.ts`).
+  //
+  // In render rather than in an effect, and deliberately: an effect runs after
+  // the first paint, so the canvas, its thumbnails and the toolbar would all
+  // show one frame of the shipped answer before the user's own arrived. It is a
+  // plain assignment to a module-level value with no subscription behind it, so
+  // running it twice (or on a render that is thrown away) costs nothing and
+  // means nothing.
+  setPaintDefaults(paintDefaultsFrom(settings));
+
+  // The document store keys off the active namespace slug, so switching a
+  // namespace swaps the whole sketchbook and its undo history. Deleting the
+  // last page in one is a fresh start: the store mints the blank page and the
+  // kit goes back to its defaults here (see `kit.ts`).
+  const store = usePaintStore(ns.activeSlug, undefined, applyDefaults);
 
   // The sync engine — pushes the document to a folder / Dropbox / Google Drive
   // when connected. The passphrase for an encrypted cloud copy lives only in
@@ -324,8 +342,13 @@ export function App() {
   // engine changes, because either one changes the pixels a shelf shows.
   useEffect(() => {
     const warm = () => {
+      const page = resolvePageColor(undefined, darkCanvas);
       void import("./app/GroundPicker.tsx").then((m) =>
-        m.warmSwatches(resolvePageColor(undefined, darkCanvas), darkCanvas),
+        // The shelf's sample marks are inked against the *page* they are shown
+        // on rather than against the app, which is the same page a colourless
+        // drawing gets: with a white default page in a dark app the two are no
+        // longer the same answer (see `defaultInk`).
+        m.warmSwatches(page, isDarkColor(page)),
       );
     };
     const idle = (

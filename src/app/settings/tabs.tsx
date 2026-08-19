@@ -25,7 +25,7 @@ import {
   MIME_JSON,
 } from "@niclaslindstedt/oss-framework/files";
 
-import { defaultInk, resolvePageColor } from "../canvas.ts";
+import { defaultInk, isDarkColor, resolvePageColor } from "../canvas.ts";
 import { drawingToPng, exportFileName } from "../export.ts";
 import { useT } from "../i18n/index.ts";
 import { log, logStore } from "../log.ts";
@@ -46,6 +46,7 @@ import {
   type SyncBackendId,
   type SyncEngine,
 } from "../useSyncEngine.ts";
+import { DefaultsSection } from "./defaults.tsx";
 import { LanguagePicker } from "./shared.tsx";
 
 type Update = <K extends keyof AppSettings>(
@@ -153,6 +154,11 @@ export function GeneralTab({
   return (
     <div>
       <p className="mb-3 text-xs text-muted">{t("settings.general.intro")}</p>
+
+      {/* First, because it is the only section here about the drawing rather
+          than about the furniture: what the app hands you when there is nothing
+          in front of you yet. */}
+      <DefaultsSection settings={settings} update={update} />
 
       <Section title={t("settings.general.languageTitle")}>
         <div className="flex flex-col gap-1">
@@ -282,7 +288,9 @@ export function StorageTab({
     const pageColor = resolvePageColor(drawing.background, darkCanvas);
     void drawingToPng(drawing, {
       pageColor,
-      defaultInk: defaultInk(darkCanvas),
+      // Inked against the page in the file, not against the app around it — the
+      // exported PNG has no theme (see `defaultInk`).
+      defaultInk: defaultInk(isDarkColor(pageColor)),
     }).then((blob) => {
       downloadBlob(exportFileName(drawing, "png"), blob);
       log.info("export: wrote the page as PNG");

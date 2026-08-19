@@ -675,6 +675,24 @@ export const sv: Catalog = {
       developerMode: "Utvecklarläge",
       developerModeHint: "Visa fliken Utvecklare och dess diagnostik.",
     },
+    defaults: {
+      title: "Förval",
+      intro:
+        "Vad appen öppnas med: papperet, bläcket och verktyget i handen. Tar du bort den sista teckningen får du samma sak igen.",
+      page: "Sida",
+      pageHint:
+        "Färgen på en sida som aldrig fått någon egen. En teckning du valt färg åt behåller sin.",
+      ink: "Bläck",
+      inkHint:
+        "Färgen ett streck ritas i tills du väljer en kulör. Streck som redan ritats utan egen färg följer den också.",
+      tool: "Verktyg",
+      toolHint: "Vad du har i handen på en sida du just fått.",
+      preset: "Förinställning",
+      presetHint:
+        "Hur verktyget är inställt när det räcks fram — bredden och rattarna. Flyttar du något efteråt ligger det kvar där du flyttade det.",
+      stockPreset: "Som det kommer",
+      followTheme: "Följ temat",
+    },
     tools: {
       intro:
         "Varje verktyg i appen är ett plugin, och det här är stället de hänger på. Slå på ett så dyker det upp i verktygsfältet direkt.",

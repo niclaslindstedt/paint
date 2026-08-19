@@ -17,7 +17,12 @@ import {
   useFileDrop,
 } from "@niclaslindstedt/oss-framework/hooks";
 
-import { checkerColors, defaultInk, resolvePageColor } from "./canvas.ts";
+import {
+  checkerColors,
+  defaultInk,
+  isDarkColor,
+  resolvePageColor,
+} from "./canvas.ts";
 import {
   readPaste,
   readSystemClipboard,
@@ -716,7 +721,11 @@ export function CanvasScreen({
   // the canvas theme's. Both travel to the renderer and to every image export,
   // so screen and file agree.
   const pageColor = resolvePageColor(drawing.background, darkCanvas);
-  const ink = defaultInk(darkCanvas);
+  // Read off that page rather than off the app: a mark with no colour of its
+  // own has to read against the sheet under it, and the sheet is no longer
+  // always the theme's — a page can pin its own colour, and the default page is
+  // white whichever way the app is painting (see `defaultInk`).
+  const ink = defaultInk(isDarkColor(pageColor));
   // What a page with no sheet at all is drawn as. Theme-coloured, so it reads
   // as "there is nothing here" in a dark app and in a light one alike.
   const checker = checkerColors(darkCanvas);

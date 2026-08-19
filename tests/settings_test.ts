@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 import { describe, expect, it } from "vitest";
 
+import { SHIPPED_DEFAULTS } from "../src/app/defaults.ts";
 import { registerBuiltinPlugins } from "../src/app/plugins/builtin/index.ts";
 import { allPlugins, pluginById } from "../src/app/plugins/registry.ts";
 import { gaugeSizes } from "../src/app/plugins/gauge.ts";
@@ -42,6 +43,63 @@ describe("parseSettings", () => {
     );
     expect(parsed.activeTool).toBe("marker");
     expect(parsed.showGrid).toBe(true);
+  });
+
+  // The four defaults are the newest fields in the blob, so every install that
+  // upgrades into this build has a blob that names none of them: what they read
+  // as then is the whole of whether an existing install gets the white sheet
+  // and the pen this release ships.
+  describe("the defaults", () => {
+    it("are the shipped ones for a blob written before they existed", () => {
+      const parsed = parseSettings(JSON.stringify({ activeTool: "marker" }));
+      expect(parsed.defaultTool).toBe(SHIPPED_DEFAULTS.tool);
+      expect(parsed.defaultPreset).toBe(SHIPPED_DEFAULTS.preset);
+      expect(parsed.defaultColor).toBe(SHIPPED_DEFAULTS.ink);
+      expect(parsed.defaultPageColor).toBe(SHIPPED_DEFAULTS.page);
+    });
+
+    it("keep the ones a blob does hold", () => {
+      const blob = {
+        defaultTool: "graphite",
+        defaultPreset: "sketch",
+        defaultColor: "#ef4444",
+        defaultPageColor: "#fef3c7",
+      };
+      expect(parseSettings(JSON.stringify(blob))).toMatchObject(blob);
+    });
+
+    // `null` is a value here rather than a gap: it is how "follow the app
+    // theme" — the answer this app had before the defaults were settings — is
+    // written down, and reading it as "unset" would keep handing the shipped
+    // white sheet back to somebody who asked for the theme's.
+    it("keep an explicit follow-the-theme", () => {
+      const blob = { defaultColor: null, defaultPageColor: null };
+      const parsed = parseSettings(JSON.stringify(blob));
+      expect(parsed.defaultColor).toBeNull();
+      expect(parsed.defaultPageColor).toBeNull();
+    });
+
+    it("fall back for a value that isn't a colour or a tool", () => {
+      const blob = {
+        defaultTool: 7,
+        defaultColor: { r: 1 },
+        defaultPageColor: ["#fff"],
+      };
+      const parsed = parseSettings(JSON.stringify(blob));
+      expect(parsed.defaultTool).toBe(SHIPPED_DEFAULTS.tool);
+      expect(parsed.defaultColor).toBe(SHIPPED_DEFAULTS.ink);
+      expect(parsed.defaultPageColor).toBe(SHIPPED_DEFAULTS.page);
+    });
+
+    // The same "keep what you can't use" rule every other id in the blob
+    // follows: a downgrade and an upgrade back must not forget the choice, and
+    // what is offered is re-resolved at the moment a tool is handed over.
+    it("keep a tool this build doesn't ship", () => {
+      const blob = { defaultTool: "quill", defaultPreset: "swan" };
+      const parsed = parseSettings(JSON.stringify(blob));
+      expect(parsed.defaultTool).toBe("quill");
+      expect(parsed.defaultPreset).toBe("swan");
+    });
   });
 
   describe("toolSizes", () => {

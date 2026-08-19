@@ -27,12 +27,11 @@ import {
 import { allPlugins, pluginById } from "../src/app/plugins/registry.ts";
 import type { PaintPlugin } from "../src/app/plugins/types.ts";
 import { activePreset, presetMatches } from "../src/app/presets.ts";
+import { withKit, withPreset } from "../src/app/kit.ts";
 import {
   defaultSettings,
   gaugeFor,
   toolSize,
-  withKit,
-  withPreset,
 } from "../src/app/useAppSettings.ts";
 
 registerBuiltinPlugins();

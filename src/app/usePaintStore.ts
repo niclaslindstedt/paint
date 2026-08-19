@@ -97,6 +97,13 @@ export type PaintStore = ReturnType<typeof usePaintStore>;
 export function usePaintStore(
   slug: string,
   backend: DocBackend = localDocBackend,
+  /** Told when the sketchbook has just been emptied — the last live page
+   *  deleted and a blank one put in its place. The store has nothing to say
+   *  about what should happen then beyond minting the page; what a fresh start
+   *  is made of is the settings' answer, and `App.tsx` hands it in (see
+   *  `kit.ts`). Held in a ref, so a caller passing a fresh closure on every
+   *  render doesn't rebuild every edit callback under it. */
+  onEmptied?: () => void,
 ) {
   // The active slug and the backend travel *with* the document in state, so the
   // persist effect can never write one namespace's data under another's key.
@@ -121,6 +128,9 @@ export function usePaintStore(
   // namespace switch, a reload — must NOT be written back, so a blank starter
   // that `load` returned because the stored bytes were momentarily unreadable
   // can never overwrite the real (still-on-disk) copy.
+  const emptied = useRef(onEmptied);
+  emptied.current = onEmptied;
+
   const persistPending = useRef(false);
   const markPersist = useCallback(() => {
     persistPending.current = true;
@@ -690,21 +700,26 @@ export function usePaintStore(
   );
 
   /** Delete a page. The last page is never removed outright — it is replaced by
-   *  a fresh blank one, so the app always has something to draw on. */
+   *  a fresh blank one, so the app always has something to draw on.
+   *
+   *  Emptying the sketchbook is a fresh start rather than merely one fewer
+   *  page, so the blank one that lands is handed over the way a first run's is:
+   *  no colour of its own, which resolves to the default page (see
+   *  `canvas.ts`), and `onEmptied` puts the default tool back in your hand. */
   const deleteDrawing = useCallback(
     (id: string) => {
       const remaining = data.drawings.filter((d) => d.id !== id);
       // "The last page" means the last *live* one: with everything else in the
       // archive, deleting the open drawing still has to leave a page to draw
       // on, and un-archiving one to get there would be a surprise.
-      const drawings = remaining.some((d) => !d.archived)
-        ? remaining
-        : [...remaining, blankDrawing("")];
+      const live = remaining.some((d) => !d.archived);
+      const drawings = live ? remaining : [...remaining, blankDrawing("")];
       commit({
         ...data,
         drawings,
         activeDrawingId: nextActiveId(drawings, data.activeDrawingId),
       });
+      if (!live) emptied.current?.();
     },
     [commit, data],
   );

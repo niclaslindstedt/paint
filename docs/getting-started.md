@@ -189,15 +189,25 @@ picture or words back into the page.
 [More about selections](features/selection.md).
 [More about the plugin model](features/plugins.md).
 
-## Light page, dark page
+## What the app opens on
 
-A page opens with no colour at all, drawn as a chequer, and the ink follows the
-app theme — white marks in a dark app, near-black in a light one — so a sketch
-re-inks itself rather than disappearing when you flip the theme. Give the page a
-colour under **New image → Page colour** and it keeps that colour whatever the
-app is wearing. [More](features/canvas-theme.md).
+A page you were handed rather than made — the one a fresh install starts on, and
+the one that lands when you delete the last drawing — is a **white sheet** you
+draw on in **black ink** with the **pen** at its 0.5 mm liner, whether the app
+itself is painting light or dark.
 
-Settings → **General** holds the two things drawn _around_ your marks: the
+All four of those are yours to change under Settings → **General → Defaults**:
+the page colour, the ink, which tool you are handed, and how that tool is set
+when it arrives. Either colour can also be set back to **Follow the theme**,
+which is what this app used to do on its own — a dark sheet in light ink inside a
+dark app, flipping back when the app goes light. [More](features/canvas-theme.md).
+
+The page colour and the ink are resolved as the page is painted, so changing
+either one re-sheets and re-inks every drawing that never chose for itself —
+including ones already drawn. A page given a colour under **New image → Page
+colour**, and a mark drawn in a colour you picked, keep theirs.
+
+Settings → **General** also holds the two things drawn _around_ your marks: the
 on-screen grid, and the **tool-name** label that names each tool over the middle
 of the page as you pick it.
 
