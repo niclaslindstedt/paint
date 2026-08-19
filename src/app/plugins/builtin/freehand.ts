@@ -176,6 +176,14 @@ export function freehandBehaviour(ink: FreehandInk = {}): ToolBehaviour {
             // How much paint the head was dipped with — the reservoir the
             // whole drag spends before it goes dry.
             load: strokeDial(stroke, "load"),
+            // …and how hard the hand was bearing on it, which is the one axis
+            // here that is the hand rather than the brush: it spreads the
+            // bundle out of its ferrule and out of its own shape, so a round
+            // leaned on lays a wider, rougher band than the same round drawn
+            // on its point (see `BEARING` in `builtin/dials.ts`). Recorded on
+            // the mark like every other dial, so re-setting it later cannot
+            // re-press a stroke already painted.
+            press: strokeDial(stroke, "pressure"),
             // The sheet: its grain is what a slab settles into and a
             // starving head breaks up on, and a thirsty one drinks the
             // reservoir and feathers the edges.

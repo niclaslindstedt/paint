@@ -61,12 +61,17 @@ All three engines converged on the same skeleton; start from it.
 - **One walk function is the spec.** If a live/incremental path exists, it
   must call the same per-touch function (`lay`) as the one-shot walk, so the
   two cannot drift.
-- **Hash traits off the mark as well as the strand**, or every stroke is one
-  implement for ever — invisible in a single render, obvious the moment the
-  same gesture is laid twice. Mix in a seed read off the mark's **first point
-  and nothing else** (a later sample would re-seed a growing gesture), hashed
-  rather than drawn (the store, the export and the live walk each work the
-  mark out separately), and passed in by the caller that has the points.
+- **Seed the MARK, not just the strand.** Per-strand traits hashed off the
+  strand index alone (`hashedRandom(b * 11.7, 5)`) are ONE implement for every
+  stroke anyone ever draws — the same fringe, the same rails, the same fan,
+  forever. Mix a per-mark seed into every hash (`markSeed` in
+  `bristleHead.ts`), and it has exactly one shape: read off the **first point
+  and nothing else** (a seed reading the length or a later sample re-seeds a
+  growing gesture, so the live mark and the landed one differ and the lift
+  jumps), **hashed rather than drawn** (the store, the PNG export and the live
+  walk each work the mark out separately, so `Math.random()` gives three
+  marks), and **passed into the head constructor by the caller** (the live walk
+  opens its state before any point exists).
 
 ## Tuning: render, crop, probe — in that order
 
@@ -198,8 +203,15 @@ character cannot show, which is what makes falling back invisible.
   equal the painter's own default argument — **and every one of them has to
   join the dried-mark store's `Ask` and its `sameMark`**, or the store blits a
   mark drawn at one setting where another was asked for. Strings go in **both** `en.ts`
-  and `sv.ts`. `tests/dials_test.ts` names every tool with >2 dials — a new
-  axis means joining that list with a reason.
+  and `sv.ts`. `tests/dials_test.ts` guards the panel twice over, and a new
+  axis has to answer both: it names every tool carrying more than two dials,
+  and it caps how many the ones on that list may carry — so a new dial means
+  editing the cap as well as the list, each with a reason that says why this
+  one is a separate axis rather than a restyling of another.
+- **Prove a new axis changes nothing at its rest**: a film checksum per head
+  configuration (round, flat square-on, oblique, filbert, the dry preset)
+  before and after must come back bit-identical. It is the only cheap evidence
+  that everyone who never opened the panel is drawing the mark they were.
 - The painter gets page/ground/live through `PaintDetail` — already threaded;
   a new _setting_ (engine choice, detail slider) needs the full
   `useAppSettings` → `App.tsx` → `PaintCanvas` → `frame.ts` → `cache.ts
@@ -233,7 +245,15 @@ npx vite-node $S/brush-shot.ts           # ONE stroke, big, shaped like the
                                          # reference photograph, in its colour
 npx vite-node $S/brush-starts.ts         # the same stroke six times over, then
                                          # six entry speeds and six lift speeds
+npx vite-node $S/brush-press.ts          # one dial swept: band width against the
+                                         # ferrule, wander, run-out, per shape
+npx vite-node $S/brush-press-sheet.ts    # …and the same sweep as marks
 ```
+
+The last pair is the shape to copy for **any dial you add**: a probe that sweeps
+the one number across its whole range with every other input held still, and a
+sheet of the same sweep as marks. A dial judged at its two ends hides everything
+that peaks in the middle.
 
 All node-only (`pngio.ts` writes/reads PNGs with `zlib`); nothing to install.
 Copy the nearest pair, swap the imports, and rewrite the rows/windows for the

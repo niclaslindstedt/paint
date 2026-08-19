@@ -30,6 +30,7 @@ import {
   penFor,
   printOf,
   spanOf,
+  splayOf,
 } from "../src/app/plugins/bristleHead.ts";
 import {
   advanceDrag,
@@ -147,6 +148,144 @@ describe("the head", () => {
     // …and the filbert between them keeps some of each.
     expect(bearing(0.95, 0.5)).toBeGreaterThan(bearing(0.95, 1));
     expect(bearing(0.95, 0.5)).toBeLessThan(1);
+  });
+});
+
+describe("the hand on the head", () => {
+  /** How wide the band is where the walk has passed `x`, in cells holding any
+   *  film at all — the mark's own width, which is what the pressure moves. */
+  function bandAt(field: BristleField, x: number): number {
+    const film = painted(field);
+    let top = Infinity;
+    let bottom = -Infinity;
+    for (let y = 0; y < field.height; y++) {
+      if (film[y * field.width + x]! > 0.02) {
+        if (y < top) top = y;
+        bottom = y;
+      }
+    }
+    return bottom < top ? 0 : bottom - top + 1;
+  }
+
+  /** …and how far from parallel the band's two sides run over a stretch of
+   *  it, as a share of its own width — the wander a leaned-on head has and a
+   *  gathered one has not. Scale-free on purpose: a pressed head is not
+   *  supposed to be merely a wider one. */
+  function wander(field: BristleField, from: number, to: number): number {
+    const widths: number[] = [];
+    for (let x = from; x <= to; x += 4) widths.push(bandAt(field, x));
+    const mean = widths.reduce((a, b) => a + b, 0) / widths.length;
+    const sd = Math.sqrt(
+      widths.reduce((a, b) => a + (b - mean) ** 2, 0) / widths.length,
+    );
+    return sd / mean;
+  }
+
+  function bandFor(press: number, flatness = 0): BristleField {
+    const field = createBristleField({
+      x: 0,
+      y: 0,
+      width: 900,
+      height: 220,
+      cell: 1,
+      ground: sheet("cold"),
+      wick: 0.45,
+    });
+    drag(field, run(800, 3), SIZE, flatness, 0, 1, 1, 1, press);
+    return field;
+  }
+
+  it("draws with the point of a round, or with its belly", () => {
+    // The stroke the tool is bought for: the same cone lays a line well
+    // inside its ferrule held on its tip, and a band half again as wide as
+    // the ferrule leaned on. Nothing else in the brush may reach past the
+    // number on the size button — this is the hand, and it is what pressing
+    // a bundle of hair out of a metal collar does.
+    const light = bandAt(bandFor(0.4), 400);
+    const rest = bandAt(bandFor(1), 400);
+    const heavy = bandAt(bandFor(2), 400);
+    expect(light).toBeLessThan(rest * 0.8);
+    expect(heavy).toBeGreaterThan(rest * 1.25);
+    expect(heavy).toBeLessThan(rest * 1.6);
+  });
+
+  it("hardly moves a blade, whose collar holds the hairs where they are", () => {
+    // A cone has a belly to put down and a chisel ferrule has not, so the
+    // dial is the round's dial and fades out with the flatness rather than
+    // being switched off — a filbert keeps some of it, as it keeps some of
+    // everything else.
+    const round = splayOf(2, 0) - 1;
+    const filbert = splayOf(2, 0.55) - 1;
+    const flat = splayOf(2, 1) - 1;
+    expect(flat).toBeGreaterThan(0);
+    expect(flat).toBeLessThan(round * 0.45);
+    expect(filbert).toBeGreaterThan(flat);
+    expect(filbert).toBeLessThan(round);
+    // …and the same, measured on the paper rather than on the number.
+    const widened = (flatness: number) =>
+      bandAt(bandFor(2, flatness), 400) / bandAt(bandFor(1, flatness), 400);
+    expect(widened(1)).toBeLessThan(widened(0));
+  });
+
+  it("is the mark it always was under an ordinary hand", () => {
+    // The dial rests where every painter's own default argument does, so a
+    // page drawn without opening the panel is the page it was before the dial
+    // existed — cell for cell, not nearly (see `tunedDials`).
+    for (const flatness of [0, 0.55, 1]) {
+      expect(splayOf(1, flatness)).toBe(1);
+    }
+    const spec = {
+      x: 0,
+      y: 0,
+      width: 700,
+      height: 220,
+      cell: 1,
+      ground: sheet("cold"),
+      wick: 0.45,
+    };
+    const points = run(600, 3);
+    const untouched = createBristleField(spec);
+    drag(untouched, points, SIZE, 0, 0, 1, 1, 1);
+    const rested = createBristleField(spec);
+    drag(rested, points, SIZE, 0, 0, 1, 1, 1, 1);
+    const a = painted(untouched);
+    const b = painted(rested);
+    let worst = 0;
+    for (let i = 0; i < a.length; i++)
+      worst = Math.max(worst, Math.abs(a[i]! - b[i]!));
+    expect(worst).toBe(0);
+  });
+
+  it("puts the bundle out of its own shape, not merely wider", () => {
+    // The half of the dial that is not the width: a head bearing down is a
+    // bundle out of its ferrule's grip, so its two sides stop being parallel,
+    // its strands clump, and the partings between them stay open where a
+    // gathered head's close over. Measured as a share of the band's own
+    // width, so a wider mark cannot pass by being wider.
+    expect(wander(bandFor(2), 200, 600)).toBeGreaterThan(
+      wander(bandFor(1), 200, 600) * 1.5,
+    );
+    expect(wander(bandFor(0.4), 200, 600)).toBeLessThan(
+      wander(bandFor(1), 200, 600),
+    );
+  });
+
+  it("empties the head sooner, because more paint is coming off it", () => {
+    // The film per unit of paper does not change with the pressure — what
+    // changes is how much paper the head is covering, so the same dip is
+    // spent over a shorter run and a leaned-on stroke scratches dry where a
+    // light one is still laying paint.
+    const rested = fieldOver(2000, 200);
+    const leaned = fieldOver(2000, 200);
+    const points = run(1900, 3);
+    drag(rested, points, SIZE, 0, 0, 1, 1, 1);
+    drag(leaned, points, SIZE, 0, 0, 1, 1, 1, 2);
+    expect(meanFilm(leaned, 200, 400)).toBeGreaterThan(
+      meanFilm(rested, 200, 400) * 0.9,
+    );
+    expect(meanFilm(leaned, 1500, 1700)).toBeLessThan(
+      meanFilm(rested, 1500, 1700) * 0.7,
+    );
   });
 });
 
@@ -590,9 +729,14 @@ describe("the gesture in flight", () => {
     for (let d = 0; d <= 600; d += 3) {
       points.push({ x: 30 + d * 0.9, y: 150 + 70 * Math.sin(d / 55) });
     }
-    for (const [flatness, angle, load] of [
-      [0, 0, 1],
-      [1, -Math.PI / 4, 0.7],
+    for (const [flatness, angle, load, press] of [
+      [0, 0, 1, 1],
+      [1, -Math.PI / 4, 0.7, 1],
+      // …and a head leaned on, whose band is wider than the one the walk
+      // settles its touches inside: the pressure is in the head's own
+      // footprint, so every reach the live walk measures has to have grown
+      // with it (see `movingTail`).
+      [0, 0, 1, 1.8],
     ] as const) {
       const spec = {
         x: 0,
@@ -604,7 +748,7 @@ describe("the gesture in flight", () => {
         wick: 0.45,
       };
       const whole = createBristleField(spec);
-      drag(whole, points, SIZE, flatness, angle, 1, load, 1);
+      drag(whole, points, SIZE, flatness, angle, 1, load, 1, press);
 
       const grown = createBristleField(spec);
       const state = openDrag(
@@ -615,6 +759,7 @@ describe("the gesture in flight", () => {
         1,
         load,
         markSeed(points),
+        press,
       );
       for (let n = 1; n <= points.length; n += 3) {
         advanceDrag(state, points.slice(0, n));
@@ -711,7 +856,26 @@ describe("the dried-mark store", () => {
       SOLID_GROUND,
       "#aa2200",
     );
-    expect(flushes()).toBeGreaterThan(two);
+    const three = flushes();
+    expect(three).toBeGreaterThan(two);
+    // …the hand included: the pressure decides the width of the band and half
+    // the texture in it, so a mark asked for at another one may not be blitted
+    // from this one (see `Ask` in `bristleStore.ts`).
+    paintSimulatedPaint(
+      ctx,
+      points,
+      SIZE,
+      1,
+      0,
+      0,
+      1,
+      1,
+      SOLID_GROUND,
+      "#aa2200",
+      "#ffffff",
+      1.6,
+    );
+    expect(flushes()).toBeGreaterThan(three);
   });
 
   it("promotes the gesture in hand at the lift instead of walking it again", () => {

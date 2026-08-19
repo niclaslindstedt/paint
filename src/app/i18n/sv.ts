@@ -360,6 +360,10 @@ export const sv: Catalog = {
       name: "Platthet: {value} %",
       hint: "Rund lägger samma bredd åt alla håll; platt lägger hela bredden tvärs över sig själv och ett tungt streck längs kanten.",
     },
+    bearing: {
+      name: "Tryck: {value} %",
+      hint: "Hur hårt du trycker på penseln. Måla på spetsen för ett fint och prydligt streck; tryck ner och en rund pensel breder ut sig förbi hylsan till ett brett och rufsigt.",
+    },
     flow: {
       name: "Flöde: {value} %",
       hint: "Hur mycket färg varje drag lägger. Lågt byggs upp långsamt.",
