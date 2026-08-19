@@ -41,6 +41,9 @@ export type Ask = {
    *  with. */
   hardness: number;
   load: number;
+  /** …and how hard the hand was bearing on it, which decides the width of the
+   *  band and half the texture in it (see `SPLAY` in `bristleHead.ts`). */
+  press: number;
   ground: GroundProfile;
   color: string;
   page: string;
@@ -71,6 +74,7 @@ function sameMark(a: Dried, b: Ask): boolean {
     a.angle === b.angle &&
     a.hardness === b.hardness &&
     a.load === b.load &&
+    a.press === b.press &&
     a.color === b.color &&
     // The page as well as the ink: it decides which way the film reads (see
     // `keeping`), so the same mark over a sheet that flipped is a different

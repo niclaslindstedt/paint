@@ -92,6 +92,7 @@ import {
   paintDryness,
   paintFlow,
   projected,
+  splayOf,
 } from "./bristleHead.ts";
 import {
   advanceDrag,
@@ -125,8 +126,22 @@ export {
   paintDryness,
   paintFlow,
   projected,
+  splayOf,
   type DragState,
 };
+
+/** How far from the path a mark can reach, in document pixels: the head's own
+ *  half-width — the hand's pressure included, because a bundle spread out of
+ *  its ferrule paints past where the ferrule would have (see `splayOf`) — plus
+ *  the margin the feather and the line gain want.
+ *
+ *  Every box this module opens is opened with it: the landed field, the live
+ *  field and its growing room, the regrow, and the crop at the lift. They were
+ *  four copies of one expression and they have to agree, because a box drawn
+ *  smaller than the paint clips the mark's own edges off. */
+function reachOf(size: number, press: number, flatness: number): number {
+  return size * 0.55 * splayOf(press, flatness) + MARGIN_CELLS;
+}
 
 /** How much page one cell of the field stands for: one document pixel — the
  *  wash's reading, for the wash's reason: the field is worked out on the
@@ -181,6 +196,10 @@ export type BristlePaint = {
   angle?: number;
   hardness?: number;
   load?: number;
+  /** How hard the hand is bearing on the head — 1 an ordinary hand, under it
+   *  the point of the brush, over it the belly (see `SPLAY` in
+   *  `bristleHead.ts`). */
+  press?: number;
   ground?: GroundProfile;
   color?: string;
   page?: string;
@@ -214,6 +233,7 @@ export function paintBristle(
   const angle = paint.angle ?? 0;
   const hardness = paint.hardness ?? 1;
   const load = paint.load ?? 1;
+  const press = paint.press ?? 1;
   const ground = paint.ground ?? SOLID_GROUND;
   const color = paint.color ?? "#000000";
   const page = paint.page ?? "#ffffff";
@@ -230,6 +250,7 @@ export function paintBristle(
         ground,
         color,
         page,
+        press,
       )
     : paintSimulatedPaint(
         ctx,
@@ -243,8 +264,14 @@ export function paintBristle(
         ground,
         color,
         page,
+        press,
       );
   if (painted) return;
+  // Whatever draws it, the hand's pressure is in the *width*: a plain line and
+  // a bundle of vector hairs can both be laid at the width the head is spread
+  // to, and a mark that changed width when the engine fell through would read
+  // as the tool losing its grip at a zoom (see `splayOf`).
+  const splay = splayOf(press, flatness);
   if (paint.live && size * scale >= HAIRLINE) {
     // The plain weighted line a growing gesture can afford (see above). It
     // reads the reservoir the one way a line can: pale when starved.
@@ -254,20 +281,26 @@ export function paintBristle(
       alpha *
       (0.42 + hardness * 0.58) *
       (FALLBACK_PALE + (1 - FALLBACK_PALE) * charge);
-    paintPath(ctx, points, size);
+    paintPath(ctx, points, size * splay);
     ctx.globalAlpha = alpha;
     return;
   }
   paintBrush(
     ctx,
     points,
-    size,
+    size * splay,
     hardness,
     scale,
     paint.hair ?? 1,
     paint.splay ?? 1,
     (paint.bleed ?? 0) + ground.absorbency * 1.1,
-    load,
+    // …and in the dip, the other way about: this painter reads its charge off
+    // the width it was handed (`capacityOf`), so a head handed its spread
+    // width would run *further* for having been pressed, where the paint
+    // simulation runs it shorter (see `capacity` in `penFor`). Handing it the
+    // charge divided back down keeps the two ending the mark in roughly the
+    // same place, which is what a fall-through at a zoom threshold has to do.
+    load / splay,
     flatness >= 0.5 ? { shape: "flat", angle } : { shape: "round", angle: 0 },
     paint.clip,
   );
@@ -297,6 +330,7 @@ export function paintSimulatedPaint(
   ground: GroundProfile = SOLID_GROUND,
   color = "#000000",
   page = "#ffffff",
+  press = 1,
 ): boolean {
   if (points.length === 0 || !worthAField(size, scale)) return false;
   const asked: Ask = {
@@ -306,6 +340,7 @@ export function paintSimulatedPaint(
     angle,
     hardness,
     load: Math.max(0.05, load),
+    press,
     ground,
     color,
     page,
@@ -328,7 +363,7 @@ export function paintSimulatedPaint(
   // How coarse to work: the page's own pitch, coarsened only where the swept
   // band would blow the budget — and the memory of the box capped separately
   // (the lead's two caps).
-  const reach = size * 0.55 + MARGIN_CELLS;
+  const reach = reachOf(size, press, flatness);
   const box = boundsOf(points);
   const swept = pathLengthOf(points);
   let cell = PITCH;
@@ -369,7 +404,7 @@ export function paintSimulatedPaint(
     ground,
     wick: BRUSH_WETNESS * Math.max(0, Math.min(1, ground.absorbency)),
   });
-  drag(field, points, size, flatness, angle, hardness, asked.load, cell);
+  drag(field, points, size, flatness, angle, hardness, asked.load, cell, press);
   if (
     !drawPatch(
       surface,
@@ -408,6 +443,7 @@ type Hand = {
   angle: number;
   hardness: number;
   load: number;
+  press: number;
   color: string;
   page: string;
   ground: GroundProfile;
@@ -438,9 +474,10 @@ function openHand(
   ground: GroundProfile,
   color: string,
   page: string,
+  press: number,
 ): Hand | null {
   const box = boundsOf(points);
-  const pad = size * 0.55 + MARGIN_CELLS + HEADROOM;
+  const pad = reachOf(size, press, flatness) + HEADROOM;
   const x = box.x - pad;
   const y = box.y - pad;
   const width = Math.ceil(box.width + pad * 2);
@@ -466,12 +503,14 @@ function openHand(
       hardness,
       load,
       markSeed(points),
+      press,
     ),
     size,
     flatness,
     angle,
     hardness,
     load,
+    press,
     color,
     page,
     ground,
@@ -486,7 +525,7 @@ function openHand(
  *  and the caller falls through to the plain line. */
 function regrow(held: Hand, points: readonly Point[]): Hand | null {
   const box = boundsOf(points);
-  const pad = held.size * 0.55 + MARGIN_CELLS + HEADROOM;
+  const pad = reachOf(held.size, held.press, held.flatness) + HEADROOM;
   const from = held.state.field;
   const x = Math.min(from.x, box.x - pad);
   const y = Math.min(from.y, box.y - pad);
@@ -552,6 +591,7 @@ function paintLivePaint(
   ground: GroundProfile,
   color: string,
   page: string,
+  press = 1,
 ): boolean {
   if (points.length === 0 || !worthAField(size, scale)) return false;
   const charge = Math.max(0.05, load);
@@ -563,6 +603,7 @@ function paintLivePaint(
     hand.angle === angle &&
     hand.hardness === hardness &&
     hand.load === charge &&
+    hand.press === press &&
     hand.color === color &&
     hand.page === page &&
     sameGround(hand.ground, ground) &&
@@ -577,7 +618,7 @@ function paintLivePaint(
   }
   if (held) {
     const box = boundsOf(points);
-    const pad = size * 0.55 + MARGIN_CELLS;
+    const pad = reachOf(size, press, flatness);
     const field = held.state.field;
     if (
       box.x - pad < field.x ||
@@ -598,6 +639,7 @@ function paintLivePaint(
       ground,
       color,
       page,
+      press,
     );
   }
   if (!held) {
@@ -631,6 +673,7 @@ function promoteHand(ask: Ask): Dried | null {
     held.angle !== ask.angle ||
     held.hardness !== ask.hardness ||
     held.load !== ask.load ||
+    held.press !== ask.press ||
     held.color !== ask.color ||
     held.page !== ask.page ||
     !sameGround(held.ground, ask.ground) ||
@@ -639,7 +682,7 @@ function promoteHand(ask: Ask): Dried | null {
     return null;
   }
   const from = held.state.field;
-  const pad = ask.size * 0.55 + MARGIN_CELLS;
+  const pad = reachOf(ask.size, ask.press, ask.flatness);
   const box = boundsOf(ask.points);
   const x = Math.max(from.x, box.x - pad);
   const y = Math.max(from.y, box.y - pad);

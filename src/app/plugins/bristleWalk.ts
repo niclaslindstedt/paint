@@ -219,6 +219,7 @@ export function drag(
   hardness: number,
   load: number,
   cell: number,
+  press = 1,
 ): void {
   const pen = penFor(
     size,
@@ -229,6 +230,7 @@ export function drag(
     cell,
     field.ground,
     markSeed(points),
+    press,
   );
   const along = walkOf(pen, points);
   const first = along[0];
@@ -333,6 +335,7 @@ export function openDrag(
   hardness: number,
   load: number,
   seed: number,
+  press = 1,
 ): DragState {
   return {
     points: [],
@@ -345,6 +348,7 @@ export function openDrag(
       field.cell,
       field.ground,
       seed,
+      press,
     ),
     field,
     settled: 0,
