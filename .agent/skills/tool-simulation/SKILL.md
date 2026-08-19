@@ -71,13 +71,29 @@ All three engines converged on the same skeleton; start from it.
   show you that the medium draws every stroke identically — hashed traits are
   reproducible by design, and one brush for all strokes looks exactly like a
   good brush until two of its marks are side by side. Give every exercise
-  sheet a row of the _same_ stroke repeated (`brush-starts.ts`).
+  sheet a row of the _same_ stroke repeated (`brush-starts.ts`). And seed the
+  wobble off the MARK as well as the strand: a per-mark seed hashed off the
+  **first point and nothing else** (a later sample re-seeds the mark as the
+  gesture grows), hashed rather than drawn (the store, the export and the
+  live walk each work the mark out separately), and passed in by the caller
+  that has the points (`markSeed` in `bristleHead.ts`, the walk seed in
+  `waxSim.ts`). Traits hashed off the strand alone are ONE brush for every
+  stroke anyone ever draws. Measure a reseed over an AREA and several seeds —
+  a one-column probe cannot tell a reseed from a film loss.
 - **Small renders lie.** A ribbon that looks flat navy at 1× is often a
   perfectly good simulation whose shading only reads at 3×. Crop before
   concluding anything: `scripts/zoom.ts <sheet.png> x y w h [zoom]`.
 - **Then get the number.** `scripts/probe-ink.ts` prints mean film per
   window (slow vs fast section, head vs tail), coverage when starved, and
   per-simulation cost. A retune is `probe → change one constant → probe`.
+- **Measure the pixels, not the field.** A field engine strokes nothing, and
+  the field arrays miss the `DENSITY`/`SHOW` curve — so probe end-to-end by
+  shimming `globalThis.document` with a `createElement` whose context keeps
+  every `putImageData`, and call the _public_ painter (budgets, store and
+  fallback included; `live = true` bypasses the store). Tests read the same
+  pixels off `FakeContext.images`. Report **mean alpha** and **coverage**
+  (cells over ~0.04) separately: an opacity change moves only the mean,
+  pressing into the sheet moves both, and that difference is the medium.
 
 Tuning lessons that cost real time:
 
