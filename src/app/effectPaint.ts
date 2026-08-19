@@ -13,16 +13,24 @@
 // finished. What makes an effect permanent is what `bake.ts` does with the
 // pixels afterwards, not anything here.
 //
-// Both effects are composited rather than computed per pixel, which is what
-// makes them cheap enough to preview on every pointer sample of a slider drag:
-// the blur is one filtered `drawImage`, and the grain is two coats of a speck
-// tile laid across the page as a pattern. A `getImageData` pass over the window
-// would be several million pixels of arithmetic per frame; this is three draws.
+// The blur and the grain are composited rather than computed per pixel, which
+// is what makes them cheap enough to preview on every pointer sample of a slider
+// drag: the blur is one filtered `drawImage`, and the grain is two coats of a
+// speck tile laid across the page as a pattern. A `getImageData` pass over the
+// window would be several million pixels of arithmetic per frame; those two are
+// three draws.
+//
+// The colour adjustments cannot be either. "What this pixel's red becomes" is a
+// lookup, and no compositing mode expresses one, so `recolor` reads the window
+// back, runs it through `adjust.ts`, and writes it again. That is the expensive
+// path this file kept clear of for years, and it is affordable here for one
+// reason: it happens when a *dialog's* slider moves, never during a gesture.
 //
 // The blur has a second painter behind it, because `ctx.filter` — the whole of
 // how it used to work — is unavailable in Safari and fails *silently* there.
 // See "Softening without `ctx.filter`" below.
 
+import { adjustPixels, type Adjustment } from "./adjust.ts";
 import { BLUR_TAIL, GRAIN_CEILING, type Effect } from "./effects.ts";
 import { createSurface, type Surface } from "./surface.ts";
 
@@ -68,7 +76,52 @@ export function paintEffect(
   const region = onCanvas(ctx, paint.page);
   if (!region) return;
   if (effect.kind === "blur") blur(ctx, region, effect.radius, paint);
-  else grain(ctx, region, effect, paint);
+  else if (effect.kind === "noise") grain(ctx, region, effect, paint);
+  // Everything left is a colour adjustment — the union says so, so there is no
+  // "unknown effect" branch here to fall through to nothing.
+  else recolor(ctx, region, effect);
+}
+
+/** Re-colour the page — the one thing here that reads the pixels back rather
+ *  than compositing over them.
+ *
+ *  A blur and a grain are shapes of light that a canvas can lay over a picture,
+ *  so they are `drawImage` calls. A curve is not: "what this pixel's red
+ *  becomes" is a lookup, and no compositing mode expresses one. So this is the
+ *  file's only `getImageData`, and it is bounded the way everything else here
+ *  is — to the part of the page that is actually on this canvas, never to the
+ *  whole sheet.
+ *
+ *  What that costs is worth being honest about: a window's worth of pixels
+ *  through three array reads each, once per move of a slider. It is a frame's
+ *  work in the frame that asked for it, which is affordable because a dialog's
+ *  slider is not a gesture — the drawing tools never come through here.
+ *
+ *  A context that will not hand its pixels back leaves the picture alone. That
+ *  is the same call every optimisation in this file makes: show what was there
+ *  rather than nothing.
+ *
+ *  `putImageData` ignores the transform and the clip by definition, which is
+ *  why the region is in whole canvas pixels and already cut to the page. */
+function recolor(
+  ctx: CanvasRenderingContext2D,
+  region: Region,
+  adjustment: Adjustment,
+): void {
+  let image: ImageData;
+  try {
+    image = ctx.getImageData(region.x, region.y, region.width, region.height);
+  } catch {
+    return;
+  }
+  if (!image?.data || image.data.length < region.width * region.height * 4) {
+    return;
+  }
+  adjustPixels(image.data, adjustment);
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.putImageData(image, region.x, region.y);
+  ctx.restore();
 }
 
 type Region = { x: number; y: number; width: number; height: number };

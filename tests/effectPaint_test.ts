@@ -119,3 +119,33 @@ describe("a browser whose ctx.filter is inert (Safari)", () => {
     expect(ctx.calls.getImageData ?? 0).toBe(asked);
   });
 });
+
+describe("a colour adjustment", () => {
+  it("reads the window back and writes it again, rather than compositing", () => {
+    // The one path in this file that touches pixels directly. A curve is a
+    // lookup and no compositing mode expresses one, so the give-away is the
+    // pair of calls — and the absence of any draw.
+    const { ctx } = paintBlurOn("honoured", {
+      kind: "desaturate",
+      amount: 1,
+    });
+    expect(ctx.calls.getImageData ?? 0).toBe(1);
+    expect(ctx.calls.putImageData ?? 0).toBe(1);
+    expect(ctx.draws).toHaveLength(0);
+  });
+
+  it("stays inside the part of the page that is on the canvas", () => {
+    // Same bound every other effect here works to: the sheet is usually far
+    // bigger than the window, and a pass over the whole of it would be pixels
+    // nobody is looking at.
+    const { ctx } = paintBlurOn("honoured", {
+      kind: "brightness",
+      brightness: 0.2,
+      contrast: 0,
+    });
+    const wrote = ctx.images[ctx.images.length - 1];
+    expect(wrote).toBeDefined();
+    expect(wrote!.width).toBeLessThanOrEqual(paint.page.width);
+    expect(wrote!.height).toBeLessThanOrEqual(paint.page.height);
+  });
+});

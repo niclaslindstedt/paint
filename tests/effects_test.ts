@@ -1,18 +1,25 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 import { describe, expect, it } from "vitest";
 
+import { ADJUST_KINDS, CURVE_CHANNELS } from "../src/app/adjust.ts";
 import {
   BLUR_TAIL,
+  choiceValue,
   controlReadout,
   controlValue,
+  curveSet,
   defaultScope,
+  EFFECT_GROUPS,
   effectDescriptor,
   effectReach,
   effectReadout,
   EFFECTS,
+  effectsIn,
   offersScope,
   switchValue,
+  withChoice,
   withControl,
+  withCurveSet,
   withSwitch,
   type Effect,
 } from "../src/app/effects.ts";
@@ -41,20 +48,65 @@ describe("the catalog", () => {
         expect(value).toBeGreaterThanOrEqual(control.min);
         expect(value).toBeLessThanOrEqual(control.max);
       }
-      // The readout has to name a control that exists, or an effect has nothing
-      // to say for itself.
-      expect(descriptor.controls.some((c) => c.id === descriptor.readout)).toBe(
-        true,
-      );
+      // A readout has to name a control that exists. An effect may have none —
+      // a curve has no single number to stand for it — but a name that points
+      // nowhere is a typo.
+      if (descriptor.readout !== undefined) {
+        expect(
+          descriptor.controls.some((c) => c.id === descriptor.readout),
+        ).toBe(true);
+      }
+      // Every pick-one has to arrive on one of its own options, or the dialog
+      // opens with a segmented control showing nothing selected.
+      for (const choice of descriptor.choices ?? []) {
+        const value = choiceValue(descriptor.preset, choice.id);
+        expect(choice.options.map((o) => o.value)).toContain(value);
+      }
       // …and every effect has to have somewhere to go.
       expect(descriptor.scopes.length).toBeGreaterThan(0);
     }
   });
 
   it("ships blur and noise, blur first", () => {
-    expect(EFFECTS.map((e) => e.kind)).toEqual(["blur", "noise"]);
+    expect(effectsIn("effects").map((e) => e.kind)).toEqual(["blur", "noise"]);
     expect(effectDescriptor("noise")?.nameKey).toBe("effects.noise.name");
     expect(effectDescriptor("sepia")).toBeUndefined();
+  });
+
+  it("lists every colour adjustment under the colour section", () => {
+    // The panel renders a section per group off this, so an adjustment with no
+    // group — or one filed under the wrong heading — is a row nobody can find.
+    expect(effectsIn("color").map((e) => e.kind)).toEqual(ADJUST_KINDS);
+    expect(EFFECT_GROUPS.map((g) => g.id)).toEqual(["effects", "color"]);
+    for (const group of EFFECT_GROUPS) {
+      expect(effectsIn(group.id).length).toBeGreaterThan(0);
+    }
+    // …and every effect is in exactly one of them.
+    expect(EFFECT_GROUPS.flatMap((group) => effectsIn(group.id)).length).toBe(
+      EFFECTS.length,
+    );
+  });
+
+  it("lets the colour work reach the whole stack", () => {
+    // A tone is a property of the picture rather than of the sheet a mark was
+    // made on, so "grade the whole thing" is the ordinary thing to want.
+    for (const kind of ADJUST_KINDS) {
+      expect(effectDescriptor(kind)!.scopes).toEqual(["layer", "drawing"]);
+      // Nothing here moves ink, so a bake crops to exactly the marks.
+      expect(effectReach(effectDescriptor(kind)!.preset)).toBe(0);
+    }
+  });
+
+  it("gives curves an editor, four lines, and a bent one to open on", () => {
+    const curves = effectDescriptor("curves")!;
+    expect(curves.curve?.id).toBe("curves");
+    expect(curves.curve?.channelId).toBe("channel");
+    expect(curves.readout).toBeUndefined();
+    const set = curveSet(curves.preset, "curves");
+    expect(Object.keys(set).sort()).toEqual([...CURVE_CHANNELS].sort());
+    // An effect that arrives changing nothing reads as one that is broken, and
+    // a straight line changes nothing.
+    expect(set.rgb.length).toBeGreaterThan(2);
   });
 });
 
@@ -94,6 +146,27 @@ describe("the controls", () => {
     expect(switchValue(noise, "color")).toBe(false);
   });
 
+  it("reads and writes a pick-one and a curve set", () => {
+    const balance = effectDescriptor("balance")!.preset;
+    expect(choiceValue(balance, "range")).toBe("midtones");
+    expect(choiceValue(balance, "nothing")).toBe("");
+    expect(choiceValue(withChoice(balance, "range", "shadows"), "range")).toBe(
+      "shadows",
+    );
+    // An effect with no curve on it still hands the editor something to draw.
+    expect(curveSet(blur, "curves").rgb).toEqual([
+      { x: 0, y: 0 },
+      { x: 1, y: 1 },
+    ]);
+    const bent = {
+      rgb: [
+        { x: 0, y: 0.2 },
+        { x: 1, y: 1 },
+      ],
+    } as never;
+    expect(curveSet(withCurveSet(blur, "curves", bent), "curves")).toBe(bent);
+  });
+
   it("reads a strength as a percentage and a distance as pixels", () => {
     const [radius] = effectDescriptor("blur")!.controls;
     const [amount] = effectDescriptor("noise")!.controls;
@@ -101,6 +174,20 @@ describe("the controls", () => {
     expect(controlReadout(amount!, 0.35)).toBe(35);
     expect(effectReadout(blur)).toBe("6 px");
     expect(effectReadout(noise)).toBe("35%");
+
+    // A tone reads the way a histogram labels its ends, a gamma to two
+    // decimals, and an angle in degrees.
+    const levels = effectDescriptor("levels")!;
+    const black = levels.controls.find((c) => c.id === "black")!;
+    const gamma = levels.controls.find((c) => c.id === "gamma")!;
+    const turn = effectDescriptor("hue")!.controls.find((c) => c.id === "hue")!;
+    expect(controlReadout(black, 0.06)).toBe(15);
+    expect(controlReadout(gamma, 1.25)).toBe(1.25);
+    expect(controlReadout(turn, -37.4)).toBe(-37);
+    expect(effectReadout(levels.preset)).toBe("1");
+    // A curve has no single number to stand for it, and says so rather than
+    // making one up.
+    expect(effectReadout(effectDescriptor("curves")!.preset)).toBe("");
   });
 });
 

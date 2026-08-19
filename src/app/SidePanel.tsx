@@ -22,7 +22,7 @@ import {
   TurnRightIcon,
   UnlockIcon,
 } from "./icons.tsx";
-import { EFFECTS, type EffectKind } from "./effects.ts";
+import { EFFECT_GROUPS, effectsIn, type EffectKind } from "./effects.ts";
 import { useT } from "./i18n/index.ts";
 import {
   canDeleteLayer,
@@ -45,10 +45,10 @@ import type { Drawing } from "./types.ts";
 import type { PaintStore } from "./usePaintStore.ts";
 
 // The right-hand panel: what you can do to the *drawing* rather than to a mark.
-// Three sections, in the order you reach for them — the page actions (resize,
-// flip, mirror) at the top, the effects under them, and the layer stack under
-// those, topmost first, the way every drawing app has shown a stack since the
-// idea existed.
+// Four sections, in the order you reach for them — the page actions (resize,
+// flip, mirror) at the top, the effects and the colour adjustments under them,
+// and the layer stack under those, topmost first, the way every drawing app has
+// shown a stack since the idea existed.
 //
 // **Every section folds away.** Pressing its heading collapses it, and takes the
 // heading's own buttons with it — a section that isn't showing has nothing to
@@ -56,8 +56,8 @@ import type { PaintStore } from "./usePaintStore.ts";
 // would be a bin with no visible subject. Which is open is remembered per
 // device, not per drawing: it is a working posture ("I'm reordering layers, get
 // the rest out of the way"), not a property of the page. The stack is the one
-// that earns it most — on a phone the three sections plus a dozen layers is more
-// than the column can show at once.
+// that earns it most — on a phone the sections above it plus a dozen layers are
+// more than the column can show at once.
 //
 // **It docks where there is room and floats where there isn't.** On a wide
 // screen it is a column of its own beside the canvas, there by default because a
@@ -142,7 +142,6 @@ type Props = {
  *  list of closed ids is what a new section should join *open*. */
 const PANEL_FOLDED_KEY = "paint:panel:folded";
 const PAGE_SECTION = "page";
-const EFFECTS_SECTION = "effects";
 const LAYERS_SECTION = "layers";
 
 /** One section's heading: the title, which is also the fold switch, and
@@ -391,11 +390,18 @@ export function SidePanel({
         )}
       </div>
 
-      {/* What you can do *to* the marks, once. A section of its own, between
-          the actions that change the drawing and the stack that holds it,
-          because that is what an effect sits between: it is not one mark's
+      {/* What you can do *to* the marks, once. Two sections rather than one,
+          between the actions that change the drawing and the stack that holds
+          it, because that is what an effect sits between: it is not one mark's
           edit, and it is not one of the layers — it is a pass over what a layer
           already has on it.
+
+          **Effects** are the passes that change what a mark looks like —
+          softened, grainy. **Colour** is the tonal work: the levels, the curve,
+          the hue, the balance. They are the same machinery throughout (one
+          dialog, one preview, one bake), and the split is purely about what you
+          came here to do — nobody looking for "make this less orange" reads a
+          list that starts with Blur.
 
           Each row opens an effect's options; nothing lands from here. The row
           says **Apply…** rather than showing a value, and that is the whole
@@ -408,36 +414,38 @@ export function SidePanel({
           what the dialog one press away says at the moment it matters — with the
           layer it is about to land on named, and a preview of what it will
           do. */}
-      <div className="shrink-0 border-b border-line">
-        <SectionHeading
-          title={t("effects.title")}
-          open={isOpen(EFFECTS_SECTION)}
-          onToggle={() => toggle(EFFECTS_SECTION)}
-        />
-        {isOpen(EFFECTS_SECTION) && (
-          <div className="flex flex-col gap-1 px-2 pb-2">
-            {EFFECTS.map((descriptor) => (
-              <button
-                key={descriptor.kind}
-                type="button"
-                onClick={() => onEffect(descriptor.kind)}
-                title={t(descriptor.hintKey)}
-                aria-label={t("effects.open", {
-                  name: t(descriptor.nameKey),
-                })}
-                className="flex cursor-pointer items-center gap-2 rounded border border-line px-2 py-1.5 text-sm text-fg hover:bg-surface-2 hover:text-fg-bright"
-              >
-                <span className="min-w-0 flex-1 truncate text-left">
-                  {t(descriptor.nameKey)}
-                </span>
-                <span className="shrink-0 text-[11px] text-muted">
-                  {t("effects.action")}
-                </span>
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
+      {EFFECT_GROUPS.map((group) => (
+        <div key={group.id} className="shrink-0 border-b border-line">
+          <SectionHeading
+            title={t(group.titleKey)}
+            open={isOpen(group.id)}
+            onToggle={() => toggle(group.id)}
+          />
+          {isOpen(group.id) && (
+            <div className="flex flex-col gap-1 px-2 pb-2">
+              {effectsIn(group.id).map((descriptor) => (
+                <button
+                  key={descriptor.kind}
+                  type="button"
+                  onClick={() => onEffect(descriptor.kind)}
+                  title={t(descriptor.hintKey)}
+                  aria-label={t("effects.open", {
+                    name: t(descriptor.nameKey),
+                  })}
+                  className="flex cursor-pointer items-center gap-2 rounded border border-line px-2 py-1.5 text-sm text-fg hover:bg-surface-2 hover:text-fg-bright"
+                >
+                  <span className="min-w-0 flex-1 truncate text-left">
+                    {t(descriptor.nameKey)}
+                  </span>
+                  <span className="shrink-0 text-[11px] text-muted">
+                    {t("effects.action")}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      ))}
 
       <SectionHeading
         title={t("layers.title")}

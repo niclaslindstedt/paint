@@ -286,7 +286,7 @@ edit.
 The split follows the usual line. `effects.ts` is pure: what the effects are,
 what each offers to set, and where each may be applied — noise is a layer's
 alone, blur offers the layer or the whole stack. `effectPaint.ts` is the pixels.
-Neither effect touches pixels one at a time — the blur is one filtered
+Neither of those two touches pixels one at a time — the blur is one filtered
 `drawImage` and the grain is a deterministic speck tile laid as a pattern
 anchored to the page — which is what makes them cheap enough to preview live. The
 grain goes down in **two coats** of different speck sizes, because a single tile
@@ -340,6 +340,45 @@ did not deliver gets a resampling blur instead: shrink the picture, draw it back
 up smoothed, twice. That is a handful of `drawImage` calls on an image that is
 getting smaller each time, and it tracks a real Gaussian closely enough that the
 two agree to about four levels per channel across the whole radius slider.
+
+### Colour adjustments are effects too
+
+The panel's **Colour** section — brightness and contrast, levels, curves, hue and
+saturation, colour balance, desaturate — is not a second pipeline. Each is a
+member of the same `Effect` union, carries the same descriptor, opens the same
+dialog, previews through the same composite and lands through the same
+`bakeEffect`. What a descriptor's `group` decides is only which of the panel's
+two headings lists it, and `EFFECT_GROUPS` is what the panel renders sections
+from, so a third section would be a row in that array.
+
+The arithmetic is `adjust.ts`, DOM-free like `effects.ts` and for the same reason:
+a colour adjustment is a function from bytes to bytes, so the whole section can
+be driven in a node test without a canvas. Two shapes of it, and the difference
+is what it costs. **Per-channel** — brightness, levels, curves, balance — maps a
+channel's value with no reference to the other two, so the adjustment collapses
+into three 256-entry tables built once and read per pixel. **Per-pixel** —
+desaturate and hue/saturation — mixes the channels (a hue is an angle only the
+three together have), so the maths runs per pixel. Both skip a pixel with nothing
+in it, which on a layer's own surface is most of them, and neither ever writes
+alpha: an adjustment changes what colour the ink is, not how much of it there is.
+
+Painting one is the file's **only `getImageData`**, and it is the exception that
+proves the rule the rest of `effectPaint.ts` follows. "What this pixel's red
+becomes" is a lookup and no compositing mode expresses one, so the window is read
+back, run through `adjust.ts` and written again. What makes that affordable is
+the same thing that makes it acceptable: it happens when a _dialog's_ slider
+moves, never during a gesture, and it is bounded to the part of the page actually
+on the canvas rather than to the sheet.
+
+Curves is the one effect whose value is not a number, and the descriptor admits
+it rather than the dialog special-casing it: `EffectCurve` names the field
+holding the four lines and the choice naming which one the hand is on, and
+`EffectModal` renders `CurveEditor` for it exactly as it renders a slider for a
+control. The line through the handles is a **monotone** cubic (Fritsch–Carlson),
+shared between the editor and the painter so what you drag and what lands on the
+pixels are the same function. An ordinary spline overshoots, and an overshoot on
+a tone curve is a bright band with dark edges either side of the handle you
+dragged.
 
 ### The sheet is a material, not a backdrop
 

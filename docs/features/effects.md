@@ -5,6 +5,11 @@ something else; scatter grain over a photograph to take the flatness off it. You
 set it up, you apply it, and it is then part of the picture — like reaching for
 a real can of spray, not like putting a coloured gel over a lamp.
 
+The panel splits them in two. **Effects** is this page — blur and noise, the
+passes that change what a mark looks like. **Colour** is the tonal work — levels,
+curves, hue, colour balance — and it is the same machinery throughout, so
+everything below applies to it too. See [`color.md`](color.md).
+
 That is the whole idea, and everything else follows from it:
 
 - **It happens once.** A line you draw afterwards is sharp. Nothing keeps
@@ -26,7 +31,8 @@ blurred watercolour crawled. This is the honest version, and the fast one.
 
 Open the right-hand panel — it is docked beside the canvas on a wide screen, and
 behind the panel button in the header (or a swipe in from the right edge) on a
-narrow one — and find the **Effects** section under the Image actions.
+narrow one — and find the **Effects** section under the Image actions, or
+**Colour** under that.
 
 Press a row to open its options. **The page behind shows the effect as you set
 it** — the dialog steps down to the foot of the screen and stops dimming the
