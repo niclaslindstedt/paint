@@ -24,9 +24,9 @@ import { PressPreview, type PressTile } from "./PressPreview.tsx";
 // **Presets** are the ones the tool came with: the settings its medium is
 // actually used at, named by whoever made the tool (see
 // `plugins/builtin/presets.ts`). They are the answer to the problem the dials
-// below them create. Five sliders is a tool a professional can build and a
-// beginner cannot — nobody arrives at dry-brush by dragging the splay up and
-// the hardness down to see what happens — so the tool arrives with the four or
+// below them create. Four sliders is a tool a professional can build and a
+// beginner cannot — nobody arrives at dry-brush by dragging the hardness down
+// and the load off to see what happens — so the tool arrives with the four or
 // five ways it is actually held, under the names a shop would use. A beginner
 // who never opens Advanced still gets the whole instrument.
 //

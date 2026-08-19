@@ -37,7 +37,7 @@ import { WidthPicker, widthTiles } from "./WidthPicker.tsx";
 //
 // The first row is the settings the *tool* came with — the ways its medium is
 // actually used, each chip wearing the mark it makes — and it is what a
-// beginner has instead of five sliders and a guess. The second is the tools the
+// beginner has instead of four sliders and a guess. The second is the tools the
 // *user* built; it is not there at all until something has been saved, and the
 // way in is the **star** on the title row, which saves the tool as it is
 // currently set under a name and a mark.

@@ -84,11 +84,14 @@ connect a storage backend yourself.
   the head is, how much paint the dip took, how far the head is squeezed toward
   a flat and which way the blade is turned for the paintbrush, flow for the
   airbrush, pressure for the crayon, the
-  lead's grade for the pencil, the chisel of a felt tip for the marker and the
-  highlighter, the nib's angle for the calligraphy pen, strength for the eraser,
+  lead's grade and the hand on it for the pencil, the chisel of a felt tip for
+  the marker and the highlighter, the nib's angle and its dip of ink for the
+  calligraphy pen, strength for the eraser,
   pressure for the rubber, a feathered edge for the paint bucket and the
-  gradient, how much page one press of the dropper reads, opacity for most of
-  the rest. Each tool keeps its own settings — including the inks a tool mixes
+  gradient, how much page one press of the dropper reads, opacity for the pen,
+  the felt tips, the shapes and type. The simulated media carry no opacity —
+  each is lightened the way that medium is, by the hand, the pigment or the
+  dip. Each tool keeps its own settings — including the inks a tool mixes
   for itself, like the gradient's two ends and its optional middle — and a mark
   remembers what it was drawn with. On a desktop the pointer is drawn as the nib
   itself: a circle the size of the mark, at the page's own scale.
