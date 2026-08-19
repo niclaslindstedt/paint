@@ -287,6 +287,102 @@ export function projected(
   return half * Math.hypot(bn, minor * bt);
 }
 
+/** The head's footprint resolved against a direction of travel — the one
+ *  place the blade's *angle* becomes a shape rather than a width.
+ *
+ *  The footprint is an ellipse: `half` along the blade, `half × minor` across
+ *  it, turned to wherever the blade is held. Sliced by the lines square to
+ *  the path, it gives everything the two ends of a mark are made of:
+ *
+ *  - `reach`, how far it stands out along the path. A round's is its whole
+ *    half-width whichever way it goes; a blade's runs from a fourteenth of
+ *    one pulled square across itself to the whole of it dragged along its own
+ *    edge — which is why a head cannot carry this as one number, and why the
+ *    hand has to travel further before a *flat* has left its own print.
+ *  - `across`, the half-width of the band the drag lays (`projected`).
+ *  - `lean`, how far the far tip of the print stands **off** the path. A
+ *    blade held obliquely leads with one corner, so the end of its stroke is
+ *    a slant cut at the angle it is held at rather than a cap square to the
+ *    direction of travel. It is zero for a round, whose every slice is
+ *    centred on the path, and zero for a blade pulled square across itself —
+ *    the two cases the mark used to be right in.
+ *  - `chord`, half the print's width where the path leaves it.
+ *
+ *  A slice at `out` of the reach then runs `out × lean` off the path and
+ *  `chord × √(1 − out²)` either side of that — which comes to exactly
+ *  `across` at its widest, whichever way the blade is turned (see `capAt`). */
+export type Print = {
+  reach: number;
+  across: number;
+  lean: number;
+  chord: number;
+};
+
+export function printOf(
+  pen: Pen,
+  tx: number,
+  ty: number,
+  nx: number,
+  ny: number,
+): Print {
+  // The two axes of the footprint — the blade, and the thickness across it —
+  // each projected onto the path's two axes.
+  const bt = pen.half * (pen.bladeX * tx + pen.bladeY * ty);
+  const et = pen.half * pen.minor * (pen.bladeX * ty - pen.bladeY * tx);
+  const bn = pen.half * (pen.bladeX * nx + pen.bladeY * ny);
+  const en = pen.half * pen.minor * (pen.bladeX * ny - pen.bladeY * nx);
+  const reach = Math.hypot(bt, et);
+  const across = Math.hypot(bn, en);
+  if (reach <= 0) return { reach: 0, across, lean: 0, chord: across };
+  return {
+    reach,
+    across,
+    // The slant and the width of the slices, straight off the ellipse: the
+    // covariance of the two projections, and the area they span.
+    lean: (bt * bn + et * en) / reach,
+    chord: Math.abs(bt * en - et * bn) / reach,
+  };
+}
+
+/** The mark's cross-section where the swept print is bounded to `from`..`to`
+ *  of its own reach, as an offset off the path and a half-width either side —
+ *  the interval the head has actually covered there.
+ *
+ *  Away from both ends the whole print has passed, and this is the band:
+ *  centred, `across` either side. Within a print's reach of an end only part
+ *  of it has, and for a blade held obliquely that part is **off to one side**:
+ *  the leading corner arrives first and the trailing one last, so the mark is
+ *  cut off at the angle the blade is held at rather than square across the
+ *  direction of travel. A round, and a blade pulled square across itself,
+ *  lean nowhere and get the centred taper they always had. */
+export function spanOf(
+  print: Print,
+  from: number,
+  to: number,
+): { mid: number; half: number } {
+  const hi = edgeOf(print, from, to);
+  const lo = -edgeOf(print, -to, -from);
+  return { mid: (hi + lo) * 0.5, half: (hi - lo) * 0.5 };
+}
+
+/** How far the swept print reaches to one side over `from`..`to` of its
+ *  reach. One slice stands `u × lean` off the path and `chord × √(1 − u²)`
+ *  either side of that, which is widest at `lean / across` — so the answer is
+ *  that slice when the range holds it and the nearer end of the range when it
+ *  does not. */
+function edgeOf(print: Print, from: number, to: number): number {
+  const peak = print.across > 0 ? print.lean / print.across : 0;
+  const at = peak < from ? from : peak > to ? to : peak;
+  return at * print.lean + print.chord * Math.sqrt(Math.max(0, 1 - at * at));
+}
+
+/** How far the head's own print reaches along a direction of travel — how far
+ *  the hand has to carry it before there is a *drag* to lay rather than a
+ *  press that moved (see `drag`). */
+export function printReach(pen: Pen, tx: number, ty: number): number {
+  return printOf(pen, tx, ty, -ty, tx).reach;
+}
+
 // --- The head, fixed for the length of one stroke -----------------------------
 
 export type Pen = {
@@ -309,10 +405,6 @@ export type Pen = {
    *  and how far one swing of the width's own wander runs. */
   entryRun: number;
   swellRun: number;
-  /** How deep the head's own print is — how far the hand has to travel before
-   *  there is a *drag* to speak of rather than a press that moved (see
-   *  `capAt`). */
-  printReach: number;
   /** How much of the gesture's own wiggle a head this wide rounds off before
    *  anything is laid on it (see `walkOf`). */
   stiffness: number;
@@ -450,7 +542,6 @@ export function penFor(
     liftWindow,
     entryRun: Math.max(1, size * ENTRY_RUN),
     swellRun: Math.max(1, size * SWELL_RUN),
-    printReach: half * (BLADE + (1 - BLADE) * (1 - flat)),
     stiffness: size * 0.3,
     load,
     hard,

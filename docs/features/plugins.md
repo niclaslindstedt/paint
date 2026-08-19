@@ -213,7 +213,11 @@ painters in `src/app/plugins/brushes.ts`, `bristle.ts`, `crayon.ts` and
   is turned. What a blade does is a projection worked out per touch, so one
   stroke of a flat swells and thins round a curve without the hand doing
   anything, and the paint the narrower band stops laying sideways it carries
-  as extra thickness instead. The **two ends** of the mark are two different
+  as extra thickness instead. The angle keeps hold of the mark for the whole
+  of it, not just where you touched down: a blade held across the way you are
+  going leaves the square-cut ends a one-stroke flat is bought for, and one
+  held obliquely leads with a corner, so the mark is cut off at the angle you
+  are holding it at rather than square across the direction you dragged. The **two ends** of the mark are two different
   marks, because they are two different things a hand does. A head swept onto
   the paper takes it with part of the bundle and opens to the full width of
   the ferrule over the first stretch of the stroke — it does not stamp a disc

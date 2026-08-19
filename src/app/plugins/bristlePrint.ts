@@ -26,7 +26,8 @@ import {
   combOver,
   paintDryness,
   paintFlow,
-  projected,
+  printOf,
+  spanOf,
   type Pen,
 } from "./bristleHead.ts";
 
@@ -84,19 +85,20 @@ export function capAt(
   head: HeadPress,
   log?: number[],
 ): void {
-  const bn = pen.bladeX * nx + pen.bladeY * ny;
-  const bt = pen.bladeX * -ny + pen.bladeY * nx;
-  // How far the head reaches along the path — the projection with its two
-  // axes swapped — and how wide it lays across it, both scaled by how much of
-  // the bundle is actually on the paper here (see `bearingDown`): the print at
-  // a swept touch-down is the print of *what landed*, which is part of a head
-  // and not a disc the width of the ferrule.
-  const reach = projected(pen.half, pen.minor, bt, bn) * down;
-  const w = projected(pen.half, pen.minor, bn, bt) * down;
-  if (reach < field.cell || w < field.cell * 0.5) return;
   // The unit tangent, from the normal the caller already has.
   const tx = ny * end.forward;
   const ty = -nx * end.forward;
+  // The head's own footprint against that direction (see `printOf`): how far
+  // it stands out past the last touch, how wide it lays across the path, how
+  // far its far tip **leans off** the path — which is the whole of what the
+  // blade's angle does to an end — and how wide its slices are. All of it
+  // scaled by how much of the bundle is actually on the paper here (see
+  // `bearingDown`): the print at a swept touch-down is the print of *what
+  // landed*, which is part of a head and not a disc the width of the ferrule.
+  const print = printOf(pen, tx, ty, nx, ny);
+  const reach = print.reach * down;
+  const w = print.across * down;
+  if (reach < field.cell || w < field.cell * 0.5) return;
   const steps = Math.max(1, Math.ceil(reach / pen.spacing));
   const step = reach / steps;
   // The comb this end is cut out of, kept aside: each step of the walk writes
@@ -109,7 +111,6 @@ export function capAt(
     // How far round the footprint this step stands, so the outline wobbles on
     // one walk rather than per step.
     const round = Math.asin(Math.min(1, out)) / Math.PI;
-    const chord = Math.sqrt(Math.max(0, 1 - out * out));
     // How far the *hairs* are still down here. Every lane stops at its own
     // reach and thins over the last of it — a hair is on its point there, not
     // on its side — so what the end shows is strands rather than a drawn
@@ -122,17 +123,25 @@ export function capAt(
       if (head.comb[b]! > 0) reaching = 1;
     }
     if (reaching === 0) break;
+    // How far the print still reaches to either side this far past the end,
+    // and how far off the path that stands (see `spanOf`) — everything of it
+    // from here out, since the head passed over this place carrying the rest
+    // of the footprint with it. A round and a square-on flat come out the
+    // centred taper they always were; an oblique blade comes out the slant it
+    // is held at.
+    const span = spanOf(print, out, 1);
+    const off = span.mid * down;
     // A bundle of hair is not turned on a lathe: the outline swells and
     // pinches by a few percent as it goes round.
     const across =
-      w *
-      chord *
+      span.half *
+      down *
       (1 + (pen.tipWalk.at(round * TIP_LUMPS) - 0.5) * TIP_WOBBLE * 2);
     if (across < field.cell * 0.5) continue;
     press(
       field,
-      p.x + tx * out * reach,
-      p.y + ty * out * reach,
+      p.x + tx * out * reach + nx * off,
+      p.y + ty * out * reach + ny * off,
       nx * across,
       ny * across,
       film * (1 - (1 - end.fade) * out),

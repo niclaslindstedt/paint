@@ -149,6 +149,9 @@ after it**, ever:
 `scripts/verify-incremental.ts` checks the whole contract cell-for-cell:
 advance a gesture a few points at a time, compare against one full walk,
 worst cell diff must be float noise. **Run it after any change to the walk.**
+It is written against the quill; the brush's copy of the same claim is the
+"gesture in flight" case in `tests/bristleSim_test.ts`, which runs under `make
+test` — every medium with a live walk owes one or the other.
 
 ## Always fall back
 

@@ -31,7 +31,9 @@ import {
   paintDryness,
   paintFlow,
   penFor,
-  projected,
+  printOf,
+  printReach,
+  spanOf,
   type Pen,
 } from "./bristleHead.ts";
 import { capAt, dab, landing, lifting } from "./bristlePrint.ts";
@@ -90,21 +92,46 @@ function daub(
       film *= 0.72 + 0.28 * (fromEnd / pen.liftWindow);
     }
   }
-  // How much of the blade lies across the path here — the projection that is
-  // the whole difference between a round and a flat. The paint the blade
-  // stops laying sideways it carries into the narrower band instead, so an
-  // edge-on flat writes a heavy line, not a faint one.
-  const bn = pen.bladeX * nx + pen.bladeY * ny;
-  const bt = pen.bladeX * -ny + pen.bladeY * nx;
+  // The head's footprint against the way the hand is going here (see
+  // `printOf`) — the projection that is the whole difference between a round
+  // and a flat. The paint the blade stops laying sideways it carries into the
+  // narrower band instead, so an edge-on flat writes a heavy line, not a
+  // faint one.
+  const print = printOf(pen, ny, -nx, nx, ny);
   // …and how much of the *head* is on the paper here, which is a different
   // question and one only the two ends of the stroke and the hand's own wander
   // have anything to say about (see `bearingDown`).
   const down = bearingDown(pen, p, fromEnd);
-  const w = projected(pen.half, pen.minor, bn, bt) * down;
+  const w = print.across * down;
   if (w < field.cell * 0.5) return;
   film *= Math.min(1.6, Math.sqrt(pen.half / w));
   const head = combOver(pen, p.at, p.speed, dry);
-  press(field, p.x, p.y, nx * w, ny * w, film, dry, pen.spacing, head, log);
+  // How much of the print has passed over this place. In the middle of a drag
+  // the whole of it has, and the section is the band: centred, `across`
+  // either side. Within a print's reach of an end only part of it has, and
+  // for a blade held obliquely that part stands off to one side — which is
+  // what cuts the mark off at the angle the blade is held at instead of
+  // square across the path (see `spanOf`).
+  const ending =
+    print.reach > 0 && (p.at < print.reach || fromEnd < print.reach);
+  const span = ending
+    ? spanOf(print, -fromEnd / print.reach, p.at / print.reach)
+    : null;
+  const across = (span ? span.half : print.across) * down;
+  if (across < field.cell * 0.5) return;
+  const off = span ? span.mid * down : 0;
+  press(
+    field,
+    p.x + nx * off,
+    p.y + ny * off,
+    nx * across,
+    ny * across,
+    film,
+    dry,
+    pen.spacing,
+    head,
+    log,
+  );
   // …and, at the two ends of the drag, what the head leaves past them: the
   // part of the bundle that took the sheet at the touch-down, and the fan of
   // bent-back hair ends the lift draws out. Not the same shape, and not the
@@ -144,7 +171,11 @@ function walkOf(pen: Pen, points: readonly Point[]): Trace[] {
  *  head's print ride. Nothing at or before this can change again, which is
  *  exactly what may settle (see `advanceDrag`). */
 function movingTail(pen: Pen): number {
-  return Math.max(pen.liftWindow, pen.stiffness) + pen.spacing;
+  // …and the head's own print, which is the third thing a touch near the end
+  // of the gesture is still waiting on: how much of the footprint has passed
+  // over it depends on where the mark ends (see `spanOf`), and the print
+  // reaches at most a half-width whichever way the blade is turned.
+  return Math.max(pen.liftWindow, pen.stiffness, pen.half) + pen.spacing;
 }
 
 /** The unit normal across the walk at touch `i`. */
@@ -187,7 +218,7 @@ export function drag(
   // of its own blot: two half-prints about two directions ninety degrees apart
   // cover three-quarters of a circle, and the quarter they miss is a wedge no
   // brush ever left on paper.
-  if (last === 0 || total < pen.printReach) {
+  if (last === 0 || total < pressReach(pen, along)) {
     dab(field, pen, first, bearingDown(pen, first, Infinity));
     return;
   }
@@ -197,6 +228,30 @@ export function drag(
     const { nx, ny } = normalAt(along, i);
     daub(field, pen, p, nx, ny, total - p.at, s, capOf(i, last));
   }
+}
+
+/** How far this gesture has to have travelled before it is a drag rather than
+ *  a press that moved: the head's own print, measured along the way the hand
+ *  actually went (see `printReach`).
+ *
+ *  It cannot be one number on the head. A blade pulled square across itself
+ *  clears its print in a fourteenth of its width, and the *same* blade dragged
+ *  along its own edge has to travel a whole half-width before any of the paper
+ *  it is standing on is behind it — so measuring both against the smaller of
+ *  the two turned a press into a drag after two pixels of travel, and the
+ *  angled bar a tap leaves flipped to a cap square across the direction of
+ *  travel the moment the hand moved at all. */
+function pressReach(pen: Pen, along: readonly Trace[]): number {
+  const first = along[0]!;
+  const last = along[along.length - 1]!;
+  const dx = last.x - first.x;
+  const dy = last.y - first.y;
+  const len = Math.hypot(dx, dy);
+  // A gesture that came back to where it started has no direction to measure
+  // against; the narrowest way the head can stand is the honest answer there,
+  // being the one that calls it a drag soonest.
+  if (len < 1e-6) return pen.half * pen.minor;
+  return printReach(pen, dx / len, dy / len);
 }
 
 /** Which half of the head's print this touch owes the mark: the one behind it
@@ -288,13 +343,14 @@ export function advanceDrag(state: DragState, points: readonly Point[]): Patch {
   const along = walkOf(pen, points);
   const last = along.length - 1;
   const total = along[last]!.at;
+  const pressing = last === 0 || total < pressReach(pen, along);
 
   // Still a press — one that may have moved a little, but not yet clear of its
   // own print (see `drag`). A print is the most expensive mark the engine
   // lays, and it is a function of the first touch alone: if that touch and its
   // smoothed speed have stopped moving, the field already holds exactly what
   // this frame would lay, and the frame is free (see `DragState.printed`).
-  if (last === 0 || total < pen.printReach) {
+  if (pressing) {
     const at = along[0]!;
     const down = bearingDown(pen, at, Infinity);
     const held = state.printed;
@@ -329,7 +385,7 @@ export function advanceDrag(state: DragState, points: readonly Point[]): Patch {
   // …then walk on: settle every touch that can no longer change, and lay the
   // still-moving tail provisionally.
   const log: number[] = [];
-  if (last === 0 || total < pen.printReach) {
+  if (pressing) {
     // One provisional print, taken back whole once the hand does carry the
     // head off it, and not laid again until something about it changes.
     const at = along[0]!;

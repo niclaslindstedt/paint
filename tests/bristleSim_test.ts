@@ -25,6 +25,7 @@ import {
   settling,
   type BristleField,
 } from "../src/app/plugins/bristleField.ts";
+import { penFor, printOf, spanOf } from "../src/app/plugins/bristleHead.ts";
 import {
   advanceDrag,
   drag,
@@ -141,6 +142,145 @@ describe("the head", () => {
     // …and the filbert between them keeps some of each.
     expect(bearing(0.95, 0.5)).toBeGreaterThan(bearing(0.95, 1));
     expect(bearing(0.95, 0.5)).toBeLessThan(1);
+  });
+});
+
+describe("the angle the head is held at", () => {
+  const blade = (angle: number, flatness = 1) =>
+    penFor(SIZE, flatness, angle, 1, 1, 1, SOLID_GROUND);
+
+  it("leans the print off the path for a blade held obliquely, and for nothing else", () => {
+    // Travelling right, so the path's axes are `t = (1, 0)`, `n = (0, 1)`.
+    const along = (pen: ReturnType<typeof blade>) => printOf(pen, 1, 0, 0, 1);
+    // A round's print is a disc: it reaches its half-width every way it is
+    // asked, and every slice of it is centred on the path.
+    const round = along(blade(-Math.PI / 4, 0));
+    expect(round.reach).toBeCloseTo(SIZE / 2, 1);
+    expect(round.across).toBeCloseTo(SIZE / 2, 1);
+    expect(round.lean).toBeCloseTo(0);
+    // A blade pulled square across itself lays its full width, stands almost
+    // nothing out along the path, and leans nowhere either — this is the one
+    // shape the mark was always right for.
+    const square = along(blade(Math.PI / 2));
+    expect(square.across).toBeCloseTo(SIZE / 2, 1);
+    expect(square.reach).toBeLessThan(SIZE * 0.1);
+    expect(square.lean).toBeCloseTo(0);
+    // …and one held at 45° to the way the hand is going stands a corner out
+    // ahead of the path and half a blade off to the side of it. That lean is
+    // what the angle dial *does* to a drag; without it the head loses its
+    // angle the moment the mark stops being a press.
+    const oblique = along(blade(-Math.PI / 4));
+    expect(Math.abs(oblique.lean)).toBeGreaterThan(SIZE * 0.3);
+    // The blade is turned up and to the right, so the corner that leads is
+    // the upper one — up the page is −y, and the normal here is +y.
+    expect(oblique.lean).toBeLessThan(0);
+    expect(along(blade(Math.PI / 4)).lean).toBeGreaterThan(0);
+  });
+
+  it("covers the whole band once the print has passed, and part of it before", () => {
+    // A print that leans nowhere: the section is centred wherever it is
+    // asked for, and tapers over the reach at the ends.
+    const flat = { reach: 10, across: 8, lean: 0, chord: 8 };
+    expect(spanOf(flat, -1, 1)).toEqual({ mid: 0, half: 8 });
+    expect(spanOf(flat, 0.6, 1).mid).toBeCloseTo(0);
+    expect(spanOf(flat, 0.6, 1).half).toBeLessThan(8);
+    // …and one that leans: away from the ends it is still the whole band,
+    // but the part of it that has arrived at an end stands off to one side.
+    const oblique = { reach: 10, across: 8, lean: 6, chord: Math.sqrt(28) };
+    expect(spanOf(oblique, -1, 1).mid).toBeCloseTo(0);
+    expect(spanOf(oblique, -1, 1).half).toBeCloseTo(8);
+    const entering = spanOf(oblique, -1, -0.6);
+    expect(entering.mid).toBeLessThan(-1);
+    expect(entering.half).toBeLessThan(8);
+  });
+
+  it("cuts the two ends of a drag at the angle the blade is held at", () => {
+    // A flat held at −45° and dragged straight across the page leaves a
+    // *parallelogram*: the corner that leads is the top one, so the top of
+    // the mark starts and finishes further along than the bottom of it. Cut
+    // square across the path instead — which is what a walk that only
+    // projects the width leaves — and the two would start together.
+    const field = fieldOver(600, 300);
+    const points: Point[] = [];
+    for (let x = 150; x <= 400; x += 6) points.push({ x, y: 150 });
+    drag(field, points, SIZE, 1, -Math.PI / 4, 1, 1, 1);
+    const film = painted(field);
+    const from = (y: number) => {
+      for (let x = 0; x < 600; x++) if (film[y * 600 + x]! > 0.02) return x;
+      return Infinity;
+    };
+    const to = (y: number) => {
+      for (let x = 599; x >= 0; x--) if (film[y * 600 + x]! > 0.02) return x;
+      return -Infinity;
+    };
+    // Two rows a quarter of a head either side of the path: a cut at 45°
+    // carries the mark's edge the same distance along as it is across, and
+    // cut square across the path they would begin and end together.
+    const off = Math.round(SIZE * 0.25);
+    expect(from(150 - off) - from(150 + off)).toBeGreaterThan(off);
+    // The lift slants the same way, and shallower — the head is coming up by
+    // then, so what draws out of the leading corner is a fan of hair ends
+    // rather than the whole blade (see `lifting`).
+    expect(to(150 - off) - to(150 + off)).toBeGreaterThan(2);
+    // …and turned the other way it slants the other way.
+    const other = fieldOver(600, 300);
+    drag(other, points, SIZE, 1, Math.PI / 4, 1, 1, 1);
+    const mirror = painted(other);
+    const mirrorFrom = (y: number) => {
+      for (let x = 0; x < 600; x++) if (mirror[y * 600 + x]! > 0.02) return x;
+      return Infinity;
+    };
+    expect(mirrorFrom(150 - off) - mirrorFrom(150 + off)).toBeLessThan(-off);
+  });
+
+  it("keeps that angle as a press turns into a drag", () => {
+    // The head has to be carried clear of its own *print* before there is a
+    // drag to lay, and a blade's print reaches further along the path the
+    // more of its edge points that way. Measured against the narrow way it
+    // can stand instead, a press turned into a drag after two pixels of
+    // travel — and the angled bar a tap leaves came out square across the
+    // direction of travel the moment the hand moved at all.
+    const axis = (points: Point[]): number => {
+      const field = fieldOver(300, 300);
+      drag(field, points, SIZE, 1, -Math.PI / 4, 1, 1, 1);
+      const film = painted(field);
+      let n = 0;
+      let sx = 0;
+      let sy = 0;
+      for (let i = 0; i < film.length; i++) {
+        if (film[i]! <= 0.02) continue;
+        n++;
+        sx += i % 300;
+        sy += Math.floor(i / 300);
+      }
+      let xx = 0;
+      let yy = 0;
+      let xy = 0;
+      for (let i = 0; i < film.length; i++) {
+        if (film[i]! <= 0.02) continue;
+        const x = (i % 300) - sx / n;
+        const y = Math.floor(i / 300) - sy / n;
+        xx += x * x;
+        yy += y * y;
+        xy += x * y;
+      }
+      // Which way the mark is longest, in degrees off the horizontal.
+      return (Math.atan2(2 * xy, xx - yy) / 2) * (180 / Math.PI);
+    };
+    const pressed = [{ x: 150, y: 150 }];
+    const nudged = [
+      { x: 150, y: 150 },
+      { x: 154, y: 150 },
+      { x: 158, y: 150 },
+      { x: 162, y: 150 },
+    ];
+    // The press lies along the blade…
+    expect(axis(pressed)).toBeGreaterThan(-50);
+    expect(axis(pressed)).toBeLessThan(-40);
+    // …and so does the same press once the hand has carried it a few pixels
+    // sideways, which is a drag of a *twelfth* of what the blade is long.
+    expect(axis(nudged)).toBeGreaterThan(-55);
+    expect(axis(nudged)).toBeLessThan(-35);
   });
 });
 
