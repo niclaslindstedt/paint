@@ -331,26 +331,6 @@ function sparse(kit: CanvasKit): CanvasKit {
   return next;
 }
 
-/** Move one id to `to` in an order — what the up / down arrows send, for the
- *  app-wide toolbar and for a canvas preset's kit alike.
- *
- *  The whole current order goes in rather than a delta, because that is the only
- *  thing a stored order can be: a permutation of ids means nothing without the
- *  list of entries it is a permutation of, and both lists are read by builds
- *  that ship a different set of them (see `orderEntries`). */
-export function moveInOrder(
-  order: readonly string[],
-  from: number,
-  to: number,
-): string[] {
-  if (from === to || from < 0 || to < 0) return [...order];
-  if (from >= order.length || to >= order.length) return [...order];
-  const next = [...order];
-  const [moved] = next.splice(from, 1);
-  next.splice(to, 0, moved!);
-  return next;
-}
-
 // --- The shelf ---------------------------------------------------------------
 
 /** One cell of the New image size shelf: a size this build ships, or a page you

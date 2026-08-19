@@ -32,7 +32,9 @@ blurred watercolour crawled. This is the honest version, and the fast one.
 Open the right-hand panel — it is docked beside the canvas on a wide screen, and
 behind the panel button in the header (or a swipe in from the right edge) on a
 narrow one — and find the **Effects** section under the Image actions, or
-**Colour** under that.
+**Colour** under the layer stack. Both sections move: the grip on a heading
+drags it into another order, and Settings → Panel switches a section — or a
+single effect by name — off altogether (see [the panel](panel.md)).
 
 Press a row to open its options. **The page behind shows the effect as you set
 it** — the dialog steps down to the foot of the screen and stops dimming the

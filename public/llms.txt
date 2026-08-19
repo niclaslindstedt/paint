@@ -149,6 +149,13 @@ connect a storage backend yourself.
   switched off on a page made with no colour — and one layer above it. New marks land on the selected layer; a hidden layer leaves the
   screen and every export, and a transparent export leaves the Background out
   entirely.
+- Arrange that panel: every section heading has a grip that drags the section
+  into another order (out of the box: Image, Effects, Layers, Colour), and every
+  heading folds its section away. Settings → Panel switches a whole section off,
+  or a single thing inside one — a page action, an effect by name, or one of the
+  four controls on a layer row — and a section whose last row is switched off
+  leaves the panel with it. Nothing already drawn is touched, and the
+  arrangement travels with the settings file.
 - Open on the same sheet every time: a page nobody has given a colour to is
   white and is drawn on in black, in a light app and a dark one alike, with the
   pen at its 0.5 mm liner in hand. All four answers are Settings → General →

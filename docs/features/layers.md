@@ -18,7 +18,10 @@ right-hand side beside the canvas: a panel you have to summon is one you forget
 you have, and there is width to spare. Above the stack it carries the **Image**
 actions — resize, flip, mirror — which act on the whole drawing (see
 [the canvas](canvas.md)), and the **Effects** section under them, which blurs or
-grains what is already on the page (see [effects](effects.md)).
+grains what is already on the page (see [effects](effects.md)); **Colour** is
+under the stack. That is where they start out — the grip on each heading drags a
+section into whatever order suits you, and Settings → Panel switches off the ones
+you never use (see [the panel](panel.md)).
 
 **The last button in the header** — at the far right end of the row, wearing the
 panel it opens — is the switch, on every screen width. On a wide screen it folds

@@ -19,11 +19,11 @@ import {
   SOLID_STOCK,
   canvasPresetName,
   kitCustomizes,
-  moveInOrder,
   withTool,
   type CanvasKit,
   type CanvasPresetDraft,
 } from "../canvasPresets.ts";
+import { moveInOrder } from "../order.ts";
 import { defaultGrain } from "../ground.ts";
 import { GroundPicker } from "../GroundPicker.tsx";
 import { useT } from "../i18n/index.ts";

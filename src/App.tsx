@@ -127,6 +127,9 @@ export function App() {
     applyDefaults,
     setPluginEnabled,
     moveTool,
+    setPanelSectionEnabled,
+    setPanelItemEnabled,
+    movePanelSection,
     addCustomColor,
     removeCustomColor,
     setToolSize,
@@ -483,6 +486,7 @@ export function App() {
             store={store}
             settings={canvasSettings}
             update={update}
+            movePanelSection={movePanelSection}
             // The toolbar's pickers keep what the user mixes and adds.
             palette={{
               addColor: addCustomColor,
@@ -608,6 +612,9 @@ export function App() {
             commitSettings={setSettings}
             setPluginEnabled={setPluginEnabled}
             moveTool={moveTool}
+            setPanelSectionEnabled={setPanelSectionEnabled}
+            setPanelItemEnabled={setPanelItemEnabled}
+            movePanelSection={movePanelSection}
             updateLive={update}
             darkCanvas={darkCanvas}
             store={store}

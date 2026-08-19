@@ -171,6 +171,15 @@ type Props = {
   store: PaintStore;
   settings: AppSettings;
   update: <K extends keyof AppSettings>(key: K, value: AppSettings[K]) => void;
+  /** Move one section of the right-hand panel in the panel's order — what a
+   *  section dragged by its grip resolves to. It goes through `App` like every
+   *  other settings write; the panel itself only says which section went
+   *  where. */
+  movePanelSection: (
+    order: readonly string[],
+    from: number,
+    to: number,
+  ) => void;
   /** Writes into the kept colours and sizes (see `PaletteActions`). */
   palette: PaletteActions;
   /** The active tool, already resolved against what the toolbar offers. */
@@ -212,6 +221,7 @@ export function CanvasScreen({
   store,
   settings,
   update,
+  movePanelSection,
   palette,
   tool,
   darkCanvas,
@@ -950,6 +960,8 @@ export function CanvasScreen({
                 drawing={drawing}
                 pageColor={pageColor}
                 defaultInk={ink}
+                settings={settings}
+                onMoveSection={movePanelSection}
                 onResize={() => {
                   setLayersOpen(false);
                   setResizing(true);
@@ -1021,6 +1033,8 @@ export function CanvasScreen({
             drawing={drawing}
             pageColor={pageColor}
             defaultInk={ink}
+            settings={settings}
+            onMoveSection={movePanelSection}
             docked
             onResize={() => setResizing(true)}
             onEffect={openEffect}

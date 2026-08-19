@@ -356,10 +356,13 @@ npm run preview
   move and nothing slides under it. The **Image** heading above the
   stack resizes, flips and mirrors the page, and its bin starts the drawing
   over; the **Effects** section under it blurs or grains what is already there,
-  and **Colour** under that holds the levels, curves, hue and balance.
+  and **Colour** under the stack holds the levels, curves, hue and balance.
   Every heading folds its section away, so you can collapse the ones you are not
-  using. A press on the page closes the panel again, as does the header button
-  that opened it — there is no close cross on it.
+  using — and the grip at its left end **drags the section into another order**.
+  Settings → Panel takes a section out of the panel altogether, or a single
+  thing inside one: a page action, an effect by name, or one of the four
+  controls on a layer row. A press on the page closes the panel again, as does
+  the header button that opened it — there is no close cross on it.
 - **Canvas** — one finger (or a pen, or the mouse) draws, two pinch and pan,
   and with a fine pointer the cursor **is the nib**: a circle the size of the
   mark you are about to leave, on the page you are about to leave it on, growing

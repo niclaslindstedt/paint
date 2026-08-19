@@ -3,6 +3,11 @@
 // types every other language must satisfy. Grouped by surface; the runtime
 // (`./index.ts`) flattens it to dotted keys (`menu.drawings`, …) that `t()`
 // resolves.
+//
+// oss-spec:allow-large-file: a message catalogue is a lookup table that grows
+// one line per string the app says, and this one is also the *type* every other
+// language must satisfy — splitting the object would split that contract, and
+// leave "which file is this key in?" as a question before every new string.
 
 import type { Widen } from "@niclaslindstedt/oss-framework/i18n";
 
@@ -771,6 +776,7 @@ export const en = {
       general: "General",
       appearance: "Appearance",
       tools: "Tools",
+      panel: "Panel",
       canvas: "Canvas",
       download: "Download",
       storage: "Storage",
@@ -823,6 +829,46 @@ export const en = {
       shortcut: "Shortcut: {key}",
       moveUp: "Move {name} earlier in the toolbar",
       moveDown: "Move {name} later in the toolbar",
+    },
+    // Settings → Panel: the right-hand panel with its lid off — which sections
+    // it shows, in which order, and what each one still has in it.
+    panel: {
+      intro:
+        "The right-hand panel, with its lid off: which sections it shows, in what order, and what is left in each of them.",
+      sectionsTitle: "Sections",
+      sectionsHint:
+        "In the order the panel shows them — move a row and the panel moves with it, or drag a section by the grip on its heading. Switching one off only hides it; nothing you have already drawn is touched.",
+      itemsHint: "What is in it",
+      moveUp: "Move {name} up the panel",
+      moveDown: "Move {name} down the panel",
+      empty: "Every section is switched off. Settings → Panel puts them back.",
+      drag: "Drag {name} to move it",
+      // What each section is, in one line, for the row that switches it off.
+      pageHint:
+        "Resize, flip and mirror the page — and throw the drawing away.",
+      effectsHint: "The passes that change what a mark looks like.",
+      colorHint: "The tonal work: levels, curves, hue, balance.",
+      layersHint:
+        "The stack, topmost first — and which layer your next mark lands on.",
+      // The layer row's own controls, which are switchable one at a time. The
+      // stack itself is not: a panel that showed no layers would be a section
+      // with nothing in it, and that is what switching the section off is for.
+      layersVisibility: "Show and hide",
+      layersVisibilityHint:
+        "The eye on every row. Switch it off and a layer that is already hidden stays hidden.",
+      layersLock: "Lock",
+      layersLockHint:
+        "The padlock on every row. A locked layer takes no marks, and the sheet at the bottom of a drawing arrives locked — so switching this off leaves it that way.",
+      layersReorder: "Restack",
+      layersReorderHint: "The arrows that move the selected layer up and down.",
+      layersDelete: "Delete layer",
+      layersDeleteHint: "The bin on the selected layer.",
+      resizeHint: "The row that opens Resize, and the page's size beside it.",
+      flipHint: "The pair that turns the page a quarter turn, either way.",
+      mirrorHint:
+        "The pair that flips the page left to right, or top to bottom.",
+      addHint: "The + on the heading.",
+      resetHint: "Every mark and every layer, gone in one undoable step.",
     },
     canvas: {
       intro:

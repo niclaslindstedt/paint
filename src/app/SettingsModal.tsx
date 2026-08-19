@@ -26,7 +26,7 @@ import {
 import { type ThemeAppearance } from "@niclaslindstedt/oss-framework/theme";
 import { type PwaUpdate } from "@niclaslindstedt/oss-framework/pwa";
 
-import { ToolboxIcon } from "./icons.tsx";
+import { SidePanelIcon, ToolboxIcon } from "./icons.tsx";
 import { useT } from "./i18n/index.ts";
 import { APP_LOOK } from "./look.ts";
 import {
@@ -46,6 +46,7 @@ import {
 } from "./settings/tabs.tsx";
 import { CanvasTab } from "./settings/canvas.tsx";
 import { DownloadTab } from "./settings/download.tsx";
+import { PanelTab } from "./settings/panel.tsx";
 import { ToolsTab } from "./settings/tools.tsx";
 
 // The app's tabbed Settings modal — composed from the framework's `Modal` and
@@ -72,6 +73,7 @@ export type SettingsTab =
   | "general"
   | "appearance"
   | "tools"
+  | "panel"
   | "canvas"
   | "download"
   | "storage"
@@ -92,6 +94,7 @@ const TABS: TabDef[] = [
   { id: "general", labelKey: "settings.tabs.general", icon: SlidersIcon },
   { id: "appearance", labelKey: "settings.tabs.appearance", icon: PaletteIcon },
   { id: "tools", labelKey: "settings.tabs.tools", icon: ToolboxIcon },
+  { id: "panel", labelKey: "settings.tabs.panel", icon: SidePanelIcon },
   { id: "canvas", labelKey: "settings.tabs.canvas", icon: CropIcon },
   { id: "download", labelKey: "settings.tabs.download", icon: DownloadIcon },
   { id: "storage", labelKey: "settings.tabs.storage", icon: DatabaseIcon },
@@ -116,6 +119,15 @@ type Props = {
   setPluginEnabled: (id: string, enabled: boolean) => void;
   /** Reorder the toolbar — applied live, like the switches beside it. */
   moveTool: (order: readonly string[], from: number, to: number) => void;
+  /** The right-hand panel's switchboard, applied live for the same reason: it
+   *  is the surface *behind* this dialog. */
+  setPanelSectionEnabled: (id: string, enabled: boolean) => void;
+  setPanelItemEnabled: (id: string, enabled: boolean) => void;
+  movePanelSection: (
+    order: readonly string[],
+    from: number,
+    to: number,
+  ) => void;
   /** Commit one setting straight through, bypassing the draft — for the tabs
    *  whose controls apply live (see the note at the top of this file). */
   updateLive: <K extends keyof AppSettings>(
@@ -141,6 +153,9 @@ export function SettingsModal({
   commitSettings,
   setPluginEnabled,
   moveTool,
+  setPanelSectionEnabled,
+  setPanelItemEnabled,
+  movePanelSection,
   updateLive,
   darkCanvas,
   store,
@@ -366,6 +381,14 @@ export function SettingsModal({
               settings={settings}
               setPluginEnabled={setPluginEnabled}
               moveTool={moveTool}
+            />
+          )}
+          {activeTab === "panel" && (
+            <PanelTab
+              settings={settings}
+              setPanelSectionEnabled={setPanelSectionEnabled}
+              setPanelItemEnabled={setPanelItemEnabled}
+              movePanelSection={movePanelSection}
             />
           )}
           {activeTab === "canvas" && (

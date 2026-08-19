@@ -16,7 +16,8 @@ index.html → src/main.tsx ─┬─ src/App.tsx
                            │    │     └── SideMenuRows (its presentational leaves)
                            │    ├── CanvasScreen      (header, page, toolbar)
                            │    │     ├── PaintCanvas (the gesture in flight)
-                           │    │     ├── SidePanel   (page actions + the stack)
+                           │    │     ├── SidePanel   (the sections, in the user's order)
+                           │    │     │     └── panel/*  (one file per section)
                            │    │     └── Toolbar     (enabled tools + ink)
                            │    ├── ArchiveScreen     (lazy)
                            │    └── SettingsModal     (lazy)
@@ -27,6 +28,8 @@ domain:   types · layers · render · plugins/* · migrations · canvas · expo
           defaults / kit (what a fresh start is made of, and putting it in hand)
           canvasSize / canvasPresets (what page a drawing is made on)
           transform (mirror / turn / resize) · handoff (between namespaces)
+          panelSections (what the right-hand panel is made of)
+          order (what you do to a stored arrangement of ids)
           sidebarDnd (which drops are legal)
 platform: @niclaslindstedt/oss-framework (UI kit, storage, theme, i18n, PWA)
 ```
@@ -379,6 +382,51 @@ shared between the editor and the painter so what you drag and what lands on the
 pixels are the same function. An ordinary spline overshoots, and an overshoot on
 a tone curve is a bright band with dark edges either side of the handle you
 dragged.
+
+### The panel is a list the user arranges, not a block of statements
+
+The right-hand panel used to be four blocks written out in order in
+`SidePanel.tsx`, which made the order the _build's_. It is the user's now: the
+sections are dragged into place by the grip on their headings, switched off
+whole, and thinned out one function at a time from Settings → Panel. None of that
+is expressible while the order is the order statements appear in a component, so
+what the panel is made of moved to `panelSections.ts` — a pure, DOM-free registry
+of descriptors, in the shape the plugin registry uses one floor up.
+
+A descriptor says what a section is (a title, a line of explanation) and what is
+inside it that can be switched off one at a time: the page actions, the effects
+in that group, the four controls on a layer row. Item ids are namespaced by what
+they are (`page:`, `effect:`, `layers:`) because they are **persisted** — the
+settings file holds the ids that are _off_ — and a bare `delete` would collide
+the moment two sections both had one. Renaming one forgets a user's choice, so
+don't.
+
+Three settings carry the arrangement, and all three are stored the way the
+toolbar's are and for the same reasons. `panelOrder` holds only the ways the
+order differs from the shipped one; `hiddenPanelSections` and `hiddenPanelItems`
+hold what is _off_, so a section or an effect a later release adds arrives
+switched on rather than hidden from every install that already has the key. All
+three apply live rather than through the Settings draft (`LIVE_SETTINGS`): the
+panel is the surface _behind_ the dialog, and a section you switch off should
+leave it as you press the switch.
+
+Reordering is `order.ts`, shared with the toolbar and with a canvas preset's kit.
+`orderById` lays the named ids out **in place** — a section the stored order has
+never heard of keeps the slot it was registered in rather than piling up at the
+end — which is what stops an arrangement going stale across an upgrade. The drag
+itself is the framework's `useDragDrop`, the same hook the drawings menu
+reorders with, so the only domain question the panel answers is the trivial one:
+a section may land on any section but itself.
+
+`SidePanel.tsx` is the shell. It renders whatever `visibleSections` hands it, in
+whatever order it comes, and the one place a section is named is the line that
+picks which component paints it; the sections themselves are `panel/`, one file
+each, sharing a `SectionProps` shape so the panel can treat them as
+interchangeable. A section that is _made of_ its items — Image, Effects, Colour —
+is left out entirely once its last row is switched off, because a heading over an
+empty box is not worth the room; the layer stack is the exception, and says so
+(`madeOfItems`): the list of layers _is_ that section, and its items are only
+what you can do to a row.
 
 ### The sheet is a material, not a backdrop
 
