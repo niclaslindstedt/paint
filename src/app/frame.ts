@@ -40,7 +40,6 @@
 // `trail.ts`, which decides when that is safe, and `paintPatch` below, which
 // paints it). It is the same three coats over a smaller box.
 
-import type { Box } from "./bounds.ts";
 import {
   blitCache,
   createCache,
@@ -52,7 +51,8 @@ import {
 import type { Rect } from "./geometry.ts";
 import type { EffectPreview } from "./render.ts";
 import { visibleStrokes } from "./layers.ts";
-import { paintMarquee } from "./plugins/builtin/select.ts";
+import { paintLoupe } from "./loupe.ts";
+import { paintOutline } from "./plugins/builtin/select.ts";
 import type { DraftStroke } from "./plugins/types.ts";
 import { liftBounds, relayFixed } from "./relay.ts";
 import {
@@ -63,7 +63,7 @@ import {
   underlay,
   type RenderOptions,
 } from "./render.ts";
-import { translateStrokes } from "./selection.ts";
+import { moveRegion, translateStrokes, type Selection } from "./selection.ts";
 import { trailAhead, trailPainted, type Trail } from "./trail.ts";
 import type { Drawing, Point, Stroke } from "./types.ts";
 import type { CanvasView } from "./viewport.ts";
@@ -75,13 +75,23 @@ export const GRID_STEP = 40;
  *  frame costs more than the screen can show. */
 const MAX_DPR = 3;
 
-/** A selection being dragged: the marks that were picked up, the ids the page
- *  underneath must leave out, and how far they have come. */
+/** A selection's contents being dragged: the two halves every mark the window
+ *  crossed was cut into, the ids the page underneath must leave out, and how far
+ *  the drag has come.
+ *
+ *  Both halves are painted here rather than in the page's own coat, because the
+ *  page's coat is the *document* — where the marks still are, whole and uncut,
+ *  until the finger lifts (see `selection.ts`). */
 export type MovingMarks = {
+  /** What the window holds, cut to it — painted at the offset. */
   strokes: readonly Stroke[];
+  /** …and what is left of the marks it only partly holds, cut to everywhere
+   *  else and painted where they have always been. */
+  stay: readonly Stroke[];
   ids: ReadonlySet<string>;
-  /** The box the marks covered when the drag began. */
-  box: Box;
+  /** The selection as it was when the drag began — the outline travels with
+   *  what it holds. */
+  from: Selection;
   offset: Point;
 };
 
@@ -123,10 +133,14 @@ export type Frame = {
   zooming: boolean;
   /** The gesture in flight, or `null`. */
   draft: DraftStroke | null;
-  /** The settled selection's outline, or `null`. Ignored while `moving` is set:
-   *  the drag draws its own, at the offset it has reached. */
-  selection: Box | null;
+  /** The settled selection, or `null`. Ignored while `moving` is set: the drag
+   *  draws its own outline, at the offset it has reached. */
+  selection: Selection | null;
   moving: MovingMarks | null;
+  /** The point a selection is being placed at, or `null` when nothing is being
+   *  placed — a corner under the finger while the marquee is dragged out, or one
+   *  a handle is adjusting. The magnifier floats beside it (see `loupe.ts`). */
+  loupe: Point | null;
   /** The mark cache, held by the caller across frames and opened here on the
    *  first one. A holder rather than a value because the cache outlives any one
    *  frame and is `null` where there is no DOM to make one in. */
@@ -195,20 +209,20 @@ export function paintFrame(frame: Frame): void {
   };
   const draft = frame.draft ? { ...frame.draft, id: "draft" } : null;
   // The selection's outline: the same marching ants the marquee was dragged
-  // with, so what you dragged and what you got read as one thing.
-  const outline = moving
-    ? {
-        ...moving.box,
-        x: moving.box.x + moving.offset.x,
-        y: moving.box.y + moving.offset.y,
-      }
-    : frame.selection;
+  // with, so what you dragged and what you got read as one thing. A drag carries
+  // it along with the ink it holds.
+  const outline = moving ? movedSelection(moving) : frame.selection;
 
   // The cheap frame: nothing changed but the gesture, and the gesture only got
   // longer. Repaint the patch it grew into and leave the rest of the screen
   // standing (see `trail.ts`). Skipped while marks are being dragged — that is
   // a second coat over the page and not a mark growing.
-  const patch = moving ? null : trailAhead(frame.trail, spec, draft, outline);
+  // …and never while the magnifier is up: it repaints a window of its own
+  // wherever the finger is, which is nowhere the gesture happens to have grown.
+  const patch =
+    moving || frame.loupe
+      ? null
+      : trailAhead(frame.trail, spec, draft, outline);
   const cache = frame.cache.current;
   if (
     patch &&
@@ -245,6 +259,9 @@ export function paintFrame(frame: Frame): void {
   const dragged = moving
     ? translateStrokes(moving.strokes, moving.offset.x, moving.offset.y)
     : [];
+  // What the window left behind, cut to everywhere it isn't. Painted at rest,
+  // under what travelled, which is the order the edit will file them in.
+  const stayed = moving ? moving.stay : [];
   // Both coats are culled against the window, exactly as the page under them
   // was: a mark being dragged half off the screen, or a spray whose cone is
   // mostly past the edge, should cost what is showing (see `PaintDetail.clip`).
@@ -266,7 +283,11 @@ export function paintFrame(frame: Frame): void {
   // the desk beside it, and the screen therefore shows what an export would.
   onSheet(ctx, drawing, () => {
     if (moving) {
-      paintStrokes(ctx, dragged, { ...options, clip: onPage, omit: undefined });
+      paintStrokes(ctx, [...stayed, ...dragged], {
+        ...options,
+        clip: onPage,
+        omit: undefined,
+      });
     }
 
     // The gesture in flight is the one coat in the app painted once per pointer
@@ -315,12 +336,40 @@ export function paintFrame(frame: Frame): void {
   });
 
   paintChrome(ctx, drawing, outline, view.scale, dpr);
+  // …and the magnifier over the lot, when a selection is being placed.
+  if (frame.loupe) {
+    paintLoupe(ctx, {
+      at: frame.loupe,
+      drawing,
+      options,
+      draft,
+      region: outline?.region ?? null,
+      width,
+      height,
+      dpr,
+      view: snapped,
+    });
+  }
   // A carried frame is the held pixels resampled, not the picture the document
   // paints (see `CacheSpec.zooming`) — so the trail must not remember it as
   // one, or the settle frame after a zoomed-while-drawing gesture would patch
   // a stale screen instead of repainting it.
   if (committedWork === "carried") frame.trail.painted = null;
   else trailPainted(frame.trail, spec, draft, outline);
+}
+
+/** Where a drag has carried the window, as a selection of its own — what the
+ *  ants are drawn from while the contents are in flight. */
+function movedSelection(moving: MovingMarks): Selection {
+  const { offset, from } = moving;
+  return {
+    region: moveRegion(from.region, offset.x, offset.y),
+    box: {
+      ...from.box,
+      x: from.box.x + offset.x,
+      y: from.box.y + offset.y,
+    },
+  };
 }
 
 /** `underlay`, held to one patch of the page — the only part of it a scoped
@@ -347,11 +396,16 @@ function underlayWithin(
 function paintChrome(
   ctx: CanvasRenderingContext2D,
   drawing: Drawing,
-  outline: Box | null,
+  outline: Selection | null,
   scale: number,
   dpr: number,
 ): void {
-  if (outline) paintMarquee(ctx, outline, scale * dpr);
+  // The whole outline, whatever shape it is — a lasso's loop is the window, and
+  // showing its box instead would be showing something else. The corner grips
+  // that adjust it are elements over the canvas rather than paint on it (see
+  // `SelectionFrame.tsx`): they are controls, and as elements they get
+  // hit-testing, a cursor and a focus ring for free.
+  if (outline) paintOutline(ctx, outline.region, scale * dpr);
 
   // The sheet's edge, so it is visible against the desk. The width is divided
   // by the zoom so the line stays a hairline at any scale instead of fattening
@@ -394,7 +448,7 @@ function paintPatch(
   cache: MarkCache,
   draft: Stroke,
   patch: Rect,
-  outline: Box | null,
+  outline: Selection | null,
 ): boolean {
   const box = onScreen(patch, spec);
   // The gesture has grown somewhere the window cannot see. Nothing to paint,

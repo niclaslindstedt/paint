@@ -29,7 +29,6 @@ import {
 } from "./layers.ts";
 import { turnBitmap } from "./images.ts";
 import { parseDoc } from "./migrations.ts";
-import { translateStroke } from "./selection.ts";
 import type { BitmapTurn, PageEdit } from "./transform.ts";
 import {
   liveDrawings,
@@ -399,39 +398,6 @@ export function usePaintStore(
     [activeDrawing, patchActive],
   );
 
-  /** Shift marks across the page by (`dx`, `dy`) — the drag that moves a
-   *  selection. One edit for the whole drag: the canvas shows the move live
-   *  without touching the document, and this lands once when the finger lifts,
-   *  so undo steps back over the whole move rather than over every frame of it.
-   *
-   *  Paint order is untouched: a mark keeps its place in the stack (and its
-   *  layer) and only its geometry changes. */
-  const moveStrokes = useCallback(
-    (ids: readonly string[], dx: number, dy: number) => {
-      const active = activeDrawing;
-      if (!active || ids.length === 0) return;
-      if (dx === 0 && dy === 0) return;
-      const moving = new Set(ids);
-      const strokes = active.strokes.map((s) =>
-        moving.has(s.id) ? translateStroke(s, dx, dy) : s,
-      );
-      // Marks dragged past the right or bottom edge take the sheet with them,
-      // the way a dropped picture does — a selection half off the page is not
-      // where anyone meant to put it.
-      let bounds: Box | null = null;
-      for (const stroke of strokes) {
-        if (!moving.has(stroke.id)) continue;
-        const next = strokeBounds(stroke);
-        if (next) bounds = bounds ? unionBox(bounds, next) : next;
-      }
-      patchActive({
-        strokes,
-        ...(bounds ? pageFitting(active, bounds) : {}),
-      });
-    },
-    [activeDrawing, patchActive],
-  );
-
   /** Start the page over: every mark gone, the stack back to the sheet and one
    *  layer. What the page *is* survives — its colour, its surface, and whether
    *  it has a sheet at all were decided when it was made and are not marks on
@@ -451,20 +417,37 @@ export function usePaintStore(
     });
   }, [activeDrawing, patchActive]);
 
-  /** Land a baked effect: the drawing's marks, with the layers an effect was
-   *  applied to replaced by pictures of themselves (see `bake.ts`).
+  /** Land a whole new stroke list on the active page.
+   *
+   *  Two callers, and both are edits the *screen* works out because both need a
+   *  canvas or a selection the store knows nothing about: a baked effect, whose
+   *  layers come back as pictures of themselves (see `bake.ts`), and a
+   *  selection's move or erase, which cuts the marks under the window
+   *  (`selection.ts`).
    *
    *  An ordinary page edit — one undo step, one `updatedAt`, one push to the
    *  cloud — and deliberately nothing more than "here is the new stroke list".
-   *  Rasterising needs a canvas, so it happens in the screen where the canvas
-   *  is; what reaches the store is a list of strokes like any other.
+   *  Undo puts the marks back exactly as they were, which is the whole safety
+   *  net either edit has.
    *
-   *  Undo puts the marks back, which is the whole safety net an effect has: it
-   *  is destructive by design, and the panel says so before it is pressed. */
-  const applyEffect = useCallback(
-    (strokes: Stroke[]) => {
-      if (!activeDrawing) return;
-      patchActive({ strokes });
+   *  `fitPage` grows the sheet around the new marks, the way a dropped picture
+   *  grows it: a selection dragged past the right or bottom edge is not where
+   *  anyone meant to put it. */
+  const applyStrokes = useCallback(
+    (strokes: Stroke[], options: { fitPage?: boolean } = {}) => {
+      const active = activeDrawing;
+      if (!active) return;
+      let bounds: Box | null = null;
+      if (options.fitPage) {
+        for (const stroke of strokes) {
+          const next = strokeBounds(stroke);
+          if (next) bounds = bounds ? unionBox(bounds, next) : next;
+        }
+      }
+      patchActive({
+        strokes,
+        ...(bounds ? pageFitting(active, bounds) : {}),
+      });
     },
     [activeDrawing, patchActive],
   );
@@ -939,9 +922,8 @@ export function usePaintStore(
     addStroke,
     addStrokes,
     deleteStrokes,
-    moveStrokes,
     resetActive,
-    applyEffect,
+    applyStrokes,
     transformActive,
     renameActive,
     setAppearance,

@@ -49,12 +49,12 @@
 // has to remember to decide the next one. The painting is `frame.ts`, which is
 // where all the painting is.
 
-import type { Box } from "./bounds.ts";
 import { sameFrame, type CacheSpec } from "./cache.ts";
 import { runBounds, type Rect } from "./geometry.ts";
 import { groundProfile } from "./ground.ts";
 import { pluginById } from "./plugins/registry.ts";
 import { strokeStains } from "./render.ts";
+import type { Selection } from "./selection.ts";
 import type { Stroke } from "./types.ts";
 
 /** What the frame before this one painted, and what it painted it from. */
@@ -62,10 +62,11 @@ type Painted = {
   spec: CacheSpec;
   /** The gesture as it was then, or `null` when there wasn't one. */
   draft: Stroke | null;
-  /** The selection's outline as it was then. It is chrome rather than a mark,
-   *  but a patch frame redraws it inside its own box, so a change to it is a
-   *  change to the picture like any other. */
-  outline: Box | null;
+  /** The selection as it was then. It is chrome rather than a mark, but a patch
+   *  frame redraws its outline inside its own box, so a change to it is a change
+   *  to the picture like any other. Compared by identity: the screen holds one
+   *  selection object for as long as the window doesn't move. */
+  outline: Selection | null;
 };
 
 /** What one canvas remembers between frames, so a gesture can be painted
@@ -83,7 +84,7 @@ export function trailPainted(
   trail: Trail,
   spec: CacheSpec,
   draft: Stroke | null,
-  outline: Box | null,
+  outline: Selection | null,
 ): void {
   trail.painted = { spec, draft, outline };
 }
@@ -100,7 +101,7 @@ export function trailAhead(
   trail: Trail,
   spec: CacheSpec,
   draft: Stroke | null,
-  outline: Box | null,
+  outline: Selection | null,
 ): Rect | null {
   const was = trail.painted;
   if (!was || !draft || !was.draft) return null;

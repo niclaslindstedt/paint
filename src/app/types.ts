@@ -102,6 +102,23 @@ export type Shape =
       smoothing?: "nearest";
     };
 
+/** A window a mark is held inside: closed outlines in document coordinates,
+ *  read with the **even-odd** rule, so a loop inside another loop is a hole in
+ *  the window exactly as it is a hole in a filled area.
+ *
+ *  It is what a selection leaves behind. Painting inside a selection cuts the
+ *  mark to it, and moving a selection's contents cuts each mark the outline
+ *  crosses in two — the half that travelled, held to where the selection went,
+ *  and the half that stayed, held to everywhere it isn't (see `selection.ts`).
+ *  Both halves are still whole strokes with their whole geometry: nothing is
+ *  resampled, nothing is rasterised, and undo puts the one mark back.
+ *
+ *  A mask is *geometry on the page*, like the outlines of a filled area or a
+ *  gradient's run, so it moves, turns and scales with the mark it belongs to. */
+export type Mask = {
+  contours: Point[][];
+};
+
 /** One committed mark on the canvas: which tool made it, the ink, and the
  *  geometry. `tool` is a plugin id — the renderer looks the plugin up to paint
  *  it, so a stroke drawn by a tool that is currently switched off still renders
@@ -150,6 +167,15 @@ export type Stroke = {
    *  everything: a one-layer sketch is byte-for-byte the document it always
    *  was, and an old document needs no rewriting to grow a stack. */
   layer?: string;
+  /** The windows this mark is held inside, innermost effect last — every one of
+   *  them, so a mark cut twice is cut by both (see `Mask`).
+   *
+   *  Absent — which is every mark drawn outside a selection, and every mark in
+   *  every drawing made before selections cut anything — means the whole page.
+   *  Recorded rather than resolved at paint time for the same reason a colour
+   *  is: the selection that cut it is gone by the next gesture, and the mark
+   *  still has to paint the shape it was cut to. */
+  clip?: Mask[];
   shape: Shape;
 };
 

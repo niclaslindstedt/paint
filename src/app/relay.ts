@@ -38,6 +38,7 @@
 import { strokeBounds, strokeVisible, type Rect } from "./geometry.ts";
 import { pluginById } from "./plugins/registry.ts";
 import {
+  clipToMask,
   detailFor,
   paintStrokes,
   renderScale,
@@ -522,6 +523,9 @@ function paintMask(
     if (!strokeVisible(stroke, options.clip)) continue;
     const resolved = resolveStrokeInk(stroke, options);
     ctx.save();
+    // Cut to the same window the rub itself was cut to: the mask measures how
+    // much ink went, and a rub held inside a selection took none outside it.
+    for (const mask of resolved.clip ?? []) clipToMask(ctx, mask);
     pluginById(resolved.tool)?.behaviour.paint(ctx, resolved, detail);
     ctx.restore();
   }

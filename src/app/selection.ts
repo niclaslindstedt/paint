@@ -1,41 +1,55 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 // What "a selection" means, as arithmetic.
 //
-// The selection itself is not document state — nothing about which marks are
-// picked belongs in a saved drawing, and nothing about it is undoable. What *is*
-// document state is what you do to the marks afterwards: moving them, deleting
-// them, pasting copies of them. So the screen holds a set of stroke ids and this
-// module answers every question about them:
+// A selection is an **area of the page**, and nothing else. It picks no marks
+// out — press inside one with the pencil and you paint, press inside it with
+// the eraser and you rub out, and both are held to the outline. That is the
+// whole idea: the selection is a *tool*, a window cut in the page that the next
+// thing you do happens inside.
 //
-//   - which marks a dragged marquee caught (`strokesInBox`), and which marks any
-//     other selection gesture caught — a lasso, an oval, an outline traced off
-//     the page itself — all of which arrive here as closed contours and go
-//     through one test (`strokesInRegion`)
-//   - how much of the page the caught ones cover (`selectionBox`)
-//   - what one of them looks like moved (`translateStroke`)
+// It is not document state — nothing about where the window is belongs in a
+// saved drawing, and nothing about it is undoable. What *is* document state is
+// what you do through it, and there are three of those, all of them on the
+// **layer you are drawing on** and none of them on any other:
+//
+//   - **paint** — a mark made while a selection is up records the outline it
+//     was cut to (`Stroke.clip`) and paints inside it forever after;
+//   - **move** — the hand drags what is painted inside the window somewhere
+//     else, which cuts every mark the outline crosses in two: the half that
+//     travelled and the half that stayed (`moveRegionContents`);
+//   - **erase** — Delete, or a tap with the rubber, takes what is inside it off
+//     (`eraseRegion`).
+//
+// **Nothing here rasterises anything.** A cut mark is still the whole stroke it
+// always was, with a window recorded beside it, so moving a selection over a
+// pencil line twice leaves a pencil line rather than a photograph of one — and
+// one undo puts the single mark back. That is the same trade the rest of the
+// document makes, and it is why a selection can be a hard boundary in a vector
+// drawing at all.
 //
 // All of it is pure and switches on the shape kind, the same contract the
 // renderer's fallback painter and `bounds.ts` use: a tool that invents no new
-// shape kind needs no change here. Which is the point — the selection tool works
-// on marks made by tools it has never heard of, including ones a later build
-// adds.
+// shape kind needs no change here. Which is the point — the selection works on
+// marks made by tools it has never heard of, including ones a later build adds.
 
-import { strokeBounds, unionBox, type Box, type Measurable } from "./bounds.ts";
-import { lockedMarks, visibleStrokes } from "./layers.ts";
-import type { Drawing, Point, Stroke } from "./types.ts";
+import {
+  padBox,
+  strokeBounds,
+  unionBox,
+  type Box,
+  type Measurable,
+} from "./bounds.ts";
+import { activeLayer, groupByLayer, isLocked } from "./layers.ts";
+import type { Drawing, Mask, Point, Shape, Stroke } from "./types.ts";
 
-/** Whether two boxes overlap at all. */
-function overlaps(a: Box, b: Box): boolean {
-  return (
-    a.x <= b.x + b.width &&
-    b.x <= a.x + a.width &&
-    a.y <= b.y + b.height &&
-    b.y <= a.y + a.height
-  );
-}
+/** As much of a mark as moving it needs: the geometry, and the window it was
+ *  cut to. Widened from `Stroke` like `Measurable` is, so a mark that hasn't
+ *  been filed yet — one on the clipboard, one being pasted — moves through the
+ *  same function the page uses. */
+export type Movable = { shape: Shape; clip?: Mask[] };
 
 /** Whether `p` lies inside `box` — what decides that a press on the page has
- *  landed on the selection rather than beside it. */
+ *  landed on the selection's own rectangle rather than beside it. */
 export function inBox(box: Box, p: Point): boolean {
   return (
     p.x >= box.x &&
@@ -43,28 +57,6 @@ export function inBox(box: Box, p: Point): boolean {
     p.y >= box.y &&
     p.y <= box.y + box.height
   );
-}
-
-/** The marks a marquee dragged over `box` catches: every **visible, unlocked**
- *  stroke whose own box it touches, in paint order.
- *
- *  Touching rather than containing, deliberately. A marquee you have to draw
- *  right around a long diagonal line is a marquee you draw twice; catching what
- *  the box crosses is what every drawing program does and what a hand expects.
- *
- *  Two kinds of mark are not caught at all. Marks on a **hidden** layer, because
- *  you cannot select what you cannot see and deleting something invisible is the
- *  worst kind of surprise; and marks on a **locked** one, because a lock that
- *  stopped the pencil but let a marquee drag the sheet off the page would not be
- *  a lock. This is the one gate both rules live behind — everything a selection
- *  can then do (move, cut, delete) takes its ids from here. */
-export function strokesInBox(drawing: Drawing, box: Box): Stroke[] {
-  const locked = lockedMarks(drawing);
-  return visibleStrokes(drawing).filter((stroke) => {
-    if (locked(stroke)) return false;
-    const bounds = strokeBounds(stroke);
-    return bounds ? overlaps(bounds, box) : false;
-  });
 }
 
 /** What a selection gesture chose, as closed contours in document coordinates —
@@ -75,9 +67,17 @@ export function strokesInBox(drawing: Drawing, box: Box): Stroke[] {
  *  selection the same way the bucket leaves them unpainted. */
 export type SelectionRegion = readonly (readonly Point[])[];
 
+/** The selection the screen holds: the area itself, and the rectangle around it
+ *  that the corner handles hang off (see `SelectionFrame.tsx`). The box is
+ *  derived rather than remembered, so the two can never disagree. */
+export type Selection = {
+  region: SelectionRegion;
+  box: Box;
+};
+
 /** The smallest box holding every contour, or `null` when there is nothing
  *  there. */
-function regionBox(region: SelectionRegion): Box | null {
+export function regionBox(region: SelectionRegion): Box | null {
   let minX = Infinity;
   let minY = Infinity;
   let maxX = -Infinity;
@@ -94,26 +94,74 @@ function regionBox(region: SelectionRegion): Box | null {
   return { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
 }
 
-/** Whether a region is just its own box — one axis-aligned rectangle.
+/** The selection a gesture's contours make, or `null` for an outline that
+ *  encloses nothing — which is what "select nothing" arrives as. */
+export function selectionOf(
+  region: SelectionRegion | null | undefined,
+): Selection | null {
+  if (!region || region.length === 0) return null;
+  const box = regionBox(region);
+  if (!box || box.width <= 0 || box.height <= 0) return null;
+  return { region, box };
+}
+
+/** A rectangle as a window — the shape a box marquee cuts, and the one two
+ *  other things ask for: ⌘/Ctrl+A, which is the whole sheet, and a paste, which
+ *  leaves a window around what it landed so the next drag carries it. */
+export function boxRegion(box: Box): SelectionRegion {
+  return [
+    [
+      { x: box.x, y: box.y },
+      { x: box.x + box.width, y: box.y },
+      { x: box.x + box.width, y: box.y + box.height },
+      { x: box.x, y: box.y + box.height },
+    ],
+  ];
+}
+
+/** The same window, somewhere else on the page. */
+export function moveRegion(
+  region: SelectionRegion,
+  dx: number,
+  dy: number,
+): SelectionRegion {
+  if (dx === 0 && dy === 0) return region;
+  return region.map((loop) => loop.map((p) => ({ x: p.x + dx, y: p.y + dy })));
+}
+
+/** The same window, stretched from the box it filled into the one a handle has
+ *  dragged it into.
  *
- *  The box marquee is exactly that, and it is the selection people make most,
- *  so it is worth spotting: everything below can then be skipped and the answer
- *  is the box overlap it always was. */
-function isBoxRegion(region: SelectionRegion, box: Box): boolean {
-  if (region.length !== 1) return false;
-  const loop = region[0]!;
-  if (loop.length !== 4) return false;
-  return loop.every(
-    (p) =>
-      (p.x === box.x || p.x === box.x + box.width) &&
-      (p.y === box.y || p.y === box.y + box.height),
+ *  Every contour is carried along proportionally, which is what lets a lasso and
+ *  a traced outline be adjusted by their corners at all: the *shape* you drew is
+ *  kept and only its frame changes. A box marquee — four corners on the frame —
+ *  comes out as the rectangle you dragged, which is exactly what it looks like
+ *  it should do. A frame with no width or height to scale from is left alone
+ *  rather than collapsed. */
+export function scaleRegion(
+  region: SelectionRegion,
+  from: Box,
+  to: Box,
+): SelectionRegion {
+  if (from.width <= 0 || from.height <= 0) return region;
+  const kx = to.width / from.width;
+  const ky = to.height / from.height;
+  return region.map((loop) =>
+    loop.map((p) => ({
+      x: to.x + (p.x - from.x) * kx,
+      y: to.y + (p.y - from.y) * ky,
+    })),
   );
 }
 
 /** Whether `p` is inside the region, by the even-odd rule — the same rule the
  *  bucket's fill is painted with, so a traced area's holes are outside its
- *  selection exactly as they are outside its paint. */
-function inRegion(region: SelectionRegion, p: Point): boolean {
+ *  selection exactly as they are outside its paint.
+ *
+ *  This is the test a press is judged by: inside means the gesture is about the
+ *  selection (the hand carries its contents, the marquee tool slides the window
+ *  itself), outside means it is about the page. */
+export function regionHolds(region: SelectionRegion, p: Point): boolean {
   let inside = false;
   for (const loop of region) {
     for (let i = 0, j = loop.length - 1; i < loop.length; j = i++) {
@@ -160,15 +208,8 @@ function segmentMeetsBox(a: Point, b: Point, box: Box): boolean {
   return true;
 }
 
-/** Whether a mark's box and a selection region meet — the test a non-rectangular
- *  marquee catches marks by.
- *
- *  Two ways they can, and both are needed: the outline crosses (or runs inside)
- *  the box, or the box sits wholly inside the outline with nothing crossing it.
- *  Measured against the mark's *box* rather than its geometry, which is the same
- *  approximation `strokesInBox` has always made — a marquee that only caught the
- *  ink itself would be one you had to draw twice. */
-function regionMeetsBox(region: SelectionRegion, box: Box): boolean {
+/** Whether any of the region's own outline runs through `box`. */
+function outlineCrosses(region: SelectionRegion, box: Box): boolean {
   for (const loop of region) {
     for (let i = 0; i < loop.length; i++) {
       const a = loop[i]!;
@@ -176,74 +217,244 @@ function regionMeetsBox(region: SelectionRegion, box: Box): boolean {
       if (segmentMeetsBox(a, b, box)) return true;
     }
   }
-  return inRegion(region, {
+  return false;
+}
+
+/** Whether a mark's box and the selection meet at all — the first question
+ *  asked of every mark on the layer, and the one that lets a selection on a busy
+ *  page cost the marks near it rather than all of them.
+ *
+ *  Two ways they can, and both are needed: the outline crosses (or runs inside)
+ *  the box, or the box sits wholly inside the outline with nothing crossing it.
+ *  Measured against the mark's *box* rather than its geometry, deliberately: a
+ *  mark whose box the window catches but whose ink it misses is cut to a window
+ *  it paints nothing through, which costs a few bytes and changes no pixel. */
+export function regionMeets(region: SelectionRegion, box: Box): boolean {
+  if (outlineCrosses(region, box)) return true;
+  return regionHolds(region, {
     x: box.x + box.width / 2,
     y: box.y + box.height / 2,
   });
 }
 
-/** The marks a selection gesture caught: every **visible, unlocked** stroke
- *  whose own box the chosen outline touches, in paint order.
- *
- *  The same rules `strokesInBox` holds — it is the box case of this one — plus
- *  the shape of whatever was actually drawn: a lasso catches what its loop
- *  crosses or encloses, and a traced area catches what lies within the contours
- *  the page itself gave it. The region's box is used to reject the obvious
- *  misses first, so a lasso on a busy page walks its outline only for the marks
- *  that were in the running at all. */
-export function strokesInRegion(
-  drawing: Drawing,
-  region: SelectionRegion,
-): Stroke[] {
-  const box = regionBox(region);
-  if (!box) return [];
-  const near = strokesInBox(drawing, box);
-  if (isBoxRegion(region, box)) return near;
-  return near.filter((stroke) => {
-    const bounds = strokeBounds(stroke);
-    return bounds ? regionMeetsBox(region, bounds) : false;
+/** Whether the selection holds the *whole* of `box`: its outline runs nowhere
+ *  through it and its middle is inside. Such a mark needs no window at all — it
+ *  is entirely within the selection already, so moving it moves the whole mark
+ *  and erasing takes the whole mark away. */
+export function regionCovers(region: SelectionRegion, box: Box): boolean {
+  if (outlineCrosses(region, box)) return false;
+  return regionHolds(region, {
+    x: box.x + box.width / 2,
+    y: box.y + box.height / 2,
   });
 }
 
-/** The page a run of marks covers, or `null` when there are none — the outline
- *  the canvas draws around a settled selection, and the box a press is tested
- *  against to see whether it grabbed it. */
-export function selectionBox(strokes: readonly Measurable[]): Box | null {
-  let box: Box | null = null;
-  for (const stroke of strokes) {
-    const next = strokeBounds(stroke);
-    if (!next) continue;
-    box = box ? unionBox(box, next) : next;
-  }
-  return box;
+/** The selection as a window a mark can be cut to (see `Mask`). */
+export function maskOf(region: SelectionRegion): Mask {
+  return { contours: region.map((loop) => loop.map((p) => ({ ...p }))) };
 }
 
-/** Shift every point in a shape by (`dx`, `dy`).
+/** …and its opposite: everywhere the selection *isn't*, out to a rectangle big
+ *  enough to hold `around` and the selection both.
+ *
+ *  Even-odd is what makes this work with no geometry of its own: an outer
+ *  rectangle with the selection's contours inside it is the rectangle minus the
+ *  selection, exactly as a loop inside a loop is a hole. The rectangle has to
+ *  cover the mark it is cutting — a mark reaching past it would be cut off at a
+ *  boundary nobody drew — so it is the mark and the window together, with a
+ *  pixel of slack. */
+export function maskOutside(region: SelectionRegion, around: Box): Mask {
+  const box = regionBox(region);
+  const outer = padBox(box ? unionBox(around, box) : around, 1);
+  return {
+    contours: [
+      [
+        { x: outer.x, y: outer.y },
+        { x: outer.x + outer.width, y: outer.y },
+        { x: outer.x + outer.width, y: outer.y + outer.height },
+        { x: outer.x, y: outer.y + outer.height },
+      ],
+      ...region.map((loop) => loop.map((p) => ({ ...p }))),
+    ],
+  };
+}
+
+/** One mark, held inside one more window. The windows stack rather than
+ *  replace: a mark drawn inside a selection and later cut by another is cut by
+ *  both (see `Stroke.clip`). */
+export function cutTo<T extends { clip?: Mask[] }>(stroke: T, mask: Mask): T {
+  return { ...stroke, clip: [...(stroke.clip ?? []), mask] };
+}
+
+/** The marks a selection has anything to say about, and what it says about each
+ *  of them — the one walk every selection edit is built out of.
+ *
+ *  Only the **layer being drawn on** is walked. That is the rule for all three
+ *  edits and it is what makes a selection safe: what is under the window on
+ *  another sheet is not what you are working on, and a window that quietly took
+ *  the layer below with it would be a window you could not trust. A locked
+ *  layer yields nothing at all, for the same reason it takes no marks. */
+export type RegionSplit = {
+  /** What the selection holds, each mark cut to it: what a drag carries, and
+   *  what a copy takes. */
+  inside: Stroke[];
+  /** What is left of the marks it only partly holds, each cut to everywhere
+   *  else. A mark the selection swallows whole leaves nothing behind. */
+  outside: Stroke[];
+  /** Every mark the selection touched at all, by id — what a live drag hides
+   *  from the page underneath while it shows the two halves itself. */
+  ids: Set<string>;
+};
+
+/** Split the active layer's marks against the selection. */
+export function splitRegion(
+  drawing: Drawing,
+  region: SelectionRegion,
+): RegionSplit {
+  const split: RegionSplit = { inside: [], outside: [], ids: new Set() };
+  for (const { stroke, bounds, whole } of regionMarks(drawing, region)) {
+    split.ids.add(stroke.id);
+    if (whole) {
+      split.inside.push(stroke);
+      continue;
+    }
+    split.inside.push(cutTo(stroke, maskOf(region)));
+    split.outside.push(cutTo(stroke, maskOutside(region, bounds)));
+  }
+  return split;
+}
+
+/** Each mark of the layer being drawn on that the selection reaches, with the
+ *  box it was measured by and whether the selection holds all of it. */
+function regionMarks(
+  drawing: Drawing,
+  region: SelectionRegion,
+): { stroke: Stroke; bounds: Box; whole: boolean }[] {
+  const layer = activeLayer(drawing);
+  if (isLocked(layer)) return [];
+  const own = groupByLayer(drawing).get(layer.id) ?? [];
+  const found: { stroke: Stroke; bounds: Box; whole: boolean }[] = [];
+  for (const stroke of own) {
+    const bounds = strokeBounds(stroke);
+    if (!bounds || !regionMeets(region, bounds)) continue;
+    found.push({ stroke, bounds, whole: regionCovers(region, bounds) });
+  }
+  return found;
+}
+
+/** The drawing's marks with what is inside the selection moved by (`dx`, `dy`),
+ *  or `null` when the selection holds nothing to move.
+ *
+ *  A mark the window swallows whole simply travels — same mark, same id, one
+ *  undo step. A mark it only crosses is **cut in two**: the half inside is a new
+ *  mark held to the window at its new place, and what is left of the original is
+ *  held to everywhere the window wasn't. Paint order is kept either way: both
+ *  halves take the place the one mark had, with the travelling half over the one
+ *  that stayed, so a move can never lift ink over a mark that was drawn after
+ *  it. */
+export function moveRegionContents(
+  drawing: Drawing,
+  region: SelectionRegion,
+  dx: number,
+  dy: number,
+  mintId: () => string,
+): Stroke[] | null {
+  if (dx === 0 && dy === 0) return null;
+  const marks = new Map(
+    regionMarks(drawing, region).map((found) => [found.stroke.id, found]),
+  );
+  if (marks.size === 0) return null;
+  const strokes: Stroke[] = [];
+  for (const stroke of drawing.strokes) {
+    const found = marks.get(stroke.id);
+    if (!found) {
+      strokes.push(stroke);
+      continue;
+    }
+    if (found.whole) {
+      strokes.push(translateStroke(stroke, dx, dy));
+      continue;
+    }
+    strokes.push(cutTo(stroke, maskOutside(region, found.bounds)));
+    strokes.push({
+      ...translateStroke(cutTo(stroke, maskOf(region)), dx, dy),
+      id: mintId(),
+    });
+  }
+  return strokes;
+}
+
+/** The drawing's marks with what is inside the selection taken off, or `null`
+ *  when there was nothing inside it.
+ *
+ *  A mark the window swallows whole goes; one it crosses is kept, held to
+ *  everywhere the window wasn't. Nothing is composited away and no hole is
+ *  punched through the layers below — this is a real edit to the marks on one
+ *  sheet, and one undo step brings every one of them back whole. */
+export function eraseRegion(
+  drawing: Drawing,
+  region: SelectionRegion,
+): Stroke[] | null {
+  const marks = new Map(
+    regionMarks(drawing, region).map((found) => [found.stroke.id, found]),
+  );
+  if (marks.size === 0) return null;
+  const strokes: Stroke[] = [];
+  for (const stroke of drawing.strokes) {
+    const found = marks.get(stroke.id);
+    if (!found) {
+      strokes.push(stroke);
+      continue;
+    }
+    if (found.whole) continue;
+    strokes.push(cutTo(stroke, maskOutside(region, found.bounds)));
+  }
+  return strokes;
+}
+
+/** Shift every point in a shape by (`dx`, `dy`), the window it was cut to
+ *  included.
  *
  *  Switching on the kind rather than on the tool, for the same reason
  *  `strokeBounds` does: moving a mark is a question about geometry, and the
  *  plugin that drew it has no say in the answer. A stroke whose shape this build
  *  doesn't recognise comes back unmoved rather than mangled. */
-export function translateStroke<T extends Measurable>(
+export function translateStroke<T extends Movable>(
   stroke: T,
   dx: number,
   dy: number,
 ): T {
   const move = (p: Point): Point => ({ x: p.x + dx, y: p.y + dy });
+  // The window travels with the mark: it is geometry on the page like the ink
+  // is, and a mark that slid out from under its own cut would paint a shape
+  // nobody drew.
+  const clipped = stroke.clip
+    ? {
+        clip: stroke.clip.map((mask) => ({
+          contours: mask.contours.map((loop) => loop.map(move)),
+        })),
+      }
+    : {};
   const shape = stroke.shape;
   switch (shape.kind) {
     case "path":
-      return { ...stroke, shape: { ...shape, points: shape.points.map(move) } };
+      return {
+        ...stroke,
+        ...clipped,
+        shape: { ...shape, points: shape.points.map(move) },
+      };
     case "segment":
     case "box":
     case "image":
       return {
         ...stroke,
+        ...clipped,
         shape: { ...shape, from: move(shape.from), to: move(shape.to) },
       };
     case "region":
       return {
         ...stroke,
+        ...clipped,
         shape: {
           ...shape,
           contours: shape.contours.map((c) => c.map(move)),
@@ -262,17 +473,28 @@ export function translateStroke<T extends Measurable>(
         },
       };
     case "text":
-      return { ...stroke, shape: { ...shape, at: move(shape.at) } };
+      return { ...stroke, ...clipped, shape: { ...shape, at: move(shape.at) } };
   }
 }
 
 /** …and the same over a run of them. */
-export function translateStrokes<T extends Measurable>(
+export function translateStrokes<T extends Movable>(
   strokes: readonly T[],
   dx: number,
   dy: number,
 ): T[] {
   return strokes.map((stroke) => translateStroke(stroke, dx, dy));
+}
+
+/** The page a run of marks covers, or `null` when there are none. */
+export function selectionBox(strokes: readonly Measurable[]): Box | null {
+  let box: Box | null = null;
+  for (const stroke of strokes) {
+    const next = strokeBounds(stroke);
+    if (!next) continue;
+    box = box ? unionBox(box, next) : next;
+  }
+  return box;
 }
 
 /** The offset that would put a run of marks' top-left corner at `at`. What the

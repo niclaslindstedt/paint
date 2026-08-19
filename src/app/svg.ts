@@ -35,9 +35,12 @@ type PaintedState = {
   imageSmoothingEnabled: boolean;
   tx: number;
   ty: number;
+  /** The `clipPath` def everything recorded now is held inside, or `null` for
+   *  the whole page — see `clip`. */
+  clipId: string | null;
 };
 
-const INITIAL: Omit<PaintedState, "tx" | "ty"> = {
+const INITIAL: Omit<PaintedState, "tx" | "ty" | "clipId"> = {
   fillStyle: "#000000",
   strokeStyle: "#000000",
   lineWidth: 1,
@@ -136,6 +139,8 @@ export class SvgCanvas {
   private path: string[] = [];
   private tx = 0;
   private ty = 0;
+  /** The window everything recorded now is held inside (see `clip`). */
+  private clipId: string | null = null;
   /** The shapes recorded since the current run of erasing began, or `null` when
    *  nothing is being rubbed out. */
   private lifted: string[] | null = null;
@@ -172,6 +177,7 @@ export class SvgCanvas {
       imageSmoothingEnabled: this.imageSmoothingEnabled,
       tx: this.tx,
       ty: this.ty,
+      clipId: this.clipId,
     });
   }
 
@@ -190,6 +196,7 @@ export class SvgCanvas {
     this.imageSmoothingEnabled = prev.imageSmoothingEnabled;
     this.tx = prev.tx;
     this.ty = prev.ty;
+    this.clipId = prev.clipId;
   }
 
   /** Shift the origin. Applied as the geometry is recorded, which is where a
@@ -287,8 +294,13 @@ export class SvgCanvas {
     return this.globalCompositeOperation === "destination-out";
   }
 
-  /** File one recorded element, wherever this composite mode puts it. */
-  private emit(element: string): void {
+  /** File one recorded element, wherever this composite mode puts it — held
+   *  inside the mark's own window first, if it has one, so a cut mark is cut in
+   *  the file whichever way round it is composited. */
+  private emit(recorded: string): void {
+    const element = this.clipId
+      ? `<g clip-path="url(#${this.clipId})">${recorded}</g>`
+      : recorded;
     if (this.erasing) {
       (this.lifted ??= []).push(element);
       return;
@@ -448,17 +460,31 @@ export class SvgCanvas {
   /** An SVG is transparent to begin with, so there is nothing to clear. */
   clearRect(): void {}
 
-  /** Clipping is accepted and dropped, and the two clips that reach here are
-   *  both already answered by the file's shape.
+  /** Hold everything recorded from here to the matching `restore` inside the
+   *  current path — as a `<clipPath>` def and a group wearing it.
    *
-   *  The grid's is screen-only and the grid never exports. The sheet's — the
-   *  page rectangle every mark is held inside (see `onSheet` in `render.ts`) —
-   *  is the `viewBox` this recorder frames the file with, and an SVG's root
-   *  viewport clips to that on its own. So the picture is the same picture;
-   *  what an exported file carries that a rasterised one does not is the
-   *  geometry of a stroke that ran off the page, which is exactly what the
-   *  document itself carries. */
-  clip(): void {}
+   *  **The fill rule is what says whose clip it is.** A bare clip is the
+   *  *page's* — the grid's, which is screen-only and never exports, and the
+   *  sheet's page rectangle every mark is held inside (see `onSheet` in
+   *  `render.ts`) — and both are already answered by the `viewBox` this
+   *  recorder frames the file with, so they are accepted and dropped as they
+   *  always were. A clip that names `evenodd` is a **mark's own window** (see
+   *  `Mask`): the cut a selection left on it, which is part of the picture and
+   *  has to travel into the file, holes and all.
+   *
+   *  Windows nest by hanging one def off another, which is how a mark cut twice
+   *  comes out cut twice. */
+  clip(rule?: CanvasFillRule): void {
+    if (rule !== "evenodd") return;
+    const id = `c${this.defs.length}`;
+    const within = this.clipId ? ` clip-path="url(#${this.clipId})"` : "";
+    this.defs.push(
+      `<clipPath id="${id}"${within}>` +
+        `<path d="${this.path.join("")}" clip-rule="evenodd"/>` +
+        `</clipPath>`,
+    );
+    this.clipId = id;
+  }
 
   /** The masks the erasing runs left, as defs. Written here because a mask has
    *  to start out *opaque* everywhere the eraser didn't go, and "everywhere" is

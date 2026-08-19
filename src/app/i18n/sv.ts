@@ -252,6 +252,9 @@ export const sv: Catalog = {
     tool: "Verktyg",
     toolbar: "Verktyg",
     selectionActions: "Markering",
+    selectionFrame: "Markering",
+    adjustSelection: "Justera markeringen",
+    eraseSelection: "Radera markeringen",
     copy: "Kopiera",
     cut: "Klipp ut",
     paste: "Klistra in",
@@ -554,11 +557,11 @@ export const sv: Catalog = {
     selection: {
       name: "Markera",
       description:
-        "Välj ut streck — med en ruta, en oval, ett lasso eller genom att följa konturerna av det som är målat under pekaren. Tryck igen för att välja vilket. Flytta det du valt med handen; kopiera, klipp ut eller ta bort det med tangentbordet, högerklick eller ett långt tryck.",
+        "Skär ut ett fönster i sidan — med en ruta, en oval, ett lasso eller genom att följa konturerna av det som är målat under pekaren. Tryck igen för att välja vilket. Målar du inuti det skärs strecket till fönstret; dra i det med handen för att flytta det som är målat där, eller med markeringen för att flytta fönstret.",
     },
     select: {
       name: "Markera ruta",
-      description: "Dra en rektangel för att välja ut strecken den täcker.",
+      description: "Dra en rektangel för att skära ut ett fönster i sidan.",
     },
     selectOval: {
       name: "Markera oval",
@@ -567,7 +570,7 @@ export const sv: Catalog = {
     selectLasso: {
       name: "Markera med lasso",
       description:
-        "Rita runt strecken du vill ha på fri hand — slingan sluts av sig själv.",
+        "Rita runt det du vill ha på fri hand — slingan sluts av sig själv.",
     },
     selectTrace: {
       name: "Markera kontur",

@@ -162,7 +162,7 @@ the toolbar.
 ## Four ways to select
 
 The selection tools are the same arrangement, for the same reason: which _shape_
-you pick marks out with is a smaller question than which tool you are holding.
+of window you cut is a smaller question than which tool you are holding.
 So one button holds a **box** marquee (**V**), an **oval**, a freehand **lasso**,
 and a **trace** — and the button wears whichever you last used.
 
@@ -178,8 +178,8 @@ the same probe the paint bucket asks — a rasterised snapshot of the page, floo
 from where you pressed and traced back into outlines (see `flood.ts`) — and hands
 those outlines over as the selection. So it stops where the bucket would stop,
 which is what makes it follow what is _drawn_ rather than a shape drawn over it.
-Nothing about it reaches the document; the outline is thrown away as soon as the
-marks are chosen.
+Nothing about it reaches the document; the outline becomes the window and the
+draft is thrown away.
 
 ## Brushes are their medium
 
@@ -387,12 +387,12 @@ the whole path all repaint differently all the way back when you add a sample.
 The default for both is the safe answer, and the honest thing to do with a new
 tool is leave them alone until someone has read its painter.
 
-`selects` is the flag for the tool that chooses marks rather than making one.
-The **selection** tool drags an ordinary two-corner draft — so it inherits the
-whole gesture pipeline, down to abandoning itself when a second finger lands —
-and the canvas reads the flag to hand the finished box to the screen instead of
-filing it. No stroke ever carries the tool's id. What happens next is
-[selections](selection.md).
+`selects` is the flag for the tool that cuts a window in the page rather than
+making a mark. The **selection** tool drags an ordinary two-corner draft — so it
+inherits the whole gesture pipeline, down to abandoning itself when a second
+finger lands — and the canvas reads the flag to hand the finished outline to the
+screen instead of filing it. No stroke ever carries the tool's id. What happens
+next is [selections](selection.md).
 
 `entersText` is the flag for the one mark that can't come from a pointer. The
 **text** tool's press opens a caret on the page instead of beginning a stroke,
