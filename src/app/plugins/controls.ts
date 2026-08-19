@@ -83,11 +83,11 @@ export function usesInk(plugin: PaintPlugin | undefined): boolean {
   return !(plugin.erases || plugin.navigates || plugin.selects);
 }
 
-/** How this tool's width is drawn — the mark it leaves, or a plain disc. See
- *  `PaintPlugin.sizePreview`. */
+/** How this tool's width is drawn — the mark it leaves, that mark at life size,
+ *  or a plain disc. See `PaintPlugin.sizePreview`. */
 export function sizePreview(
   plugin: PaintPlugin | undefined,
-): "press" | "circle" {
+): "press" | "circle" | "life" {
   return plugin?.sizePreview ?? "press";
 }
 

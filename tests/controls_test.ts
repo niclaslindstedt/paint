@@ -203,6 +203,18 @@ describe("sizePreview", () => {
     expect(sizePreview(undefined)).toBe("press");
   });
 
+  it("shows the tool whose size is the whole point at life size", () => {
+    // Type, and only type. Every other preview says what a width *is* — a
+    // cone, a band, a flat — and its row is scaled to fit the broadest of
+    // them, which is the right answer when the marks differ. A letter is the
+    // same letter at 10 pt and at 48 pt, so the type tool asks for its sample
+    // at the size it will actually land at and lets the button clip the rest.
+    const life = toolPlugins()
+      .filter((p) => sizePreview(p) === "life")
+      .map((p) => p.id);
+    expect(life).toEqual(["text"]);
+  });
+
   it("leaves a circled tool an ordinary tool everywhere else", () => {
     // The preview is a drawing decision and nothing more: the eraser still
     // takes a width, still has one to set, and still opens the size panel.

@@ -715,8 +715,17 @@ export type PaintPlugin = {
    *  reaches for it when its mark can't describe itself: the eraser's press is
    *  a *hole*, and a hole shows nothing unless the preview first fabricates
    *  some ink for it to bite into. The nib is round and the number is the nib,
-   *  so a circle says everything the eraser has to say and says it at a glance. */
-  sizePreview?: "press" | "circle";
+   *  so a circle says everything the eraser has to say and says it at a glance.
+   *
+   *  `"life"` paints the same press, but at **life size** — one document pixel
+   *  to one device pixel, which is the page at 100% — and lets the box clip
+   *  whatever does not fit. The type tool asks for it, because for type the
+   *  size *is* the thing being chosen: an "A" is the same letter at 10 pt and
+   *  at 48 pt, so a row fitted to its own cells draws five identical letters
+   *  and says nothing about any of them. Half a letter that is the right size
+   *  is worth more than a whole one that is not. Reach for it when the number
+   *  is the whole of what your preview has to say. */
+  sizePreview?: "press" | "circle" | "life";
   /** What this tool offers under **Advanced** in the size panel, past the width
    *  every tool shares. Two at most: the panel is a thing you reach into
    *  mid-stroke, and a rack of sliders is a settings screen.
