@@ -131,6 +131,16 @@ connect a storage backend yourself.
   marks back. Every download carries it without special handling.
 - Draw on a page bigger than the window: the canvas is a window onto it, with
   pinch-to-zoom, two-finger panning, and one-finger panning under the hand.
+- Adjust the colour from the right-hand panel's Colour section: brightness and
+  contrast, levels (black point, white point, midtones), curves (a draggable tone
+  curve with a composite RGB line and one per channel), hue and saturation,
+  colour balance aimed at the shadows, midtones or highlights with an optional
+  keep-the-light switch, and desaturate. Each is an effect like blur and grain —
+  the page behind previews it as the controls move, nothing lands until Apply,
+  it applies to the selected layer or to every showing, unlocked layer, and it
+  rasterises what it lands on so marks made afterwards are unaffected. Undo puts
+  the marks back. The page colour is not a mark and is never changed.
+
 - Stack a drawing into layers: swipe in from the right edge of the canvas (or
   use the header button) for a panel that adds, selects, shows, hides, locks,
   reorders and deletes them, each row previewing the marks on that layer. Every

@@ -30,6 +30,7 @@
 // the same shape the tool plugins' dials use, and for the same reason: adding an
 // effect should be a descriptor and its catalog strings, not a new dialog.
 
+import { straightCurves, type Adjustment, type CurveSet } from "./adjust.ts";
 import type { TKey } from "./i18n/index.ts";
 
 /** One effect, as it is being set up. Never persisted — the drawing holds the
@@ -50,9 +51,33 @@ export type Effect =
       /** Speckle the colours as well as the light. Absent — the usual case —
        *  means monochrome grain, which is what film leaves. */
       color?: boolean;
-    };
+    }
+  // …and the colour adjustments, which are effects in every way that matters
+  // here — one pass over the pixels that are there, applied once — and differ
+  // only in reaching them a pixel at a time. Their arithmetic is `adjust.ts`'s.
+  | Adjustment;
 
 export type EffectKind = Effect["kind"];
+
+/** Which section of the panel an effect is listed under.
+ *
+ *  Two, and the split is by what you came to do rather than by how the pixels
+ *  are reached: **Effects** are the passes that change what the marks *look
+ *  like* — softened, grainy — and **Colour** is the tonal work you would open
+ *  an Image menu for. They share every mechanism (the same dialog, the same
+ *  preview, the same bake), so this is one field and one filter rather than a
+ *  second pipeline. */
+export type EffectGroup = "effects" | "color";
+
+/** The panel's sections, in the order it shows them, each with the heading it
+ *  folds under. Adding a group is a row here and a catalog string. */
+export const EFFECT_GROUPS: readonly {
+  id: EffectGroup;
+  titleKey: TKey;
+}[] = [
+  { id: "effects", titleKey: "effects.title" },
+  { id: "color", titleKey: "effects.colorTitle" },
+];
 
 /** What an effect may be applied to.
  *
@@ -74,9 +99,33 @@ export type EffectControl = {
   min: number;
   max: number;
   step: number;
-  /** How the number reads: a real distance on the page, or a fraction of full
-   *  strength shown as a percentage. */
-  unit: "px" | "percent";
+  /** How the number reads: a real distance on the page, a fraction of full
+   *  strength shown as a percentage, an 8-bit tone (0–255, which is how every
+   *  histogram in the world labels its ends), or a bare factor shown to two
+   *  decimals. */
+  unit: "px" | "percent" | "level" | "factor" | "degrees";
+};
+
+/** One pick-one-of-several option — a segmented control in the dialog, keyed by
+ *  the string field it writes. */
+export type EffectChoice = {
+  id: string;
+  nameKey: TKey;
+  options: readonly { value: string; labelKey: TKey }[];
+};
+
+/** The one control that is not a number: a tone curve, and which of its lines
+ *  the hand is on. An effect declares it and the dialog renders the editor —
+ *  the same "the descriptor says what it offers" arrangement as the sliders,
+ *  with one more thing it can offer. */
+export type EffectCurve = {
+  /** The field holding the curve set. */
+  id: string;
+  /** The choice naming which line is being edited. */
+  channelId: string;
+  labelKey: TKey;
+  hintKey: TKey;
+  resetKey: TKey;
 };
 
 /** One on/off option — a toggle in the dialog. */
@@ -90,13 +139,20 @@ export type EffectSwitch = {
  *  reach, and where it may be applied. */
 export type EffectDescriptor = {
   kind: EffectKind;
+  /** Which of the panel's sections lists it. */
+  group: EffectGroup;
   nameKey: TKey;
   hintKey: TKey;
   controls: readonly EffectControl[];
   switches: readonly EffectSwitch[];
+  /** Pick-one options, shown above the sliders. */
+  choices?: readonly EffectChoice[];
+  /** A tone curve, for the one effect that is a line rather than a number. */
+  curve?: EffectCurve;
   /** The control whose value stands for the effect on the panel's row — the one
-   *  that says how much of it there is. */
-  readout: string;
+   *  that says how much of it there is. Absent for an effect with no single
+   *  number to stand for it, which is what a curve is. */
+  readout?: string;
   /** The effect as it arrives, which is deliberately a *visible* setting: an
    *  effect applied that changes nothing reads as one that is broken. */
   preset: Effect;
@@ -132,10 +188,14 @@ export const GRAIN_CEILING = 0.45;
  *  where it falls under a thousandth and stops being visible. */
 export const BLUR_TAIL = 3;
 
-/** The effects, in the order the panel lists them. */
+/** Every effect, in the order the panel lists them — the softening passes
+ *  first, then the colour work. One registry rather than two: which section a
+ *  row appears under is the descriptor's `group`, and everything downstream (the
+ *  dialog, the preview, the bake) is the same machinery for all of them. */
 export const EFFECTS: readonly EffectDescriptor[] = [
   {
     kind: "blur",
+    group: "effects",
     nameKey: "effects.blur.name",
     hintKey: "effects.blur.hint",
     readout: "radius",
@@ -155,6 +215,7 @@ export const EFFECTS: readonly EffectDescriptor[] = [
   },
   {
     kind: "noise",
+    group: "effects",
     nameKey: "effects.noise.name",
     hintKey: "effects.noise.hint",
     readout: "amount",
@@ -186,12 +247,245 @@ export const EFFECTS: readonly EffectDescriptor[] = [
     preset: { kind: "noise", amount: 0.35, grain: 2 },
     scopes: ["layer"],
   },
+  {
+    kind: "brightness",
+    group: "color",
+    nameKey: "effects.brightness.name",
+    hintKey: "effects.brightness.hint",
+    readout: "contrast",
+    controls: [
+      {
+        id: "brightness",
+        nameKey: "effects.brightness.brightness",
+        min: -1,
+        max: 1,
+        step: 0.01,
+        unit: "percent",
+      },
+      {
+        id: "contrast",
+        nameKey: "effects.brightness.contrast",
+        min: -1,
+        max: 1,
+        step: 0.01,
+        unit: "percent",
+      },
+    ],
+    switches: [],
+    // Contrast alone rather than a nudge of both: brightness and contrast pull
+    // against each other in the shadows, and a preset that set both landed on a
+    // picture that looked untouched — which is the one thing a preset here may
+    // not do.
+    preset: { kind: "brightness", brightness: 0, contrast: 0.35 },
+    scopes: ["layer", "drawing"],
+  },
+  {
+    kind: "levels",
+    group: "color",
+    nameKey: "effects.levels.name",
+    hintKey: "effects.levels.hint",
+    readout: "gamma",
+    controls: [
+      {
+        id: "black",
+        nameKey: "effects.levels.black",
+        min: 0,
+        max: 0.9,
+        step: 1 / 255,
+        unit: "level",
+      },
+      {
+        id: "white",
+        nameKey: "effects.levels.white",
+        min: 0.1,
+        max: 1,
+        step: 1 / 255,
+        unit: "level",
+      },
+      {
+        id: "gamma",
+        nameKey: "effects.levels.gamma",
+        min: 0.1,
+        max: 3,
+        step: 0.01,
+        unit: "factor",
+      },
+    ],
+    switches: [],
+    preset: { kind: "levels", black: 0.06, white: 0.94, gamma: 1 },
+    scopes: ["layer", "drawing"],
+  },
+  {
+    kind: "curves",
+    group: "color",
+    nameKey: "effects.curves.name",
+    hintKey: "effects.curves.hint",
+    controls: [],
+    switches: [],
+    choices: [
+      {
+        id: "channel",
+        nameKey: "effects.curves.channel",
+        options: [
+          { value: "rgb", labelKey: "effects.curves.channelRgb" },
+          { value: "r", labelKey: "effects.curves.channelRed" },
+          { value: "g", labelKey: "effects.curves.channelGreen" },
+          { value: "b", labelKey: "effects.curves.channelBlue" },
+        ],
+      },
+    ],
+    curve: {
+      id: "curves",
+      channelId: "channel",
+      labelKey: "effects.curves.editor",
+      hintKey: "effects.curves.editorHint",
+      resetKey: "effects.curves.reset",
+    },
+    // The gentle S every photograph gets sooner or later: shadows down a
+    // little, highlights up a little. It is a *visible* setting for the same
+    // reason every other preset here is one — the dialog previews, and a curve
+    // that arrives straight previews as nothing at all.
+    preset: {
+      kind: "curves",
+      channel: "rgb",
+      curves: {
+        ...straightCurves(),
+        rgb: [
+          { x: 0, y: 0 },
+          { x: 0.25, y: 0.2 },
+          { x: 0.75, y: 0.8 },
+          { x: 1, y: 1 },
+        ],
+      },
+    },
+    scopes: ["layer", "drawing"],
+  },
+  {
+    kind: "hue",
+    group: "color",
+    nameKey: "effects.hue.name",
+    hintKey: "effects.hue.hint",
+    readout: "saturation",
+    controls: [
+      {
+        id: "hue",
+        nameKey: "effects.hue.hue",
+        min: -180,
+        max: 180,
+        step: 1,
+        unit: "degrees",
+      },
+      {
+        id: "saturation",
+        nameKey: "effects.hue.saturation",
+        min: -1,
+        max: 1,
+        step: 0.01,
+        unit: "percent",
+      },
+      {
+        id: "lightness",
+        nameKey: "effects.hue.lightness",
+        min: -1,
+        max: 1,
+        step: 0.01,
+        unit: "percent",
+      },
+    ],
+    switches: [],
+    preset: { kind: "hue", hue: 0, saturation: 0.3, lightness: 0 },
+    scopes: ["layer", "drawing"],
+  },
+  {
+    kind: "balance",
+    group: "color",
+    nameKey: "effects.balance.name",
+    hintKey: "effects.balance.hint",
+    readout: "red",
+    choices: [
+      {
+        id: "range",
+        nameKey: "effects.balance.range",
+        options: [
+          { value: "shadows", labelKey: "effects.balance.rangeShadows" },
+          { value: "midtones", labelKey: "effects.balance.rangeMidtones" },
+          { value: "highlights", labelKey: "effects.balance.rangeHighlights" },
+        ],
+      },
+    ],
+    controls: [
+      {
+        id: "red",
+        nameKey: "effects.balance.red",
+        min: -1,
+        max: 1,
+        step: 0.01,
+        unit: "percent",
+      },
+      {
+        id: "green",
+        nameKey: "effects.balance.green",
+        min: -1,
+        max: 1,
+        step: 0.01,
+        unit: "percent",
+      },
+      {
+        id: "blue",
+        nameKey: "effects.balance.blue",
+        min: -1,
+        max: 1,
+        step: 0.01,
+        unit: "percent",
+      },
+    ],
+    switches: [
+      {
+        id: "luminosity",
+        nameKey: "effects.balance.luminosity",
+        hintKey: "effects.balance.luminosityHint",
+      },
+    ],
+    preset: {
+      kind: "balance",
+      range: "midtones",
+      red: 0.25,
+      green: 0,
+      blue: -0.15,
+    },
+    scopes: ["layer", "drawing"],
+  },
+  {
+    kind: "desaturate",
+    group: "color",
+    nameKey: "effects.desaturate.name",
+    hintKey: "effects.desaturate.hint",
+    readout: "amount",
+    controls: [
+      {
+        id: "amount",
+        nameKey: "effects.desaturate.amount",
+        min: 0.05,
+        max: 1,
+        step: 0.05,
+        unit: "percent",
+      },
+    ],
+    switches: [],
+    preset: { kind: "desaturate", amount: 1 },
+    scopes: ["layer", "drawing"],
+  },
 ];
 
 /** What one kind offers. Every kind has a descriptor, so this only answers
  *  `undefined` for a string that is not an effect at all. */
 export function effectDescriptor(kind: string): EffectDescriptor | undefined {
   return EFFECTS.find((effect) => effect.kind === kind);
+}
+
+/** The effects one section lists, in registry order. */
+export function effectsIn(group: EffectGroup): EffectDescriptor[] {
+  return EFFECTS.filter((effect) => effect.group === group);
 }
 
 /** The scope an effect opens on — the first it offers, which is always the
@@ -231,6 +525,35 @@ export function withControl(effect: Effect, id: string, value: number): Effect {
   return { ...effect, [id]: value } as Effect;
 }
 
+/** Read one pick-one option off an effect by id. */
+export function choiceValue(effect: Effect, id: string): string {
+  const value = (effect as unknown as Record<string, unknown>)[id];
+  return typeof value === "string" ? value : "";
+}
+
+/** Move one pick-one option. */
+export function withChoice(effect: Effect, id: string, value: string): Effect {
+  return { ...effect, [id]: value } as Effect;
+}
+
+/** Read the curve set off an effect that has one — the straight lines for one
+ *  that doesn't, so the editor always has something to draw. */
+export function curveSet(effect: Effect, id: string): CurveSet {
+  const value = (effect as unknown as Record<string, unknown>)[id];
+  return value && typeof value === "object"
+    ? (value as CurveSet)
+    : straightCurves();
+}
+
+/** Replace the curve set. */
+export function withCurveSet(
+  effect: Effect,
+  id: string,
+  curves: CurveSet,
+): Effect {
+  return { ...effect, [id]: curves } as Effect;
+}
+
 export function switchValue(effect: Effect, id: string): boolean {
   return (effect as unknown as Record<string, unknown>)[id] === true;
 }
@@ -248,19 +571,32 @@ export function withSwitch(effect: Effect, id: string, on: boolean): Effect {
  *  as whole document pixels. What the catalog string's `{value}` is filled
  *  with, exactly as a tool dial's is. */
 export function controlReadout(control: EffectControl, value: number): number {
-  return control.unit === "percent"
-    ? Math.round(value * 100)
-    : Math.round(value);
+  if (control.unit === "percent") return Math.round(value * 100);
+  // A tone reads the way a histogram labels its ends: 0 is black, 255 is white.
+  if (control.unit === "level") return Math.round(value * 255);
+  // A bare factor is the one number here that is not whole — 1.00 is neutral
+  // and the interesting part of a gamma is the second decimal.
+  if (control.unit === "factor") return Math.round(value * 100) / 100;
+  return Math.round(value);
 }
 
 /** How an effect's strength reads at a glance: the number that says how much of
  *  it there is, with its unit. Not a catalog string — "px" and "%" are symbols. */
 export function effectReadout(effect: Effect): string {
   const descriptor = effectDescriptor(effect.kind);
-  const control = descriptor?.controls.find((c) => c.id === descriptor.readout);
+  if (!descriptor?.readout) return "";
+  const control = descriptor.controls.find((c) => c.id === descriptor.readout);
   if (!control) return "";
-  const value = controlValue(effect, control.id);
-  return control.unit === "percent"
-    ? `${Math.round(value * 100)}%`
-    : `${Math.round(value)} px`;
+  const value = controlReadout(control, controlValue(effect, control.id));
+  return `${value}${UNIT_SUFFIX[control.unit]}`;
 }
+
+/** What a number wears after it. Not catalog strings — "px", "%" and "°" are
+ *  symbols, and a level or a factor wears nothing at all. */
+const UNIT_SUFFIX: Record<EffectControl["unit"], string> = {
+  px: " px",
+  percent: "%",
+  degrees: "°",
+  level: "",
+  factor: "",
+};

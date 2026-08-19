@@ -152,6 +152,59 @@ export const en = {
       colorHint:
         "Speckle the colours as well as the light. Off leaves the grey grain film does.",
     },
+    colorTitle: "Colour",
+    brightness: {
+      name: "Brightness & contrast",
+      hint: "Lifts or drops the light in the marks, and pushes the tones apart or pulls them together.",
+      brightness: "Brightness: {value}%",
+      contrast: "Contrast: {value}%",
+    },
+    levels: {
+      name: "Levels",
+      hint: "Says which tone counts as black, which counts as white, and where the middle sits between them.",
+      black: "Black point: {value}",
+      white: "White point: {value}",
+      gamma: "Midtones: {value}",
+    },
+    curves: {
+      name: "Curves",
+      hint: "Bends the whole tonal range by hand — lift the shadows, roll off the highlights, or grade one channel against the others.",
+      channel: "Channel",
+      channelRgb: "RGB",
+      channelRed: "Red",
+      channelGreen: "Green",
+      channelBlue: "Blue",
+      editor: "Tone curve",
+      editorHint:
+        "Drag the line to bend it. Press it to add a point, drag a point off the square to take it away, or use the arrow keys.",
+      reset: "Straighten",
+    },
+    hue: {
+      name: "Hue & saturation",
+      hint: "Turns every colour around the wheel, and says how strong and how light they come out.",
+      hue: "Hue: {value}°",
+      saturation: "Saturation: {value}%",
+      lightness: "Lightness: {value}%",
+    },
+    balance: {
+      name: "Colour balance",
+      hint: "Warms or cools one end of the tonal range without moving the other two.",
+      range: "Tones",
+      rangeShadows: "Shadows",
+      rangeMidtones: "Midtones",
+      rangeHighlights: "Highlights",
+      red: "Cyan – Red: {value}",
+      green: "Magenta – Green: {value}",
+      blue: "Yellow – Blue: {value}",
+      luminosity: "Keep the light",
+      luminosityHint:
+        "Shift the colours without changing how bright each pixel is.",
+    },
+    desaturate: {
+      name: "Desaturate",
+      hint: "Drains the colour out and leaves the light behind. All the way is a black-and-white picture.",
+      amount: "Amount: {value}%",
+    },
   },
   // The right-hand panel's own chrome — the section headings you can fold away.
   panel: {

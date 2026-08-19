@@ -8,13 +8,23 @@ import {
   ToggleRow,
 } from "@niclaslindstedt/oss-framework/components";
 
-import { holdBackdrop } from "./backdrop.ts";
 import {
+  curvesAreStraight,
+  straightCurves,
+  type CurveChannel,
+} from "./adjust.ts";
+import { holdBackdrop } from "./backdrop.ts";
+import { CurveEditor, straightLine } from "./CurveEditor.tsx";
+import {
+  choiceValue,
   controlReadout,
   controlValue,
+  curveSet,
   offersScope,
   switchValue,
+  withChoice,
   withControl,
+  withCurveSet,
   withSwitch,
   type Effect,
   type EffectDescriptor,
@@ -50,7 +60,9 @@ import { useT } from "./i18n/index.ts";
 //
 // The controls are read off the descriptor and nothing here knows which effect
 // it is showing — a new effect is a descriptor in `effects.ts` and its catalog
-// strings, and this dialog renders it without being told.
+// strings, and this dialog renders it without being told. Four kinds of control
+// exist and that is the whole list: a slider, a switch, a pick-one, and — for
+// the one effect whose value is a line rather than a number — a tone curve.
 
 type Props = {
   descriptor: EffectDescriptor;
@@ -123,6 +135,65 @@ export function EffectModal({
           {t(descriptor.nameKey)}
         </h2>
         <p className="text-xs text-muted">{t(descriptor.hintKey)}</p>
+
+        {/* Pick-one options first: which tones a colour balance is aimed at,
+            or which of a curve's four lines the hand is on. They come above the
+            sliders because they change what the sliders *mean*. */}
+        {descriptor.choices?.map((choice) => (
+          <div key={choice.id} className="flex flex-col gap-1">
+            <span className="text-xs text-muted">{t(choice.nameKey)}</span>
+            <SegmentedControl<string>
+              value={choiceValue(draft, choice.id)}
+              onChange={(next) => onDraft(withChoice(draft, choice.id, next))}
+              fullWidth
+              ariaLabel={t(choice.nameKey)}
+              options={choice.options.map((option) => ({
+                value: option.value,
+                label: t(option.labelKey),
+              }))}
+            />
+          </div>
+        ))}
+
+        {/* The one control that is not a number. */}
+        {descriptor.curve &&
+          (() => {
+            const spec = descriptor.curve;
+            const curves = curveSet(draft, spec.id);
+            const channel = (choiceValue(draft, spec.channelId) ||
+              "rgb") as CurveChannel;
+            return (
+              <div className="flex flex-col gap-1">
+                <div className="flex items-baseline justify-between gap-2">
+                  <span className="text-xs text-muted">{t(spec.labelKey)}</span>
+                  <button
+                    type="button"
+                    disabled={curvesAreStraight(curves)}
+                    onClick={() =>
+                      onDraft(withCurveSet(draft, spec.id, straightCurves()))
+                    }
+                    className="cursor-pointer text-[11px] text-muted hover:text-fg-bright disabled:cursor-default disabled:opacity-40"
+                  >
+                    {t(spec.resetKey)}
+                  </button>
+                </div>
+                <CurveEditor
+                  points={curves[channel] ?? straightLine()}
+                  channel={channel}
+                  label={t(spec.labelKey)}
+                  removeHint={t(spec.hintKey)}
+                  onChange={(next) =>
+                    onDraft(
+                      withCurveSet(draft, spec.id, {
+                        ...curves,
+                        [channel]: next,
+                      }),
+                    )
+                  }
+                />
+              </div>
+            );
+          })()}
 
         {descriptor.controls.map((control) => {
           const value = controlValue(draft, control.id);

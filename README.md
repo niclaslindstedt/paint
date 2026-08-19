@@ -178,6 +178,12 @@ the same [`oss-framework`](https://github.com/niclaslindstedt/oss-framework).
   fast as anywhere else. The page behind shows the setting as you dial it, and
   nothing lands until you press Apply; undo puts your marks back. See
   [`docs/features/effects.md`](docs/features/effects.md).
+- **A colour section with the adjustments you expect.** Brightness and contrast,
+  levels, a draggable tone curve with per-channel lines, hue and saturation,
+  colour balance aimed at the shadows, midtones or highlights, and desaturate —
+  all from the panel's **Colour** section, all previewed on the page as you set
+  them, and all landing exactly the way an effect does. See
+  [`docs/features/color.md`](docs/features/color.md).
 - **Vector, not pixels.** Undo is exact, the document is small enough for a
   phone, and a synced copy is readable JSON rather than a blob.
 - **A real file format.** `.pct` is a zip holding one transparent PNG per layer
@@ -347,7 +353,8 @@ npm run preview
   Background stays at the bottom of the stack: it is the page, so it does not
   move and nothing slides under it. The **Image** heading above the
   stack resizes, flips and mirrors the page, and its bin starts the drawing
-  over; the **Effects** section under it blurs or grains what is already there.
+  over; the **Effects** section under it blurs or grains what is already there,
+  and **Colour** under that holds the levels, curves, hue and balance.
   Every heading folds its section away, so you can collapse the ones you are not
   using. A press on the page closes the panel again, as does the header button
   that opened it — there is no close cross on it.
