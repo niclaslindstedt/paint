@@ -133,6 +133,27 @@ export function paintMarquee(
   });
 }
 
+/** Draw marching ants along a whole selection — every contour of it, closed,
+ *  in document coordinates.
+ *
+ *  Shared with the canvas, which outlines the *settled* selection with the same
+ *  ants the gesture was dragged with, so the shape you drew and the window you
+ *  got read as one thing. A box marquee's four corners come out as the same
+ *  rectangle `paintMarquee` draws; a lasso comes out as the loop, which is the
+ *  whole reason the canvas asks for contours rather than a box. */
+export function paintOutline(
+  ctx2d: CanvasRenderingContext2D,
+  region: readonly (readonly Point[])[],
+  scale: number,
+): void {
+  paintAnts(ctx2d, scale, (path) => {
+    path.beginPath();
+    for (const loop of region) {
+      if (loop.length >= 3) tracePolygon(path, loop);
+    }
+  });
+}
+
 /** Put one closed run of points on the path. */
 function tracePolygon(
   path: CanvasRenderingContext2D,

@@ -65,6 +65,36 @@ describe("encodeStrokes", () => {
     });
   });
 
+  it("carries the window a mark was cut to", () => {
+    // Copying through a selection copies *half a mark* — the window is what
+    // says which half, so a paste that dropped it would hand back the whole
+    // line the outline was drawn across.
+    const clip = [
+      {
+        contours: [
+          [
+            { x: 0, y: 0 },
+            { x: 5, y: 0 },
+            { x: 5, y: 5 },
+            { x: 0, y: 5 },
+          ],
+        ],
+      },
+    ];
+    const back = decodeStrokes(encodeStrokes([mark({ clip })]))!;
+    expect(back[0]!.clip).toEqual(clip);
+  });
+
+  it("pastes a mark uncut when its window didn't survive the trip", () => {
+    const text = encodeStrokes([mark()]).replace(
+      '"shape"',
+      '"clip":[{"contours":"nonsense"}],"shape"',
+    );
+    const back = decodeStrokes(text)!;
+    expect(back[0]!.clip).toBeUndefined();
+    expect(back[0]!.shape.kind).toBe("path");
+  });
+
   it("round-trips every shape kind the app draws", () => {
     const shapes: Stroke["shape"][] = [
       { kind: "path", points: [{ x: 1, y: 2 }] },

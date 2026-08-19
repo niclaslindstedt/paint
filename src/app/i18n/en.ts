@@ -276,6 +276,9 @@ export const en = {
     tool: "Tool",
     toolbar: "Tools",
     selectionActions: "Selection",
+    selectionFrame: "Selection",
+    adjustSelection: "Adjust the selection",
+    eraseSelection: "Erase the selection",
     copy: "Copy",
     cut: "Cut",
     paste: "Paste",
@@ -611,11 +614,11 @@ export const en = {
     selection: {
       name: "Select",
       description:
-        "Pick marks out — with a box, an oval, a lasso, or by tracing what is painted under the pointer. Press it again to choose which. Move what you picked with the hand; copy, cut or delete it with the keyboard, a right-click, or a long press.",
+        "Cut a window in the page — with a box, an oval, a lasso, or by tracing what is painted under the pointer. Press it again to choose which. Paint inside it and the mark is cut to it; drag it with the hand to carry what is painted there, or with the marquee to slide the window itself.",
     },
     select: {
       name: "Box select",
-      description: "Drag a rectangle to pick out the marks it covers.",
+      description: "Drag a rectangle to cut a window in the page.",
     },
     selectOval: {
       name: "Oval select",
@@ -624,7 +627,7 @@ export const en = {
     selectLasso: {
       name: "Lasso select",
       description:
-        "Draw around the marks you want, freehand — the loop closes itself.",
+        "Draw around what you want, freehand — the loop closes itself.",
     },
     selectTrace: {
       name: "Trace select",

@@ -1,13 +1,6 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-import {
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-} from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
-import type { Box } from "./bounds.ts";
 import {
   classifyEdgeDrag,
   inEdgeZone,
@@ -16,6 +9,7 @@ import {
   LONG_PRESS_MS,
   type MenuEdge,
 } from "./gestures.ts";
+import { strokeBounds } from "./bounds.ts";
 import { paintFrame } from "./frame.ts";
 import type { EffectPreview } from "./render.ts";
 import { onImageDecoded } from "./images.ts";
@@ -26,20 +20,16 @@ import type { CanvasProbe, DraftStroke, ToolContext } from "./plugins/types.ts";
 import { DEFAULT_LEAD_DETAIL } from "./plugins/lead.ts";
 import { DEFAULT_WASH_DETAIL } from "./plugins/wash.ts";
 import { createProbe } from "./probe.ts";
-import { inBox } from "./selection.ts";
+import {
+  maskOf,
+  regionHolds,
+  splitRegion,
+  type Selection,
+} from "./selection.ts";
 import { createTrail } from "./trail.ts";
 import type { Drawing, Point, Stroke } from "./types.ts";
-import {
-  clampView,
-  fitView,
-  initialView,
-  nativeScale,
-  panBy,
-  pinch,
-  toDocumentPoint,
-  zoomAt,
-  type CanvasView,
-} from "./viewport.ts";
+import { useCanvasView } from "./useCanvasView.ts";
+import { panBy, pinch, toDocumentPoint, type CanvasView } from "./viewport.ts";
 
 // The canvas surface: one `<canvas>` element filling the screen, a view onto a
 // page that is larger than it, a pointer gesture in flight, and a frame
@@ -64,8 +54,12 @@ import {
 //   one finger / pen / mouse   draws — or pans, under `navigates`, samples,
 //                              under `picksColor`, opens a caret, under
 //                              `entersText`, or drags a marquee, under `selects`
-//   …on a selection, with the  moves the marks instead of the page: the hand is
-//   hand                       what picks things up, and it is the same drag
+//   …inside a selection        the mark is cut to it: a selection is a window in
+//                              the page, and what you draw lands inside it
+//   …on a selection, with the  moves what is *painted* inside the window, cutting
+//   hand                       every mark its outline crosses in two
+//   …on a selection, with the  slides the window itself and leaves the ink where
+//   marquee                    it is — the same drag, the other half of the pair
 //   two fingers                pinch to zoom, drag to pan
 //   wheel                      pans; ctrl/⌘ + wheel (and a trackpad pinch) zooms
 //   double-tap (hand only)     fits the page, again for 1:1
@@ -116,12 +110,25 @@ type Props = {
    *  painted under it. The marks inside them are the screen's to work out (see
    *  `selection.ts`); nothing reaches the document. */
   onSelectRegion?: (contours: Point[][] | null) => void;
-  /** The marks currently selected, and the page they cover. The canvas outlines
-   *  the box, and a drag on it under the hand moves them. */
-  selection?: { ids: readonly string[]; box: Box } | null;
-  /** Called once, when a drag that moved the selection lifts — the whole move,
-   *  as one edit. The drag itself is shown live here and touches no document. */
+  /** The window currently cut in the page, or `null` for none. The canvas draws
+   *  its outline, cuts every mark made inside it to it, and reads a press on it
+   *  as being about the selection rather than about the page. */
+  selection?: Selection | null;
+  /** Called once, when a hand drag that carried the selection's *contents*
+   *  lifts — the whole move, as one edit. The drag itself is shown live here and
+   *  touches no document (see `selection.ts`). */
   onMoveSelection?: (dx: number, dy: number) => void;
+  /** Called as a marquee drag slides the **window** somewhere else, leaving what
+   *  is painted under it alone. Screen state, so it is reported as it moves
+   *  rather than once at the end: there is no document edit to batch. */
+  onAdjustSelection?: (region: Point[][]) => void;
+  /** Called when a tap with a rubber lands inside the window — the touch way to
+   *  clear a selection, where there is no Delete key to press. */
+  onEraseSelection?: () => void;
+  /** A point being placed by something outside the canvas — a corner grip under
+   *  the finger (see `SelectionFrame.tsx`). The magnifier floats beside it, the
+   *  same as it does for a marquee being dragged out here. */
+  adjusting?: Point | null;
   /** Called where a right-click, or a long press on touch, asks for the
    *  selection's menu — in viewport coordinates, which is where a floating menu
    *  is placed. */
@@ -180,10 +187,6 @@ type Props = {
   ariaLabel: string;
 };
 
-/** How much one wheel notch zooms. Small enough that a trackpad pinch (which
- *  arrives as a stream of ctrl+wheel events) feels continuous. */
-const WHEEL_ZOOM_RATE = 0.0015;
-
 export function PaintCanvas({
   drawing,
   pageColor,
@@ -196,6 +199,9 @@ export function PaintCanvas({
   onSelectRegion,
   selection = null,
   onMoveSelection,
+  onAdjustSelection,
+  onEraseSelection,
+  adjusting = null,
   onContextMenu,
   showGrid = false,
   checker,
@@ -221,11 +227,6 @@ export function PaintCanvas({
   // committed stroke because an abandoned gesture must leave no trace in the
   // document or the undo history.
   const draftRef = useRef<DraftStroke | null>(null);
-  // The window onto the page, and its size in CSS pixels. `null` until the
-  // element has been measured — the initial view can't be computed without
-  // knowing how big the window is.
-  const [view, setView] = useState<CanvasView | null>(null);
-  const [viewport, setViewport] = useState({ width: 0, height: 0 });
   // The pointer that owns the current stroke. A second finger landing mid
   // stroke abandons it and starts a pinch instead.
   const drawingPointer = useRef<number | null>(null);
@@ -257,11 +258,29 @@ export function PaintCanvas({
   const moveStart = useRef<{
     pointerId: number;
     origin: Point;
+    /** What the window holds, cut to it, and what the marks it crossed leave
+     *  behind — the two halves the edit will file (see `splitRegion`). */
     strokes: Stroke[];
+    stay: Stroke[];
     ids: Set<string>;
-    box: Box;
+    from: Selection;
   } | null>(null);
   const moveBy = useRef<Point>({ x: 0, y: 0 });
+  // A drag that is sliding the *window* rather than what is under it — the
+  // marquee's own drag from inside a settled selection. It carries the window it
+  // began with, so every move is measured from there rather than accumulated.
+  const windowStart = useRef<{
+    pointerId: number;
+    origin: Point;
+    from: Selection;
+  } | null>(null);
+  // A press with a rubber that landed inside the window and hasn't moved. Lift
+  // it without moving and the whole selection is rubbed out; drag and it is an
+  // ordinary rubbing out, held to the window like any other mark.
+  const eraseTap = useRef<{ pointerId: number; from: Point } | null>(null);
+  // Where the selection's edge is being placed, in document coordinates, while a
+  // marquee is dragged out — what the magnifier is aimed at (see `loupe.ts`).
+  const placingAt = useRef<Point | null>(null);
   // A press that may still become a long one: the timer that decides, and where
   // it landed — a finger that wanders is not being held still.
   const hold = useRef<{ timer: number; from: Point } | null>(null);
@@ -278,14 +297,39 @@ export function PaintCanvas({
     point: Point;
     open?: () => void;
   } | null>(null);
-  // The live view, for the handlers — they run outside React's render and must
-  // read the current value rather than the one their closure captured.
-  const viewRef = useRef<CanvasView | null>(null);
-  viewRef.current = view;
   const pageRef = useRef(drawing);
   pageRef.current = drawing;
-  const viewportRef = useRef(viewport);
-  viewportRef.current = viewport;
+  // The frame the view asks for when a zoom settles. A holder because the view
+  // is wired up before the painting below it is, and by the time this is called
+  // both have been (see `useCanvasView`).
+  const repaint = useRef<() => void>(() => undefined);
+
+  // The window onto the page — where it is, what moves it, and the settle frame
+  // a zoom owes when it stops (see `useCanvasView.ts`). The gestures below
+  // still move it; what lives there is everything about the view that isn't a
+  // press on the canvas.
+  const {
+    view,
+    viewport,
+    viewRef,
+    viewportRef,
+    applyView,
+    setView,
+    toggleFit,
+    zooming,
+    beginZoom,
+    settleZoom,
+  } = useCanvasView({
+    canvasRef,
+    pageRef,
+    drawing,
+    fitToken,
+    refitToken,
+    onScaleChange,
+    onViewChange,
+    repaint,
+  });
+
   // A bitmap on the page decodes asynchronously but paints synchronously, so a
   // freshly-loaded image would otherwise sit invisible until something else
   // forced a repaint. Bumping this counter is that something (see `images.ts`),
@@ -308,6 +352,7 @@ export function PaintCanvas({
     preview,
     decodedAt,
     selection,
+    adjusting,
   });
   inks.current = {
     drawing,
@@ -320,6 +365,7 @@ export function PaintCanvas({
     preview,
     decodedAt,
     selection,
+    adjusting,
   };
   // The committed marks, as pixels (see `cache.ts`). Opened on the first paint
   // and kept for the life of the canvas.
@@ -331,15 +377,6 @@ export function PaintCanvas({
   // The repaint this frame has already scheduled, so a burst of pointer moves
   // costs one paint rather than one each.
   const pending = useRef<number | null>(null);
-  // True while the view is still under the fingers — a pinch in progress, a
-  // wheel still streaming. Frames painted meanwhile may carry the cached
-  // pixels to the new view instead of repainting the document (see
-  // `CacheSpec.zooming`); whoever turns it on owes the settle frame that turns
-  // it off, which is what `settleZoom` and the wheel's timer below are.
-  const zooming = useRef(false);
-  // The wheel has no "gesture ended" event, so its settle frame rides a short
-  // timer re-armed by every zooming notch.
-  const wheelSettle = useRef<number | null>(null);
 
   // The page as it is actually painted, for the tools that read it (the fills
   // and the dropper). Made fresh for each press and kept for that gesture: the
@@ -379,103 +416,20 @@ export function PaintCanvas({
   );
 
   /** An element point in document space, which is all the tools ever see. */
-  const toDoc = useCallback((at: Point): Point => {
-    const current = viewRef.current;
-    if (!current) return { x: 0, y: 0 };
-    return toDocumentPoint(current, at);
-  }, []);
+  const toDoc = useCallback(
+    (at: Point): Point => {
+      const current = viewRef.current;
+      if (!current) return { x: 0, y: 0 };
+      return toDocumentPoint(current, at);
+    },
+    [viewRef],
+  );
 
   /** …and the same, straight from a pointer event. */
   const documentPoint = useCallback(
     (e: { clientX: number; clientY: number }): Point => toDoc(elementPoint(e)),
     [elementPoint, toDoc],
   );
-
-  const applyView = useCallback((next: CanvasView) => {
-    const clamped = clampView(next, pageRef.current, viewportRef.current);
-    viewRef.current = clamped;
-    setView(clamped);
-  }, []);
-
-  // Track the window's size. The element fills its container, so this is what
-  // the layout gives it — remeasured on resize and on an orientation flip.
-  useLayoutEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const measure = () => {
-      const rect = canvas.getBoundingClientRect();
-      setViewport({ width: rect.width, height: rect.height });
-    };
-    measure();
-    const observer = new ResizeObserver(measure);
-    observer.observe(canvas);
-    return () => observer.disconnect();
-  }, []);
-
-  // Seed the view once the window has a size, and re-seed when the page itself
-  // is swapped for another drawing — opening a different page should land you
-  // at its middle rather than wherever you had scrolled the last one to.
-  useEffect(() => {
-    if (viewport.width === 0 || viewport.height === 0) return;
-    applyView(initialView(drawing, viewport));
-    // Keyed on the page's identity and the window's size, deliberately: a pan
-    // or a zoom must not re-seed the view it just changed.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [drawing.id, viewport.width, viewport.height, applyView]);
-
-  /** Toggle between fitting the whole page and 100% — one document pixel per
-   *  *device* pixel, the zoom the readout calls 100% (see `nativeScale`) —
-   *  zooming about `anchor` (the window's centre when nothing more specific is
-   *  meant). The one "get me back" gesture, shared by the zoom pill and the
-   *  double-tap. */
-  const toggleFit = useCallback(
-    (anchor?: Point) => {
-      const current = viewRef.current;
-      const window_ = viewportRef.current;
-      if (!current || window_.width === 0 || window_.height === 0) return;
-      const fitted = fitView(pageRef.current, window_);
-      if (Math.abs(current.scale - fitted.scale) < 0.01) {
-        applyView(
-          zoomAt(
-            current,
-            nativeScale(window.devicePixelRatio),
-            anchor ?? {
-              x: window_.width / 2,
-              y: window_.height / 2,
-            },
-          ),
-        );
-      } else {
-        applyView(fitted);
-      }
-    },
-    [applyView],
-  );
-
-  // The zoom pill. Skipped on the first render (token 0) so it doesn't fight
-  // the initial view above.
-  useEffect(() => {
-    if (fitToken === 0) return;
-    toggleFit();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fitToken]);
-
-  // A page that changed shape under the view. Fits it, rather than toggling:
-  // after a turn or a resize the question is "what does the page look like
-  // now", and the answer is the whole of it.
-  useEffect(() => {
-    if (refitToken === 0) return;
-    const window_ = viewportRef.current;
-    if (window_.width === 0 || window_.height === 0) return;
-    applyView(fitView(pageRef.current, window_));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [refitToken]);
-
-  useEffect(() => {
-    if (!view) return;
-    onScaleChange?.(view.scale);
-    onViewChange?.(view);
-  }, [view, onScaleChange, onViewChange]);
 
   /** Paint one frame — everything it depends on, gathered from the refs above
    *  and handed to `frame.ts`, which owns what a frame looks like. */
@@ -489,14 +443,17 @@ export function PaintCanvas({
       view,
       viewport: viewportRef.current,
       ...inks.current,
-      selection: inks.current.selection?.box ?? null,
+      selection: inks.current.selection,
       zooming: zooming.current,
       draft: draftRef.current,
       moving: moving ? { ...moving, offset: moveBy.current } : null,
+      // The edge under the finger, whether the finger is dragging a marquee out
+      // here or holding a corner grip out there.
+      loupe: placingAt.current ?? inks.current.adjusting,
       cache: cacheRef,
       trail: trailRef.current,
     });
-  }, []);
+  }, [viewRef, viewportRef, zooming]);
 
   /** Ask for a repaint on the next animation frame, at most one per frame.
    *
@@ -511,27 +468,14 @@ export function PaintCanvas({
     });
   }, [paint]);
 
+  repaint.current = requestPaint;
+
   useEffect(
     () => () => {
       if (pending.current !== null) cancelAnimationFrame(pending.current);
-      if (wheelSettle.current !== null) clearTimeout(wheelSettle.current);
     },
     [],
   );
-
-  /** The sharp frame a run of carried ones is paid off by: the gesture has
-   *  settled, so the next frame repaints the document for real. A no-op when
-   *  nothing was zooming, so it is safe to call from every path that could
-   *  have ended one. */
-  const settleZoom = useCallback(() => {
-    if (wheelSettle.current !== null) {
-      clearTimeout(wheelSettle.current);
-      wheelSettle.current = null;
-    }
-    if (!zooming.current) return;
-    zooming.current = false;
-    requestPaint();
-  }, [requestPaint]);
 
   // Repaint whenever the document, the view, the window or the page's colours
   // change — and when a bitmap finishes decoding, which changes what the same
@@ -552,6 +496,7 @@ export function PaintCanvas({
     preview,
     decodedAt,
     selection,
+    adjusting,
     requestPaint,
   ]);
 
@@ -559,6 +504,8 @@ export function PaintCanvas({
   const abandon = useCallback(() => {
     drawingPointer.current = null;
     draftRef.current = null;
+    eraseTap.current = null;
+    placingAt.current = null;
     requestPaint();
   }, [requestPaint]);
 
@@ -643,24 +590,41 @@ export function PaintCanvas({
     // starting a stroke, and is a tap until it travels far enough not to be.
     if (plugin.navigates) {
       if (!viewRef.current) return;
-      // …unless it landed on a selection, in which case it grabs *that*. The
-      // hand is what picks things up, and the drag is the same drag — what
-      // moves is the marks rather than the window behind them.
-      const picked = selection;
-      if (picked && picked.ids.length > 0 && inBox(picked.box, toDoc(at))) {
-        const held = new Set(picked.ids);
-        moveStart.current = {
-          pointerId,
-          origin: toDoc(at),
-          strokes: pageRef.current.strokes.filter((s) => held.has(s.id)),
-          ids: held,
-          box: picked.box,
-        };
-        moveBy.current = { x: 0, y: 0 };
-        return;
+      // …unless it landed inside the window, in which case it grabs what is
+      // *painted* there. The hand is what picks things up, and the drag is the
+      // same drag — what moves is the ink under the window rather than the page
+      // behind it. Every mark the outline crosses is cut in two for the drag,
+      // and the halves are what the edit will file (see `selection.ts`).
+      if (selection && regionHolds(selection.region, toDoc(at))) {
+        const split = splitRegion(pageRef.current, selection.region);
+        if (split.ids.size > 0) {
+          moveStart.current = {
+            pointerId,
+            origin: toDoc(at),
+            strokes: split.inside,
+            stay: split.outside,
+            ids: split.ids,
+            from: selection,
+          };
+          moveBy.current = { x: 0, y: 0 };
+          return;
+        }
       }
       panStart.current = { pointerId, view: viewRef.current, origin: at };
       tapStart.current = { pointerId, point: at };
+      return;
+    }
+
+    // The marquee, pressed inside a window it has already cut: the drag slides
+    // the *window* and leaves the ink where it is. It is the other half of the
+    // hand's drag, and having both is what makes a selection adjustable —
+    // "not quite there" costs a nudge rather than the whole gesture.
+    if (
+      plugin.selects &&
+      selection &&
+      regionHolds(selection.region, toDoc(at))
+    ) {
+      windowStart.current = { pointerId, origin: toDoc(at), from: selection };
       return;
     }
 
@@ -668,7 +632,25 @@ export function PaintCanvas({
     const next = plugin.behaviour.start(toDoc(at), context());
     if (!next) return;
     drawingPointer.current = pointerId;
-    draftRef.current = { ...next, tool };
+    // A mark made inside a window is cut to it, now and for as long as it is on
+    // the page: the window is gone by the next gesture, and the mark still has
+    // to paint the shape it was made in (see `Stroke.clip`).
+    const cut =
+      selection && !plugin.selects ? [maskOf(selection.region)] : null;
+    draftRef.current = { ...next, tool, ...(cut ? { clip: cut } : {}) };
+    // A rubber pressed inside the window may be about the whole of it rather
+    // than about the patch under the nib — `finish` decides, on whether the
+    // press moved.
+    if (
+      plugin.erases &&
+      selection &&
+      regionHolds(selection.region, toDoc(at))
+    ) {
+      eraseTap.current = { pointerId, from: at };
+    }
+    // The marquee being dragged out is placed under the magnifier, from the
+    // first sample: the corner you are aiming at is the one under your finger.
+    if (plugin.selects) placingAt.current = toDoc(at);
     requestPaint();
   };
 
@@ -709,13 +691,7 @@ export function PaintCanvas({
    *  over a drawing hand is exactly the interruption the sidebar's long press
    *  was taken away for. */
   const menuHere = (at: Point): boolean => {
-    if (
-      selection &&
-      selection.ids.length > 0 &&
-      inBox(selection.box, toDoc(at))
-    ) {
-      return true;
-    }
+    if (selection && regionHolds(selection.region, toDoc(at))) return true;
     return Boolean(pluginById(tool)?.selects);
   };
 
@@ -760,12 +736,13 @@ export function PaintCanvas({
       dropMove();
       dropHeld();
       dropHold();
+      windowStart.current = null;
       lastTap.current = null;
       if (viewRef.current && a && b) {
         pinchStart.current = { view: viewRef.current, a, b };
         // Frames may be carried rather than repainted until the pinch ends —
         // `release` runs the settle frame that pays them off.
-        zooming.current = true;
+        beginZoom();
       }
       return;
     }
@@ -809,20 +786,29 @@ export function PaintCanvas({
       return;
     }
 
+    // The window being slid by the marquee: the outline follows the finger and
+    // the ink stays where it is. Reported as it moves — the window is screen
+    // state, so there is no document edit to hold back until the finger lifts.
+    const sliding = windowStart.current;
+    if (sliding && sliding.pointerId === e.pointerId) {
+      const to = documentPoint(e);
+      const dx = to.x - sliding.origin.x;
+      const dy = to.y - sliding.origin.y;
+      onAdjustSelection?.(
+        sliding.from.region.map((loop) =>
+          loop.map((p) => ({ x: p.x + dx, y: p.y + dy })),
+        ),
+      );
+      return;
+    }
+
     // A pinch in progress owns the gesture: scale by how far the fingers have
     // spread since it began, pan by how far their midpoint moved.
     const start = pinchStart.current;
     if (start && pointers.current.size >= 2) {
       const [a, b] = [...pointers.current.values()];
       if (a && b) {
-        viewRef.current = pinch(
-          start,
-          a,
-          b,
-          pageRef.current,
-          viewportRef.current,
-        );
-        setView(viewRef.current);
+        setView(pinch(start, a, b, pageRef.current, viewportRef.current));
       }
       return;
     }
@@ -864,11 +850,17 @@ export function PaintCanvas({
     if (!plugin) return;
     const current = draftRef.current;
     if (!current) return;
-    draftRef.current = plugin.behaviour.move(
-      current,
-      documentPoint(e),
-      context(),
-    );
+    const to = documentPoint(e);
+    // A press with the rubber that has wandered is an ordinary rubbing out
+    // rather than "clear this window".
+    if (eraseTap.current && !isTap(eraseTap.current.from, at)) {
+      eraseTap.current = null;
+    }
+    // The magnifier follows the edge being placed rather than the pointer's
+    // element position, so it shows the same document point the marquee's corner
+    // has reached at any zoom.
+    if (plugin.selects) placingAt.current = to;
+    draftRef.current = plugin.behaviour.move(current, to, context());
     requestPaint();
   };
 
@@ -886,9 +878,18 @@ export function PaintCanvas({
     release(e);
     dropHold();
 
-    // A selection that was being dragged lands here, once: the canvas has been
-    // showing the move all along without touching a thing, and this is the
-    // single edit (and the single undo step) the whole drag costs.
+    // A window that was being slid ends here. Nothing to file: the screen has
+    // been holding the new outline all along, because a window is not in the
+    // document.
+    const sliding = windowStart.current;
+    if (sliding && sliding.pointerId === e.pointerId) {
+      windowStart.current = null;
+      return;
+    }
+
+    // A selection's contents that were being dragged land here, once: the canvas
+    // has been showing the move all along without touching a thing, and this is
+    // the single edit (and the single undo step) the whole drag costs.
     const move = moveStart.current;
     if (move && move.pointerId === e.pointerId) {
       const { x: dx, y: dy } = moveBy.current;
@@ -936,6 +937,22 @@ export function PaintCanvas({
     const plugin = pluginById(tool);
     const current = draftRef.current;
     draftRef.current = null;
+    // The magnifier goes with the gesture that was placing something.
+    const placed = placingAt.current !== null;
+    placingAt.current = null;
+
+    // A rubber tapped inside the window rubs the *window* out — every mark it
+    // holds, in one edit. It is the touch half of the Delete key, which a phone
+    // does not have, and a press that moved is an ordinary rubbing out instead.
+    const tapped = eraseTap.current;
+    eraseTap.current = null;
+    if (tapped && tapped.pointerId === e.pointerId) {
+      if (isTap(tapped.from, elementPoint(e))) {
+        onEraseSelection?.();
+        requestPaint();
+        return;
+      }
+    }
     let committed = null;
     if (current && plugin) {
       committed = plugin.behaviour.end
@@ -954,6 +971,10 @@ export function PaintCanvas({
         requestPaint();
         return;
       }
+      // A gesture made wholly outside the window paints nothing through it, so
+      // it is dropped rather than filed as a mark nobody can see (see
+      // `strokeBounds`, which measures a mark by its window as well as its ink).
+      if (committed?.clip && !strokeBounds(committed)) committed = null;
       if (committed) onCommit(committed);
     }
     // A committed stroke asks for no frame here: it arrives as a new document,
@@ -962,7 +983,7 @@ export function PaintCanvas({
     // stroke blinking out and back in as it lands. A gesture that committed
     // nothing (a shape tool's stray tap) has no document change coming, so it
     // does need a frame to clear itself.
-    if (!committed) requestPaint();
+    if (!committed || placed) requestPaint();
   };
 
   // A cancelled gesture (the OS took the pointer) drops the draft uncommitted.
@@ -975,6 +996,9 @@ export function PaintCanvas({
     // because nothing reached the document until the finger lifted.
     dropMove(e.pointerId);
     lastTap.current = null;
+    if (windowStart.current?.pointerId === e.pointerId) {
+      windowStart.current = null;
+    }
     if (drawingPointer.current !== e.pointerId) return;
     abandon();
   };
@@ -988,43 +1012,6 @@ export function PaintCanvas({
     e.preventDefault();
     onContextMenu({ x: e.clientX, y: e.clientY });
   };
-
-  // Wheel: pan by default, zoom with ctrl/⌘ held. A trackpad pinch arrives as
-  // ctrl+wheel too, so the same branch serves both. Registered by hand rather
-  // than through `onWheel` because it must be **non-passive** to call
-  // `preventDefault` — otherwise the browser zooms the whole app underneath us,
-  // which is exactly what the canvas is here to take over.
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const handler = (e: WheelEvent) => {
-      const current = viewRef.current;
-      if (!current) return;
-      e.preventDefault();
-      const rect = canvas.getBoundingClientRect();
-      const anchor = { x: e.clientX - rect.left, y: e.clientY - rect.top };
-      const zoom = e.ctrlKey || e.metaKey;
-      if (zoom) {
-        // A trackpad pinch is a stream of these with no "gesture ended", so
-        // the settle frame rides a short timer re-armed by every notch: the
-        // stream carries cached pixels at frame rate, and the sharp repaint
-        // lands the moment it pauses.
-        zooming.current = true;
-        if (wheelSettle.current !== null) clearTimeout(wheelSettle.current);
-        wheelSettle.current = window.setTimeout(settleZoom, 140);
-      }
-      const next = zoom
-        ? zoomAt(
-            current,
-            current.scale * Math.exp(-e.deltaY * WHEEL_ZOOM_RATE),
-            anchor,
-          )
-        : panBy(current, -e.deltaX, -e.deltaY);
-      applyView(next);
-    };
-    canvas.addEventListener("wheel", handler, { passive: false });
-    return () => canvas.removeEventListener("wheel", handler);
-  }, [applyView, settleZoom]);
 
   // The one thing the cursor can't read off a descriptor: whether the page (or
   // a selection on it) is being dragged right now.

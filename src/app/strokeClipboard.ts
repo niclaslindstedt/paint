@@ -22,7 +22,7 @@
 // reading and writing (see `CanvasScreen.tsx`), and this is only the format.
 
 import type { DraftStroke } from "./plugins/types.ts";
-import type { Gradient, Shape, Stroke } from "./types.ts";
+import type { Gradient, Mask, Shape, Stroke } from "./types.ts";
 
 /** What marks the payload as ours. Fixed for good — an older build's clipboard
  *  text has to keep pasting into a newer one. */
@@ -98,8 +98,32 @@ function readStroke(raw: unknown): DraftStroke | null {
     ...(typeof s.hardness === "number" ? { hardness: s.hardness } : {}),
     ...(s.filled === true ? { filled: true } : {}),
     ...(readDials(s.dials) ?? {}),
+    ...(readClip(s.clip) ?? {}),
     shape,
   };
+}
+
+/** The windows a mark was cut to (see `Mask`), or `null` when it carries none —
+ *  which is every mark made outside a selection.
+ *
+ *  Kept rather than dropped, because a copy taken through a window is *half a
+ *  mark*: dropping the window would paste back the whole line the outline was
+ *  drawn across, which is not what was copied and not what the outline was
+ *  around. A window that doesn't read as outlines is dropped whole, which
+ *  pastes the mark uncut — the same call `readGradient` makes, and the same
+ *  reason: losing a little beats losing the mark. */
+function readClip(raw: unknown): { clip: Mask[] } | null {
+  if (!Array.isArray(raw)) return null;
+  const clip: Mask[] = [];
+  for (const entry of raw) {
+    if (typeof entry !== "object" || entry === null) return null;
+    const contours = (entry as { contours?: unknown }).contours;
+    if (!Array.isArray(contours)) return null;
+    const loops = contours.map(readPoints);
+    if (loops.some((loop) => loop === null)) return null;
+    clip.push({ contours: loops as { x: number; y: number }[][] });
+  }
+  return clip.length > 0 ? { clip } : null;
 }
 
 /** A mark's tuning, kept only when it is a map of finite numbers. */

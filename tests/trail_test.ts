@@ -131,6 +131,7 @@ function screen() {
       draft: null,
       selection: null,
       moving: null,
+      loupe: null,
       cache,
       trail,
       ...over,

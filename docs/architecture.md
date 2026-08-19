@@ -905,7 +905,7 @@ dial's name.
 coordinates. That is the only currency the screen deals in, which is what lets a
 box marquee, an oval, a freehand lasso and an outline traced off the page itself
 all be selections without the canvas, the store or the renderer learning a shape
-(see `selection.ts`'s `strokesInRegion`).
+(see `selection.ts`).
 
 `group` is the flag that changes how a tool is _offered_ rather than how it
 behaves. The eleven shapes each stay their own plugin — their own painter, their
@@ -990,31 +990,68 @@ the document.
 
 ## Selections
 
-A selection is **not document state**. Which marks are picked is not saved, not
-synced and not undoable; `CanvasScreen` holds a list of stroke ids and
-`selection.ts` answers every question about them from the document on each
-render — the box they cover, whether a press landed on it, what one looks like
-moved. So an undo puts the marks back and the outline follows, deleting them
-empties it, and there is no third copy of anything to go stale.
+A selection is an **area of the page**, and it is **not document state**. Where
+the window is, is not saved, not synced and not undoable: `CanvasScreen` holds
+one `Selection` — the contours a gesture chose, plus the box its corner grips
+hang off — and drops it when another drawing opens.
 
-`selection.ts` switches on the shape kind, the same contract `bounds.ts` and the
-renderer's fallback painter use, so the tool works on marks made by tools it has
-never heard of. Everything in it is pure and node-tested.
+It picks no marks out. What it does is decide where the next edit lands, and
+there are three of those, all on the **layer being drawn on** and none on any
+other (`selection.ts`, all pure and node-tested):
 
-The moving half is the one place the canvas paints something the document does
-not yet say. A drag on a selection under the hand is shown live — the marks in
-flight are painted at the offset the finger has reached and left out of the page
-underneath (`RenderOptions.omit`, a set the canvas keeps for the length of the
-drag so the mark cache can compare it by identity) — and lands as **one** edit
-when the finger lifts. One drag, one undo step, and no per-frame writes to the
-store.
+- **paint** — a mark made inside the window records the outline it was cut to
+  and paints inside it forever after;
+- **move** — the hand carries what is painted under the window, cutting every
+  mark the outline crosses in two;
+- **erase** — Delete, the menu, or a tap with the rubber takes what is inside
+  it off.
+
+The mechanism behind all three is one optional field on a stroke: `clip`, a list
+of **masks** — closed contours in document coordinates, read with the even-odd
+rule and intersected (`types.ts`'s `Mask`). `render.ts` clips to them before it
+paints a mark, `bounds.ts` and `geometry.ts` measure a mark by them as well as by
+its ink, `transform.ts` carries them through a page turn, `selection.ts` moves
+them with the mark, and `svg.ts` records them as a `<clipPath>` so an exported
+file is cut the same way the screen is.
+
+**Nothing about a selection rasterises anything.** A cut mark is still the whole
+stroke it always was — moving a window over a pencil line twice leaves a pencil
+line, not a photograph of one, and one undo puts the single mark back. A window
+is expressed as geometry because the document is geometry; the alternative,
+lifting the pixels into a bitmap, would have made the first selection the moment
+a drawing stopped being vector.
+
+Two halves of the drag are painted by the canvas rather than said by the
+document. A hand drag on a window shows the marks it holds at the offset the
+finger has reached, and what the outline crossed cut to everywhere else, with the
+originals left out of the page underneath (`RenderOptions.omit`, a set the canvas
+keeps for the length of the drag so the mark cache can compare it by identity).
+It lands as **one** edit when the finger lifts — one drag, one undo step, and no
+per-frame writes to the store.
+
+The screen holds the window through `useSelection.ts` — the state, the three
+edits, and the keys that reach them, in one module rather than spread through a
+screen that is already long. The canvas holds the other side of the seam the
+same way: `useCanvasView.ts` owns the window onto the page (the measured size,
+the clamp, the fit tokens, the wheel and a zoom's settle frame), leaving the
+component to decide what a _press_ means.
+
+The chrome is split by what it is. The outline is painted on the canvas with the
+same marching ants the gesture was dragged with (`frame.ts`), so it is sharp at
+any zoom; the corner grips are elements over it (`SelectionFrame.tsx`), because a
+grip is a control and as an element it gets hit-testing and a cursor for free.
+The layer holding them is transparent to the pointer everywhere but on the grips,
+so painting inside the window still reaches the canvas. While an edge is being
+placed, a round magnifier floats beside it and repaints that part of the page at
+300% (`loupe.ts`) — from the document, at its own scale, rather than by blowing
+up the frame.
 
 Copied marks travel on the _system_ clipboard, as text behind a marker
 (`strokeClipboard.ts`), which is what makes copy-here-paste-there work across
-tabs and reloads. Reading it back validates every field, because anything at all
-can be put behind that marker. `clipboard.ts` classifies a paste — marks, a
-picture, or words — and each lands in the surface that already exists for it: the
-store, the image placement frame, or the caption box.
+tabs and reloads. Reading it back validates every field — the window included, so
+a copy of half a mark pastes as half a mark. `clipboard.ts` classifies a paste —
+marks, a picture, or words — and each lands in the surface that already exists
+for it: the store, the image placement frame, or the caption box.
 
 See [`docs/features/plugins.md`](features/plugins.md) and
 [`docs/features/selection.md`](features/selection.md) for the user-facing half.

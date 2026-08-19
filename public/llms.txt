@@ -54,11 +54,15 @@ connect a storage backend yourself.
 - Draw eleven shapes from one toolbar button: rectangle, ellipse, line, arrow,
   rounded rectangle, triangle, diamond, pentagon, hexagon, star and double
   arrow. Press the button a second time for the family and the fill toggle.
-- Pick marks up again with the selection tools: draw a box, an oval or a
+- Cut a window in the page with the selection tools: draw a box, an oval or a
   freehand lasso over what you drew, or trace the contours of what is already
   painted — four gestures behind one button, pressed a second time to choose.
-  Move what you caught with the hand, and copy, cut or delete it with the
-  keyboard, a right-click or a long press. Ctrl/Cmd+V pastes marks, a picture or words back
+  What settles is an area, not a list of marks: paint in it and the mark is cut
+  to it, drag it with the hand to carry what is painted under it, drag it with
+  the marquee to slide the window itself, and pull its corner grips to adjust it
+  under a 300% magnifier. Delete (or a tap with the rubber) clears what is
+  inside; copy, cut and paste work from the keyboard, a right-click or a long
+  press. Ctrl/Cmd+V pastes marks, a picture or words back
   into the drawing — words open the caption box so the typeface and size are
   yours to set first.
 - Press the eraser a second time for the rubber behind it: it lifts pencil the

@@ -121,8 +121,28 @@ export function strokeBounds(stroke: Stroke): Rect | null {
       pad + stroke.size,
     );
   }
+  // A mark cut by a selection cannot paint outside the window it was cut to,
+  // however far its painter reaches (see `Mask`) — so the cull box is held to
+  // it as well, and a mark whose window is off screen is skipped for the same
+  // price as one whose ink is.
+  if (box && stroke.clip) {
+    for (const mask of stroke.clip) {
+      const window = around(mask.contours.flat(), 0);
+      box = window && box ? meet(box, window) : null;
+      if (!box) break;
+    }
+  }
   if (box) cache.set(stroke, box);
   return box;
+}
+
+/** Where two boxes overlap, or `null` when they don't meet at all. */
+function meet(a: Rect, b: Rect): Rect | null {
+  const x = Math.max(a.x, b.x);
+  const y = Math.max(a.y, b.y);
+  const width = Math.min(a.x + a.width, b.x + b.width) - x;
+  const height = Math.min(a.y + a.height, b.y + b.height) - y;
+  return width >= 0 && height >= 0 ? { x, y, width, height } : null;
 }
 
 /** Whether two boxes overlap at all. Touching edges count — a mark exactly on

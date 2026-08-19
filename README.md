@@ -75,12 +75,17 @@ the same [`oss-framework`](https://github.com/niclaslindstedt/oss-framework).
   rectangle, triangle, diamond, pentagon, hexagon, star and double arrow share a
   single toolbar button and a single switch: press it again for the family, and
   for the toggle that fills them in.
-- **Pick marks up again.** Draw a box, an oval or a lasso with the selection
-  tool — or trace the contours of what is already painted — and what you caught
-  is yours: move it with the hand, copy, cut or delete it from the keyboard, a
-  right-click or a long press. Ctrl/⌘+V pastes back — marks from
-  another tab, a screenshot from anywhere, or words, which open the caption box
-  so you can set the typeface and size before they land.
+- **Cut a window in the page.** The selection tool is a box, an oval or a lasso
+  — or the contours of what is already painted — and what settles is an **area**
+  rather than a list of marks: paint in it and the mark is cut to it, drag it
+  with the hand and what is painted under it travels, drag it with the marquee
+  and the window slides and leaves the ink behind. Corner grips adjust it
+  afterwards, and a 300% magnifier floats beside the edge you are placing so you
+  can put it between two pixels rather than near them. Delete (or a tap with the
+  rubber) clears what is inside; Ctrl/⌘+C, X and V copy, cut and paste it — and a
+  paste also brings in marks from another tab, a screenshot from anywhere, or
+  words, which open the caption box so you can set the typeface and size before
+  they land.
 - **Watercolour that behaves like watercolour.** What you paint with is
   _water_, and the pigment only goes where the water took it: the wash spreads
   past the hair that laid it, both its edges follow the paper rather than your

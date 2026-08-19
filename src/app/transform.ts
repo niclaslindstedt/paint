@@ -174,6 +174,16 @@ function mapStroke(
   const next: Stroke = {
     ...stroke,
     size,
+    // The window a selection cut for this mark is geometry on the page like the
+    // mark itself, so a page turned, flipped or scaled turns, flips and scales
+    // it too — otherwise the ink would slide out from under its own cut.
+    ...(stroke.clip
+      ? {
+          clip: stroke.clip.map((mask) => ({
+            contours: mask.contours.map((loop) => loop.map(at)),
+          })),
+        }
+      : {}),
     shape: mapShape(stroke.shape, at, size, stroke),
   };
   if (bitmap && next.shape.kind === "image" && next.shape.src) {

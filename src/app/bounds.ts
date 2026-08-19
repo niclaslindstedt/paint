@@ -58,14 +58,45 @@ function pointsBox(points: readonly Point[]): Box | null {
   return box;
 }
 
-/** As much of a stroke as measuring it needs: the geometry and the nib. Widened
- *  from `Stroke` so a mark that hasn't been filed yet — one on the clipboard,
- *  one being pasted — can be measured with the same function the page uses. */
-export type Measurable = Pick<Stroke, "size" | "shape">;
+/** As much of a stroke as measuring it needs: the geometry, the nib, and the
+ *  window it was cut to. Widened from `Stroke` so a mark that hasn't been filed
+ *  yet — one on the clipboard, one being pasted — can be measured with the same
+ *  function the page uses. */
+export type Measurable = Pick<Stroke, "size" | "shape" | "clip">;
 
-/** The area one stroke paints, nib included. `null` for a shape carrying no
- *  geometry (an empty path), which simply contributes nothing to the union. */
+/** Where two boxes overlap, or `null` when they don't. */
+function meetBox(a: Box, b: Box): Box | null {
+  const x = Math.max(a.x, b.x);
+  const y = Math.max(a.y, b.y);
+  const width = Math.min(a.x + a.width, b.x + b.width) - x;
+  const height = Math.min(a.y + a.height, b.y + b.height) - y;
+  return width >= 0 && height >= 0 ? { x, y, width, height } : null;
+}
+
+/** The area one stroke paints: its geometry and its nib, held inside whatever
+ *  windows it was cut to. `null` for a shape carrying no geometry (an empty
+ *  path) — which simply contributes nothing to the union — and for a mark whose
+ *  window it misses entirely, which paints nothing at all.
+ *
+ *  Cutting the box down matters as much as the box itself: it is what culls a
+ *  mark whose window is off screen, what crops "just the marks" to what is
+ *  actually painted, and what stops half a page-wide line that was cut to a
+ *  thumbnail-sized selection dragging the page's size out with it. */
 export function strokeBounds(stroke: Measurable): Box | null {
+  const drawn = shapeBounds(stroke);
+  if (!drawn || !stroke.clip) return drawn;
+  let box: Box | null = drawn;
+  for (const mask of stroke.clip) {
+    const window = pointsBox(mask.contours.flat());
+    // A window with no outline at all is one nothing gets through.
+    if (!window || !box) return null;
+    box = meetBox(box, window);
+  }
+  return box;
+}
+
+/** The area the stroke's own geometry covers, before any window is applied. */
+function shapeBounds(stroke: Measurable): Box | null {
   const shape = stroke.shape;
   // Half the nib each way, and never less than a pixel: a hairline still has
   // to survive the crop.

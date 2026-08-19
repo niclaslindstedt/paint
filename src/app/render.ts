@@ -24,6 +24,13 @@
 // a transparent export has nothing in it, where it used to have page-coloured
 // smears.
 //
+// **A mark may carry a window.** A stroke drawn inside a selection, or one a
+// selection cut in two when its contents were moved, records the outlines it is
+// held inside (`Stroke.clip`) and is painted through them — every coat of it,
+// the water it lifts and the hole it takes out included. That is what makes a
+// selection a real boundary without any of it being a bitmap: the mark keeps
+// its whole geometry, and only the window says how much of it lands.
+//
 // **The sheet is also a material.** A drawing carries a ground — solid, paper,
 // canvas (see `ground.ts`) — and it changes how the marks land as well as how
 // the page looks: its grain is painted under them, a wet mark on a sheet that
@@ -64,7 +71,7 @@ import {
   type Transform,
 } from "./relay.ts";
 import { createSurface, wipeSurface, type Surface } from "./surface.ts";
-import type { Drawing, Ground, Layer, Stroke } from "./types.ts";
+import type { Drawing, Ground, Layer, Mask, Stroke } from "./types.ts";
 import { liftUnder } from "./wet.ts";
 
 /** The colours a repaint resolves absent stroke ink against. */
@@ -169,6 +176,49 @@ export function paintStroke(
   stroke: Stroke,
   ink: InkContext,
   detail: PaintDetail = FULL_DETAIL,
+): void {
+  // A mark cut by a selection is painted inside the window it was cut to, and
+  // everything below happens in there: the water it lifts, the pigment, and the
+  // hole an erasing one takes out. One `save` for the lot, so a mark with no
+  // window costs nothing at all (see `Mask`).
+  if (stroke.clip && stroke.clip.length > 0) {
+    ctx.save();
+    for (const mask of stroke.clip) clipToMask(ctx, mask);
+    paintUnclipped(ctx, stroke, ink, detail);
+    ctx.restore();
+    return;
+  }
+  paintUnclipped(ctx, stroke, ink, detail);
+}
+
+/** Hold the context to one window. The even-odd rule is what makes a traced
+ *  area's holes holes here too, and it is the rule the recording context reads
+ *  as "this is a mark's own window rather than the page's" (see `svg.ts`).
+ *
+ *  Exported for the one other pass that paints a mark without going through
+ *  `paintStroke`: the relay's mask, which has to be cut to the same window as
+ *  the rubbing out it measures (see `relay.ts`). */
+export function clipToMask(ctx: CanvasRenderingContext2D, mask: Mask): void {
+  ctx.beginPath();
+  for (const loop of mask.contours) {
+    const first = loop[0];
+    if (!first || loop.length < 3) continue;
+    ctx.moveTo(first.x, first.y);
+    for (let i = 1; i < loop.length; i++) {
+      ctx.lineTo(loop[i]!.x, loop[i]!.y);
+    }
+    ctx.closePath();
+  }
+  ctx.clip("evenodd");
+}
+
+/** One stroke, painted as though it had no window — the whole of the painting
+ *  above bar the clip. */
+function paintUnclipped(
+  ctx: CanvasRenderingContext2D,
+  stroke: Stroke,
+  ink: InkContext,
+  detail: PaintDetail,
 ): void {
   const resolved = resolveStrokeInk(stroke, ink);
   const plugin = pluginById(resolved.tool);
