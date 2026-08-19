@@ -295,6 +295,8 @@ export function CanvasScreen({
     selectionRef,
     adjusting,
     setAdjusting,
+    carrying,
+    setCarrying,
     copySelection,
     copied,
     eraseSelection,
@@ -841,6 +843,9 @@ export function CanvasScreen({
             // …the hand's drag on it, which carries what is painted under it:
             // the whole move, as one edit, once the finger lifts.
             onMoveSelection={moveSelection}
+            // …and how far that drag has got so far, so the grips over the
+            // canvas travel with the outline painted on it.
+            onCarrySelection={setCarrying}
             // …and a tap inside it with the rubber, which is Delete on a device
             // that has no Delete.
             onEraseSelection={eraseSelection}
@@ -871,6 +876,7 @@ export function CanvasScreen({
             <SelectionFrame
               view={view}
               selection={selection}
+              offset={carrying}
               onChange={setSelection}
               onPlacing={setAdjusting}
             />
