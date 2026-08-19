@@ -400,14 +400,16 @@ and the words become a mark when you are finished with them — so its behaviour
 `start` returns nothing at all, exactly like the hand's. What you type into is a
 real text box sitting where the caption will land, set in the face, size and ink
 it will land in, so there is no "now render it" beat between typing and having
-typed. Four typefaces, bold and italic ride in a small bar above the caret: they
-are properties of the caption rather than of the gesture, and they mean nothing
-when nothing is being typed. Enter breaks the line, Escape throws it away, and a
-press anywhere else on the page keeps it. The box can be **dragged** — by its
-rim, or by the grip at the head of the type bar — so a caption that landed in
-the wrong place is moved rather than retyped, and when the caret lands near the
-edge of the screen the field is capped at the room actually left and the bar
-slides back inside the canvas, so its buttons are always reachable.
+typed. The typeface — one of four, each named in its own letters — bold and
+italic ride in a small bar above the caret: they are properties of the caption
+rather than of the gesture, and they mean nothing when nothing is being typed.
+Enter breaks the line, Escape throws it away, and a press anywhere else on the
+page keeps it. The box can be **dragged** — by its rim, or by the grip at the
+head of the type bar — so a caption that landed in the wrong place is moved
+rather than retyped. When the caret lands near the edge of the screen the field
+is capped at the room actually left and the bar folds onto a second row rather
+than walking off to the left, which keeps its buttons reachable and its grip
+over the caption it moves.
 
 ## One width per tool — for the tools that have one
 

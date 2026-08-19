@@ -3,8 +3,11 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import {
   CheckIcon,
+  ChevronDownIcon,
   CloseIcon,
+  FloatingPanel,
   GripIcon,
+  type FloatingPlacement,
 } from "@niclaslindstedt/oss-framework/components";
 
 import { BoldIcon, ItalicIcon } from "./icons.tsx";
@@ -16,6 +19,7 @@ import {
   TEXT_LINE_HEIGHT,
   TEXT_WIDE_CHAR,
 } from "./plugins/builtin/text.ts";
+import { barPlacement, fieldWidth } from "./textLayout.ts";
 import type { Point } from "./types.ts";
 import { toDocumentPoint, toScreenPoint, type CanvasView } from "./viewport.ts";
 
@@ -51,11 +55,17 @@ import { toDocumentPoint, toScreenPoint, type CanvasView } from "./viewport.ts";
 // **And it stays on screen.** The box grows to the right as you type, so a
 // caption started near the right-hand edge used to run off it, taking the type
 // bar's buttons with it — including the only tick a phone has, since there is no
-// ⌘+Enter to reach for. Two rules fix that without lying about where the mark
-// will land: the field is capped at the room actually left (the browser scrolls
-// it to follow the caret, so the words you are typing stay visible), and the
-// bar, which is chrome rather than a preview, is slid back inside the canvas and
-// flipped below the box when there is no room above it.
+// ⌘+Enter to reach for. The rules that fix that without lying about where the
+// mark will land live in `textLayout.ts`: the field is capped at the room
+// actually left, and the bar — chrome rather than a preview — wraps its buttons
+// into that room, flips below the box when there is no space above it, and only
+// then slides back inside the canvas.
+//
+// It wraps *before* it slides because the grip is at the head of the bar, and a
+// bar shoved against the left-hand edge is a caption that can no longer be
+// dragged left: the finger has nowhere to go. For the same reason the bar is as
+// narrow as it can honestly be — the four faces are a menu (`FontPicker`) and
+// not four buttons, which is most of its width back.
 
 type Props = {
   /** The window onto the page, so the box sits exactly where the words will. */
@@ -88,20 +98,6 @@ type Props = {
 /** How wide the box opens, in characters — enough to type a caption into
  *  without it growing on the second word, and it grows past this anyway. */
 const MIN_CHARS = 12;
-
-/** How much of the canvas is kept clear around the box and its bar, in screen
- *  pixels. Enough that a clamped bar doesn't sit flush against the edge. */
-const GUTTER = 8;
-
-/** How narrow the field is allowed to get when the caret lands right against
- *  the edge of the canvas.
- *
- *  Deliberately tiny. A wider floor reads better right up until the press that
- *  lands twenty pixels from the edge, and then it is a box hanging off the
- *  screen again — which is the thing this is here to stop. A box this narrow is
- *  awkward, but the words scroll through it, the bar above it is reachable, and
- *  the caption can be dragged somewhere sensible. */
-const MIN_FIELD = 24;
 
 /** A drag of the whole box: the pointer that owns it, where it started, and the
  *  anchor it started from. Computed from the start rather than accumulated per
@@ -241,18 +237,13 @@ export function TextEntry({
       size * 0.6,
   );
   // …but never wider than what is left of the canvas to the right of it.
-  const width = room.width
-    ? Math.max(MIN_FIELD, Math.min(wanted, room.width - screen.x - GUTTER))
-    : wanted;
+  const width = fieldWidth(wanted, room.width, screen.x);
 
-  // The bar is chrome, so it may sit somewhere the caption does not: slid left
-  // when it would run off the right-hand edge, and dropped below the box when
-  // there is no room for it above. Both are no-ops in the ordinary case.
-  const overhang = room.width
-    ? Math.min(0, room.width - GUTTER - (screen.x + bar.width))
-    : 0;
-  const barShift = Math.max(overhang, GUTTER - screen.x);
-  const barAbove = !bar.height || screen.y - bar.height - GUTTER >= 0;
+  // The bar is chrome, so it may sit somewhere the caption does not: wrapped
+  // into the room to the right, dropped below the box when there is none above
+  // it, and slid left for whatever still overhangs. All three are no-ops in the
+  // ordinary case.
+  const chrome = barPlacement(room, screen, bar);
 
   return (
     <div
@@ -272,13 +263,26 @@ export function TextEntry({
         {/* The type bar: a grip, the face, the weight, the slant, and the two
             ways out. It sits above the caret, out of the way of the words being
             typed, and it is the only place these are offered — they mean
-            nothing when nothing is being typed. */}
+            nothing when nothing is being typed.
+
+            Four clusters told apart by the gap between them rather than by
+            rules, and each one a flex box of its own so it wraps as a unit. A
+            rule would be an item like any other: on a bar folded into rows it
+            strands itself at the end of one, and the clusters it was meant to
+            separate get split down the middle anyway. */}
         <div
           ref={barRef}
-          className={`absolute flex w-max items-center gap-1 rounded-md border border-line bg-surface p-1 shadow-lg ${
-            barAbove ? "bottom-full mb-2" : "top-full mt-2"
+          className={`absolute flex w-max flex-wrap items-center gap-x-2 gap-y-1 rounded-md border border-line bg-surface p-1 shadow-lg ${
+            chrome.above ? "bottom-full mb-2" : "top-full mt-2"
           }`}
-          style={{ left: `${barShift}px` }}
+          style={{
+            left: `${chrome.shift}px`,
+            // What the buttons wrap into. `w-max` keeps the bar one row while
+            // it fits; past that this is what folds it, rather than letting it
+            // walk off the edge of the canvas.
+            maxWidth:
+              chrome.maxWidth === null ? undefined : `${chrome.maxWidth}px`,
+          }}
         >
           {/* The handle. The rim of the box drags too, but a rim is a few
               pixels wide and this is a thumb-sized target that says outright
@@ -296,62 +300,33 @@ export function TextEntry({
             <GripIcon className="h-[18px] w-[18px]" />
           </button>
 
-          <span aria-hidden="true" className="mx-0.5 h-5 w-px bg-line" />
+          <FontPicker font={ink.font} onChange={onFontChange} />
 
-          <div
-            className="flex items-center gap-0.5"
-            role="group"
-            aria-label={t("text.font")}
-          >
-            {TEXT_FONTS.map((face) => (
-              <button
-                key={face.id}
-                type="button"
-                // The bar never takes the caret: pressing a face is a change to
-                // what you are typing, not a change of what you are typing in.
-                onMouseDown={(e) => e.preventDefault()}
-                onClick={() => onFontChange(face.id)}
-                aria-pressed={face.id === ink.font}
-                title={face.label}
-                // Each face is set in itself: the sample is the label, which is
-                // the one way of naming a typeface that needs no translating.
-                style={{ fontFamily: face.stack }}
-                className={`h-7 cursor-pointer rounded border px-2 text-sm ${
-                  face.id === ink.font
-                    ? "border-accent bg-accent/15 text-accent"
-                    : "border-transparent text-fg hover:border-line hover:bg-surface-2"
-                }`}
-              >
-                {face.label}
-              </button>
-            ))}
+          <div className="flex items-center gap-0.5">
+            <StyleToggle
+              label={t("text.bold")}
+              pressed={ink.bold}
+              onClick={() => onBoldChange(!ink.bold)}
+            >
+              <BoldIcon className="h-[18px] w-[18px]" />
+            </StyleToggle>
+            <StyleToggle
+              label={t("text.italic")}
+              pressed={ink.italic}
+              onClick={() => onItalicChange(!ink.italic)}
+            >
+              <ItalicIcon className="h-[18px] w-[18px]" />
+            </StyleToggle>
           </div>
 
-          <span aria-hidden="true" className="mx-0.5 h-5 w-px bg-line" />
-
-          <StyleToggle
-            label={t("text.bold")}
-            pressed={ink.bold}
-            onClick={() => onBoldChange(!ink.bold)}
-          >
-            <BoldIcon className="h-[18px] w-[18px]" />
-          </StyleToggle>
-          <StyleToggle
-            label={t("text.italic")}
-            pressed={ink.italic}
-            onClick={() => onItalicChange(!ink.italic)}
-          >
-            <ItalicIcon className="h-[18px] w-[18px]" />
-          </StyleToggle>
-
-          <span aria-hidden="true" className="mx-0.5 h-5 w-px bg-line" />
-
-          <StyleToggle label={t("text.discard")} onClick={onCancel}>
-            <CloseIcon className="h-[18px] w-[18px]" />
-          </StyleToggle>
-          <StyleToggle label={t("text.keep")} onClick={onCommit}>
-            <CheckIcon className="h-[18px] w-[18px] text-accent" />
-          </StyleToggle>
+          <div className="flex items-center gap-0.5">
+            <StyleToggle label={t("text.discard")} onClick={onCancel}>
+              <CloseIcon className="h-[18px] w-[18px]" />
+            </StyleToggle>
+            <StyleToggle label={t("text.keep")} onClick={onCommit}>
+              <CheckIcon className="h-[18px] w-[18px] text-accent" />
+            </StyleToggle>
+          </div>
         </div>
 
         {/* The frame the dashed outline now lives on, so there is a rim to
@@ -437,5 +412,101 @@ function StyleToggle({
     >
       {children}
     </button>
+  );
+}
+
+/** Where the face menu hangs: under the button that opens it, in the viewport's
+ *  own coordinates, because the bar it sits on is floating over a canvas that
+ *  the page never scrolls. */
+const FACE_MENU: FloatingPlacement = {
+  width: { kind: "min", minPx: 132 },
+  anchor: "left",
+  coordinateSpace: "viewport",
+};
+
+/** The face, as a button that names the one in hand and a menu of the four.
+ *
+ *  It used to be the four laid out side by side, which is the better control by
+ *  every measure except the one that decides it: the bar has to fit on a phone
+ *  beside a caption, and four faces spelled out are two thirds of its width.
+ *  That bar could only be as wide as the screen, so a caption started on the
+ *  right-hand half pushed it hard against the left-hand edge — taking the grip
+ *  at its head, and with it the room to drag the caption back the other way.
+ *
+ *  The menu is still set in the faces themselves: a typeface's own name in its
+ *  own letters is the one label that needs no translating, and picking one is
+ *  choosing between the samples rather than between four words. */
+function FontPicker({
+  font,
+  onChange,
+}: {
+  font: string;
+  onChange: (font: string) => void;
+}) {
+  const t = useT();
+  const trigger = useRef<HTMLButtonElement>(null);
+  const [open, setOpen] = useState(false);
+  const current = TEXT_FONTS.find((face) => face.id === font) ?? TEXT_FONTS[0]!;
+
+  return (
+    <>
+      <button
+        ref={trigger}
+        type="button"
+        // Same as every other button on the bar: the field keeps the caret, so
+        // the keyboard stays up through a change of face.
+        onMouseDown={(e) => e.preventDefault()}
+        onClick={() => setOpen((v) => !v)}
+        aria-label={t("text.font")}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        title={t("text.font")}
+        className="inline-flex h-7 cursor-pointer items-center gap-1 rounded border border-line px-2 text-sm text-fg hover:border-accent"
+      >
+        <span style={{ fontFamily: current.stack }}>{current.label}</span>
+        <ChevronDownIcon className="h-3 w-3 shrink-0 text-muted" />
+      </button>
+
+      {/* Escape closes the menu and nothing else: the panel takes the key on
+          the way down and stops it, so the caption survives a menu opened by
+          mistake. */}
+      <FloatingPanel
+        open={open}
+        onClose={() => setOpen(false)}
+        triggerRef={trigger}
+        placement={FACE_MENU}
+        className="py-1"
+      >
+        <div
+          role="listbox"
+          aria-label={t("text.font")}
+          className="flex flex-col"
+        >
+          {TEXT_FONTS.map((face) => (
+            <button
+              key={face.id}
+              type="button"
+              role="option"
+              aria-selected={face.id === font}
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => {
+                onChange(face.id);
+                setOpen(false);
+              }}
+              className={`flex cursor-pointer items-center gap-2 border-0 bg-transparent px-3 py-2 text-left text-sm hover:bg-surface-3 ${
+                face.id === font ? "text-accent" : "text-fg"
+              }`}
+            >
+              <span className="flex-1" style={{ fontFamily: face.stack }}>
+                {face.label}
+              </span>
+              {face.id === font && (
+                <CheckIcon className="h-3.5 w-3.5 shrink-0 text-accent" />
+              )}
+            </button>
+          ))}
+        </div>
+      </FloatingPanel>
+    </>
   );
 }
