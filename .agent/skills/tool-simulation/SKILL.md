@@ -67,6 +67,11 @@ All three engines converged on the same skeleton; start from it.
 - `scripts/ink-sheet.ts` renders the pen's exercise sheet straight from the
   field (no DOM, node only) — one row per claimed behaviour. Adapt it for a
   new medium by swapping the field/walk imports and rewriting the rows.
+- **Lay the same gesture more than once.** A sheet of different marks cannot
+  show you that the medium draws every stroke identically — hashed traits are
+  reproducible by design, and one brush for all strokes looks exactly like a
+  good brush until two of its marks are side by side. Give every exercise
+  sheet a row of the _same_ stroke repeated (`brush-starts.ts`).
 - **Small renders lie.** A ribbon that looks flat navy at 1× is often a
   perfectly good simulation whose shading only reads at 3×. Crop before
   concluding anything: `scripts/zoom.ts <sheet.png> x y w h [zoom]`.
@@ -202,6 +207,8 @@ npx vite-node $S/brush-probe.ts          # band width vs the ferrule, comb
                                          # contrast, what a print/frame costs
 npx vite-node $S/brush-shot.ts           # ONE stroke, big, shaped like the
                                          # reference photograph, in its colour
+npx vite-node $S/brush-starts.ts         # the same stroke six times over, then
+                                         # six entry speeds and six lift speeds
 ```
 
 All node-only (`pngio.ts` writes/reads PNGs with `zlib`); nothing to install.

@@ -14,6 +14,7 @@
 // tests and the tuning harnesses do.
 
 import type { GroundProfile } from "../ground.ts";
+import type { Point } from "../types.ts";
 import { mm } from "../units.ts";
 import type { HeadPress } from "./bristleField.ts";
 import {
@@ -143,7 +144,7 @@ const TIP_FRAY = 0.22;
 
 /** How far a lifted head draws out past the last point, as a share of the
  *  print it would have stamped coming down. */
-const LIFT_DRAW = 0.75;
+export const LIFT_DRAW = 0.75;
 
 /** How much further the middle of the head carries than its sides, going up —
  *  the taper of the fan. The hairs in the middle of a bundle are the ones
@@ -154,15 +155,73 @@ const LIFT_TAPER = 1.6;
  *  are leaving, so the last of a lifted stroke is thin. */
 export const LIFT_FADE = 0.35;
 
+// --- How the hand leaves the paper -------------------------------------------
+//
+// The other half of why every mark ended the same way. A lift is not one event
+// a brush has: a hand that *stops* and then picks the head up leaves a blunt,
+// full end — the head is standing still on the paper while the pressure comes
+// off, so the fan is short, broad and dark. A hand still travelling when the
+// head leaves — a flick — is the opposite at every one of those: the bundle
+// rolls up onto its bent-back tips over a longer stretch, only the middle
+// hairs are still bearing by the end of it, and what they leave is pale.
+//
+// So the speed at the last touch is read once per walk and shapes the end. It
+// may only be read *inside* the lift window, which is provisional to the last
+// frame of the gesture (see `advanceDrag`) — a settled touch cannot feel how
+// the stroke it is part of eventually ended, or a mark would change behind the
+// hand.
+
+/** How fast the hand has to be leaving for the lift to be a flick rather than
+ *  a stop, in document pixels a sample — a device term like `ENTRY_SWEEP`,
+ *  and deliberately on the same scale as it: a stored sample gap is the gap
+ *  the *hardware* reported, so a term read off one has to be a threshold the
+ *  two ends of a mark agree about rather than a number tuned alone. */
+const LIFT_FLICK = 30;
+
+/** How far the fan runs past the last point at a stop and at a flick, as a
+ *  multiple of what the head has pressed there — the head is coming off the
+ *  paper either way, so the *width* follows the pressure, and this is how far
+ *  the hair ends go on trailing past it. A stopped head leaves a stub about a
+ *  third of itself; a flicked one lays its bent-back tips out over the better
+ *  part of a head-width. */
+export const FAN_STOP = 0.8;
+export const FAN_FLICK = 3;
+
+/** …and how much more sharply a flick tapers the fan to the middle of the
+ *  head: a stopped head leaves the stub at the bundle's whole width, a flicked
+ *  one at the few hairs still bearing by then. */
+export const FAN_POINT = 0.8;
+
+/** How much of the film the end is still laying, and how much of the head is
+ *  still down through the lift window, at a stop against a flick. */
+export const FAN_FADE = 1.6;
+export const FAN_FILM = 0.84;
+export const FAN_FILM_FLICK = 0.18;
+const FAN_DOWN = 0.54;
+const FAN_DOWN_FLICK = 0.2;
+
+/** How much of the way to a flick this lift is, 0 (stopped) to 1. Read off the
+ *  hand's speed at the last touch, and nothing else. */
+export function liftFlick(speed: number): number {
+  return Math.min(1, Math.max(0, speed) / LIFT_FLICK);
+}
+
 /** How far into a stroke the head has fully landed, as a share of its own
  *  width, and how much of it is down at the very first touch.
  *
  *  Short and not very deep: the photograph's entry is *blunt*, and what this
  *  is for is stopping the mark from opening with a stamped circle wider than
  *  the stroke it starts. Measured along the stroke rather than in time, so it
- *  does not depend on how fast the sample rate happened to be. */
+ *  does not depend on how fast the sample rate happened to be.
+ *
+ *  Every one of the four is a *middle*, spread per stroke (see `markSeed`):
+ *  no two touch-downs of a real brush are the same touch-down, and the one
+ *  that is the same every time reads as a stamp — which is what the little
+ *  circle at the head of every mark this engine drew actually was. */
 const ENTRY_RUN = 0.5;
-const ENTRY_LEAST = 0.42;
+const ENTRY_RUN_SPREAD = 0.5;
+const ENTRY_LEAST = 0.4;
+const ENTRY_LEAST_SPREAD = 0.32;
 
 /** …and how fast the hand has to be moving for it to be an entry at all.
  *
@@ -173,6 +232,25 @@ const ENTRY_LEAST = 0.42;
  *  off the samples the canvas already stores, which is what keeps the two
  *  cases from being two different marks with a seam between them. */
 const ENTRY_SWEEP = 13;
+const ENTRY_SWEEP_SPREAD = 0.3;
+
+/** How the width comes on over that run. A square root opens fast and then
+ *  crawls, which is exactly the shape that reads as a blob with a stroke
+ *  coming out of it; nearer linear, and spread per stroke, the head *widens*
+ *  into the mark instead of being stamped and then extended. */
+const ENTRY_EASE = 0.8;
+const ENTRY_EASE_SPREAD = 0.3;
+
+/** How far the head stands off the path where it lands, as a share of its own
+ *  half-width.
+ *
+ *  A bundle swept onto paper does not come down square on the line the hand
+ *  drew: it takes the sheet with one side of itself and rolls onto the rest as
+ *  it opens, so the first stretch of the mark stands a little off the path and
+ *  settles onto it. Which side, and how far, is the stroke's own (see
+ *  `markSeed`) — and it is most of what stops a touch-down from being the
+ *  head's own print, centred, again. */
+const ENTRY_LEAN = 0.34;
 
 /** How far the width of the mark pinches as the head travels, and over how
  *  much of it — the wander of a hand and a bundle of hair that photographs as
@@ -385,6 +463,38 @@ export function printReach(pen: Pen, tx: number, ty: number): number {
 
 // --- The head, fixed for the length of one stroke -----------------------------
 
+/** Which brush this stroke got, as a number every hashed trait of the head is
+ *  mixed with.
+ *
+ *  Everything about a bundle of hair that is not the size on the button — how
+ *  thick each strand lays, where the partings fall, how level the cut is, how
+ *  it comes down and how it leaves — used to be hashed off the strand's index
+ *  alone. That is one brush, for every stroke anyone ever draws with the tool:
+ *  the same fringe, the same rails in the same places, and the same little cap
+ *  at the head of the mark, again and again. Hashing them off the gesture as
+ *  well makes each stroke its own dip of its own brush.
+ *
+ *  It reads **the first point and nothing else**, which is what lets it be
+ *  random and reproducible at once: the mark under the hand and the mark the
+ *  dried-mark store re-walks days later are the same mark, and a gesture does
+ *  not re-seed as it grows (see the `grows` contract). */
+export function markSeed(points: readonly Point[]): number {
+  const first = points[0];
+  if (!first) return 0;
+  return Math.floor(hashedRandom(first.x, first.y, 91) * 4096);
+}
+
+/** One of the head's own spreads: a middle, scattered by `spread` either way,
+ *  hashed off the stroke's seed and a key of its own. */
+function varied(
+  seed: number,
+  key: number,
+  mid: number,
+  spread: number,
+): number {
+  return mid * (1 + (hashedRandom(key, seed, 53) - 0.5) * 2 * spread);
+}
+
 export type Pen = {
   /** The half-width at rest, after the sheet's line gain. */
   half: number;
@@ -401,9 +511,18 @@ export type Pen = {
   residueRun: number;
   touchReach: number;
   liftWindow: number;
-  /** How far the head takes to open to its full width at a swept touch-down,
-   *  and how far one swing of the width's own wander runs. */
+  /** How the head comes down: how far it takes to open to its full width at a
+   *  swept touch-down, how much of it is down at the first touch, the shape of
+   *  the widening, how fast the hand has to be moving for it to be a sweep at
+   *  all, and how far the bundle stands off the path while it lands (signed —
+   *  a head lands on one side of the line or the other). All of them this
+   *  stroke's own (see `markSeed`). */
   entryRun: number;
+  entryLeast: number;
+  entryEase: number;
+  entrySweep: number;
+  entryLean: number;
+  /** …and how far one swing of the width's own wander runs. */
   swellRun: number;
   /** How much of the gesture's own wiggle a head this wide rounds off before
    *  anything is laid on it (see `walkOf`). */
@@ -424,6 +543,9 @@ export type Pen = {
    *  lift — the two ends of a mark, which are not the same shape. */
   tips: Float64Array;
   draws: Float64Array;
+  /** …and `draws` as the hand actually left the paper, worked out once per
+   *  lift (see `lifting`) — scratch, so a flick costs no allocation. */
+  fan: Float64Array;
   /** The comb a print's rim is cut out of — scratch, so the gated comb one
    *  step of a print reads does not overwrite the one it is cut from. */
   rim: Float32Array;
@@ -449,6 +571,7 @@ export function penFor(
   load: number,
   cell: number,
   ground: GroundProfile,
+  seed = 0,
 ): Pen {
   const hard = Math.max(0, Math.min(1, hardness));
   const flat = Math.max(0, Math.min(1, flatness));
@@ -483,7 +606,7 @@ export function penFor(
     // Not all much of a muchness: a head is a row of clumps, so a few strands
     // lay heavily and most lay their share — squared, so the broad ones stay
     // the exception they are on paper.
-    thick[b] = 0.72 + 0.56 * hashedRandom(b * 11.7, 5) ** 2;
+    thick[b] = 0.72 + 0.56 * hashedRandom(b * 11.7, 5, seed) ** 2;
     // The outer hairs go first whatever the head — they carry the least paint
     // and take the least pressure — and a dry, ungathered bundle skips all
     // over (see `hairTraits`, whose curve this is).
@@ -492,7 +615,7 @@ export function penFor(
       (1 - hard) * 0.3 +
       lane * lane * (1 - hard) * 0.22 +
       edge * 0.42 * (1.4 - hard) +
-      hashedRandom(b * 7.1, b * 3.3) * 0.07;
+      hashedRandom(b * 7.1, b * 3.3, seed) * 0.07;
     // How long this hair's dry stretches run — per hair, so the skips across
     // the head are not all the same length, which would be a dashed line.
     // Long enough that a parting reads as combing rather than as stipple, and
@@ -501,7 +624,10 @@ export function penFor(
     // ribbons that never crossed. A parting wants to open, run, and close
     // again while the mark is still going, so the stroke stays stitched
     // together along its length.
-    skipRun[b] = Math.max(20, size * (0.45 + hashedRandom(b * 2.7, 33) * 1.1));
+    skipRun[b] = Math.max(
+      20,
+      size * (0.45 + hashedRandom(b * 2.7, 33, seed) * 1.1),
+    );
     // How far out of the ferrule this hair reaches, as a share of the head's
     // own footprint: a cut bundle is level only near enough, so the rim of a
     // print is a fringe of tips at slightly different lengths rather than a
@@ -509,7 +635,8 @@ export function penFor(
     // fringe frays *inwards*, which is the only direction a bundle in a metal
     // collar can fray.
     tips[b] =
-      1 - TIP_FRAY * (0.35 + 0.65 * edge) * hashedRandom(b * 4.7, 13) ** 1.4;
+      1 -
+      TIP_FRAY * (0.35 + 0.65 * edge) * hashedRandom(b * 4.7, 13, seed) ** 1.4;
     // …and how far it draws out at a *lift*, which is a different number about
     // a different thing (see "The two ends of a mark"): the bundle rolls up
     // onto its bent-back tips from the outside in, so a lane's reach falls off
@@ -518,19 +645,25 @@ export function penFor(
     draws[b] =
       LIFT_DRAW *
       (1 - Math.abs(lane) ** LIFT_TAPER) *
-      (0.3 + 0.7 * hashedRandom(b * 6.1, 29));
+      (0.3 + 0.7 * hashedRandom(b * 6.1, 29, seed));
     const walk = driftWalk();
-    walk.reset(b * 17 + 3);
+    walk.reset(seed * 97 + b * 17 + 3);
     walkers[b] = walk;
   }
+  // The walks the *whole* head reads, each pointed somewhere of this stroke's
+  // own: two marks laid over the same paper disagree about the tooth, which is
+  // the one thing here that is not the brush — but the tooth is already read
+  // off arc distance rather than page position, so every stroke started from
+  // its own beginning either way, and starting them all from the *same*
+  // beginning is what made one mark the template for the next.
   const toothWalk = driftWalk();
-  toothWalk.reset(3);
+  toothWalk.reset(seed * 97 + 3);
   const twistWalk = driftWalk();
-  twistWalk.reset(7);
+  twistWalk.reset(seed * 97 + 7);
   const tipWalk = driftWalk();
-  tipWalk.reset(29);
+  tipWalk.reset(seed * 97 + 29);
   const swellWalk = driftWalk();
-  swellWalk.reset(41);
+  swellWalk.reset(seed * 97 + 41);
   return {
     half,
     minor: BLADE + (1 - BLADE) * (1 - flat),
@@ -540,7 +673,15 @@ export function penFor(
     residueRun: capacity * RESIDUE_RUN * Math.max(0.05, Math.min(1.3, load)),
     touchReach: TOUCH_REACH * size,
     liftWindow,
-    entryRun: Math.max(1, size * ENTRY_RUN),
+    entryRun: Math.max(1, size * varied(seed, 3, ENTRY_RUN, ENTRY_RUN_SPREAD)),
+    entryLeast: varied(seed, 5, ENTRY_LEAST, ENTRY_LEAST_SPREAD),
+    entryEase: varied(seed, 7, ENTRY_EASE, ENTRY_EASE_SPREAD),
+    entrySweep: varied(seed, 11, ENTRY_SWEEP, ENTRY_SWEEP_SPREAD),
+    entryLean:
+      ENTRY_LEAN *
+      (hashedRandom(13, seed, 53) - 0.5) *
+      2 *
+      (0.4 + 0.6 * hashedRandom(17, seed, 53)),
     swellRun: Math.max(1, size * SWELL_RUN),
     stiffness: size * 0.3,
     load,
@@ -558,6 +699,7 @@ export function penFor(
     skipRun,
     tips,
     draws,
+    fan: new Float64Array(count),
     rim: new Float32Array(count),
     walkers,
     toothWalk,
@@ -651,17 +793,45 @@ export function combOver(
  *
  *  Every one of them reads the path *behind* this touch (or, at the lift, no
  *  further ahead than the window), which is what keeps the `grows` contract. */
-export function bearingDown(pen: Pen, p: Trace, fromEnd: number): number {
+export function bearingDown(
+  pen: Pen,
+  p: Trace,
+  fromEnd: number,
+  flick = 0,
+): number {
   // How much of the bundle the touch-down has taken by here, and how much of
   // that matters: a head that was not moving when it landed was placed, not
   // swept, and starts flat.
   const opened =
-    ENTRY_LEAST +
-    (1 - ENTRY_LEAST) * Math.min(1, Math.sqrt(p.at / pen.entryRun));
-  const swept = Math.min(1, p.speed / ENTRY_SWEEP);
+    pen.entryLeast +
+    (1 - pen.entryLeast) * Math.min(1, (p.at / pen.entryRun) ** pen.entryEase);
+  const swept = Math.min(1, p.speed / pen.entrySweep);
   let down = opened + (1 - opened) * (1 - swept);
   if (fromEnd < pen.liftWindow) {
-    down *= 0.42 + 0.58 * (fromEnd / pen.liftWindow) ** 0.7;
+    // …and how far off it has come by here, which is the hand's business and
+    // not the head's: a stop sets the head down and picks it up, a flick takes
+    // the weight off over the whole window (see `liftFlick`). Exactly 1 at the
+    // window's edge whichever it was, so a settled touch cannot feel it.
+    const low = FAN_DOWN - FAN_DOWN_FLICK * flick;
+    down *= low + (1 - low) * (fromEnd / pen.liftWindow) ** 0.7;
   }
   return down * (1 - SWELL * pen.swellWalk.at(p.at / pen.swellRun));
+}
+
+/** How far off the path the head is standing where it lands — a lateral
+ *  offset in document pixels, this stroke's own way and gone by the time the
+ *  head has opened (see `ENTRY_LEAN`).
+ *
+ *  A swept touch-down is the one place a brushed mark is not about the line
+ *  the hand drew: the bundle takes the sheet with a side of itself, so the
+ *  first stretch runs a little wide of the path and hooks onto it. It is what
+ *  a *placed* head does not do, so it reads the same touch-down speed the
+ *  opening does, and it is a function of the path behind this touch alone. */
+export function entryLean(pen: Pen, p: Trace): number {
+  if (pen.entryLean === 0 || p.at >= pen.entryRun) return 0;
+  // Squared, so it is a *sweep* that leans and not every touch that moved: a
+  // finger resting on the glass and shifting two pixels is a press, and a
+  // press has to print where it stands or the mark bites its own blot.
+  const swept = Math.min(1, p.speed / pen.entrySweep) ** 2;
+  return pen.entryLean * pen.half * swept * (1 - p.at / pen.entryRun) ** 1.4;
 }

@@ -226,10 +226,20 @@ painters in `src/app/plugins/brushes.ts`, `bristle.ts`, `crayon.ts` and
   the diameter of the brush where you touched down. A head _placed_ on the
   spot has already landed, and starts at its full width; the tool reads the
   difference off how fast your hand was moving, so a tap leaves the print of
-  the head and a flick does not. And a lift is not a touch-down backwards: by
-  then every hair in the bundle is bent backwards along the stroke, so the
-  pressure comes off over the last stretch and the mark frays out into a fan
-  of trailing hair ends rather than closing with an edge. Across the band,
+  the head and a flick does not — and how much of the bundle lands, how far it
+  takes to open, and which side of the line it comes down on are that stroke's
+  own, so no two touch-downs are the same shape. And a lift is not a
+  touch-down backwards: by then every hair in the bundle is bent backwards
+  along the stroke, so the pressure comes off over the last stretch and the
+  mark frays out into a fan of trailing hair ends rather than closing with an
+  edge. How that fan comes out is the **speed you left the paper at**: stop
+  first and the head leaves a short, blunt, full-strength end, still about the
+  width of the bundle; carry on going and the tips string out behind you,
+  narrow and pale. Nothing about a brush is quite the same twice over, in
+  fact — the strands are cut a little differently, the partings fall somewhere
+  else and the paper takes it its own way for every stroke you draw — while
+  the _same_ stroke always comes out the same mark, whether it is under your
+  finger, redrawn from the file or exported to a PNG. Across the band,
   the round bears like the cone it is — solid down the middle, softening to
   its two sides — where a chisel ferrule is cut square and lays the slab with
   two ruled sides that a flat is bought for. A landed mark is simulated once

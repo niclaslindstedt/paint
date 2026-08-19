@@ -18,6 +18,8 @@ import { stiffen } from "./bristle.ts";
 import { smoothstep, trace, type Trace } from "./grain.ts";
 import {
   BASE_FILM,
+  FAN_FILM,
+  FAN_FILM_FLICK,
   MARGIN_CELLS,
   RESIDUE_FILM,
   SPEED_SCALE,
@@ -28,6 +30,9 @@ import {
   TOUCH_BEAD,
   bearingDown,
   combOver,
+  entryLean,
+  liftFlick,
+  markSeed,
   paintDryness,
   paintFlow,
   penFor,
@@ -54,6 +59,7 @@ function daub(
   fromEnd: number,
   s: { reserve: number; spentAt: number },
   caps: number,
+  flick: number,
   log?: number[],
 ): void {
   const dry = paintDryness(s.reserve);
@@ -89,7 +95,12 @@ function daub(
     // leaving hairs already own. Exactly 1 at the window's edge, so a settled
     // touch cannot feel the end moving away from it.
     if (fromEnd < pen.liftWindow) {
-      film *= 0.72 + 0.28 * (fromEnd / pen.liftWindow);
+      // …how much of it depending on how the hand left: a head that stopped
+      // first goes on laying nearly all of its film until it is picked up, and
+      // a flicked one is off the paper before it has laid much (see
+      // `liftFlick`).
+      const low = FAN_FILM - FAN_FILM_FLICK * flick;
+      film *= low + (1 - low) * (fromEnd / pen.liftWindow);
     }
   }
   // The head's footprint against the way the hand is going here (see
@@ -101,7 +112,7 @@ function daub(
   // …and how much of the *head* is on the paper here, which is a different
   // question and one only the two ends of the stroke and the hand's own wander
   // have anything to say about (see `bearingDown`).
-  const down = bearingDown(pen, p, fromEnd);
+  const down = bearingDown(pen, p, fromEnd, flick);
   const w = print.across * down;
   if (w < field.cell * 0.5) return;
   film *= Math.min(1.6, Math.sqrt(pen.half / w));
@@ -119,7 +130,10 @@ function daub(
     : null;
   const across = (span ? span.half : print.across) * down;
   if (across < field.cell * 0.5) return;
-  const off = span ? span.mid * down : 0;
+  // …and off the path by however far the head is still standing wide of it,
+  // which is a touch-down's business and nothing else's (see `entryLean`).
+  const lean = entryLean(pen, p);
+  const off = (span ? span.mid * down : 0) + lean;
   press(
     field,
     p.x + nx * off,
@@ -137,7 +151,7 @@ function daub(
   // bent-back hair ends the lift draws out. Not the same shape, and not the
   // same shape backwards (see `capAt`).
   if (caps !== 0) {
-    const end = caps < 0 ? landing(pen, -1, false) : lifting(pen);
+    const end = caps < 0 ? landing(pen, -1, false, lean) : lifting(pen, flick);
     capAt(field, pen, p, nx, ny, end, down, film, dry, head, log);
   }
   if (s.reserve > 0) {
@@ -206,7 +220,16 @@ export function drag(
   load: number,
   cell: number,
 ): void {
-  const pen = penFor(size, flatness, angle, hardness, load, cell, field.ground);
+  const pen = penFor(
+    size,
+    flatness,
+    angle,
+    hardness,
+    load,
+    cell,
+    field.ground,
+    markSeed(points),
+  );
   const along = walkOf(pen, points);
   const first = along[0];
   if (!first) return;
@@ -223,10 +246,14 @@ export function drag(
     return;
   }
   const s = { reserve: Math.max(0, load), spentAt: 0 };
+  // How the hand left the paper, read once for the whole walk: it may only be
+  // felt inside the lift window, which is exactly the stretch the live walk
+  // keeps provisional (see `advanceDrag`).
+  const flick = liftFlick(along[last]!.speed);
   for (let i = 0; i <= last; i++) {
     const p = along[i]!;
     const { nx, ny } = normalAt(along, i);
-    daub(field, pen, p, nx, ny, total - p.at, s, capOf(i, last));
+    daub(field, pen, p, nx, ny, total - p.at, s, capOf(i, last), flick);
   }
 }
 
@@ -305,6 +332,7 @@ export function openDrag(
   angle: number,
   hardness: number,
   load: number,
+  seed: number,
 ): DragState {
   return {
     points: [],
@@ -316,6 +344,7 @@ export function openDrag(
       load,
       field.cell,
       field.ground,
+      seed,
     ),
     field,
     settled: 0,
@@ -397,6 +426,7 @@ export function advanceDrag(state: DragState, points: readonly Point[]): Patch {
     // A drag, so whatever print the press left is on its way back out with the
     // rest of the provisional tail.
     state.printed = null;
+    const flick = liftFlick(along[last]!.speed);
     // A touch settles only once its speed is final *and* the tail that is
     // still moving has passed it — the lift window the end reaches back
     // through, and the head's own smoothing window, which is not done with a
@@ -410,7 +440,7 @@ export function advanceDrag(state: DragState, points: readonly Point[]): Patch {
       // The touch-down print is the first touch's, and it settles with it:
       // nothing about the head coming down can change once the hand has
       // moved on (the lift's print rides the provisional tail instead).
-      daub(field, pen, p, nx, ny, total - p.at, s, capOf(settled, last));
+      daub(field, pen, p, nx, ny, total - p.at, s, capOf(settled, last), flick);
       widen(dirty, field, p.x, p.y, settled === 0 ? capReach : reachBy);
       settled++;
     }
@@ -420,7 +450,7 @@ export function advanceDrag(state: DragState, points: readonly Point[]): Patch {
     for (let i = settled; i <= last; i++) {
       const p = along[i]!;
       const { nx, ny } = normalAt(along, i);
-      daub(field, pen, p, nx, ny, total - p.at, s, capOf(i, last), log);
+      daub(field, pen, p, nx, ny, total - p.at, s, capOf(i, last), flick, log);
       widen(dirty, field, p.x, p.y, i === 0 || i === last ? capReach : reachBy);
     }
   }
