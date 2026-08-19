@@ -119,7 +119,10 @@ the same [`oss-framework`](https://github.com/niclaslindstedt/oss-framework).
   edges that wick on paper that does. One **flatness** dial runs it from the
   round that lays the same width every way to the one-stroke flat that swells
   and thins round a curve on its own, with the filbert in between; hardness
-  spans the pressure series from loaded slab to scumble. The airbrush is a spray cone that builds up where
+  spans the range from loaded slab to scumble; and a **pressure** dial is the
+  hand on it — a round drawn on its point lays a line inside its own ferrule,
+  and the same round leaned on spreads past it into a wide, wandering, ragged
+  band that runs the dip out sooner. The airbrush is a spray cone that builds up where
   you linger. The pencil is graphite caught on the paper's tooth, grey whatever
   the ink is set to, with a lead that runs from a hard pale H to a soft dark B.
   The marker and the highlighter are two shapes of felt tip — a round bullet and
@@ -305,7 +308,8 @@ npm run preview
   opens the widths, a slider for new ones, and — under an **Advanced** heading,
   open rather than folded away — the knobs belonging to the tool in your hand:
   how charged the head is, how much paint it was dipped with, how far it is
-  squeezed toward a flat and which way the blade is turned for the paintbrush,
+  squeezed toward a flat, which way the blade is turned and how hard you are
+  bearing on it for the paintbrush,
   water, pigment and granulation for
   the watercolour brush, flow for the airbrush, pressure for the crayon, the
   lead's grade for the pencil — 8H through 9B, as a row of chips rather than a

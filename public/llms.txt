@@ -86,7 +86,8 @@ connect a storage backend yourself.
   millimetres of page, from a technical pen's 0.5 to a decorator's 200.
 - Tune the tool in your hand under the nib picker's Advanced fold — how charged
   the head is, how much paint the dip took, how far the head is squeezed toward
-  a flat and which way the blade is turned for the paintbrush, flow for the
+  a flat, which way the blade is turned and how hard the hand is bearing on it
+  for the paintbrush, flow for the
   airbrush, pressure for the crayon, the
   lead's grade and the hand on it for the pencil, the chisel of a felt tip for
   the marker and the highlighter, the nib's angle and its dip of ink for the
