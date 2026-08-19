@@ -5,6 +5,7 @@ import { boxFromCorners, type Box } from "./bounds.ts";
 import { useT } from "./i18n/index.ts";
 import { CORNERS, type Corner } from "./placement.ts";
 import { scaleRegion, type Selection } from "./selection.ts";
+import type { Point } from "./types.ts";
 import { toDocumentPoint, toScreenPoint, type CanvasView } from "./viewport.ts";
 
 // The grips on a settled selection.
@@ -25,7 +26,11 @@ import { toDocumentPoint, toScreenPoint, type CanvasView } from "./viewport.ts";
 //
 // The outline itself is not drawn here. It is painted on the canvas with the
 // same marching ants the gesture was dragged with (see `frame.ts`), so what you
-// drew and what you got read as one thing at any zoom.
+// drew and what you got read as one thing at any zoom. That is also why the
+// grips take an `offset`: a hand drag carries the window live — ink and ants
+// both — without touching the document, and chrome that lives above the canvas
+// has to be told, or the grips are left behind at corners the window no longer
+// has (see `PaintCanvas.onCarrySelection`).
 
 type Props = {
   /** The window onto the page, so the grips sit exactly on the corners. */
@@ -34,6 +39,11 @@ type Props = {
   /** The window as this drag has it now — screen state, never a document
    *  edit. */
   onChange: (selection: Selection) => void;
+  /** How far a hand drag has carried the window since it began, in document
+   *  pixels, or `null` when nothing is in flight. The frame rides along; the
+   *  grips stop taking the pointer while it does, because the window they would
+   *  stretch is not the one on the screen yet. */
+  offset?: Point | null;
   /** Where the corner under the finger is, in document coordinates, so the
    *  canvas can float the magnifier beside it — and `null` when the drag ends.
    *  Placing an edge is the one gesture in the app where a pixel matters (see
@@ -56,6 +66,7 @@ type Drag = {
 export function SelectionFrame({
   view,
   selection,
+  offset = null,
   onChange,
   onPlacing,
 }: Props) {
@@ -100,8 +111,8 @@ export function SelectionFrame({
   };
 
   const topLeft = toScreenPoint(view, {
-    x: selection.box.x,
-    y: selection.box.y,
+    x: selection.box.x + (offset?.x ?? 0),
+    y: selection.box.y + (offset?.y ?? 0),
   });
   const frame = {
     left: topLeft.x,
@@ -132,7 +143,7 @@ export function SelectionFrame({
             type="button"
             aria-label={t("canvas.adjustSelection")}
             style={{ cursor: CURSORS[corner] }}
-            className={`pointer-events-auto absolute h-3.5 w-3.5 cursor-pointer touch-none rounded-sm border-2 border-accent bg-surface ${OFFSETS[corner]}`}
+            className={`absolute h-3.5 w-3.5 cursor-pointer touch-none rounded-sm border-2 border-accent bg-surface ${offset ? "" : "pointer-events-auto"} ${OFFSETS[corner]}`}
             onPointerDown={(e) => startDrag(e, corner)}
             onPointerMove={continueDrag}
             onPointerUp={endDrag}

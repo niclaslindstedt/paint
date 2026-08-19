@@ -45,6 +45,14 @@ export type SelectionControl = {
    *  floats the magnifier beside (see `loupe.ts`). */
   adjusting: Point | null;
   setAdjusting: (at: Point | null) => void;
+  /** How far the hand's drag has carried the window so far, while one is in
+   *  flight, and `null` the rest of the time. The canvas paints what the window
+   *  holds — and the outline around it — at this offset without touching the
+   *  document; the grips are elements *over* the canvas and are not painted by
+   *  it, so they need the same offset or they stay at the corners of a window
+   *  that has visibly left them (see `SelectionFrame.tsx`). */
+  carrying: Point | null;
+  setCarrying: (offset: Point | null) => void;
   /** Keep what the window holds — see below. Answers whether there was
    *  anything to keep. */
   copySelection: (data?: DataTransfer | null) => boolean;
@@ -74,6 +82,7 @@ export function useSelection(
   const copied = useRef<DraftStroke[] | null>(null);
   const [selection, setSelection] = useState<Selection | null>(null);
   const [adjusting, setAdjusting] = useState<Point | null>(null);
+  const [carrying, setCarrying] = useState<Point | null>(null);
   const selectionRef = useRef<Selection | null>(null);
   selectionRef.current = selection;
 
@@ -83,6 +92,7 @@ export function useSelection(
   useEffect(() => {
     setSelection(null);
     setAdjusting(null);
+    setCarrying(null);
   }, [openPage]);
 
   /** Keep what the window holds: on the system clipboard, so it can be pasted
@@ -193,6 +203,8 @@ export function useSelection(
     selectionRef,
     adjusting,
     setAdjusting,
+    carrying,
+    setCarrying,
     copySelection,
     copied,
     eraseSelection,

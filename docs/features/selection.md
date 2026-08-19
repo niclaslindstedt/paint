@@ -68,8 +68,9 @@ entirely outside the window lands nothing at all.
 
 Moving is the **hand**'s job. With a window up, switch to the hand (**D**) and
 drag from inside it: what is _painted_ there comes with you, and the window comes
-with that. Drag from anywhere else and the hand still pans, which is what it is
-for.
+with that — the dashed outline and the four corner grips travel with the ink as
+you drag, so you can see where it will land before you let go. Drag from
+anywhere else and the hand still pans, which is what it is for.
 
 A mark the window swallows whole simply travels. A mark the outline **crosses**
 is cut in two — the half inside goes, the half outside stays — and both halves

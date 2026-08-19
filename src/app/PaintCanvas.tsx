@@ -118,6 +118,15 @@ type Props = {
    *  lifts — the whole move, as one edit. The drag itself is shown live here and
    *  touches no document (see `selection.ts`). */
   onMoveSelection?: (dx: number, dy: number) => void;
+  /** Called as that same drag travels, with how far it has carried the window
+   *  so far — and with `null` the moment it lands or is dropped. Screen state,
+   *  like `onAdjustSelection`: nothing here reaches the document, and the edit
+   *  still arrives once, through `onMoveSelection`.
+   *
+   *  The canvas paints the marks and the outline at the offset itself; this is
+   *  for the chrome it does *not* paint — the corner grips, which are elements
+   *  over it (see `SelectionFrame.tsx`). */
+  onCarrySelection?: (offset: Point | null) => void;
   /** Called as a marquee drag slides the **window** somewhere else, leaving what
    *  is painted under it alone. Screen state, so it is reported as it moves
    *  rather than once at the end: there is no document edit to batch. */
@@ -199,6 +208,7 @@ export function PaintCanvas({
   onSelectRegion,
   selection = null,
   onMoveSelection,
+  onCarrySelection,
   onAdjustSelection,
   onEraseSelection,
   adjusting = null,
@@ -533,9 +543,10 @@ export function PaintCanvas({
       if (!moveStart.current) return;
       moveStart.current = null;
       moveBy.current = { x: 0, y: 0 };
+      onCarrySelection?.(null);
       requestPaint();
     },
-    [requestPaint],
+    [onCarrySelection, requestPaint],
   );
 
   /** Forget the press that might have become a long one. */
@@ -607,6 +618,7 @@ export function PaintCanvas({
             from: selection,
           };
           moveBy.current = { x: 0, y: 0 };
+          onCarrySelection?.({ x: 0, y: 0 });
           return;
         }
       }
@@ -782,6 +794,7 @@ export function PaintCanvas({
     if (move && move.pointerId === e.pointerId) {
       const to = documentPoint(e);
       moveBy.current = { x: to.x - move.origin.x, y: to.y - move.origin.y };
+      onCarrySelection?.(moveBy.current);
       requestPaint();
       return;
     }
@@ -895,6 +908,7 @@ export function PaintCanvas({
       const { x: dx, y: dy } = moveBy.current;
       moveStart.current = null;
       moveBy.current = { x: 0, y: 0 };
+      onCarrySelection?.(null);
       if (dx !== 0 || dy !== 0) onMoveSelection?.(dx, dy);
       // A drag that went nowhere changes no document, so nothing else will ask
       // for the frame that puts the marks back on the page.
