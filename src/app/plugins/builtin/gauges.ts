@@ -165,6 +165,21 @@ export const CRAYON_GAUGE: SizeGauge = {
   ],
 };
 
+/** The chalk, by the face it presents: a fresh corner, a worn tip, the full
+ *  face of the standard 9.5 mm board stick, the flat a stick wears once it is
+ *  written with at an angle, and the chunky playground stick. */
+export const CHALK_GAUGE: SizeGauge = {
+  min: mm(2),
+  max: mm(30),
+  steps: [
+    { px: mm(4) },
+    { px: mm(6) },
+    { px: mm(9.5) },
+    { px: mm(14) },
+    { px: mm(24) },
+  ],
+};
+
 /** The broad nib, by the width of its edge — the way a calligraphy nib has
  *  always been sold, from a Mitchell 6 up through the poster nibs. */
 export const NIB_GAUGE: SizeGauge = {

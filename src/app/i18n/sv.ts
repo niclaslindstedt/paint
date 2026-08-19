@@ -453,6 +453,11 @@ export const sv: Catalog = {
       shading: "Skuggning",
       solid: "Täckande",
     },
+    chalk: {
+      writing: "Skrivstil",
+      side: "Kritans sida",
+      heading: "Rubrik",
+    },
     calligraphy: {
       italic: "Italic",
       foundational: "Foundational",
@@ -664,6 +669,11 @@ export const sv: Catalog = {
     crayon: {
       name: "Vaxkrita",
       description: "En vaxig, kornig krita som hoppar över papprets struktur.",
+    },
+    chalk: {
+      name: "Tavelkrita",
+      description:
+        "En mjuk tavelkrita: den gnistrar kring mörka porer, stryks i ränder på bredden, dammar utanför sin egen kant och blir fetare där ett andra drag fyller strukturen.",
     },
     calligraphy: {
       name: "Kalligrafipenna",

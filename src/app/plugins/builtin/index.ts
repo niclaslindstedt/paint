@@ -87,6 +87,7 @@ import {
   ArrowIcon,
   BrushIcon,
   BucketIcon,
+  ChalkIcon,
   CircleIcon,
   CrayonIcon,
   DiamondIcon,
@@ -146,6 +147,7 @@ import {
 } from "./dials.ts";
 import {
   BRUSH_PRESETS,
+  CHALK_PRESETS,
   CRAYON_PRESETS,
   ERASER_PRESETS,
   FILL_PRESETS,
@@ -160,6 +162,7 @@ import {
 } from "./presets.ts";
 import {
   BRUSH_GAUGE,
+  CHALK_GAUGE,
   CRAYON_GAUGE,
   ERASER_GAUGE,
   HIGHLIGHTER_GAUGE,
@@ -729,6 +732,37 @@ export function registerBuiltinPlugins(): void {
     // is the pencil's companion, and a wax mark stays put under it with the
     // ink and the paint.
     behaviour: freehandBehaviour({ style: "crayon" }),
+  });
+
+  registerPlugin({
+    id: "chalk",
+    nameKey: "tools.chalk.name",
+    descriptionKey: "tools.chalk.description",
+    icon: ChalkIcon,
+    // The stick a board tray holds: it opens at the 9.5 mm face of the
+    // standard stick, because that is what writing on a board is done with,
+    // and the rack runs from a fresh corner to the playground chunk.
+    gauge: CHALK_GAUGE,
+    defaultSize: mm(9.5),
+    // Bone dry, like the crayon: dust on the wettest paper there is behaves
+    // as it does on slate, so no `wetness` at all.
+    // …and the one axis a stick of chalk has: how hard the hand is bearing
+    // down. A pale chalk mark is the board showing through the dust rather
+    // than the whole mark faded, which is why there is no opacity here (see
+    // `OPACITY` in `./dials.ts`). The chalk *simulates* its board (see
+    // `plugins/chalkSim.ts`): the stick is scrubbed over the page's own
+    // sheet, and the mark is whatever the sheet kept — so the same hand
+    // draws a different line on rough stock than on the plain page.
+    dials: [PRESSURE],
+    // The three things anyone does at a board: write, shade with the side of
+    // the stick, lean on it for a heading.
+    presets: CHALK_PRESETS,
+    // Chalk dust sits on the sheet even more loosely than graphite — a felt
+    // eraser wipes a board clean — so the rubber lifts it the way it lifts a
+    // pencil line, and the ink laid over it stays put (see
+    // `PaintPlugin.liftable`).
+    liftable: true,
+    behaviour: freehandBehaviour({ style: "chalk" }),
   });
 
   registerPlugin({
