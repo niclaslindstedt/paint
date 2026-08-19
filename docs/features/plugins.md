@@ -809,6 +809,12 @@ the even-odd rule.
 
 ## Switching one on
 
+The way in is the last button on the toolbar: a **…** in a dashed slot at the
+end of the tool row, which opens Settings straight on its Tools section. It is
+the one button in that row that picks no tool — it is there because the toolbar
+can only show the tools that are switched on, and the rest of the box should not
+have to be discovered through a menu.
+
 Settings → Tools is the toolbar with its lid off: one list, in the order the
 buttons actually sit in. Every tool wears the glyph it has in the toolbar, with
 its name, shortcut, one line of description, the two arrows that move it along

@@ -68,7 +68,7 @@ import { ToolsTab } from "./settings/tools.tsx";
 // the Canvas tab holds is the shelf that dialog offers — which sizes it lists,
 // and the named pages the user has set up beside them (see `canvasPresets.ts`).
 
-type TabId =
+export type SettingsTab =
   | "general"
   | "appearance"
   | "tools"
@@ -83,7 +83,7 @@ type TabId =
 type TKey = Parameters<ReturnType<typeof useT>>[0];
 
 type TabDef = {
-  id: TabId;
+  id: SettingsTab;
   labelKey: TKey;
   icon: (p: IconProps) => ReactNode;
 };
@@ -102,6 +102,12 @@ const TABS: TabDef[] = [
 type Props = {
   open: boolean;
   onClose: () => void;
+  /** Which section the dialog opens on. Defaults to General — the way in from
+   *  the side menu, which is asking for "settings" rather than for one of them.
+   *  The toolbar's "more tools" button asks for `"tools"` by name: it is a
+   *  shortcut to the switchboard, and landing on General would make the user
+   *  find it again every time (see `Toolbar.tsx`). */
+  initialTab?: SettingsTab;
   appearance: ThemeAppearance;
   // Live-preview setter — appearance edits paint the whole app immediately.
   setAppearance: (next: ThemeAppearance) => void;
@@ -128,6 +134,7 @@ type Props = {
 export function SettingsModal({
   open,
   onClose,
+  initialTab = "general",
   appearance,
   setAppearance,
   settings,
@@ -141,7 +148,7 @@ export function SettingsModal({
   pwa,
 }: Props) {
   const t = useT();
-  const [tab, setTab] = useState<TabId>("general");
+  const [tab, setTab] = useState<SettingsTab>(initialTab);
   const [menuOpen, setMenuOpen] = useState(false);
   const [draft, setDraft] = useState<AppSettings>(settings);
   const menuRef = useRef<HTMLButtonElement>(null);
@@ -153,7 +160,7 @@ export function SettingsModal({
     if (!open) return;
     snapshot.current = appearance;
     setDraft(settings);
-    setTab("general");
+    setTab(initialTab);
     setMenuOpen(false);
     // Only re-run when the dialog opens.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -395,8 +402,8 @@ function TabSidebar({
   t,
 }: {
   tabs: TabDef[];
-  activeTab: TabId;
-  onSelect: (id: TabId) => void;
+  activeTab: SettingsTab;
+  onSelect: (id: SettingsTab) => void;
   label: string;
   t: ReturnType<typeof useT>;
 }) {

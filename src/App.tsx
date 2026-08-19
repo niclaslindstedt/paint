@@ -53,6 +53,7 @@ import { freshId, usePaintStore } from "./app/usePaintStore.ts";
 import { useSettingsSync } from "./app/useSettingsSync.ts";
 import { useSyncEngine } from "./app/useSyncEngine.ts";
 import type { PageMakeup } from "./app/NewImageModal.tsx";
+import type { SettingsTab } from "./app/SettingsModal.tsx";
 import type { Drawing } from "./app/types.ts";
 import { status } from "./output.ts";
 
@@ -72,6 +73,7 @@ function pageInit({ transparent, ...page }: PageMakeup): Partial<Drawing> {
 const SettingsModal = lazy(() =>
   import("./app/SettingsModal.tsx").then((m) => ({ default: m.SettingsModal })),
 );
+
 const CloudSetupModal = lazy(() =>
   import("./app/CloudSetupModal.tsx").then((m) => ({
     default: m.CloudSetupModal,
@@ -163,7 +165,18 @@ export function App() {
   const [syncDetailsOpen, setSyncDetailsOpen] = useState(false);
 
   const [namespacesOpen, setNamespacesOpen] = useState(false);
+  // The Settings dialog, and which of its sections it opens on. Two ways in
+  // want two different answers: the side menu asks for "settings" and gets
+  // General, the toolbar's "more tools" button asks for the switchboard by name
+  // (see `Toolbar.tsx`). Held here rather than inside the dialog because the
+  // dialog is mounted only while it is open, so the choice has to survive from
+  // the press that opens it.
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [settingsTab, setSettingsTab] = useState<SettingsTab>("general");
+  const openSettings = (tab: SettingsTab = "general") => {
+    setSettingsTab(tab);
+    setSettingsOpen(true);
+  };
   const [changelogOpen, setChangelogOpen] = useState(false);
 
   // The top-level screen: the canvas, or the archive of shelved drawings and
@@ -433,7 +446,7 @@ export function App() {
           onOpenNamespaces={() => setNamespacesOpen(true)}
           onOpenSettings={() => {
             setDrawerOpen(false);
-            setSettingsOpen(true);
+            openSettings();
           }}
           onOpenChangelog={() => {
             setDrawerOpen(false);
@@ -505,6 +518,9 @@ export function App() {
             // nothing is listening — a docked sidebar, a pointer that can't
             // fire the gesture, or a drawer that is already open.
             menuSwipeEdge={swipeToOpen && !drawerOpen ? position.side : null}
+            // The toolbar's last button: the way to the rest of the tools,
+            // which is Settings → Tools and nowhere else.
+            onOpenToolSettings={() => openSettings("tools")}
           />
         )}
       </main>
@@ -585,6 +601,7 @@ export function App() {
           <SettingsModal
             open={settingsOpen}
             onClose={() => setSettingsOpen(false)}
+            initialTab={settingsTab}
             appearance={appearance}
             setAppearance={setAppearance}
             settings={settings}

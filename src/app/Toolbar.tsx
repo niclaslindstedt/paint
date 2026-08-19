@@ -7,6 +7,7 @@ import {
   UndoIcon,
 } from "@niclaslindstedt/oss-framework/components";
 
+import { MoreToolsIcon } from "./icons.tsx";
 import { useT } from "./i18n/index.ts";
 import { fieldHasKeyboard } from "./keys.ts";
 import { toolControl, usesInk } from "./plugins/controls.ts";
@@ -51,6 +52,15 @@ import { SizePicker } from "./toolbar/SizePicker.tsx";
 // whatever is switched on in Settings → Tools, in whatever order that page has
 // them in — so a new tool needs no change here. Keyboard shortcuts are wired
 // from the plugin descriptors for the same reason.
+//
+// **The tool band ends with the way to the tools that are not in it.** What the
+// toolbar shows is the switched-on half of a box of twenty-odd, and the other
+// half used to be reachable only through the side menu, two taps away, behind a
+// dialog nobody opens looking for a brush. A dashed "…" slot at the end of the
+// row is the whole of the fix: it is the one button in the left band that picks
+// no tool, it opens Settings straight on its Tools section rather than on
+// General, and it says "there are more of these" in the place you are already
+// looking when you want one.
 //
 // An *entry* is a button, and a button is not always one tool. A family of them
 // can share one (`ToolGroup`): the shapes button wears the shape you last held,
@@ -107,6 +117,11 @@ import { SizePicker } from "./toolbar/SizePicker.tsx";
 type Props = {
   tool: string;
   onToolChange: (id: string) => void;
+  /** Open Settings on its Tools section — what the "…" button at the end of the
+   *  tool band does. The toolbar can only show the tools that are switched on,
+   *  so the way to the rest of them has to leave the toolbar; this is the one
+   *  thing in the left band that is not a tool. */
+  onOpenToolSettings: () => void;
   /** The whole settings blob — the toolbar reads three things off it that
    *  belong together: which entries are switched on, what order they are in,
    *  and which member each group last had in hand. */
@@ -174,6 +189,7 @@ function opensPanel(entry: ToolbarEntry, plugin: PaintPlugin | undefined) {
 export function Toolbar({
   tool,
   onToolChange,
+  onOpenToolSettings,
   settings,
   color,
   onColorChange,
@@ -366,6 +382,28 @@ export function Toolbar({
             </button>
           );
         })}
+
+        {/* …and the way to the rest of them. The toolbar shows the tools that
+            are switched on, and until now the only thing that said the others
+            existed was a Settings dialog two taps into the side menu — so a box
+            of twenty-odd tools read as a box of eleven. It ends the tool band
+            rather than joining the right block because it is *about* the tools,
+            and it wears an ellipsis rather than a cog for the same reason a menu
+            does: it stands for the ones that did not fit, not for a setting.
+
+            Drawn as an outline the tools do not have, so a row of solid glyphs
+            with one dashed slot at the end reads as "and more" at a glance —
+            and so a press on it can never be mistaken for picking a tool. It is
+            never `aria-pressed`: nothing about it is a mode. */}
+        <button
+          type="button"
+          onClick={onOpenToolSettings}
+          aria-label={t("canvas.moreTools")}
+          title={t("canvas.moreTools")}
+          className="ml-0.5 inline-flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded border border-line border-dashed text-muted hover:border-accent hover:text-accent"
+        >
+          <MoreToolsIcon className="h-[23px] w-[23px]" />
+        </button>
       </div>
 
       {/* The right band: everything that is not a tool, in a two-by-two block

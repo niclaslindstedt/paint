@@ -36,7 +36,8 @@ the same [`oss-framework`](https://github.com/niclaslindstedt/oss-framework).
   paintbrush that goes from a round to a one-stroke flat on a dial, a crayon, a
   calligraphy nib)
   wait in
-  Settings → Tools, so the toolbar stays as simple as you want it and grows when
+  Settings → Tools — the **…** at the end of the toolbar opens it — so the
+  toolbar stays as simple as you want it and grows when
   you need it. Rearrange the row there too, and it rearranges here. Each tool
   remembers its own width, so a fat brush never costs you a fine pen.
 - **Sizes a shop actually sells.** A document pixel is one dot of an iPhone's
@@ -246,8 +247,9 @@ arrow, `V` the selection marquee, `T` text, `I` the colour dropper, `D` the hand
 (drag the page around) — left to right in the order a hand uses them;
 `Ctrl/Cmd + Z` undoes a mark. The hamburger top left opens the drawings — so
 does a swipe in from that edge, on anything with a touch screen — the panel on the right
-resizes, flips and mirrors the page, and Settings → Tools switches the rest of
-the media on and puts the toolbar in another order.
+resizes, flips and mirrors the page, and the **…** at the end of the toolbar
+opens Settings → Tools, which switches the rest of the media on and puts the
+toolbar in another order.
 
 To build and preview the production bundle (service worker and all):
 

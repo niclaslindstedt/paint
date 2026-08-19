@@ -202,6 +202,10 @@ type Props = {
    *  the canvas theme, and this is where the page colour and the default ink
    *  are resolved. */
   layerSave?: LayerSaveControl | null;
+  /** Open Settings on its Tools section — what the toolbar's last button does.
+   *  The screen only passes it through: which sections exist, and which one a
+   *  dialog opens on, is `App`'s business (see `SettingsModal`). */
+  onOpenToolSettings: () => void;
 };
 
 export function CanvasScreen({
@@ -216,6 +220,7 @@ export function CanvasScreen({
   menuOpen,
   dockPanel,
   layerSave = null,
+  onOpenToolSettings,
 }: Props) {
   const t = useT();
   // Bumped to ask the canvas to re-fit its view; the live zoom comes back the
@@ -1034,6 +1039,7 @@ export function CanvasScreen({
       <Toolbar
         tool={tool}
         onToolChange={pickTool}
+        onOpenToolSettings={onOpenToolSettings}
         settings={settings}
         // The toolbar shows the *resolved* ink as selected, so the swatch row
         // reflects what the next mark will actually be even before one is

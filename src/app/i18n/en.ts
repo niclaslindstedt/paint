@@ -275,6 +275,11 @@ export const en = {
     colorUnused: "This tool doesn’t draw with the ink",
     tool: "Tool",
     toolbar: "Tools",
+    // The "…" button that ends the tool band — the way to the tools that are
+    // not switched on, which is Settings → Tools (see `Toolbar.tsx`). Named for
+    // what it gets you rather than for where it takes you: "Settings" would be
+    // the third button in this app that says so.
+    moreTools: "More tools…",
     selectionActions: "Selection",
     selectionFrame: "Selection",
     adjustSelection: "Adjust the selection",

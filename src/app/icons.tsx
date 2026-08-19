@@ -49,6 +49,13 @@
 // two edges instead of one. That is most of what "too heavy" turns out to mean
 // when one of these is compared against the sheet it came from.
 //
+// The one glyph in the toolbar's tool band that is **not** an implement is the
+// ellipsis that ends it (`MoreToolsIcon`) — it stands for the tools that are
+// not in the row, and drawing it as a twelfth implement would have made it read
+// as one. It is measured against the set on ink (`strokeR`, `fill`) but not on
+// shape: a row of three dots has no aspect ratio worth comparing, and that is
+// half of why it reads as a way out of the row rather than as another tool.
+//
 // The shape marks are the exception and the reason for the `filled` prop: they
 // are not implements, they *are* the mark, so they are drawn as the outline the
 // tool draws and asked for a solid version of it too. The gradient is the one
@@ -738,6 +745,29 @@ export function ToolboxIcon({ className }: IconProps) {
       <rect x="3" y="8" width="18" height="12" rx="2" />
       <path d="M8 8V6a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
       <path d="M3 13h18" />
+    </svg>
+  );
+}
+
+/** The rest of the tools — the button that ends the toolbar's tool band and
+ *  opens Settings → Tools (see `Toolbar.tsx`).
+ *
+ *  It is the one glyph in the band that is **not** an implement, and it is drawn
+ *  as an ellipsis on purpose: every other button there says "this is what the
+ *  next mark is made with", and this one says "and there are more". A twelfth
+ *  tool drawn in the toolbox style would have read as a twelfth tool.
+ *
+ *  Solid dots rather than outlined ones — below about two units an outline
+ *  closes into a smudge (see the note at the top of this file), and a dot is
+ *  well below it. They sit on the box's midline and reach out to the same
+ *  margins the tool glyphs' corners do, so the button carries about as much ink
+ *  as the ones beside it without pretending to be a picture of anything. */
+export function MoreToolsIcon({ className }: IconProps) {
+  return (
+    <svg {...toolBase} className={className} aria-hidden="true">
+      <circle cx="3.6" cy="12" r="1.2" fill="currentColor" stroke="none" />
+      <circle cx="12" cy="12" r="1.2" fill="currentColor" stroke="none" />
+      <circle cx="20.4" cy="12" r="1.2" fill="currentColor" stroke="none" />
     </svg>
   );
 }
