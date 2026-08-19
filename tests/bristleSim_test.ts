@@ -25,7 +25,12 @@ import {
   settling,
   type BristleField,
 } from "../src/app/plugins/bristleField.ts";
-import { penFor, printOf, spanOf } from "../src/app/plugins/bristleHead.ts";
+import {
+  markSeed,
+  penFor,
+  printOf,
+  spanOf,
+} from "../src/app/plugins/bristleHead.ts";
 import {
   advanceDrag,
   drag,
@@ -295,6 +300,14 @@ describe("the two ends of a mark", () => {
     return far;
   }
 
+  /** The same straight stroke, ending at x = 430, left at `speed` — the last
+   *  stretch sampled at the gap a hand moving that fast leaves behind. */
+  function lifted(speed: number): Point[] {
+    const points = run(300, 6);
+    for (let x = 330 + speed; x <= 430; x += speed) points.push({ x, y: 70 });
+    return points;
+  }
+
   it("does not stamp the head's own print at the head of a stroke", () => {
     // A swept touch-down takes the sheet with part of the bundle and opens to
     // the ferrule over the first stretch — so the mark does *not* begin with
@@ -335,6 +348,35 @@ describe("the two ends of a mark", () => {
     expect(wide(end - 2)).toBeLessThan(wide(end - Math.round(SIZE)) * 0.9);
   });
 
+  it("ends a flick and a stop differently, off the hand's own speed", () => {
+    // A hand that stopped and then lifted leaves the stub of a standing head:
+    // short, wide and full. One still travelling leaves the bent-back tips
+    // strung out behind it — longer, narrower and paler. Same path, same
+    // brush, same first point: only the way the hand left the paper differs.
+    const slow = lifted(3);
+    const fast = lifted(48);
+    const stop = fieldOver(700, 200);
+    const flick = fieldOver(700, 200);
+    drag(stop, slow, SIZE, 0, 0, 1, 1, 1);
+    drag(flick, fast, SIZE, 0, 0, 1, 1, 1);
+    const stopped = slow[slow.length - 1]!.x;
+    const flicked = fast[fast.length - 1]!.x;
+    // The fan runs further past the last point the hand reached…
+    expect(past(flick, flicked)).toBeGreaterThan(past(stop, stopped) * 1.5);
+    // …it is paler, the head being on its way off the paper the whole time…
+    expect(meanFilm(flick, flicked - 20, flicked)).toBeLessThan(
+      meanFilm(stop, stopped - 20, stopped) * 0.8,
+    );
+    // …and the band it tapers out of is narrower.
+    const wide = (field: BristleField, x: number) => {
+      const film = painted(field);
+      let n = 0;
+      for (let y = 0; y < 200; y++) if (film[y * 700 + x]! > 0.02) n++;
+      return n;
+    };
+    expect(wide(flick, flicked - 4)).toBeLessThan(wide(stop, stopped - 4));
+  });
+
   it("prints the whole head for a press, and the same print when it jitters", () => {
     // A finger resting on the glass never holds still. The mark it leaves has
     // to be the mark a still one leaves — a press that shifted two pixels used
@@ -368,6 +410,73 @@ describe("the two ends of a mark", () => {
     expect(inked).toBeGreaterThan(Math.PI * (SIZE / 2) ** 2 * 0.6);
     // …and the jittered one is the same mark, give or take its rim.
     expect(lost / inked).toBeLessThan(0.15);
+  });
+});
+
+describe("one brush per stroke", () => {
+  /** How much two marks of the same shape differ, cell for cell. */
+  function apart(a: BristleField, b: BristleField): number {
+    const one = painted(a);
+    const two = painted(b);
+    let sum = 0;
+    let n = 0;
+    for (let i = 0; i < one.length; i++) {
+      if (one[i]! > 0.02 || two[i]! > 0.02) {
+        sum += Math.abs(one[i]! - two[i]!);
+        n++;
+      }
+    }
+    return n === 0 ? 0 : sum / n;
+  }
+
+  it("gives two strokes of the same shape two different brushes", () => {
+    // Every hashed trait of the head used to come off the strand's index
+    // alone, so one stroke was the template for the next: the same fringe at
+    // the touch-down, the same rails down the body, the same fan at the lift,
+    // every time anyone drew with the tool.
+    const here = fieldOver(600, 200);
+    const there = fieldOver(600, 200);
+    drag(here, run(400, 6), SIZE, 0, 0, 1, 1, 1);
+    drag(there, run(400, 6, 90), SIZE, 0, 0, 1, 1, 1);
+    // Laid over each other (the second starts 60 px along), the two marks are
+    // not the same mark.
+    const one = painted(here);
+    const two = painted(there);
+    let sum = 0;
+    let n = 0;
+    for (let y = 45; y < 95; y++) {
+      for (let x = 120; x < 400; x++) {
+        const a = one[y * 600 + x]!;
+        const b = two[y * 600 + x + 60]!;
+        if (a > 0.02 || b > 0.02) {
+          sum += Math.abs(a - b);
+          n++;
+        }
+      }
+    }
+    expect(sum / n).toBeGreaterThan(0.05);
+  });
+
+  it("gives the same stroke the same brush, every time it is worked out", () => {
+    // …and it has to be the same one: the mark under the hand, the mark the
+    // dried-mark store re-walks, and the mark the PNG export renders are one
+    // mark, so the randomness is hashed off the gesture rather than drawn.
+    const once = fieldOver(600, 200);
+    const again = fieldOver(600, 200);
+    drag(once, run(400, 6), SIZE, 0, 0, 1, 1, 1);
+    drag(again, run(400, 6), SIZE, 0, 0, 1, 1, 1);
+    expect(apart(once, again)).toBe(0);
+  });
+
+  it("seeds off the first point alone, so a gesture cannot re-seed as it grows", () => {
+    // The `grows` contract: nothing about a settled pixel may depend on the
+    // path after it, and the brush the stroke is being drawn with is the most
+    // settled thing there is.
+    const start = { x: 30, y: 70 };
+    expect(markSeed([start, { x: 60, y: 70 }])).toBe(
+      markSeed([start, { x: 60, y: 90 }, { x: 90, y: 90 }]),
+    );
+    expect(markSeed([start])).not.toBe(markSeed([{ x: 31, y: 70 }]));
   });
 });
 
@@ -498,7 +607,15 @@ describe("the gesture in flight", () => {
       drag(whole, points, SIZE, flatness, angle, 1, load, 1);
 
       const grown = createBristleField(spec);
-      const state = openDrag(grown, SIZE, flatness, angle, 1, load);
+      const state = openDrag(
+        grown,
+        SIZE,
+        flatness,
+        angle,
+        1,
+        load,
+        markSeed(points),
+      );
       for (let n = 1; n <= points.length; n += 3) {
         advanceDrag(state, points.slice(0, n));
       }
@@ -518,7 +635,15 @@ describe("the gesture in flight", () => {
 
   it("keeps the leaving hairs on the tail, and settles as the end moves on", () => {
     const points = run(700, 3);
-    const state = openDrag(fieldOver(800, 200), SIZE, 0, 0, 1, 1);
+    const state = openDrag(
+      fieldOver(800, 200),
+      SIZE,
+      0,
+      0,
+      1,
+      1,
+      markSeed(points),
+    );
     advanceDrag(state, points.slice(0, 100));
     // The lift's raggedness rides the provisional tail: it is in the undo
     // log, never in the settled film, so the next advance takes it back out

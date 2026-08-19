@@ -59,8 +59,14 @@
 // `PaintPlugin.grows`, so nothing about a settled touch may depend on the
 // path after it: the reservoir walk is front-to-back, the comb is hashed on
 // arc distance, the touch bead reads distance from the start, and the lift
-// fray rides the provisional tail — which stays inside the head's reach of
-// the newest points, inside the patch the trail repaints anyway.
+// fray — with everything the hand's speed at the lift decides about it (see
+// `liftFlick`) — rides the provisional tail, which stays inside the head's
+// reach of the newest points and inside the patch the trail repaints anyway.
+//
+// **Which brush the stroke got is hashed off its first point** (`markSeed`),
+// so it is random per stroke and identical every time the same stroke is
+// worked out — under the hand, out of the store, or into a PNG — and a
+// gesture cannot re-seed itself as it grows.
 //
 // **It can always say no, and the old painter is what catches it.** No
 // canvas, a head too few cells across, a mark too small on screen: a landed
@@ -81,6 +87,7 @@ import {
   BRUSH_WETNESS,
   FALLBACK_PALE,
   MARGIN_CELLS,
+  markSeed,
   PAINT_DENSITY,
   paintDryness,
   paintFlow,
@@ -113,6 +120,7 @@ import {
 export {
   advanceDrag,
   drag,
+  markSeed,
   openDrag,
   paintDryness,
   paintFlow,
@@ -450,7 +458,15 @@ function openHand(
     wick: BRUSH_WETNESS * Math.max(0, Math.min(1, ground.absorbency)),
   });
   return {
-    state: openDrag(field, size, flatness, angle, hardness, load),
+    state: openDrag(
+      field,
+      size,
+      flatness,
+      angle,
+      hardness,
+      load,
+      markSeed(points),
+    ),
     size,
     flatness,
     angle,

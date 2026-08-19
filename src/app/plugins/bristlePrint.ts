@@ -18,12 +18,18 @@ import { press, type BristleField, type HeadPress } from "./bristleField.ts";
 import type { Trace } from "./grain.ts";
 import {
   BASE_FILM,
+  FAN_FADE,
+  FAN_FLICK,
+  FAN_POINT,
+  FAN_STOP,
+  LIFT_DRAW,
   LIFT_FADE,
   TIP_LUMPS,
   TIP_SOFT,
   TIP_WOBBLE,
   TOUCH_BEAD,
   combOver,
+  entryLean,
   paintDryness,
   paintFlow,
   printOf,
@@ -49,6 +55,15 @@ export type EndShape = {
    *  for one half of a press, which is nothing *but* two halves of a print
    *  (see `dab`). */
   centre: boolean;
+  /** How far past the last point the whole of it reaches, as a share of the
+   *  head's own footprint: 1 where the head is set down or picked up off a
+   *  standing stroke, and less where it stopped first — a stub of the bundle
+   *  rather than the length of it (see `lifting`). */
+  stretch: number;
+  /** How far the print stands off the path — the touch-down's lean (see
+   *  `entryLean`), which the cap has to carry too or the mark hooks onto the
+   *  line and its own head does not. */
+  lean: number;
 };
 
 /** Lay what the head leaves past the end of a drag: the print it stamps coming
@@ -96,7 +111,7 @@ export function capAt(
   // `bearingDown`): the print at a swept touch-down is the print of *what
   // landed*, which is part of a head and not a disc the width of the ferrule.
   const print = printOf(pen, tx, ty, nx, ny);
-  const reach = print.reach * down;
+  const reach = print.reach * down * end.stretch;
   const w = print.across * down;
   if (reach < field.cell || w < field.cell * 0.5) return;
   const steps = Math.max(1, Math.ceil(reach / pen.spacing));
@@ -130,7 +145,7 @@ export function capAt(
     // centred taper they always were; an oblique blade comes out the slant it
     // is held at.
     const span = spanOf(print, out, 1);
-    const off = span.mid * down;
+    const off = span.mid * down + end.lean;
     // A bundle of hair is not turned on a lathe: the outline swells and
     // pinches by a few percent as it goes round.
     const across =
@@ -157,15 +172,44 @@ export function capAt(
 }
 
 /** The head coming down: its whole footprint, a fringe of tips all round it,
- *  and every hair laying what it is laying. */
-export function landing(pen: Pen, forward: number, centre: boolean): EndShape {
-  return { forward, reaches: pen.tips, fade: 1, centre };
+ *  and every hair laying what it is laying — standing off the path by however
+ *  far it landed off it (see `entryLean`). */
+export function landing(
+  pen: Pen,
+  forward: number,
+  centre: boolean,
+  lean = 0,
+): EndShape {
+  return { forward, reaches: pen.tips, fade: 1, centre, stretch: 1, lean };
 }
 
 /** The head coming up off a drag: shorter, tapered to the middle, ragged, and
- *  thinning as the hairs leave (see `LIFT_DRAW`). */
-export function lifting(pen: Pen): EndShape {
-  return { forward: 1, reaches: pen.draws, fade: LIFT_FADE, centre: false };
+ *  thinning as the hairs leave (see `LIFT_DRAW`) — and all three of those by
+ *  however much of a *flick* the lift was rather than a stop (see
+ *  `liftFlick`).
+ *
+ *  A hand that stopped and then lifted leaves the stub of a standing head:
+ *  short, the bundle's whole width, and dark, because the head was sitting
+ *  there while the pressure came off. A hand still travelling leaves the
+ *  opposite of each — the fan runs out to the length of the bent-back tips, it
+ *  narrows to the few hairs still bearing, and it is pale. It is why two
+ *  strokes of the same shape do not end the same way. */
+export function lifting(pen: Pen, flick: number): EndShape {
+  // The lanes, pointed against the longest of them rather than against zero:
+  // a flick is the *shape* of the fan changing, not the whole of it getting
+  // shorter — that is what `stretch` is for.
+  const point = 1 + FAN_POINT * flick;
+  for (let b = 0; b < pen.hairs; b++) {
+    pen.fan[b] = LIFT_DRAW * (pen.draws[b]! / LIFT_DRAW) ** point;
+  }
+  return {
+    forward: 1,
+    reaches: pen.fan,
+    fade: LIFT_FADE * (FAN_FADE - (FAN_FADE - 1) * flick),
+    centre: false,
+    stretch: FAN_STOP + (FAN_FLICK - FAN_STOP) * flick,
+    lean: 0,
+  };
 }
 
 /** A press and a lift with no drag: the print of the head — a disc for a
@@ -206,13 +250,16 @@ export function dab(
   // when the gesture was cut this short prints what landed, exactly as the
   // touch-down of a drag does — so the mark does not jump when a flick grows
   // long enough to be a drag (see `bearingDown`).
+  // …and off the path by however far a head still sweeping in stands off it,
+  // which is nothing at all for one that was placed (see `entryLean`).
+  const lean = entryLean(pen, at);
   capAt(
     field,
     pen,
     at,
     nx,
     ny,
-    landing(pen, 1, true),
+    landing(pen, 1, true, lean),
     down,
     film,
     dry,
@@ -225,7 +272,7 @@ export function dab(
     at,
     nx,
     ny,
-    landing(pen, -1, false),
+    landing(pen, -1, false, lean),
     down,
     film,
     dry,
