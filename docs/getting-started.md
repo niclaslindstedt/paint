@@ -49,10 +49,12 @@ the ink nor the drawing.
 - **Rectangle** (`R`), **Ellipse** (`O`) and **Line** (`L`) are dragged from one
   corner (or end) to the other.
 - **Text** (`T`) drops a caret where you tap and you type into the drawing
-  itself. A small bar over the caret offers four typefaces, bold and italic;
-  Enter breaks the line, Escape throws it away, and a press anywhere else on the
-  page keeps it. Drag the box by its edge — or by the grip at the head of that
-  bar — to put the caption somewhere else before you keep it.
+  itself. A small bar over the caret offers a menu of four typefaces, bold and
+  italic; Enter breaks the line, Escape throws it away, and a press anywhere
+  else on the page keeps it. Drag the box by its edge — or by the grip at the
+  head of that bar — to put the caption somewhere else before you keep it; near
+  the edge of the screen the bar folds onto a second row instead of sliding away
+  from the box, so the grip stays where you can pull it.
 - **Colour dropper** (`I`) makes the colour you tap the ink. Its cog sets how
   much page one tap reads: a single pixel, or the average of a disc up to eight
   millimetres across — which is what you want on anything textured, where the
