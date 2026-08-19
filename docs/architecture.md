@@ -754,8 +754,12 @@ lives by: **nothing outside it may branch on a tool id.**
   and only on the high ground by a starving one, settling gently into a
   textured stock's dips so a canvas weave prints through the slab. The head is
   what is on the end of the handle and how hard it is bearing: a bundle
-  squeezed anywhere between a round and a blade (the flatness dial, worked out
-  per touch as a projection across the path), a comb of hairs that wander and
+  squeezed anywhere between a round and a blade (the flatness dial and the
+  angle it is held at, worked out per touch as the head's footprint against
+  the way the hand is going: how wide a band it lays, and how far a blade held
+  obliquely stands its leading corner off the path — which is what cuts the
+  two ends of the mark at the blade's own angle instead of square across the
+  direction of travel), a comb of hairs that wander and
   give out — the partings — bearing across the mark like the cone it is or
   square like a chisel, and opening onto the sheet as the hand sweeps it down.
   The print is what a walk of cross-sections cannot say: the two ends of a
