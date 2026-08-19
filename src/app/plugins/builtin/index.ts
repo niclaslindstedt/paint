@@ -125,6 +125,7 @@ import { registerGroup, registerPlugin } from "../registry.ts";
 import type { PaintPlugin } from "../types.ts";
 import {
   ANGLE,
+  BEARING,
   CHISEL,
   CHISEL_FLAT,
   FEATHER,
@@ -492,7 +493,11 @@ export function registerBuiltinPlugins(): void {
     defaultSize: mm(4.8),
     // The head reaches half its width either side of the path, plus the line
     // gain and the couple of cells the paper wicks — with slack for the
-    // leaving hairs the live tail re-lays (see `PaintPlugin.reach`).
+    // leaving hairs the live tail re-lays (see `PaintPlugin.reach`). The slack
+    // is what covers a hand bearing down: a fully pressed round spreads to
+    // about 0.78 of the width either side, which is still inside this (see
+    // `reachOf` in `plugins/bristleSim.ts`, the box the paint itself is
+    // worked out in).
     reach: 1.2,
     // Body colour off a loaded head: wet enough to mix into what it is
     // painted over on any paper, nowhere near as wet as a wash.
@@ -509,7 +514,12 @@ export function registerBuiltinPlugins(): void {
     // starved head is what a thin mark is made with here (see `OPACITY` in
     // `./dials.ts`). The angle rests at −45°, the tilt a right-handed wrist
     // holds a flat at, and means nothing until the flatness leaves the round.
-    dials: [HARDNESS, LOAD, FLATNESS, ANGLE],
+    //
+    // …and last the one that is not the brush but the hand on it: how hard it
+    // is bearing, which spreads a round's cone out of its ferrule and puts it
+    // out of its own shape as it goes (see `BEARING`). It sits at the end
+    // because it is the one a stylus will move for you.
+    dials: [HARDNESS, LOAD, FLATNESS, ANGLE, BEARING],
     // Four brushes off the rack rather than four widths — the one-stroke
     // flat, the filbert and the dry brush are what those dials are *for*.
     presets: BRUSH_PRESETS,

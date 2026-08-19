@@ -800,7 +800,12 @@ lives by: **nothing outside it may branch on a tool id.**
   the way the hand is going: how wide a band it lays, and how far a blade held
   obliquely stands its leading corner off the path — which is what cuts the
   two ends of the mark at the blade's own angle instead of square across the
-  direction of travel), a comb of hairs that wander and
+  direction of travel), spread further out of that ferrule the harder the hand
+  bears on it — the pressure dial, which is the one input here that is not the
+  implement and the one a stylus will one day move per sample, so it lives in
+  the head's own footprint rather than in a branch above it, and takes the
+  bundle out of its own shape as well as out of its collar — a comb of hairs
+  that wander and
   give out — the partings — bearing across the mark like the cone it is or
   square like a chisel, and opening onto the sheet as the hand sweeps it down.
   The print is what a walk of cross-sections cannot say: the two ends of a
@@ -986,8 +991,8 @@ that setting in its `defaultSize` and dial defaults instead.
 
 `dials` is that pattern carrying a whole surface. Width is the control most
 tools share; past it they stop agreeing, so a tool lists what _it_ has to tune
-(the paintbrush's flatness, the watercolour brush's water, the bucket's
-feather) and the panel renders the list under an **Advanced** heading without
+(the paintbrush's flatness and the hand bearing on it, the watercolour brush's
+water, the bucket's feather) and the panel renders the list under an **Advanced** heading without
 learning a single dial's name. The numbers are fractions of the tool's own normal, kept per tool in
 the settings blob, and **only the ones moved off their default** are handed to a
 behaviour or written onto a mark — so a painter can keep its rest value as an

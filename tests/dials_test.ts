@@ -196,9 +196,19 @@ describe("the shipped set", () => {
   });
 
   it("keeps even those inside a panel you can still use with a thumb", () => {
-    for (const id of ["graphite", "paintbrush", "watercolor", "calligraphy"]) {
+    for (const id of ["graphite", "watercolor", "calligraphy"]) {
       expect(pluginById(id)!.dials!.length).toBeLessThanOrEqual(4);
     }
+    // The paintbrush carries one more than any of them, and the extra one is
+    // not a fifth thing about the brush: four of them say which head is in
+    // your hand — how wet and gathered, how charged, how squeezed toward a
+    // blade, and turned which way — and the last says how hard you are
+    // bearing on it (see `BEARING` in `plugins/builtin/dials.ts`). It is the
+    // axis a round brush is *bought* for, it is the one control here a stylus
+    // will one day move for you mid-stroke, and it cannot be folded into any
+    // of the other four: a pressed #6 is a wider mark that behaves worse,
+    // where a #10 is simply a bigger brush.
+    expect(pluginById("paintbrush")!.dials!.length).toBeLessThanOrEqual(5);
   });
 
   it("gives the simulated media no opacity", () => {

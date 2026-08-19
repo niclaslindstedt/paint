@@ -252,15 +252,66 @@ const ENTRY_EASE_SPREAD = 0.3;
  *  head's own print, centred, again. */
 const ENTRY_LEAN = 0.34;
 
+/** How far a head splays under the hand, and how much of that a blade gives.
+ *
+ *  The pressure dial's whole geometry (see `BEARING` in `builtin/dials.ts`).
+ *  A round is a *cone*: touch it to the paper and only the point is down, lean
+ *  on it and the belly goes down too, so the mark runs from a rigger's
+ *  hairline to something half again as wide as the ferrule — which is the one
+ *  thing a round brush is bought for, and the stroke every leaf and petal in
+ *  watercolour is made of. A blade has no belly to put down: the metal collar
+ *  holds the hairs at their width and pressing one mostly presses it *into*
+ *  the paper, so it gives about a third as much.
+ *
+ *  It is the one thing here allowed to take the mark **past the number on the
+ *  size button**, and deliberately: every other width term only ever takes
+ *  width away (see `SWELL`), because a brush cannot measure wider than its own
+ *  ferrule — but a hand can spread the hairs *out* of the ferrule, and that is
+ *  what pressing is. The button is the width this head lays at an ordinary
+ *  hand, not the widest mark it can make. */
+const SPLAY = 0.55;
+const BLADE_GIVE = 0.3;
+
+/** …and how far the dial is read, whatever a document hands over. The panel
+ *  clamps to the dial's own range; a stroke carries whatever it was written
+ *  with, and a splay that reached zero would be a mark with no width at all. */
+const LEAST_PRESS = 0.1;
+const MOST_PRESS = 3;
+
+/** How much of a mark pressing on it *disorders*, past the width — the second
+ *  half of the dial, and the half a wider brush is not.
+ *
+ *  A head bearing down is a bundle out of its own shape: the hairs are bent
+ *  under the ferrule rather than gathered by it, so they clump instead of
+ *  combing, the partings between the clumps stay open instead of the film
+ *  closing them, the outermost hairs skate over the sheet rather than laying
+ *  on it, the bundle rolls further as it is dragged, and the width pulses
+ *  where an ordinary hand's is nearly parallel. Every one of those is a term
+ *  that already exists below — the pressure only leans on them — and every one
+ *  of them is gated on the same `give`, because it is the cone that buckles
+ *  and the blade that does not.
+ *
+ *  Under an ordinary hand (`press < 1`) they run the other way: a brush held
+ *  on its point is the *tidiest* mark this tool makes. */
+const CLUMP_PRESS = 1.2;
+const CLUMP_MID = 0.9;
+const OPEN_PRESS = 0.6;
+const EDGE_PRESS = 1;
+const SWELL_PRESS = 1.3;
+const TWIST_PRESS = 1.5;
+const TWIST_CHATTER = 0.5;
+const FRAY_PRESS = 1;
+
 /** How far the width of the mark pinches as the head travels, and over how
  *  much of it — the wander of a hand and a bundle of hair that photographs as
  *  a band with no two sides parallel. It is the difference between a stroke
  *  and an extrusion.
  *
  *  It only ever takes width *away*, which is the same rule the vector painter
- *  budgets its strays under: the ferrule is the width of the ferrule, so the
- *  number on the size button is the widest mark this brush can make and a
- *  swell that reached past it would be a brush that measures wider than it is. */
+ *  budgets its strays under: the ferrule is the width of the ferrule, so a
+ *  swell that reached past it would be a brush that measures wider than it is.
+ *  The one thing that may reach past it is the hand — see `SPLAY`, which is a
+ *  bundle spread *out* of the ferrule rather than a wander inside it. */
 const SWELL = 0.13;
 const SWELL_RUN = 1.1;
 
@@ -275,6 +326,41 @@ export const TIP_SOFT = 0.16;
  *  circle drawn to the pixel is the one thing a pressed brush never leaves. */
 export const TIP_WOBBLE = 0.05;
 export const TIP_LUMPS = 7;
+
+/** How much this head gives under the hand: the whole of it for the round's
+ *  cone, `BLADE_GIVE` of it for the chisel the collar holds square (see
+ *  `SPLAY`). Everything the pressure reaches is scaled by it, which is what
+ *  makes the dial the round brush's dial. */
+function giveOf(flat: number): number {
+  return 1 - flat * (1 - BLADE_GIVE);
+}
+
+/** How much wider than its ferrule this head lays at this pressure — the
+ *  footprint's own scale, and the whole of what the dial does to the mark's
+ *  width (see `SPLAY`).
+ *
+ *  Exported because the bounds have to know it before there is a head: a mark
+ *  is simulated inside a box opened around the path, and a box drawn for the
+ *  ferrule clips a pressed stroke's edges off (see `reachOf` in
+ *  `bristleSim.ts`). */
+export function splayOf(press: number, flatness: number): number {
+  const flat = Math.max(0, Math.min(1, flatness));
+  return 1 + SPLAY * giveOf(flat) * (pressOf(press) - 1);
+}
+
+/** …and how far out of its own shape it is at that pressure, signed: positive
+ *  is a bundle bearing down and coming apart, negative is one held on its
+ *  point and gathered (see `CLUMP_PRESS`). */
+function chaosOf(press: number, flatness: number): number {
+  const flat = Math.max(0, Math.min(1, flatness));
+  return giveOf(flat) * (pressOf(press) - 1);
+}
+
+/** The dial as the head may read it (see `LEAST_PRESS`). */
+function pressOf(press: number): number {
+  if (!Number.isFinite(press)) return 1;
+  return Math.max(LEAST_PRESS, Math.min(MOST_PRESS, press));
+}
 
 /** How elliptical a head's footprint is across the path — 1 for the round's
  *  cone, 0 for the chisel that cuts its bundle off square (see `bearing` in
@@ -496,8 +582,15 @@ function varied(
 }
 
 export type Pen = {
-  /** The half-width at rest, after the sheet's line gain. */
+  /** The half-width of the head's footprint: the ferrule, after the sheet's
+   *  line gain — and after the hand, which is the one thing that may spread
+   *  the hairs past it (see `SPLAY`). Everything downstream measures the mark
+   *  against this, so a pressed head is simply a bigger head that draws
+   *  worse. */
   half: number;
+  /** …and how far past the ferrule that is, kept because the *bounds* of the
+   *  mark were opened for it before the head existed. */
+  splay: number;
   /** How thick the head is against its blade (1 round … `BLADE` flat), and
    *  which way the blade is turned. */
   minor: number;
@@ -530,6 +623,16 @@ export type Pen = {
   load: number;
   hard: number;
   spacing: number;
+  /** How far the width wanders as the head travels, how far the bundle twists
+   *  out of its lanes and how fast one swing of that runs, and how much of a
+   *  hair's film the lane beside it still gets — the four the hand's pressure
+   *  leans on (see `CLUMP_PRESS`). They are the head's rather than the
+   *  module's because a pressed head is a different bundle from a rested
+   *  one. */
+  swell: number;
+  twist: number;
+  twistRun: number;
+  bridge: number;
   /** How much of the grain's interruptions a head this narrow can show. */
   grainShare: number;
   /** The hairs: how many, what each lays, how readily each leaves the paper,
@@ -572,20 +675,33 @@ export function penFor(
   cell: number,
   ground: GroundProfile,
   seed = 0,
+  press = 1,
 ): Pen {
   const hard = Math.max(0, Math.min(1, hardness));
   const flat = Math.max(0, Math.min(1, flatness));
   const soak = Math.max(0, Math.min(1, ground.absorbency));
+  // How hard the hand is bearing on it, as the two numbers everything below
+  // reads: how far the bundle is spread out of the ferrule, and how far out of
+  // its own shape that has put it (see `SPLAY`).
+  const splay = splayOf(press, flat);
+  const chaos = chaosOf(press, flat);
   // The paper's two claims on the head: a thirsty sheet widens the line a
   // little the moment the paint lands, and drinks the reservoir as it runs.
-  const half = (size / 2) * (1 + 0.05 * soak);
+  // The hand's claim is the third, and the only one that may reach past the
+  // ferrule.
+  const half = (size / 2) * (1 + 0.05 * soak) * splay;
   // One *full* dip's run: the vector painter's own charge (`capacityOf`),
   // times what the ferrule keeps of it. The load dial is the reservoir the
   // walk starts with, not a second scale on this — a half dip runs half of
   // this because it starts half spent.
+  // …and the hand's, which is the reference's "press harder and more paint
+  // comes off": the film per unit of paper is the same whatever the pressure
+  // (see `daub`), so a head laying a band half again as wide is spending its
+  // dip half again as fast, and a stroke leaned on runs dry sooner than the
+  // same dip drawn on the point.
   const capacity =
     (((CHARGE_FLOOR + size * CHARGE_RUN) * (0.45 + hard * 1.6)) /
-      (1 + DRINK * soak)) *
+      ((1 + DRINK * soak) * splay)) *
     (1 - flat * (1 - FLAT_RESERVOIR));
   const { count } = hairLayout(size);
   const thick = new Float64Array(count);
@@ -606,7 +722,15 @@ export function penFor(
     // Not all much of a muchness: a head is a row of clumps, so a few strands
     // lay heavily and most lay their share — squared, so the broad ones stay
     // the exception they are on paper.
-    thick[b] = 0.72 + 0.56 * hashedRandom(b * 11.7, 5, seed) ** 2;
+    // …and a bundle bearing down is *clumpier* than one gathered on its
+    // point: the spread about the middle opens with the pressure, so a
+    // pressed head combs in fat and thin strands where a light one lays an
+    // even one (see `CLUMP_PRESS`). The middle itself does not move — the
+    // paint that comes off is the reservoir's business, not the comb's.
+    thick[b] =
+      CLUMP_MID +
+      (0.72 + 0.56 * hashedRandom(b * 11.7, 5, seed) ** 2 - CLUMP_MID) *
+        Math.max(0.3, 1 + CLUMP_PRESS * chaos);
     // The outer hairs go first whatever the head — they carry the least paint
     // and take the least pressure — and a dry, ungathered bundle skips all
     // over (see `hairTraits`, whose curve this is).
@@ -614,7 +738,7 @@ export function penFor(
       0.03 +
       (1 - hard) * 0.3 +
       lane * lane * (1 - hard) * 0.22 +
-      edge * 0.42 * (1.4 - hard) +
+      edge * 0.42 * (1.4 - hard) * Math.max(0.3, 1 + EDGE_PRESS * chaos) +
       hashedRandom(b * 7.1, b * 3.3, seed) * 0.07;
     // How long this hair's dry stretches run — per hair, so the skips across
     // the head are not all the same length, which would be a dashed line.
@@ -636,7 +760,10 @@ export function penFor(
     // collar can fray.
     tips[b] =
       1 -
-      TIP_FRAY * (0.35 + 0.65 * edge) * hashedRandom(b * 4.7, 13, seed) ** 1.4;
+      TIP_FRAY *
+        Math.max(0.3, 1 + FRAY_PRESS * chaos) *
+        (0.35 + 0.65 * edge) *
+        hashedRandom(b * 4.7, 13, seed) ** 1.4;
     // …and how far it draws out at a *lift*, which is a different number about
     // a different thing (see "The two ends of a mark"): the bundle rolls up
     // onto its bent-back tips from the outside in, so a lane's reach falls off
@@ -666,6 +793,7 @@ export function penFor(
   swellWalk.reset(seed * 97 + 41);
   return {
     half,
+    splay,
     minor: BLADE + (1 - BLADE) * (1 - flat),
     bladeX: Math.cos(angle),
     bladeY: Math.sin(angle),
@@ -683,12 +811,23 @@ export function penFor(
       2 *
       (0.4 + 0.6 * hashedRandom(17, seed, 53)),
     swellRun: Math.max(1, size * SWELL_RUN),
-    stiffness: size * 0.3,
+    // A wider footprint rounds off more of the gesture, for the reason the
+    // ferrule's own width does: a bar of hair cannot turn inside itself, and
+    // a splayed one is a wider bar (see `stiffen`).
+    stiffness: size * 0.3 * splay,
     load,
     hard,
     // Touches close enough together that consecutive sections tile the band
     // with no gap at this cell size.
     spacing: Math.max(0.5, cell * 0.8),
+    // The four the hand leans on. All of them the ordinary numbers under an
+    // ordinary hand, and none of them allowed past the point where the mark
+    // stops being one mark: a bundle out of shape scatters, it does not come
+    // apart into wires (see `CLUMP_PRESS`).
+    swell: SWELL * Math.max(0.2, 1 + SWELL_PRESS * chaos),
+    twist: TWIST_STRAY * Math.max(0.2, 1 + TWIST_PRESS * chaos),
+    twistRun: TWIST_RUN / Math.max(0.5, 1 + TWIST_CHATTER * chaos),
+    bridge: BRIDGE * Math.max(0, Math.min(1.4, 1 - OPEN_PRESS * chaos)),
     // The grain is the paper's, so it does not shrink with the brush: a
     // liner rides the sheet a house brush catches on (the vector painter's
     // own reading).
@@ -737,7 +876,7 @@ export function combOver(
   // What the paint left in the head bridges across a lane a hair has left (see
   // `BRIDGE`) — the difference between a slab scratched through and a row of
   // separate ribbons.
-  const bridge = BRIDGE * pen.hard * (1 - Math.min(1, dry * 1.6));
+  const bridge = pen.bridge * pen.hard * (1 - Math.min(1, dry * 1.6));
   for (let b = 0; b < pen.hairs; b++) {
     const wet = pen.walkers[b]!.at(at / pen.skipRun[b]!);
     const dryness =
@@ -766,13 +905,13 @@ export function combOver(
   // …and where the bundle has rolled to by here. Read off the arc distance
   // like everything else, so it survives resampling and a settled touch keeps
   // the answer it settled with.
-  pen.head.shift = (pen.twistWalk.at(at / TWIST_RUN) - 0.5) * TWIST_STRAY * 2;
+  pen.head.shift = (pen.twistWalk.at(at / pen.twistRun) - 0.5) * pen.twist * 2;
   return pen.head;
 }
 
 /** How much of the head is actually on the paper at this touch, as a share of
- *  the width the ferrule would lay flat — the *pressure*, which nothing else
- *  in the walk is about.
+ *  the width it would lay flat — how far it is *down*, which nothing else in
+ *  the walk is about.
  *
  *  Three things move it, and all three are things a hand does rather than
  *  things paint does:
@@ -792,7 +931,14 @@ export function combOver(
  *     percent the whole way along (see `SWELL`).
  *
  *  Every one of them reads the path *behind* this touch (or, at the lift, no
- *  further ahead than the window), which is what keeps the `grows` contract. */
+ *  further ahead than the window), which is what keeps the `grows` contract.
+ *
+ *  What is **not** here is the hand's own pressure, though it is the same
+ *  quantity: the dial is one number for the whole stroke, so it is settled
+ *  into the head's footprint once (see `splayOf` in `penFor`) rather than
+ *  multiplied back in at every touch. The day a stylus reports its own
+ *  pressure per sample, this is where it arrives — a fourth term on the same
+ *  line, reading `p` like the other three. */
 export function bearingDown(
   pen: Pen,
   p: Trace,
@@ -815,7 +961,7 @@ export function bearingDown(
     const low = FAN_DOWN - FAN_DOWN_FLICK * flick;
     down *= low + (1 - low) * (fromEnd / pen.liftWindow) ** 0.7;
   }
-  return down * (1 - SWELL * pen.swellWalk.at(p.at / pen.swellRun));
+  return down * (1 - pen.swell * pen.swellWalk.at(p.at / pen.swellRun));
 }
 
 /** How far off the path the head is standing where it lands — a lateral

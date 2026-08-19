@@ -215,7 +215,18 @@ painters in `src/app/plugins/brushes.ts`, `bristle.ts`, `waxSim.ts` and
   is turned. What a blade does is a projection worked out per touch, so one
   stroke of a flat swells and thins round a curve without the hand doing
   anything, and the paint the narrower band stops laying sideways it carries
-  as extra thickness instead. The angle keeps hold of the mark for the whole
+  as extra thickness instead. And **pressure** is the one knob on it that is
+  not the brush but your hand: draw with the point of a round and it lays a
+  line well inside its ferrule, lean on it and the belly goes down too — a
+  band half again as wide as the ferrule, its two sides no longer parallel,
+  its strands clumped, the partings between them staying open where a
+  gathered head's close over, and the dip spent sooner because more paint is
+  coming off. That one stroke — thin, swelling, thin again — is what a round
+  brush is bought for. A flat hardly notices it, because a chisel ferrule
+  holds its hairs where they are whatever you do to them, and a filbert takes
+  some of it like everything else. It is one setting for the whole stroke
+  today; it is also the number a stylus will move as you press, when there is
+  one to read. The angle keeps hold of the mark for the whole
   of it, not just where you touched down: a blade held across the way you are
   going leaves the square-cut ends a one-stroke flat is bought for, and one
   held obliquely leads with a corner, so the mark is cut off at the angle you
@@ -688,25 +699,27 @@ _is_ rather than restyle what another dial already did. For most tools that is
 one or two. The paintbrush is the exception and earns it — a head of hair is
 loaded or dry, dipped with much or little paint, squeezed toward a blade or
 left round, and turned one way or the other when it is a blade, and no one of
-those four is any of the others:
+those four is any of the others. Its fifth is not a fifth thing about the
+brush at all: it is how hard your hand is bearing on it, which is the axis a
+round brush is bought for and the one a stylus will one day move for you.
 
-| Tool                | Advanced                            |
-| ------------------- | ----------------------------------- |
-| **Paintbrush**      | hardness, load, flatness, nib angle |
-| **Watercolour**     | water, pigment, granulation         |
-| **Airbrush**        | hardness, flow                      |
-| **Pencil**          | lead, pressure                      |
-| **Crayon**          | pressure                            |
-| **Marker**          | opacity, chisel                     |
-| **Highlighter**     | opacity, chisel                     |
-| **Calligraphy pen** | nib angle, ink                      |
-| **Eraser**          | strength                            |
-| **Rubber**          | pressure                            |
-| **Paint bucket**    | opacity, feather — behind its cog   |
-| **Gradient**        | opacity, feather — behind its cog   |
-| **Dropper**         | sample size — behind its cog        |
-| Pen, shapes, text   | opacity                             |
-| Hand, select        | nothing — no section appears        |
+| Tool                | Advanced                                      |
+| ------------------- | --------------------------------------------- |
+| **Paintbrush**      | hardness, load, flatness, nib angle, pressure |
+| **Watercolour**     | water, pigment, granulation                   |
+| **Airbrush**        | hardness, flow                                |
+| **Pencil**          | lead, pressure                                |
+| **Crayon**          | pressure                                      |
+| **Marker**          | opacity, chisel                               |
+| **Highlighter**     | opacity, chisel                               |
+| **Calligraphy pen** | nib angle, ink                                |
+| **Eraser**          | strength                                      |
+| **Rubber**          | pressure                                      |
+| **Paint bucket**    | opacity, feather — behind its cog             |
+| **Gradient**        | opacity, feather — behind its cog             |
+| **Dropper**         | sample size — behind its cog                  |
+| Pen, shapes, text   | opacity                                       |
+| Hand, select        | nothing — no section appears                  |
 
 **The simulated media have no opacity, on purpose.** The pencil, the paintbrush,
 the watercolour brush, the crayon and the broad nib do not draw a line and tint
@@ -733,7 +746,11 @@ dry-brush within a stroke and a heavy one crosses most of a page.
 **Flatness** is how far the ferrule squeezes the head toward a blade: the
 round at rest, the one-stroke flat all the way up, the filbert between — and
 **nib angle** is which way that blade is turned, the same dial the broad nib
-carries. (The old hair, splay and bleed dials went with the vector painter
+carries. **Pressure** is the hand rather than the brush: on the point a round
+lays a fine, tidy line, leaned on it spreads out of its ferrule into a wide
+one whose sides wander and whose strands come apart — and it empties the head
+sooner, because a wider band is more paint off the same dip. The flat barely
+moves; the cone is what has a belly to put down. (The old hair, splay and bleed dials went with the vector painter
 they tuned: the simulation grows its streaks and its soft edges out of the
 sheet itself, so marks drawn with them still read them only where the old
 painter still draws — at sizes too small for the field.) **Flow** is the airbrush's

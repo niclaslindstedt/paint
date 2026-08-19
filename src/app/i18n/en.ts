@@ -391,6 +391,10 @@ export const en = {
       name: "Flatness: {value}%",
       hint: "Round lays the same width every way; flat lays its full width square across itself and a heavy line along its edge.",
     },
+    bearing: {
+      name: "Pressure: {value}%",
+      hint: "How hard you lean on the brush. Draw on the point for a fine, tidy line; bear down and a round spreads past its ferrule into a wide, ragged one.",
+    },
     flow: {
       name: "Flow: {value}%",
       hint: "How much paint each pass lays down. Low builds up slowly.",

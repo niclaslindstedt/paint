@@ -14,6 +14,9 @@
 //     paintbrush is the exception and earns it — a head of hair is loaded or
 //     dry, milled fine or coarse, new or worn open, on paper that wicks or
 //     paper that does not, and no one of those four is any of the others.
+//     The fifth is not the brush at all but the hand on it (see `BEARING`),
+//     which is why it does not count against the same bar: it is the one
+//     number on the panel a stylus will one day be moving for you.
 //
 // Each one is wired to something a painter actually does. A slider that scales
 // a number nobody can see is worse than no slider.
@@ -296,6 +299,54 @@ export const LOAD: ToolDial = {
   hintKey: "dials.load.hint",
   min: 0.25,
   max: 3,
+  step: 0.05,
+};
+
+/** How hard the hand is bearing on the paintbrush.
+ *
+ *  The one axis of a brush that is not the brush. The other four say which
+ *  head is in your hand; this says what you are doing with it, and on a round
+ *  it is the difference between the two marks the tool is *for*: the point of
+ *  a cone laying a rigger's hairline, and the belly of the same cone laying a
+ *  band half again as wide as its ferrule, wet and ragged at the sides. Every
+ *  petal, leaf and calligraphic sweep anyone paints with a round is that one
+ *  stroke, and the brush could not make it.
+ *
+ *  It moves two things at once, because pressing on a bundle of hair does (see
+ *  `SPLAY` in `plugins/bristleHead.ts`):
+ *
+ *   - **width**, as the hairs spread out of the ferrule — the one thing in the
+ *     tool allowed to take a mark past the number on the size button, because
+ *     it is the one thing that is a *hand* rather than a wobble;
+ *   - **disorder**, as the bundle goes out of its own shape — the strands
+ *     clump, the partings between them stay open instead of the paint closing
+ *     them, the outermost hairs skate rather than lay, the head rolls further
+ *     as it is dragged, and the band's two sides stop being parallel. A
+ *     pressed #6 is not a rested #10: it is a wider mark that is *worse*
+ *     behaved, which is what a brush leaned on actually leaves.
+ *
+ *  **The round has it and the flat barely does.** A cone has a belly to put
+ *  down; a chisel ferrule holds its hairs at their width whatever you do to
+ *  them, so it gives about a third as much — and the dial fades out with the
+ *  flatness rather than being switched off, because a filbert is halfway
+ *  between the two in this exactly as it is in everything else.
+ *
+ *  The same id as the pencil's `PRESS`, the crayon's `PRESSURE` and the
+ *  rubber's `RUB`, and the fourth implement with a hand leaning on it — a dial
+ *  is stored per tool, so none of the four reads any of the others' number.
+ *
+ *  It rests at an ordinary hand, and it goes as far under that as over it: the
+ *  point of the brush is as much of what a round is for as its belly. And when
+ *  a stylus reports its own pressure — a pen bearing down mid-stroke, which is
+ *  how this stroke is made on paper — this is the number it will be moving,
+ *  which is why the whole of what it does lives in the head's own footprint
+ *  and not in a branch anywhere above it. */
+export const BEARING: ToolDial = {
+  id: "pressure",
+  nameKey: "dials.bearing.name",
+  hintKey: "dials.bearing.hint",
+  min: 0.3,
+  max: 2,
   step: 0.05,
 };
 
