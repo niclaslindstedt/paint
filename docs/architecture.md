@@ -24,6 +24,7 @@ index.html → src/main.tsx ─┬─ src/App.tsx
 
 stores:   usePaintStore · useAppSettings · useNamespaces · useSyncEngine
 domain:   types · layers · render · plugins/* · migrations · canvas · export
+          defaults / kit (what a fresh start is made of, and putting it in hand)
           canvasSize / canvasPresets (what page a drawing is made on)
           transform (mirror / turn / resize) · handoff (between namespaces)
           sidebarDnd (which drops are legal)
@@ -148,8 +149,9 @@ never a bitmap, and that single decision pays for most of the app:
   JSON you can export, open in an editor, and reason about.
 - **The page can be re-themed.** Because ink is data rather than baked pixels, a
   mark that never chose a colour can resolve one at paint time — which is what
-  makes the light/dark canvas flip re-ink a whole sketch (see
-  [`canvas.ts`](../src/app/canvas.ts)).
+  lets the default ink, or a light/dark canvas flip, re-ink a whole sketch (see
+  [`canvas.ts`](../src/app/canvas.ts) and
+  [`defaults.ts`](../src/app/defaults.ts)).
 
 One shape kind breaks the "never a bitmap" rule on purpose: an `image` stroke —
 a picture dropped onto the page — carries its bytes inline as a `data:` URL,
@@ -1045,6 +1047,15 @@ in event handlers, and spell string-valued SVG attributes like `focusable` as
 
 Everything but the drawings is a localStorage key. The drawings are not, and
 that is the one interesting row.
+
+Four of those settings are **published** as well as stored: the page colour, the
+ink, the tool and the preset a fresh start is made of (`defaults.ts`). They are
+read by the renderer, the export path, the swatch shelves and the thumbnail
+tiles — every surface that has to resolve a page with no colour of its own or a
+mark with no ink of its own — so `App.tsx` writes them to a module-level value
+once per render rather than threading a settings object through a dozen pure
+functions, the same way the wash and lead simulations take their detail.
+Nothing else writes them; `kit.ts` is where they are put back in your hand.
 
 The document carries a **version** only on the bytes at rest; the in-memory
 model is version-free, and `migrations.ts` runs stored bytes forward on read.

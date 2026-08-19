@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 
 import {
   DARK_INK,
@@ -14,6 +14,7 @@ import {
   resolveInk,
   resolvePageColor,
 } from "../src/app/canvas.ts";
+import { SHIPPED_DEFAULTS, setPaintDefaults } from "../src/app/defaults.ts";
 import { en } from "../src/app/i18n/en.ts";
 import {
   DEFAULT_CUSTOM_THEME_COLORS_DARK,
@@ -132,18 +133,33 @@ describe("PAGE_SWATCHES", () => {
   });
 });
 
+// The three-step resolution — the drawing, then the app's defaults, then the
+// theme — is the whole of what decides which sheet is painted, so each step is
+// pinned separately.
 describe("resolvePageColor", () => {
-  it("uses the theme's sheet when the drawing pins nothing", () => {
+  afterEach(() => setPaintDefaults(SHIPPED_DEFAULTS));
+
+  it("paints the default page when the drawing pins nothing", () => {
+    expect(resolvePageColor(undefined, true)).toBe(SHIPPED_DEFAULTS.page);
+    expect(resolvePageColor(undefined, false)).toBe(SHIPPED_DEFAULTS.page);
+  });
+
+  it("falls back to the theme's sheet when the default follows it", () => {
+    setPaintDefaults({ ...SHIPPED_DEFAULTS, page: null });
     expect(resolvePageColor(undefined, true)).toBe(DARK_PAGE);
     expect(resolvePageColor(undefined, false)).toBe(LIGHT_PAGE);
   });
 
-  it("lets a pinned colour win over the theme", () => {
+  it("lets a pinned colour win over both", () => {
     expect(resolvePageColor("#fef3c7", true)).toBe("#fef3c7");
+    setPaintDefaults({ ...SHIPPED_DEFAULTS, page: "#ffffff" });
+    expect(resolvePageColor("#fef3c7", false)).toBe("#fef3c7");
   });
 });
 
 describe("resolveInk", () => {
+  afterEach(() => setPaintDefaults(SHIPPED_DEFAULTS));
+
   it("defaults to the ink that reads on the page", () => {
     expect(resolveInk(null, true)).toBe(DARK_INK);
     expect(resolveInk(null, false)).toBe(LIGHT_INK);
@@ -152,5 +168,30 @@ describe("resolveInk", () => {
   it("keeps a picked colour on either page", () => {
     expect(resolveInk("#22c55e", true)).toBe("#22c55e");
     expect(resolveInk("#22c55e", false)).toBe("#22c55e");
+  });
+
+  it("uses the default ink on a page it reads on", () => {
+    setPaintDefaults({ ...SHIPPED_DEFAULTS, ink: "#1e3a8a" });
+    expect(resolveInk(null, false)).toBe("#1e3a8a");
+    setPaintDefaults({ ...SHIPPED_DEFAULTS, ink: "#22c55e" });
+    expect(resolveInk(null, true)).toBe("#22c55e");
+  });
+
+  // The one case a default ink may not have: a mark the page swallows. A black
+  // default on a black page is not a colour, it is a lost stroke.
+  it("stands the default down when it would vanish into the page", () => {
+    setPaintDefaults({ ...SHIPPED_DEFAULTS, ink: "#000000" });
+    expect(resolveInk(null, true)).toBe(DARK_INK);
+    expect(resolveInk(null, false)).toBe("#000000");
+    setPaintDefaults({ ...SHIPPED_DEFAULTS, ink: "#fefefe" });
+    expect(resolveInk(null, false)).toBe(LIGHT_INK);
+  });
+
+  // The shipped answers are the app's two constants, not colours of their own:
+  // a white page and the ink the toolbar's dark swatch carries, so the swatch
+  // row shows the ink in hand as selected before anything is picked.
+  it("ships the app's own white sheet and near-black ink", () => {
+    expect(SHIPPED_DEFAULTS.page).toBe(LIGHT_PAGE);
+    expect(SHIPPED_DEFAULTS.ink).toBe(LIGHT_INK);
   });
 });

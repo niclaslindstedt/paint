@@ -9,11 +9,12 @@ import {
   type BackdropDarknessPreset,
 } from "@niclaslindstedt/oss-framework/theme";
 
+import { SHIPPED_DEFAULTS } from "./defaults.ts";
+import { withDefaults, withPreset } from "./kit.ts";
 import {
   cleanCanvasPresets,
   cleanHiddenSizes,
   moveInOrder,
-  type CanvasKit,
   type CanvasPreset,
 } from "./canvasPresets.ts";
 import {
@@ -51,10 +52,12 @@ import { DEFAULT_WASH_DETAIL, clampWashDetail } from "./plugins/wash.ts";
 // (The active *language* is owned by the framework i18n runtime — see
 // `i18n/index.ts`.) Persisted to localStorage so a reload keeps your choices.
 //
-// What the *page* is made of is deliberately not here: its size, its colour and
+// What *a* page is made of is deliberately not here: its size, its colour and
 // its sheet are answered once when a drawing is created (see `NewImageModal`)
 // and stored on the drawing, because a page never reflows and a mark is painted
-// into the sheet it was made on.
+// into the sheet it was made on. What is here is what a page that answered none
+// of those falls back to — the four defaults a fresh start is made of (see
+// `defaults.ts`), which are a preference and belong with the preferences.
 
 /** How far the page behind an open dialog is dimmed / blurred. The presets (and
  *  their values) are the framework theme engine's. */
@@ -100,6 +103,25 @@ export type AppSettings = {
   hiddenCanvasSizes: string[];
   /** The tool the canvas opens with — the last one used. */
   activeTool: string;
+  /** The tool a fresh start puts in your hand, by plugin id (see
+   *  `defaults.ts`). Not the same field as `activeTool`, which is a memory of
+   *  what you were last holding: this is the answer the memory is *seeded*
+   *  with, and the one an emptied sketchbook goes back to. */
+  defaultTool: string;
+  /** Which of that tool's presets it opens set to, by preset id — one the tool
+   *  ships with (`plugins/presets.ts`) or one you saved (`presets.ts`). `null`
+   *  is the tool exactly as its maker built it. */
+  defaultPreset: string | null;
+  /** The ink a mark is drawn in before a swatch is picked, or `null` to follow
+   *  the app theme the way this app used to. */
+  defaultColor: string | null;
+  /** The colour of a page that pinned none of its own, or `null` to follow the
+   *  theme. Out of the box white, on a light app and a dark one alike.
+   *
+   *  It resolves at paint time rather than being written onto a drawing, so
+   *  changing it re-sheets every page that never chose a colour — and touches
+   *  none that did (see `canvas.ts`). */
+  defaultPageColor: string | null;
   /** Which member of each tool group was last in hand, by group id — the shape
    *  the shapes button wears when you are holding something else.
    *
@@ -265,7 +287,13 @@ const BASE_SETTINGS: Omit<AppSettings, "enabledPlugins"> = {
   // New image shelf differs from the box.
   canvasPresets: [],
   hiddenCanvasSizes: [],
-  activeTool: "pencil",
+  activeTool: SHIPPED_DEFAULTS.tool,
+  // What a fresh start is: the pen at its liner, black ink, a white page — the
+  // same four answers whichever way the theme goes (see `defaults.ts`).
+  defaultTool: SHIPPED_DEFAULTS.tool,
+  defaultPreset: SHIPPED_DEFAULTS.preset,
+  defaultColor: SHIPPED_DEFAULTS.ink,
+  defaultPageColor: SHIPPED_DEFAULTS.page,
   groupTools: {},
   color: null,
   customColors: [],
@@ -418,6 +446,21 @@ function toolColors(value: unknown): Record<string, Record<string, string>> {
   return out;
 }
 
+/** Read one of the nullable defaults back: a string, or the explicit `null`
+ *  that means "follow the app theme". A blob written before the field existed
+ *  doesn't name it at all and keeps the shipped answer; a blob holding
+ *  something that is neither is a blob nothing could paint from, and falls back
+ *  the same way. */
+function optional(
+  stored: Record<string, unknown>,
+  key: string,
+  fallback: string | null,
+): string | null {
+  if (!(key in stored)) return fallback;
+  const at = stored[key];
+  return typeof at === "string" || at === null ? at : fallback;
+}
+
 /** Read a persisted settings blob back into a whole `AppSettings`.
  *
  *  Exported for the tests: it is the one place an install carries state across
@@ -491,6 +534,23 @@ export function parseSettings(raw: string): AppSettings {
   // load, which would quietly undo resetting a hardness dial back to default.
   delete (merged as { hardness?: number }).hardness;
   if (typeof merged.color !== "string") merged.color = null;
+  // The four answers a fresh start is made of. A tool or a preset this build no
+  // longer ships is *kept* rather than pruned, the way every other id in here
+  // is — `withDefaults` resolves both against what is actually offered at the
+  // moment it hands a tool over (see `kit.ts`), so a blob that travelled
+  // through a build with more tools in it comes home intact. What is guarded is
+  // only the shape: a colour is a string or the "follow the theme" null, and
+  // anything else in that field is a blob the app can't paint from.
+  if (typeof merged.defaultTool !== "string") {
+    merged.defaultTool = base.defaultTool;
+  }
+  merged.defaultPreset = optional(stored, "defaultPreset", base.defaultPreset);
+  merged.defaultColor = optional(stored, "defaultColor", base.defaultColor);
+  merged.defaultPageColor = optional(
+    stored,
+    "defaultPageColor",
+    base.defaultPageColor,
+  );
   // A default-*on* flag can't be coerced with `Boolean()` — a blob written
   // before it existed holds `undefined`, which would read as "switched off"
   // and quietly deny an upgrading install the feature it ships on.
@@ -556,6 +616,16 @@ export function useAppSettings() {
 
   const reset = useCallback(
     () => setSettings(defaultSettings()),
+    [setSettings],
+  );
+
+  /** Put the kit back to the defaults — the default tool, set to its default
+   *  preset, drawing in the default ink (see `kit.ts`). What deleting the last
+   *  sheet reaches for: a sketchbook with nothing in it hands you the same tool
+   *  a fresh install would, rather than whatever was in your hand when the last
+   *  page went. Everything else in the blob is left alone. */
+  const applyDefaults = useCallback(
+    () => setSettings((prev) => withDefaults(prev)),
     [setSettings],
   );
 
@@ -755,6 +825,7 @@ export function useAppSettings() {
     settings,
     update,
     reset,
+    applyDefaults,
     setSettings,
     setPluginEnabled,
     moveTool,
@@ -849,81 +920,6 @@ export function withLiveSettings(
 ): AppSettings {
   const next = { ...draft };
   for (const key of LIVE_SETTINGS) Object.assign(next, { [key]: live[key] });
-  return next;
-}
-
-/** `settings` with `preset` applied to `tool` — its width, and every one of its
- *  dials.
- *
- *  Pure, and exported, because it is the one step of a preset that touches
- *  persisted state: what a chip actually *does* is worth being able to drive
- *  from a test without a browser.
- *
- *  A preset with no width of its own (one for a tool that has none) writes no
- *  width. Anything else would leave a number in the blob that no mark this tool
- *  makes could ever read. */
-export function withPreset(
-  settings: AppSettings,
-  tool: string,
-  preset: PresetSettings,
-): AppSettings {
-  const plugin = pluginById(tool);
-  const kept: Record<string, number> = {};
-  for (const dial of plugin?.dials ?? []) {
-    const at = preset.dials[dial.id];
-    if (at === undefined) continue;
-    // Only what is actually off the default is written, exactly as a dragged
-    // slider writes it — a preset that happens to be the tool as it ships
-    // leaves no tuning behind at all.
-    if (at !== (dial.default ?? 1)) kept[dial.id] = at;
-  }
-  const dials = { ...settings.toolDials };
-  if (Object.keys(kept).length === 0) delete dials[tool];
-  else dials[tool] = kept;
-  return {
-    ...settings,
-    toolSizes:
-      preset.size === undefined
-        ? settings.toolSizes
-        : { ...settings.toolSizes, [tool]: preset.size },
-    toolDials: dials,
-  };
-}
-
-/** `settings` with a canvas preset's kit **put in force** — which member of each
- *  family its button opens on, and how each tool it has set up is set.
- *
- *  This is the half of a kit that cannot be a projection. Which tools are in the
- *  toolbar is read fresh on every render from the kit (see `toolbarFor`), and it
- *  has to be: nothing can *change* it while you are drawing. A width and a dial
- *  are the opposite — the size panel is one press away and moving it is the
- *  ordinary thing to do — so a kit that kept overriding them would be a panel
- *  whose sliders sprang back. So the kit is applied **when a page made on it is
- *  opened**: the app presses those preset chips for you, once, and everything
- *  after that is yours (see the effect in `App.tsx`).
- *
- *  Pure, and it hands `settings` straight back when the kit has nothing to say —
- *  so a page with a plain kit, or none, never writes to the blob at all.
- *
- *  Structurally typed on the kit rather than importing one, for the reason
- *  `toolbarFor` is: this module already imports the canvas presets, and the
- *  model must not have to import the store back. */
-export function withKit(
-  settings: AppSettings,
-  kit: CanvasKit | undefined,
-): AppSettings {
-  if (!kit) return settings;
-  let next = settings;
-  const groups = Object.entries(kit.groupTools ?? {});
-  if (groups.length > 0) {
-    next = {
-      ...next,
-      groupTools: { ...next.groupTools, ...Object.fromEntries(groups) },
-    };
-  }
-  for (const [tool, preset] of Object.entries(kit.toolSettings ?? {})) {
-    next = withPreset(next, tool, preset);
-  }
   return next;
 }
 

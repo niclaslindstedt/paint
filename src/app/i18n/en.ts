@@ -733,6 +733,25 @@ export const en = {
       developerMode: "Developer mode",
       developerModeHint: "Show the Developer tab and its diagnostics.",
     },
+    // What a fresh start is made of — the section at the head of General.
+    defaults: {
+      title: "Defaults",
+      intro:
+        "What the app opens on: the sheet, the ink, and the tool in your hand. Deleting the last drawing hands you the same thing again.",
+      page: "Page",
+      pageHint:
+        "The colour of a page that was never given one of its own. A drawing you picked a colour for keeps it.",
+      ink: "Ink",
+      inkHint:
+        "The colour a mark is drawn in until you pick a swatch. Marks already drawn without a colour of their own follow it too.",
+      tool: "Tool",
+      toolHint: "What is in your hand on a page you have just been handed.",
+      preset: "Preset",
+      presetHint:
+        "How that tool is set when it arrives — its width and its knobs. Move either afterwards and it stays where you moved it.",
+      stockPreset: "As it comes",
+      followTheme: "Follow the theme",
+    },
     tools: {
       intro:
         "Every tool in the app is a plugin, and this is the rack they hang on. Switch one on and it appears in the toolbar straight away.",

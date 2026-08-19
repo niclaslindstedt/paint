@@ -134,6 +134,14 @@ connect a storage backend yourself.
   switched off on a page made with no colour — and one layer above it. New marks land on the selected layer; a hidden layer leaves the
   screen and every export, and a transparent export leaves the Background out
   entirely.
+- Open on the same sheet every time: a page nobody has given a colour to is
+  white and is drawn on in black, in a light app and a dark one alike, with the
+  pen at its 0.5 mm liner in hand. All four answers are Settings → General →
+  Defaults — the page colour, the ink, the tool and how that tool arrives set —
+  and either colour can be set back to following the app theme. The two colours
+  resolve as a page is painted, so changing one re-sheets or re-inks every
+  drawing that never chose for itself and touches none that did; deleting the
+  last drawing hands back a blank page with the same defaults on it.
 - Keep several drawings, group them into folders, star the ones you return to,
   and archive the rest instead of deleting them.
 - Tidy the sidebar with the gesture at hand: on touch, swipe a row right to

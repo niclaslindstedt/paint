@@ -184,9 +184,12 @@ the same [`oss-framework`](https://github.com/niclaslindstedt/oss-framework).
   Dropbox, or Google Drive only if you ask for it — optionally encrypted. A
   picture you drop on the page is filed beside the document as a real image
   file, so what syncs stays small and stays browsable.
-- **A page that matches the room.** The app opens in your device's light or dark
-  setting, and the canvas follows it: dark app, dark page, light ink — flipping
-  it re-inks the sketch rather than hiding it.
+- **A sheet of paper, whatever the room.** A page nobody has given a colour to
+  is white and you draw on it in black, in a light app and a dark one alike —
+  along with the pen you are handed and the width it arrives at, all four are
+  Settings → **General → Defaults**, and either colour can be set back to
+  following the theme. Change one and every drawing that never chose for itself
+  re-sheets or re-inks; the ones that did keep what they were given.
 - **Findable when there are many.** Star the ones you keep coming back to, group
   the rest into folders, and archive what you're done with instead of deleting
   it.
