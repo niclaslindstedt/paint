@@ -4,10 +4,10 @@
 // The mechanism is in `plugins/presets.ts`; this is the *set*, kept beside the
 // registrations that hand them out, the same way the dials and the gauges are.
 //
-// **What a preset is for.** A tool here is a width and up to five dials, and a
+// **What a preset is for.** A tool here is a width and up to four dials, and a
 // beginner opening that panel has no way of knowing which combinations are a
-// tool and which are noise. Nobody arrives at dry-brush by dragging the splay
-// up, the hardness down and the opacity off and seeing what happens; they
+// tool and which are noise. Nobody arrives at dry-brush by dragging the
+// hardness down and the load off and seeing what happens; they
 // arrive at it by being handed it and told what it is called. So every medium
 // ships the handful of ways it is *actually held* — the ones a painter would
 // name if you asked them what they use this brush for — and the whole set is
@@ -192,7 +192,12 @@ export const WASH_PRESETS: readonly BuiltinPreset[] = [
     id: "glaze",
     nameKey: "presets.watercolor.glaze",
     size: mm(9.5),
-    dials: { opacity: 0.55, water: 1.1, pigment: 0.4, granulation: 0.35 },
+    // The thinness is all in the pigment, where a glaze's thinness actually is:
+    // it used to be half of it and an opacity turned down over the top, and an
+    // alpha over the finished mark dims the rim and the granulation along with
+    // the stain — the opposite of a glaze, which is *dilute paint on a dry
+    // sheet doing everything a full-strength one does*.
+    dials: { water: 1.1, pigment: 0.28, granulation: 0.35 },
   },
   {
     id: "dry",
@@ -260,7 +265,10 @@ export const CRAYON_PRESETS: readonly BuiltinPreset[] = [
     id: "shading",
     nameKey: "presets.crayon.shading",
     size: mm(12),
-    dials: { opacity: 0.75, pressure: 0.6 },
+    // A light hand and nothing else. It carried an opacity too, and a faded
+    // crayon mark is not a light one — the speckle is the paper coming through
+    // the wax, which is what easing the hand off the rest of the way gives.
+    dials: { pressure: 0.5 },
   },
   {
     id: "solid",

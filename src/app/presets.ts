@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 // Saved tools — "my sketching pencil".
 //
-// A width and five dials is a lot of decisions, and the ones worth making are
-// worth making once. Finding the 4B at 0.7 mm with the opacity eased off that a
+// A width and four dials is a lot of decisions, and the ones worth making are
+// worth making once. Finding the 4B at 0.7 mm under a light hand that a
 // particular drawing wants takes a minute of fiddling; wanting it again
 // tomorrow takes the same minute, and wanting it *and the loaded #8 round you
 // were glazing with* takes two. That is the whole case for this module: a

@@ -926,7 +926,7 @@ and applying one is a single write to the settings blob.
 
 `presets` is that same object declared from the other end — by the _tool_ rather
 than by the user. A medium is used at a handful of settings ("wet-in-wet", "2H
-construction line", "one-stroke") and five sliders is a tool a beginner cannot
+construction line", "one-stroke") and four sliders is a tool a beginner cannot
 build, so a plugin declares those and the panel offers them above the saved row.
 Both kinds meet at one type (`PresetSettings`), so matching a chip against the
 tool in hand and applying one are written once and never ask which they were

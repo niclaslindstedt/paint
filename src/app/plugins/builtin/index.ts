@@ -430,12 +430,14 @@ export function registerBuiltinPlugins(): void {
     // (see `./presets.ts`).
     gauge: PENCIL_GAUGE,
     defaultSize: mm(0.9),
-    // The two axes a pencil has — which lead is in it, and how hard the hand
-    // is bearing down on it — and the opacity every marking tool offers, for
-    // laying a light guide line in. The first two are not one dial with two
-    // names: the grade is the stick, the pressure is the hand, and the whole of
-    // sketching is holding one steady while working the other.
-    dials: [GRADE, PRESS, OPACITY],
+    // The two axes a pencil has, and the only two: which lead is in it, and
+    // how hard the hand is bearing down on it. They are not one dial with two
+    // names — the grade is the stick, the pressure is the hand, and the whole
+    // of sketching is holding one steady while working the other. There is no
+    // opacity beside them, because a light guide line is a light *hand* and a
+    // pencil that simulates its lead can draw one (see `OPACITY` in
+    // `./dials.ts`).
+    dials: [GRADE, PRESS],
     // The four pencils in the tin: a grade and a width together *are* a pencil,
     // which is the case this whole feature was built on.
     presets: PENCIL_PRESETS,
@@ -501,11 +503,11 @@ export function registerBuiltinPlugins(): void {
     // A head of hair, and the four things about one that change the mark: how
     // wet and gathered it is, how much paint it was dipped with — the charge
     // the whole drag spends before it runs dry — how far the ferrule squeezes
-    // it toward a blade, and which way the blade is turned. Plus the opacity
-    // every marking tool offers. The angle rests at −45°, the tilt a
-    // right-handed wrist holds a flat at, and means nothing until the
-    // flatness leaves the round.
-    dials: [OPACITY, HARDNESS, LOAD, FLATNESS, ANGLE],
+    // it toward a blade, and which way the blade is turned. No opacity: a
+    // starved head is what a thin mark is made with here (see `OPACITY` in
+    // `./dials.ts`). The angle rests at −45°, the tilt a right-handed wrist
+    // holds a flat at, and means nothing until the flatness leaves the round.
+    dials: [HARDNESS, LOAD, FLATNESS, ANGLE],
     // Four brushes off the rack rather than four widths — the one-stroke
     // flat, the filbert and the dry brush are what those dials are *for*.
     presets: BRUSH_PRESETS,
@@ -570,7 +572,7 @@ export function registerBuiltinPlugins(): void {
     // the thirstier the sheet is. On the solid sheet it does none of that and
     // paints exactly as it always has.
     wetness: 1,
-    dials: [OPACITY, WATER, PIGMENT, GRANULATION],
+    dials: [WATER, PIGMENT, GRANULATION],
     // …and the one setting that is about the *painting* rather than about the
     // next mark: how finely the simulation resolves. It lives under the widths
     // with the dials, because it is judged by painting with it (see
@@ -712,7 +714,11 @@ export function registerBuiltinPlugins(): void {
     // paper there is behaves exactly as it does on glass, and a wash laid over
     // one goes round it. (Resisting the water is what a wax resist *is* — see
     // `docs/features/surface.md`.)
-    dials: [OPACITY, PRESSURE],
+    // …and the one axis a stick of wax has: how hard it is bearing down. A
+    // pale crayon mark is the tooth showing through it rather than the whole
+    // mark faded, which is why there is no opacity here (see `OPACITY` in
+    // `./dials.ts`).
+    dials: [PRESSURE],
     presets: CRAYON_PRESETS,
     // Wax is caught on the tooth the same way graphite is, but it does not
     // come away the same way: a rubber worked at a crayon mark *smears* it
@@ -752,7 +758,7 @@ export function registerBuiltinPlugins(): void {
     // touch and the lift, and runs dry as the stroke spends it, so the dip
     // is the difference between a crisp word and a stroke that rails and
     // breaks up on the paper — which is a mark calligraphers make on purpose.
-    dials: [OPACITY, ANGLE, INK],
+    dials: [ANGLE, INK],
     // The three hands anyone is taught. A calligrapher changes the nib and the
     // angle they hold it at, and that is the whole difference between them.
     presets: NIB_PRESETS,

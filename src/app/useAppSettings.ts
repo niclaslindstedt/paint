@@ -126,7 +126,7 @@ export type AppSettings = {
    *  every dial — saved under a name they chose, by tool id.
    *
    *  This is the thing a professional actually wants out of a panel of dials.
-   *  Finding the 4B at 0.7 mm with the opacity eased off that a drawing wants is
+   *  Finding the 4B at 0.7 mm under a light hand that a drawing wants is
    *  work, and doing it again tomorrow is the same work; "my sketching pencil"
    *  is one press. Per tool because a preset *is* a tool — "my sketching
    *  pencil" makes no sense applied to the airbrush — and sparse, because most

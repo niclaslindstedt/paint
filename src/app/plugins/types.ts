@@ -249,10 +249,10 @@ export type ToolSwatch = {
 /** One of the settings a tool **ships with** — a whole way of holding it, under
  *  a name its maker chose.
  *
- *  A width and five dials is a lot of decisions, and a beginner has no way of
+ *  A width and four dials is a lot of decisions, and a beginner has no way of
  *  knowing which of them are a *tool* and which are noise. "Dry brush" is a
- *  tool: a splayed head, the hardness right down, the opacity eased off. Nobody
- *  arrives at it by dragging five sliders and seeing what happens — they arrive
+ *  tool: the hardness right down and barely a dip of paint on the head. Nobody
+ *  arrives at it by dragging four sliders and seeing what happens — they arrive
  *  at it by being handed it. So a plugin declares the handful of settings its
  *  medium is actually used at, and the panel offers them as chips above the
  *  ones the user saved for themselves (see `plugins/presets.ts`).
