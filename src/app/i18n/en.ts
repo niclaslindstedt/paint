@@ -128,8 +128,10 @@ export const en = {
   effects: {
     title: "Effects",
     apply: "Apply",
-    open: "Apply {name}",
-    action: "Apply\u2026",
+    // The panel row's accessible name. It says *open* rather than *apply*
+    // because that is what the press does — the row carries a sliders glyph and
+    // the applying happens in the dialog behind it.
+    open: "Open {name} options",
     scopeLabel: "Apply to",
     scopeLayer: "This layer",
     scopeDrawing: "All layers",

@@ -119,8 +119,7 @@ export const sv: Catalog = {
   effects: {
     title: "Effekter",
     apply: "Använd",
-    open: "Använd {name}",
-    action: "Använd\u2026",
+    open: "Öppna alternativ för {name}",
     scopeLabel: "Använd på",
     scopeLayer: "Det här lagret",
     scopeDrawing: "Alla lager",
