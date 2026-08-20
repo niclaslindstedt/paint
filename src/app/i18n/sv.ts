@@ -527,8 +527,18 @@ export const sv: Catalog = {
       "Ta bort ”{name}” och de {n} streck som ligger där? Ångra tar tillbaka dem.",
     marks: "{n} streck",
     empty: "Tomt",
-    hint: "Nya streck hamnar på det valda lagret. Bakgrunden bär sidans färg; dölj den så blir sidan genomskinlig.",
-    swipeHint: "Svep in från högerkanten för att öppna panelen.",
+    merge: "Slå ihop lager…",
+    mergeTitle: "Slå ihop lager",
+    mergeApply: "Slå ihop",
+    mergeInto: "Slå ihop till",
+    mergeHint:
+      "Kryssa för lagren som ska slås ihop och säg vilket de hamnar på. Allt de bär följer med — även dolda lager — i den ordning det ritades.",
+    mergeInclude: "Slå ihop {name}",
+    mergeLocked: "Låst — lås upp det för att slå ihop det",
+    mergeNoSheet: "Sidan har inget ark att slå ihop till",
+    mergePickTwo: "Kryssa för två lager att slå ihop.",
+    mergeSummary:
+      "Strecken på de andra lagren — {n} stycken — hamnar på ”{name}”, och de lagren försvinner. Ångra tar tillbaka stapeln.",
   },
   swatches: {
     from: "Från",
@@ -806,13 +816,17 @@ export const sv: Catalog = {
         "Högerpanelen med locket av: vilka avsnitt den visar, i vilken ordning, och vad som är kvar i vart och ett av dem.",
       sectionsTitle: "Avsnitt",
       sectionsHint:
-        "I den ordning panelen visar dem — flytta en rad så flyttar panelen med, eller dra ett avsnitt i greppet på dess rubrik. Att stänga av ett döljer det bara; inget du redan ritat rörs.",
+        "I den ordning panelen visar dem — flytta en rad så flyttar panelen med, eller dra ett avsnitt i dess rubrik. Att stänga av ett döljer det oftast bara; det som också ändrar dina teckningar säger till innan det försvinner.",
       itemsHint: "Vad som finns i det",
       moveUp: "Flytta {name} uppåt i panelen",
       moveDown: "Flytta {name} nedåt i panelen",
       empty:
         "Alla avsnitt är avstängda. Inställningar → Panel sätter tillbaka dem.",
       drag: "Dra {name} för att flytta det",
+      fixedHint: "Alltid på — det finns ingen annan väg till det.",
+      offConfirmLabel: "Stäng av det",
+      layersOffConfirm:
+        "Varje teckning i den här skissboken slås ihop till ett enda lager, upplåst, med allt som ligger på den — även dolda lager. Nya streck hamnar där. Ångra tar tillbaka staplarna; att slå på lager igen gör det inte.",
       pageHint: "Ändra storlek, vänd och spegla sidan — och släng teckningen.",
       effectsHint: "Dragen som ändrar hur ett streck ser ut.",
       colorHint: "Tonarbetet: nivåer, kurvor, kulör, balans.",
@@ -828,6 +842,7 @@ export const sv: Catalog = {
       layersReorderHint: "Pilarna som flyttar det valda lagret upp och ner.",
       layersDelete: "Ta bort lager",
       layersDeleteHint: "Papperskorgen på det valda lagret.",
+      layersMergeHint: "Raden under stapeln som slår ihop lager.",
       resizeHint: "Raden som öppnar Ändra storlek, med sidans mått bredvid.",
       flipHint: "Paret som vrider sidan ett kvarts varv, åt båda hållen.",
       mirrorHint:

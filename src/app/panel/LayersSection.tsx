@@ -9,7 +9,13 @@ import {
   TrashIcon,
 } from "@niclaslindstedt/oss-framework/components";
 
-import { EyeIcon, EyeOffIcon, LockIcon, UnlockIcon } from "../icons.tsx";
+import {
+  EyeIcon,
+  EyeOffIcon,
+  LockIcon,
+  MergeIcon,
+  UnlockIcon,
+} from "../icons.tsx";
 import { useT } from "../i18n/index.ts";
 import {
   canDeleteLayer,
@@ -21,6 +27,7 @@ import {
   nextLayerName,
 } from "../layers.ts";
 import { LayerThumbnail } from "../LayerThumbnail.tsx";
+import { canMergeAnything } from "../merge.ts";
 import { isItemOn } from "../panelSections.ts";
 import type { Drawing } from "../types.ts";
 import type { PaintStore } from "../usePaintStore.ts";
@@ -58,18 +65,19 @@ export function LayersSection({
   drawing,
   pageColor,
   defaultInk,
-  docked,
   open,
   onToggle,
   hiddenItems,
   drag,
   dragging,
+  onMerge,
 }: SectionProps & {
   store: PaintStore;
   drawing: Drawing;
   pageColor: string;
   defaultInk: string;
-  docked: boolean;
+  /** Open the merge dialog. Owned by the screen, like every other dialog. */
+  onMerge: () => void;
 }) {
   const t = useT();
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
@@ -270,16 +278,28 @@ export function LayersSection({
         </ul>
       )}
 
-      {/* How marks find their layer — and, on a phone, the gesture that opened
-          this. A docked panel was never opened, so it says only the half that
-          is still true. It goes with the stack: it is a note about the list, and
-          a folded list has nothing to annotate. */}
-      {open && (
-        <p className="shrink-0 border-t border-line px-3 py-2 text-[11px] leading-snug text-muted">
-          {docked
-            ? t("layers.hint")
-            : `${t("layers.hint")} ${t("layers.swipeHint")}`}
-        </p>
+      {/* Putting layers back together, under the stack rather than on the
+          heading beside the +. It is the one thing here that acts on *several*
+          rows at once, so it has nowhere to sit among the actions that hang off
+          the selected one — and a labelled row under the list reads as "…and
+          this is what you do to the whole stack".
+
+          Dim when there is no merge to make: one layer, or nothing but the
+          sheet and something locked (see `merge.ts`). */}
+      {open && on("layers:merge") && (
+        <div className="shrink-0 border-t border-line px-2 py-2">
+          <button
+            type="button"
+            onClick={onMerge}
+            disabled={!canMergeAnything(drawing)}
+            className="flex w-full cursor-pointer items-center gap-2 rounded border border-line px-2 py-1.5 text-sm text-fg hover:bg-surface-2 hover:text-fg-bright disabled:cursor-default disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-fg"
+          >
+            <MergeIcon className="h-4 w-4 shrink-0 text-muted" />
+            <span className="min-w-0 flex-1 truncate text-left">
+              {t("layers.merge")}
+            </span>
+          </button>
+        </div>
       )}
 
       {/* Losing a layer loses every mark on it. Undo brings both back, but the

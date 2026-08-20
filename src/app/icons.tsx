@@ -977,6 +977,32 @@ export function UnlockIcon({ className }: IconProps) {
   );
 }
 
+/** Merging layers — two sheets above, one below.
+ *
+ *  An action rather than an implement, and the set has a rule for those: draw
+ *  the two *states*, not an arrow between them. An arrow drawn between two
+ *  shapes has to clear both of their boxes to be seen at all, and it then owns
+ *  the glyph; the pair of sheets over the single sheet says the same thing with
+ *  ink the set can afford.
+ *
+ *  **The gaps are the glyph.** They are measured as white, not as coordinates:
+ *  a 1.75 stroke eats 0.875 off each side, so the 3.2 units between these edges
+ *  are 2.45 units of daylight — about the least that survives 18 pixels. Drawn
+ *  at the obvious 3-unit spacing the same three boxes came out 1.25 apart and
+ *  merged into one grey block at size, which is the wrong thing for this
+ *  particular glyph to do. It measures strokeR 74.9 against the chrome set's
+ *  median of 72, and `fill` 49 — the set's densest, level with the floppy, and
+ *  the price of three closed boxes. */
+export function MergeIcon({ className }: IconProps) {
+  return (
+    <svg {...base} className={className} aria-hidden="true">
+      <rect x="3.9" y="3.9" width="6" height="5.5" rx="1" />
+      <rect x="14.1" y="3.9" width="6" height="5.5" rx="1" />
+      <rect x="3.9" y="13.6" width="16.2" height="6.5" rx="1" />
+    </svg>
+  );
+}
+
 /** A placed bitmap — the picture in its frame. It belongs to the image tool,
  *  which has no button (see `image.ts`), so this is the one tool glyph drawn
  *  square-on rather than as an implement held at 45°: there is no implement. */

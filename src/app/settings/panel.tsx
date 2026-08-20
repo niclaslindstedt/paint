@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 
 import {
   ChevronDownIcon,
   ChevronUpIcon,
+  ConfirmDialog,
   ListIcon,
   PaletteIcon,
   Section,
@@ -15,6 +16,7 @@ import { useT } from "../i18n/index.ts";
 import { ImageIcon } from "../icons.tsx";
 import {
   isItemOn,
+  isSectionOn,
   orderedSections,
   type PanelSection,
 } from "../panelSections.ts";
@@ -61,6 +63,7 @@ export function PanelTab({
   setPanelSectionEnabled,
   setPanelItemEnabled,
   movePanelSection,
+  onSectionDisabled,
 }: {
   settings: AppSettings;
   setPanelSectionEnabled: (id: string, enabled: boolean) => void;
@@ -72,10 +75,22 @@ export function PanelTab({
     from: number,
     to: number,
   ) => void;
+  /** A section that costs the document something has just been switched off,
+   *  and the user has said yes to what it costs (see `PanelSection.offConfirm`).
+   *  What that then *is* belongs to whoever owns the document — this page only
+   *  knows that it was agreed to. */
+  onSectionDisabled?: (id: string) => void;
 }) {
   const t = useT();
   const sections = orderedSections(settings.panelOrder);
   const order = sections.map((section) => section.id);
+  // The section waiting on an answer — see the dialog at the foot of the page.
+  const [confirming, setConfirming] = useState<PanelSection | null>(null);
+
+  const switchOff = (section: PanelSection) => {
+    setPanelSectionEnabled(section.id, false);
+    onSectionDisabled?.(section.id);
+  };
 
   return (
     <div>
@@ -88,9 +103,14 @@ export function PanelTab({
             <li key={section.id}>
               <SectionRow
                 section={section}
-                on={!settings.hiddenPanelSections.includes(section.id)}
+                on={isSectionOn(settings.hiddenPanelSections, section)}
                 hiddenItems={settings.hiddenPanelItems}
-                onChange={(next) => setPanelSectionEnabled(section.id, next)}
+                onChange={(next) => {
+                  // Switching one *on* never costs anything and never asks.
+                  if (next) setPanelSectionEnabled(section.id, true);
+                  else if (section.offConfirmKey) setConfirming(section);
+                  else switchOff(section);
+                }}
                 onItemChange={setPanelItemEnabled}
                 onMoveUp={
                   index > 0
@@ -107,6 +127,22 @@ export function PanelTab({
           ))}
         </ul>
       </Section>
+
+      {/* Switching a section off is normally a hiding, and those go through
+          without a word. This is the other kind: the drawings themselves change
+          to match, so the switch asks first and says what it is about to do. */}
+      <ConfirmDialog
+        open={confirming !== null}
+        title={confirming ? t(confirming.titleKey) : ""}
+        description={confirming?.offConfirmKey && t(confirming.offConfirmKey)}
+        confirmLabel={t("settings.panel.offConfirmLabel")}
+        tone="danger"
+        onConfirm={() => {
+          if (confirming) switchOff(confirming);
+          setConfirming(null);
+        }}
+        onCancel={() => setConfirming(null)}
+      />
     </div>
   );
 }
@@ -150,7 +186,14 @@ function SectionRow({
 
         <span className="min-w-0 flex-1">
           <span className="block text-sm text-fg-bright">{title}</span>
-          <span className="block text-xs text-muted">{t(section.hintKey)}</span>
+          <span className="block text-xs text-muted">
+            {t(section.hintKey)}
+            {/* A section that cannot be switched off still has a switch, dimmed
+                and refusing — an empty gap where every other row has one reads
+                as a bug. The line says why, so the dead switch is an answer
+                rather than a missing feature. */}
+            {section.fixed ? ` ${t("settings.panel.fixedHint")}` : ""}
+          </span>
         </span>
 
         {/* Where it sits. The same pair of arrows the toolbar's rows carry, and
@@ -174,7 +217,13 @@ function SectionRow({
           </MoveButton>
         </span>
 
-        <Switch checked={on} label={title} onChange={onChange} />
+        <Switch
+          checked={on}
+          disabled={section.fixed === true}
+          label={title}
+          hint={section.fixed ? t("settings.panel.fixedHint") : undefined}
+          onChange={onChange}
+        />
       </div>
 
       {/* What is in it. Still switchable while the section is off — you are
@@ -199,11 +248,14 @@ function SectionRow({
                   <span className="block truncate text-sm text-fg">{name}</span>
                   <span className="block text-xs text-muted">
                     {t(item.hintKey)}
+                    {item.fixed ? ` ${t("settings.panel.fixedHint")}` : ""}
                   </span>
                 </span>
                 <Switch
                   checked={isItemOn(hiddenItems, item.id)}
+                  disabled={item.fixed === true}
                   label={name}
+                  hint={item.fixed ? t("settings.panel.fixedHint") : undefined}
                   onChange={(next) => onItemChange(item.id, next)}
                 />
               </li>

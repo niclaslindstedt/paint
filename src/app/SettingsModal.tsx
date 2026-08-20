@@ -389,6 +389,13 @@ export function SettingsModal({
               setPanelSectionEnabled={setPanelSectionEnabled}
               setPanelItemEnabled={setPanelItemEnabled}
               movePanelSection={movePanelSection}
+              // Switching the layer stack off is a promise about the document —
+              // one layer per drawing — and this is where the promise is kept.
+              // The settings page asked and was answered; what "no layers" then
+              // means to a sketchbook is the store's to carry out.
+              onSectionDisabled={(id) => {
+                if (id === "layers") store.flattenLayers();
+              }}
             />
           )}
           {activeTab === "canvas" && (

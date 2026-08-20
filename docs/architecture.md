@@ -24,7 +24,8 @@ index.html → src/main.tsx ─┬─ src/App.tsx
                            └─ src/app/PrivacyPage.tsx (lazy, mounted at /privacy)
 
 stores:   usePaintStore · useAppSettings · useNamespaces · useSyncEngine
-domain:   types · layers · render · plugins/* · migrations · canvas · export
+domain:   types · layers · merge · render · plugins/* · migrations · canvas
+          export
           defaults / kit (what a fresh start is made of, and putting it in hand)
           canvasSize / canvasPresets (what page a drawing is made on)
           transform (mirror / turn / resize) · handoff (between namespaces)
@@ -172,7 +173,11 @@ A drawing has a **stack** — an ordered list of layers, bottom first — and ea
 stroke names the layer it sits on, the same way it names the tool that drew it.
 The strokes stay in **one flat array**. `layers.ts` is the whole feature: which
 layer a mark belongs to, the paint order that falls out of it, and the counts the
-panel shows.
+panel shows. `merge.ts` is its counterpart — everything in `layers.ts` answers
+"which layer is this mark on?", and everything in `merge.ts` answers "what does
+the document look like once these layers are one layer?": the merge dialog's
+rules, and the flatten the panel-off state asks for. Both are pure, so a whole
+merge is driven in a node test without a canvas.
 
 The flat array is what makes it cheap. Undo is still `pop()` on one list; the
 migration is _nothing_ (a document with no `layers` reads as the **default
@@ -443,19 +448,33 @@ preview showing blank page looks exactly like an effect that did nothing.
 
 The right-hand panel used to be four blocks written out in order in
 `SidePanel.tsx`, which made the order the _build's_. It is the user's now: the
-sections are dragged into place by the grip on their headings, switched off
-whole, and thinned out one function at a time from Settings → Panel. None of that
+sections are dragged into place by their headings, switched off whole, and
+thinned out one function at a time from Settings → Panel. None of that
 is expressible while the order is the order statements appear in a component, so
 what the panel is made of moved to `panelSections.ts` — a pure, DOM-free registry
 of descriptors, in the shape the plugin registry uses one floor up.
 
 A descriptor says what a section is (a title, a line of explanation) and what is
 inside it that can be switched off one at a time: the page actions, the effects
-in that group, the four controls on a layer row. Item ids are namespaced by what
+in that group, the controls on the layer stack. Item ids are namespaced by what
 they are (`page:`, `effect:`, `layers:`) because they are **persisted** — the
 settings file holds the ids that are _off_ — and a bare `delete` would collide
 the moment two sections both had one. Renaming one forgets a user's choice, so
 don't.
+
+Two flags on a descriptor say what a switch is not allowed to do, and both are
+answered in `panelSections.ts` rather than in the page that draws the switches.
+`fixed` means the thing cannot be switched off at all — the **Image** section
+and **Start over** inside it, because resizing a sheet and emptying a drawing
+have no other route in the app, and a stored id naming one is ignored rather
+than obeyed, so an old build's setting cannot take it away either.
+`offConfirmKey` means switching the section off costs the _document_ something
+and has to be agreed to first: the layer stack's, because a sketchbook with no
+layers panel is one whose hidden and locked layers nothing could reach, so the
+switch flattens every drawing to a single unlocked background layer
+(`merge.ts`'s `flattenedStack`, one commit and therefore one undo step). The
+settings page knows only that the answer was yes; what "no layers" then means to
+a document is the store's.
 
 Three settings carry the arrangement, and all three are stored the way the
 toolbar's are and for the same reasons. `panelOrder` holds only the ways the
@@ -472,7 +491,13 @@ never heard of keeps the slot it was registered in rather than piling up at the
 end — which is what stops an arrangement going stale across an upgrade. The drag
 itself is the framework's `useDragDrop`, the same hook the drawings menu
 reorders with, so the only domain question the panel answers is the trivial one:
-a section may land on any section but itself.
+a section may land on any section but itself. The handlers go on the **whole
+heading**, not on the grip: the hook's touch path is a long press held still,
+and a sixteen-pixel grip is not a target a finger can hold still on — the two
+meanings are told apart by the gesture (a tap folds, a hold lifts, and the hook
+swallows the click at the end of a real drag) rather than by the pixel. The
+section's own buttons stop the press propagating, so a long press on the bin is
+a press on the bin.
 
 `SidePanel.tsx` is the shell. It renders whatever `visibleSections` hands it, in
 whatever order it comes, and the one place a section is named is the line that
