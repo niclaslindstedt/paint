@@ -34,7 +34,7 @@ the same [`oss-framework`](https://github.com/niclaslindstedt/oss-framework).
   selection marquee and the dropper — and the media that simulate their medium
   (a graphite pencil, a watercolour brush that spreads and granulates, a bristle
   paintbrush that goes from a round to a one-stroke flat on a dial, a crayon, a
-  calligraphy nib)
+  board chalk that sparkles and dusts past its own edge, a calligraphy nib)
   wait in
   Settings → Tools — the **…** at the end of the toolbar opens it — so the
   toolbar stays as simple as you want it and grows when
@@ -68,10 +68,11 @@ the same [`oss-framework`](https://github.com/niclaslindstedt/oss-framework).
   the tool it was saved from.
 - **Two ways to rub something out, one button.** The **eraser** is a hole: it
   takes off whatever it covers, at whatever strength you set it to. Press it
-  again for the **rubber**, which is a real one — it lifts pencil a little at a
-  time, leaves the paper's grain showing through what is left, never quite
-  takes all of it, and leaves ink, paint, crayon and marker exactly where they
-  are. So you can sketch in pencil, ink over the sketch, and rub the sketch out.
+  again for the **rubber**, which is a real one — it lifts pencil and chalk a
+  little at a time, leaves the paper's grain showing through what is left,
+  never quite takes all of it, and leaves ink, paint, crayon and marker exactly
+  where they are. So you can sketch in pencil, ink over the sketch, and rub the
+  sketch out.
 - **Eleven shapes, one button.** Rectangle, ellipse, line, arrow, rounded
   rectangle, triangle, diamond, pentagon, hexagon, star and double arrow share a
   single toolbar button and a single switch: press it again for the family, and
@@ -311,7 +312,8 @@ npm run preview
   squeezed toward a flat, which way the blade is turned and how hard you are
   bearing on it for the paintbrush,
   water, pigment and granulation for
-  the watercolour brush, flow for the airbrush, pressure for the crayon, the
+  the watercolour brush, flow for the airbrush, pressure for the crayon and the
+  chalk, the
   lead's grade for the pencil — 8H through 9B, as a row of chips rather than a
   slider, because there is nothing between a 2B and a 3B — the chisel of a felt
   tip for the marker and the highlighter, the angle of the nib for the
@@ -320,8 +322,8 @@ npm run preview
   rubber, a feathered edge for the paint bucket and the gradient, how much page
   one press of the dropper reads, and opacity for the pen, the felt tips, the
   shapes and type. The simulated media — pencil, paintbrush, watercolour brush,
-  crayon, broad nib — have no opacity: each is made lighter the way that medium
-  is, by the hand, the pigment or the dip. Above the
+  crayon, chalk, broad nib — have no opacity: each is made lighter the way that
+  medium is, by the hand, the pigment or the dip. Above the
   widths are two rows of whole tools, one press each: **Presets**, the ways the
   tool's own medium is used, shipped with it and each showing the mark it makes,
   and **Saved**, the ones you named yourself.

@@ -23,7 +23,7 @@ _whole_ default toolbar:
 eleven buttons, families counted as the one button they are, and everything else
 off until you ask for it. Waiting in Settings → Tools: the media that simulate
 their medium (the graphite pencil, the watercolour brush, the paintbrush, the
-crayon, the calligraphy pen). The **rubber**
+crayon, the chalk, the calligraphy pen). The **rubber**
 is not one of them: it ships with the eraser, behind the eraser's own button —
 see below.
 
@@ -34,8 +34,8 @@ which is what you usually reach for right after picking something out — and la
 the two tools that touch neither the ink nor the document:
 
 **pen · pencil · paintbrush · watercolour · airbrush · marker · highlighter ·
-crayon · calligraphy pen · erasers · fills · shapes · select · text · dropper ·
-hand**
+crayon · chalk · calligraphy pen · erasers · fills · shapes · select · text ·
+dropper · hand**
 
 The erasers sit at the end of the media shelf, one button left of the bucket,
 rather than second in the row beside the pen: taking a passage off and flooding
@@ -184,8 +184,8 @@ draft is thrown away.
 ## Brushes are their medium
 
 A tool that differs from the pen only in `lineWidth` is not a tool. The
-painters in `src/app/plugins/brushes.ts`, `bristle.ts`, `crayon.ts` and
-`graphite.ts` model what the mark is _made of_:
+painters in `src/app/plugins/brushes.ts`, `bristle.ts`, `crayon.ts`,
+`chalkSim.ts` and `graphite.ts` model what the mark is _made of_:
 
 - the **paintbrush** _simulates its paint_, the way the pencil presses a lead
   into the sheet and the calligraphy pen spends a bead of ink (see
@@ -295,6 +295,21 @@ painters in `src/app/plugins/brushes.ts`, `bristle.ts`, `crayon.ts` and
   the stick is, the face leans as you turn through a stroke so one side goes
   down solid and the other frays, and the ends fade in instead of starting
   square;
+- the **chalk** is a soft board stick scrubbed over that same sheet (see
+  `src/app/plugins/chalkSim.ts`), and it is neither the crayon nor the pencil:
+  chalk is powder, so one ordinary pass covers where a lead sparkles — and the
+  mark still never closes into solid colour, because how much dust each spot
+  of the page catches is wildly uneven and the dark pinholes that stay open
+  are the whole look of chalk on a board. A worn stick's facets plough faint
+  **streaks** along a broad drag, loose dust falls just past the edge and
+  clings here and there as a sparse halo of specks, the ends are blunt because
+  a soft stick bites the moment it lands, and a second pass packs the tooth
+  the first broke over — which is how a board hand bolds a heading.
+  **Pressure** is its one dial, the crayon's argument at the crayon's rests: a
+  light hand leaves a chain of specks the board shows through, a heavy one
+  packs the tooth nearly full, and neither makes the stick any wider. Speed
+  says almost nothing, for the pencil's reason — chalk comes off by abrasion,
+  work done over distance;
 - the **flat brush** is no longer a second tool: it is the paintbrush's
   flatness dial turned all the way up (the "One-stroke" preset), because what
   a blade does is a projection the simulation works out per touch rather than
@@ -338,16 +353,16 @@ produce identical grain instead of a mark that shimmers when you pan.
 
 ### What a rubber will not take off
 
-Graphite sits loose on the sheet and comes away; everything else stays. Ink,
-paint, felt tip, a bucket of colour and a dropped photograph have soaked into
-the paper, and a wax crayon mark smears under a rubber rather than lifting —
-so however hard you rub, only the pencil comes off. The rubber leaves all the
-rest exactly where it is — which is what finally makes the oldest workflow in
-drawing work here: **sketch it in pencil, ink over the sketch, then rub the
-sketch out.**
+Graphite and chalk sit loose on the sheet and come away; everything else
+stays. Ink, paint, felt tip, a bucket of colour and a dropped photograph have
+soaked into the paper, and a wax crayon mark smears under a rubber rather than
+lifting — so however hard you rub, only the pencil and the chalk come off. The
+rubber leaves all the rest exactly where it is — which is what finally makes
+the oldest workflow in drawing work here: **sketch it in pencil, ink over the
+sketch, then rub the sketch out.**
 
 Two flags say all of it, and nothing anywhere reads a tool's name: `lifts` on
-the rubber, `liftable` on the pencil. The renderer does the rest
+the rubber, `liftable` on the media that come away. The renderer does the rest
 — an erasing mark can only be a hole, so it takes everything for the length of
 one composite and the marks it could never have lifted are laid straight back
 over it (`relayFixed` in `relay.ts`). Ink comes back at exactly the strength it
@@ -563,6 +578,7 @@ app:
 | Marker          | Marker · Chisel · Fineliner              |
 | Highlighter     | Line of text · Broad                     |
 | Crayon          | Colouring · Shading · Solid              |
+| Chalk           | Writing · Side of the stick · Heading    |
 | Calligraphy pen | Italic · Foundational · Uncial           |
 | Paint bucket    | Flat fill · Soft edge · Wash             |
 
@@ -697,6 +713,7 @@ round brush is bought for and the one a stylus will one day move for you.
 | **Airbrush**        | hardness, flow                                |
 | **Pencil**          | lead, pressure                                |
 | **Crayon**          | pressure                                      |
+| **Chalk**           | pressure                                      |
 | **Marker**          | opacity, chisel                               |
 | **Highlighter**     | opacity, chisel                               |
 | **Calligraphy pen** | nib angle, ink                                |
@@ -709,10 +726,11 @@ round brush is bought for and the one a stylus will one day move for you.
 | Hand, select        | nothing — no section appears                  |
 
 **The simulated media have no opacity, on purpose.** The pencil, the paintbrush,
-the watercolour brush, the crayon and the broad nib do not draw a line and tint
-it — each works its mark out from a physical model, and each already has the
-dial that makes one lighter the way that medium does: the hand on the pencil and
-the crayon, the pigment in the water, the dip on the brush and on the nib. A
+the watercolour brush, the crayon, the chalk and the broad nib do not draw a
+line and tint it — each works its mark out from a physical model, and each
+already has the dial that makes one lighter the way that medium does: the hand
+on the pencil, the crayon and the chalk, the pigment in the water, the dip on
+the brush and on the nib. A
 flat alpha over the finished mark is a different picture at the same greyness —
 it fades the paper back out of the mark, which is the one thing the simulation
 is there to put in — so those tools offer the medium's own control and not both.

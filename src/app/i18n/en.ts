@@ -505,6 +505,11 @@ export const en = {
       shading: "Shading",
       solid: "Solid",
     },
+    chalk: {
+      writing: "Writing",
+      side: "Side of the stick",
+      heading: "Heading",
+    },
     calligraphy: {
       italic: "Italic",
       foundational: "Foundational",
@@ -730,6 +735,11 @@ export const en = {
       name: "Crayon",
       description:
         "A waxy, grainy stick that skips over the tooth of the page.",
+    },
+    chalk: {
+      name: "Chalk",
+      description:
+        "A soft board chalk: it sparkles around dark pinholes, streaks down a broad drag, dusts past its own edge, and bolds where a second pass fills the tooth in.",
     },
     calligraphy: {
       name: "Calligraphy pen",

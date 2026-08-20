@@ -17,6 +17,7 @@ import {
   strokeHardness,
 } from "../brushes.ts";
 import { paintInk } from "../quillSim.ts";
+import { paintChalkOn } from "../chalk.ts";
 import { paintCrayon } from "../crayon.ts";
 import { extraDials, strokeDial } from "../dials.ts";
 import { applyInk, distance, paintPath, strokeColor } from "../ink.ts";
@@ -47,6 +48,7 @@ export type FreehandStyle =
   | "line"
   | "brush"
   | "spray"
+  | "chalk"
   | "crayon"
   | "calligraphy"
   | "nib"
@@ -256,6 +258,38 @@ export function freehandBehaviour(ink: FreehandInk = {}): ToolBehaviour {
             // painter here that is handed it, because it is the one whose cost
             // is a few hundred full-radius fills rather than one path.
             detail.clip,
+          );
+          return;
+        case "chalk":
+          // The chalk *simulates* its board (see `plugins/chalkSim.ts`): a
+          // soft stick scrubbed over the page's own sheet, and the mark is
+          // whatever the sheet kept — the sparkle that never closes into
+          // solid colour, the streaks down a broad drag, the dust falling
+          // past the edge, and the second pass that bolds a letter.
+          paintChalkOn(
+            ctx2d,
+            points,
+            stroke.size,
+            scale,
+            // How hard the hand bore down — the chalk's one axis, recorded on
+            // the mark like every other dial so re-setting it later cannot
+            // re-press a line already drawn.
+            strokeDial(stroke, "pressure"),
+            // The sheet the stick is scrubbed over: its tooth is what breaks
+            // a light line into specks and holds the pinholes open in a
+            // heavy one.
+            sheet,
+            // The simulation lays a *load* and works the alpha out itself,
+            // so it needs the colour as a value (see `chalkSim.ts`).
+            strokeColor(stroke),
+            // …and the patch the caller is actually keeping, so a long sweep
+            // being repainted where it grew costs the patch rather than the
+            // sweep (see `PaintDetail.clip`).
+            detail.clip,
+            // …and whether this mark is still under the hand, which decides
+            // only whether the dried-mark store is consulted (see
+            // `chalkStore.ts`).
+            detail.live === true,
           );
           return;
         case "crayon":

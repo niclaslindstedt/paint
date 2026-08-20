@@ -94,6 +94,7 @@ describe("registry", () => {
       "marker",
       "highlighter",
       "crayon",
+      "chalk",
       "calligraphy",
       "eraser",
       "rubber",

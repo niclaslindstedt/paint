@@ -899,6 +899,17 @@ lives by: **nothing outside it may branch on a tool id.**
   a simulation that can always answer "not me" — no canvas, a mark pulled back to
   a hairline, a lead finer than a couple of cells — so `graphite.ts` draws the
   mark instead and no drawing ever fails to open.
+- `chalkField.ts` / `chalkSim.ts` / `chalkStore.ts` / `chalk.ts` — the board
+  chalk, on the lead's whole arrangement one shelf along: a field that knows
+  chalk dust and the sheet and nothing about gestures, a sim that walks one
+  over it, a dried-mark store keyed the lead's way (device pitch and all), and
+  the seam whose fall-through is a plain path paled by the hand that drew it.
+  It reads the **same** `sheetDip` the pencil reads, so a chalk line and a
+  pencil line agree about where the page stands high — and everything that
+  makes it chalk rather than graphite is its own: a soft stick that covers in
+  one pass yet never closes into solid colour (the grip's wide spread keeps
+  the dark pinholes open), the streak lanes a worn face ploughs down a broad
+  drag, and the sparse dust that falls just past the edge.
 - `rubber.ts` — the rubber, and the only painter here whose alpha is spent
   taking something off. It reads `graphite.ts`'s own lattice rather than one of
   its own — that is the point of it: a rubber lifts from the peaks a lead
@@ -925,9 +936,9 @@ it could never have lifted straight back over the hole (`relayFixed` in
 `relay.ts`). The mask they come back through is the erasing lanes painted the
 ordinary way round, which is _to the pixel_ the fraction that went, so opaque
 ink returns at the strength it had. The two flags are the whole of the tool
-knowledge involved: `lifts` on the rubber, `liftable` on graphite — and only
-graphite: wax smears under a rubber rather than lifting, so a crayon mark stays
-put with the ink. What it costs is stacking order inside the rubbed patch — the
+knowledge involved: `lifts` on the rubber, `liftable` on the media that sit
+loose — graphite and the chalk: wax smears under a rubber rather than lifting,
+so a crayon mark stays put with the ink. What it costs is stacking order inside the rubbed patch — the
 ink goes back on top rather than back into its place in the stack — and the
 pixels that pays for are pixels being rubbed away anyway.
 

@@ -60,6 +60,7 @@ describe("the shipped set", () => {
     expect(withPresets.map((p) => p.id).sort()).toEqual([
       "airspray",
       "calligraphy",
+      "chalk",
       "crayon",
       "eraser",
       "filler",
