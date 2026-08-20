@@ -102,15 +102,18 @@ mean _everything_ (the page and the marks together) or the _canvas only_ (a
 bigger sheet for more room, a smaller one to crop), and draws the before and
 after so you can see which edge is about to go. Under it are **Effects** and the
 **layer stack**: add a layer, pick which one you are drawing on, hide it, move it
-up or down, or delete it. A drawing starts as a single layer, so that half stays
-out of the way until you want it. **Colour** is at the bottom.
-[More](features/canvas.md).
+up or down, delete it, or **merge** several of them onto one. A drawing starts as
+a single layer, so that half stays out of the way until you want it. **Colour**
+is at the bottom. [More](features/canvas.md).
 
-**The order is yours.** Every heading has a grip at its left end — drag it and
-the section goes where you drop it. And **Settings → Panel** takes a section out
-of the panel altogether, or a single thing inside one: a page action, an effect
-by name, or one of the four controls on a layer row. Nothing you have drawn is
-touched either way. [More](features/panel.md).
+**The order is yours.** Drag a heading — hold it for a moment first on a touch
+screen — and the section goes where you drop it. And **Settings → Panel** takes a
+section out of the panel altogether, or a single thing inside one: a page action,
+an effect by name, or one of the controls on the layer stack. **Image** and
+**Start over** inside it are the two that stay, because nothing else in the app
+does their job; and switching **Layers** off asks first, because it merges every
+drawing down to one layer. Nothing else you have drawn is touched.
+[More](features/panel.md).
 
 ## Colour and size
 

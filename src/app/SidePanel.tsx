@@ -81,6 +81,8 @@ type Props = {
   /** Open one effect's options. The dialog is the screen's, like the resize
    *  one — this panel says which effect, and nothing else about it. */
   onEffect: (kind: EffectKind) => void;
+  /** Open the merge-layers dialog — the screen's too, for the same reason. */
+  onMerge: () => void;
   /** Turn the page around (see `transform.ts`). Routed through the screen
    *  rather than straight to the store because a transform that changes the
    *  page's shape also changes what the *view* should be looking at, and the
@@ -106,6 +108,7 @@ export function SidePanel({
   docked = false,
   onResize,
   onEffect,
+  onMerge,
   onTransform,
   onClose,
 }: Props) {
@@ -170,8 +173,8 @@ export function SidePanel({
       aria-label={t("layers.title")}
       className={
         docked
-          ? "relative flex w-56 shrink-0 flex-col border-l border-line bg-surface"
-          : "absolute inset-y-0 right-0 z-20 flex w-56 max-w-[80%] flex-col border-l border-line bg-surface shadow-2xl"
+          ? "relative flex w-56 shrink-0 flex-col overflow-y-auto overscroll-contain border-l border-line bg-surface"
+          : "absolute inset-y-0 right-0 z-20 flex w-56 max-w-[80%] flex-col overflow-y-auto overscroll-contain border-l border-line bg-surface shadow-2xl"
       }
     >
       {sections.map((section) => {
@@ -180,11 +183,21 @@ export function SidePanel({
         const lifted = dnd.dragging === section.id;
         // The stack is the one section that takes the room that is left: it is
         // a list of unknown length, and the sections around it are a handful of
-        // rows each. `min-h-0` is what lets it give that room back when the
-        // panel is short, so a section under it is never pushed off the bottom.
+        // rows each.
+        //
+        // It gives that room back when the panel is short — but only **down to
+        // a floor**, and the floor is why the panel scrolls at all. Squeezed to
+        // nothing it did not vanish quietly: its list has a scroll of its own,
+        // so the box collapsed while the row under the list (the merge button,
+        // the note before it) kept its height and printed itself over the next
+        // section's heading. A panel of eight colour adjustments on a laptop is
+        // enough to do it. So the stack keeps a couple of rows and a footer's
+        // worth of height whatever else is showing, and anything that then
+        // doesn't fit is reached by scrolling the panel rather than by drawing
+        // two things in one place.
         const stretch =
           open && !section.madeOfItems
-            ? "flex min-h-0 flex-1 flex-col"
+            ? "flex min-h-44 flex-1 flex-col"
             : "shrink-0";
         const shared = {
           section,
@@ -217,7 +230,7 @@ export function SidePanel({
                 drawing={drawing}
                 pageColor={pageColor}
                 defaultInk={defaultInk}
-                docked={docked}
+                onMerge={onMerge}
               />
             ) : (
               <EffectsSection {...shared} onEffect={onEffect} />

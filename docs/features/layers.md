@@ -80,12 +80,38 @@ preview can never disagree with the drawing.
   **Image** heading, which throws away every mark, every layer and the page
   colour in one step. (Undo brings any of it back in one step, as with every
   other edit.)
+- **Merge layers…** — the row under the stack. It opens a dialog: tick the
+  layers to put together, say which one they land on, and press Merge. See
+  below.
+
+## Merging layers
+
+A stack you have finished arranging is often a stack you would rather stop
+carrying. **Merge layers…** puts several of them on one:
+
+- **Tick the layers.** They are listed the way the panel lists them, with the
+  same previews, so the row you tick is the row you were looking at.
+- **Say where they land.** The destination is one of the ticked layers, and the
+  marks arrive on it in the order they were painted — a mark that was above
+  another stays above it.
+- **Nothing is thrown away.** A **hidden** layer can be merged like any other,
+  and what was on it comes out where you can see it — merging is not a way of
+  deleting a layer you had switched off. Undo puts the whole stack back.
+- **Locked layers stay out of it**, in both directions: they cannot be merged
+  away and nothing can be merged onto them. Unlock one first if you meant to
+  include it — the padlock is on its row.
+- **The Background can be merged onto but never away.** It is the page, so it
+  cannot leave the stack; merging everything onto it is how you flatten a
+  drawing down to its sheet. It has to be unlocked first, and a page whose sheet
+  is switched off (a transparent page) cannot be the destination — the marks
+  would land on the one layer nothing paints.
 
 ## What layers are not, yet
 
 Deliberately simple for now: no per-layer opacity, no blend modes, no renaming,
-no merging, and no moving marks from one layer to another after they are drawn.
-The stack, what is on it, and what order it is in — that is the whole feature.
+and no moving marks from one layer to another after they are drawn (merging two
+layers is the nearest thing). The stack, what is on it, and what order it is in —
+that is the whole feature.
 The Background carries the page colour but is not where you _choose_ it — that
 is the New image dialog, when the page is made. Its **eye** is the exception, and
 it is not a small one: switching the Background off is exactly what "no page

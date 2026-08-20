@@ -5,6 +5,7 @@ import { EFFECTS } from "../src/app/effects.ts";
 import {
   effectItemId,
   isItemOn,
+  isSectionOn,
   itemsOn,
   orderedSections,
   PANEL_SECTIONS,
@@ -90,8 +91,42 @@ describe("switching things off", () => {
     ]);
   });
 
-  it("hands back nothing when every section is off", () => {
-    expect(visibleSections([], ids(PANEL_SECTIONS), [])).toEqual([]);
+  it("keeps the fixed sections when every section is off", () => {
+    // Switching everything off leaves the page's own section standing: it is
+    // the only way to resize a drawing or to empty one, and there is no second
+    // route to either.
+    expect(ids(visibleSections([], ids(PANEL_SECTIONS), []))).toEqual(["page"]);
+  });
+
+  it("refuses to switch off what nothing else can reach", () => {
+    // The page's section and its bin are `fixed`: a stored list naming them —
+    // written by a build that let them go, or edited by hand — is ignored
+    // rather than obeyed.
+    const page = PANEL_SECTIONS.find((s) => s.id === "page")!;
+    expect(page.fixed).toBe(true);
+    expect(isSectionOn(["page"], page)).toBe(true);
+    expect(isItemOn(["page:reset"], "page:reset")).toBe(true);
+    expect(ids(visibleSections([], ["page"], ["page:reset"]))).toContain(
+      "page",
+    );
+  });
+
+  it("still lets the page's other rows go", () => {
+    expect(isItemOn(["page:mirror"], "page:mirror")).toBe(false);
+    // …but the section outlives them: the bin cannot be switched off, so the
+    // section is never emptied out a row at a time either.
+    const page = PANEL_SECTIONS.find((s) => s.id === "page")!;
+    const every = page.items.map((item) => item.id);
+    expect(itemsOn(page, every).map((item) => item.id)).toEqual(["page:reset"]);
+    expect(sectionHasContent(page, every)).toBe(true);
+  });
+
+  it("marks the stack as costing the document to switch off", () => {
+    // The one section whose absence is more than a hiding — the drawings are
+    // merged down to a layer each — so the settings row has a line to ask with.
+    const layers = PANEL_SECTIONS.find((s) => s.id === "layers")!;
+    expect(layers.offConfirmKey).toBeTruthy();
+    expect(PANEL_SECTIONS.filter((s) => s.offConfirmKey)).toHaveLength(1);
   });
 
   it("hides and reorders at the same time", () => {

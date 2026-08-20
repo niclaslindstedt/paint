@@ -28,6 +28,7 @@ import {
   strokesExcept,
 } from "./layers.ts";
 import { turnBitmap } from "./images.ts";
+import { flattenedStack, mergedStack } from "./merge.ts";
 import { parseDoc } from "./migrations.ts";
 import type { BitmapTurn, PageEdit } from "./transform.ts";
 import {
@@ -625,6 +626,48 @@ export function usePaintStore(
     [activeDrawing, patchActive],
   );
 
+  /** Merge layers into one — every mark they hold, in the order it was
+   *  painted, on the layer that is left. One undo step, like every other edit
+   *  to the stack. What may be merged with what is `merge.ts`'s to say. */
+  const mergeLayers = useCallback(
+    (sources: readonly string[], target: string) => {
+      const active = activeDrawing;
+      if (!active) return;
+      const merged = mergedStack(active, sources, target);
+      if (!merged) return;
+      patchActive(merged);
+    },
+    [activeDrawing, patchActive],
+  );
+
+  /** Put every drawing in the sketchbook on a single layer — what switching the
+   *  layers panel off asks for, once the dialog has said what it costs (see
+   *  `merge.ts`).
+   *
+   *  Every drawing rather than the open one, because the thing being switched
+   *  off is not a property of a page: the promise is "this sketchbook has one
+   *  layer per drawing", and a stack left on the page you happen not to be
+   *  looking at would be one nothing could reach — its hidden layers invisible,
+   *  its locked ones unreachable, with the panel that manages them gone. Archived
+   *  pages are in it for the same reason: restoring one should not bring a stack
+   *  back with it.
+   *
+   *  One `commit`, so the whole thing is one undo step — and `updatedAt` is
+   *  deliberately left alone. This is a change of mode, not an afternoon's work
+   *  on a page, and restamping every drawing at once would throw away the
+   *  most-recently-edited order the drawings menu is read in. */
+  const flattenLayers = useCallback(() => {
+    let changed = false;
+    const drawings = data.drawings.map((drawing) => {
+      const flat = flattenedStack(drawing);
+      if (!flat) return drawing;
+      changed = true;
+      return { ...drawing, ...flat };
+    });
+    if (!changed) return;
+    commit({ ...data, drawings });
+  }, [commit, data]);
+
   /** Create a page and open it, optionally filed into a folder.
    *
    *  `init` seeds the new page — the size and the strokes an image dropped onto
@@ -933,6 +976,8 @@ export function usePaintStore(
     setLayerLocked,
     moveLayer,
     deleteLayer,
+    mergeLayers,
+    flattenLayers,
     addDrawing,
     duplicateDrawing,
     renameDrawing,

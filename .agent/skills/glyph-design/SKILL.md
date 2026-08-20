@@ -112,6 +112,11 @@ itself as the reference. Leave `sheets` out of the config; `measure` then
 reports each glyph against the **set's own median** weight and flags the
 outliers. A new glyph is finished when it is not an outlier.
 
+**Say which set first.** An icon file can hold more than one — a set is the
+glyphs drawn to the same weight and shown in the same row — and a median taken
+across two of them is a median of nothing. List the new glyph's own set in the
+config and nothing else.
+
 Iterate the same way regardless:
 
 1. Draw a first pass and `contact` it — including at the real size, which is
@@ -139,6 +144,12 @@ Iterate the same way regardless:
   the exception of things that are texture, like a spray.
 - **Below about two units, outlined detail fills in.** Draw it solid instead,
   or leave it out.
+- **A gap is measured as white, not as coordinates.** A stroke straddles its
+  path, so half its width eats into the gap from each side: two edges three
+  units apart, stroked at 1.75, are 1.25 units of daylight and close into one
+  grey block at 18 px. Subtract the stroke before you believe a gap, and read
+  the gap on `ascii` rather than in the source — it is the only view that shows
+  the drawing as pixels.
 - **Check every glyph at its shipping size**, not just large. `contact`
   renders both.
 

@@ -93,6 +93,13 @@ const EffectModal = lazy(() =>
   import("./EffectModal.tsx").then((m) => ({ default: m.EffectModal })),
 );
 
+// …and for the merge dialog, which a one-layer sketch never has a use for.
+const MergeLayersModal = lazy(() =>
+  import("./MergeLayersModal.tsx").then((m) => ({
+    default: m.MergeLayersModal,
+  })),
+);
+
 // The main screen: a header naming the open drawing (with the favourite star
 // and the download menu), the page itself, and the toolbar under it.
 //
@@ -278,6 +285,8 @@ export function CanvasScreen({
   const [menuAt, setMenuAt] = useState<Point | null>(null);
   // The resize dialog, which is the one page action that has a question to ask.
   const [resizing, setResizing] = useState(false);
+  // The merge dialog — the layer panel's, and the other one that asks.
+  const [merging, setMerging] = useState(false);
   // Bumped when the page changes shape under the view, so the canvas can fit the
   // sheet again — see `PaintCanvas`'s `refitToken`.
   const [refitToken, setRefitToken] = useState(0);
@@ -935,6 +944,10 @@ export function CanvasScreen({
                   setLayersOpen(false);
                   effect.open(kind);
                 }}
+                onMerge={() => {
+                  setLayersOpen(false);
+                  setMerging(true);
+                }}
                 onTransform={transformPage}
                 onClose={() => setLayersOpen(false)}
               />
@@ -998,6 +1011,7 @@ export function CanvasScreen({
             docked
             onResize={() => setResizing(true)}
             onEffect={effect.open}
+            onMerge={() => setMerging(true)}
             onTransform={transformPage}
             onClose={() => undefined}
           />
@@ -1170,6 +1184,24 @@ export function CanvasScreen({
             onCanvas={(to, anchor: ResizeAnchor) => {
               transformPage((d) => resizeCanvas(d, to, anchor));
               setResizing(false);
+            }}
+          />
+        </Suspense>
+      )}
+
+      {/* Putting layers together — the other panel action with a question to
+          ask, and mounted the same way, so it opens on the stack as it is now
+          rather than on the stack it was opened over once before. */}
+      {merging && (
+        <Suspense fallback={null}>
+          <MergeLayersModal
+            drawing={drawing}
+            pageColor={pageColor}
+            defaultInk={ink}
+            onCancel={() => setMerging(false)}
+            onMerge={(sources, target) => {
+              store.mergeLayers(sources, target);
+              setMerging(false);
             }}
           />
         </Suspense>

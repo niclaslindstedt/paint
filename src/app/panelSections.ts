@@ -33,6 +33,9 @@ export type PanelItem = {
   id: string;
   nameKey: TKey;
   hintKey: TKey;
+  /** Not switchable — the panel shows it whatever the settings say (see
+   *  {@link PanelSection.fixed}). */
+  fixed?: boolean;
 };
 
 /** One section of the panel: a heading, what it holds, and whether it can be
@@ -54,6 +57,29 @@ export type PanelSection = {
    * still a stack to read and a layer to pick.
    */
   madeOfItems: boolean;
+  /**
+   * Whether this section can be switched off at all.
+   *
+   * A fixed one cannot: it is how you get at the *document* rather than a
+   * convenience over it, and there is no other way to reach what it holds. The
+   * page's own section is the one that is — resizing the sheet, turning it, and
+   * starting the drawing over are not preferences, and a panel that had been
+   * switched down to nothing would leave a drawing with no way to change its
+   * size and no way to be emptied.
+   *
+   * Stored settings are not consulted for one (`visibleSections` keeps it
+   * whatever the list says), so a switch flipped by an older build — or a
+   * hand-edited settings file — cannot take it away either.
+   */
+  fixed?: boolean;
+  /**
+   * What switching this section off costs the *document*, when it costs the
+   * document anything. Present only on a section whose absence is more than a
+   * hiding, and it is what the settings row asks before it goes: the layer
+   * stack's, because a sketchbook with no layers panel is a sketchbook whose
+   * drawings are merged down to one layer each.
+   */
+  offConfirmKey?: TKey;
 };
 
 /** The panel's own two sections. The other two come from `EFFECT_GROUPS`, which
@@ -63,6 +89,8 @@ const PAGE: PanelSection = {
   titleKey: "page.title",
   hintKey: "settings.panel.pageHint",
   madeOfItems: true,
+  // The page itself is not an opinion — see `fixed`.
+  fixed: true,
   items: [
     {
       id: "page:resize",
@@ -83,6 +111,10 @@ const PAGE: PanelSection = {
       id: "page:reset",
       nameKey: "page.reset",
       hintKey: "settings.panel.resetHint",
+      // Emptying a drawing is the only way back to a blank page that keeps the
+      // page — no tool does it, and deleting the drawing is a different thing
+      // to want. It stays for the same reason its section does.
+      fixed: true,
     },
   ],
 };
@@ -93,6 +125,8 @@ const LAYERS: PanelSection = {
   hintKey: "settings.panel.layersHint",
   // The stack survives its items — see `madeOfItems`.
   madeOfItems: false,
+  // Switching the stack off is a change to the drawings, not just to the panel.
+  offConfirmKey: "settings.panel.layersOffConfirm",
   items: [
     {
       id: "layers:add",
@@ -118,6 +152,11 @@ const LAYERS: PanelSection = {
       id: "layers:delete",
       nameKey: "settings.panel.layersDelete",
       hintKey: "settings.panel.layersDeleteHint",
+    },
+    {
+      id: "layers:merge",
+      nameKey: "layers.merge",
+      hintKey: "settings.panel.layersMergeHint",
     },
   ],
 };
@@ -188,11 +227,35 @@ export function orderedSections(order: readonly string[]): PanelSection[] {
   return orderById(PANEL_SECTIONS, order);
 }
 
+/** The ids nothing can switch off — see {@link PanelSection.fixed}. Built from
+ *  the registry rather than written out twice, so marking an item fixed is the
+ *  one edit it takes. */
+const FIXED_ITEMS: ReadonlySet<string> = new Set(
+  PANEL_SECTIONS.flatMap((section) =>
+    section.items.filter((item) => item.fixed).map((item) => item.id),
+  ),
+);
+
 /** Whether one thing inside a section is switched on. Stored as the ids that
  *  are *off*, so an effect a later release adds arrives switched on rather than
- *  hidden from every install that already holds this key. */
+ *  hidden from every install that already holds this key.
+ *
+ *  A fixed item is on whatever the list says: the settings page renders no
+ *  switch for one, and a stored id from a build that did is ignored rather than
+ *  obeyed. */
 export function isItemOn(hiddenItems: readonly string[], id: string): boolean {
-  return !hiddenItems.includes(id);
+  return FIXED_ITEMS.has(id) || !hiddenItems.includes(id);
+}
+
+/** Whether a whole section is switched on — the same question, one floor up,
+ *  and with the same answer for a fixed one. Both the panel and the settings
+ *  page ask it here rather than reading the stored list directly, so "this can't
+ *  be switched off" is one rule in one place. */
+export function isSectionOn(
+  hiddenSections: readonly string[],
+  section: PanelSection,
+): boolean {
+  return section.fixed === true || !hiddenSections.includes(section.id);
 }
 
 /** The things inside a section that are still switched on. */
@@ -221,7 +284,7 @@ export function visibleSections(
 ): PanelSection[] {
   return orderedSections(order).filter(
     (section) =>
-      !hiddenSections.includes(section.id) &&
+      isSectionOn(hiddenSections, section) &&
       sectionHasContent(section, hiddenItems),
   );
 }

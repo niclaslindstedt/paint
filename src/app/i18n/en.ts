@@ -583,8 +583,18 @@ export const en = {
       "Delete “{name}” and the {n} marks on it? Undo still brings them back.",
     marks: "{n} marks",
     empty: "Empty",
-    hint: "New marks land on the selected layer. The background carries the page colour; hide it and the page goes transparent.",
-    swipeHint: "Swipe in from the right edge to open this panel.",
+    merge: "Merge layers…",
+    mergeTitle: "Merge layers",
+    mergeApply: "Merge",
+    mergeHint:
+      "Tick the layers to put together and say which one they land on. Everything they hold comes with them — hidden layers included — in the order it was drawn.",
+    mergeInto: "Merge into",
+    mergeInclude: "Merge {name}",
+    mergeLocked: "Locked — unlock it to merge it",
+    mergeNoSheet: "The page has no sheet to merge onto",
+    mergePickTwo: "Tick two layers to merge.",
+    mergeSummary:
+      "The marks on the other layers — {n} of them — land on “{name}”, and those layers go. Undo brings the stack back.",
   },
   // The inks a tool carries of its own — the swatch row at the head of its
   // settings panel (see `plugins/swatches.ts`). One entry per swatch the shipped
@@ -875,12 +885,16 @@ export const en = {
         "The right-hand panel, with its lid off: which sections it shows, in what order, and what is left in each of them.",
       sectionsTitle: "Sections",
       sectionsHint:
-        "In the order the panel shows them — move a row and the panel moves with it, or drag a section by the grip on its heading. Switching one off only hides it; nothing you have already drawn is touched.",
+        "In the order the panel shows them — move a row and the panel moves with it, or drag a section by its heading. Switching one off normally just hides it; the one that changes your drawings as well says so before it goes.",
       itemsHint: "What is in it",
       moveUp: "Move {name} up the panel",
       moveDown: "Move {name} down the panel",
       empty: "Every section is switched off. Settings → Panel puts them back.",
       drag: "Drag {name} to move it",
+      fixedHint: "Always on — there is no other way to reach it.",
+      offConfirmLabel: "Switch it off",
+      layersOffConfirm:
+        "Every drawing in this sketchbook is merged down to a single layer, unlocked, holding everything on it — hidden layers included. New marks land there. Undo brings the stacks back; switching layers on again does not.",
       // What each section is, in one line, for the row that switches it off.
       pageHint:
         "Resize, flip and mirror the page — and throw the drawing away.",
@@ -901,6 +915,7 @@ export const en = {
       layersReorderHint: "The arrows that move the selected layer up and down.",
       layersDelete: "Delete layer",
       layersDeleteHint: "The bin on the selected layer.",
+      layersMergeHint: "The row under the stack that puts layers together.",
       resizeHint: "The row that opens Resize, and the page's size beside it.",
       flipHint: "The pair that turns the page a quarter turn, either way.",
       mirrorHint:

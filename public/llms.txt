@@ -146,19 +146,26 @@ connect a storage backend yourself.
 
 - Stack a drawing into layers: swipe in from the right edge of the canvas (or
   use the header button) for a panel that adds, selects, shows, hides, locks,
-  reorders and deletes them, each row previewing the marks on that layer. Every
-  drawing starts with a locked Background layer — which carries the page colour,
-  stays at the bottom of the stack and takes nothing underneath it, and is
-  switched off on a page made with no colour — and one layer above it. New marks land on the selected layer; a hidden layer leaves the
-  screen and every export, and a transparent export leaves the Background out
-  entirely.
-- Arrange that panel: every section heading has a grip that drags the section
-  into another order (out of the box: Image, Effects, Layers, Colour), and every
-  heading folds its section away. Settings → Panel switches a whole section off,
-  or a single thing inside one — a page action, an effect by name, or one of the
-  four controls on a layer row — and a section whose last row is switched off
-  leaves the panel with it. Nothing already drawn is touched, and the
-  arrangement travels with the settings file.
+  reorders, merges and deletes them, each row previewing the marks on that
+  layer. Every drawing starts with a locked Background layer — which carries the
+  page colour, stays at the bottom of the stack and takes nothing underneath it,
+  and is switched off on a page made with no colour — and one layer above it.
+  New marks land on the selected layer; a hidden layer leaves the screen and
+  every export, and a transparent export leaves the Background out entirely.
+- Put layers back together: Merge layers… under the stack opens a dialog that
+  takes the layers you tick and the one you want them on. Marks arrive in the
+  order they were painted, hidden layers come with their marks rather than
+  losing them, locked layers stay out of it, and the Background can be merged
+  onto but never away.
+- Arrange that panel: a section heading drags the section into another order
+  (out of the box: Image, Effects, Layers, Colour) — hold it first on a touch
+  screen — and folds its section away. Settings → Panel switches a whole section
+  off, or a single thing inside one — a page action, an effect by name, or one
+  of the controls on the layer stack — and a section whose last row is switched
+  off leaves the panel with it. Image and Start over inside it cannot be
+  switched off; switching Layers off asks first and then merges every drawing
+  down to a single unlocked Background layer. The arrangement travels with the
+  settings file.
 - Open on the same sheet every time: a page nobody has given a colour to is
   white and is drawn on in black, in a light app and a dark one alike, with the
   pen at its 0.5 mm liner in hand. All four answers are Settings → General →

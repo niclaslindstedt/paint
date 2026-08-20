@@ -173,9 +173,10 @@ the same [`oss-framework`](https://github.com/niclaslindstedt/oss-framework).
   **Background** — the page colour itself — with **Layer 1** over it, so nothing
   you draw lands under everything else by accident. Swipe in from the right edge
   for the stack: put the photo underneath, the tracing over it, the labels on
-  top, hide or lock any of them. Hiding the background takes the page colour
-  with it, and a transparent export leaves that layer out. A drawing nobody
-  restacks is stored exactly as it was before layers existed.
+  top, hide or lock any of them, and **merge** the ones you have finished with
+  onto one. Hiding the background takes the page colour with it, and a
+  transparent export leaves that layer out. A drawing nobody restacks is stored
+  exactly as it was before layers existed.
 - **Effects that actually land.** Blur or scatter grain from the right-hand
   panel's **Effects** section — noise on the layer you have selected, blur on
   that layer or across the whole stack. An effect is applied **once** and is
@@ -358,19 +359,22 @@ npm run preview
 - **Layers panel** — swipe in from the right edge of the page (or tap the panel
   button at the far right of the header) for the drawing's stack, topmost first,
   each row showing a preview of what is on it: add a layer, pick the one you
-  draw on, show and hide, lock, reorder, delete. Every drawing starts with a
-  locked **Background** — the page itself — and **Layer 1** over it. The
-  Background stays at the bottom of the stack: it is the page, so it does not
-  move and nothing slides under it. The **Image** heading above the
+  draw on, show and hide, lock, reorder, delete. **Merge layers…** under the
+  stack puts several of them on one — tick which, and say where they land. Every
+  drawing starts with a locked **Background** — the page itself — and **Layer 1**
+  over it. The Background stays at the bottom of the stack: it is the page, so it
+  does not move and nothing slides under it. The **Image** heading above the
   stack resizes, flips and mirrors the page, and its bin starts the drawing
   over; the **Effects** section under it blurs or grains what is already there,
   and **Colour** under the stack holds the levels, curves, hue and balance.
   Every heading folds its section away, so you can collapse the ones you are not
-  using — and the grip at its left end **drags the section into another order**.
-  Settings → Panel takes a section out of the panel altogether, or a single
-  thing inside one: a page action, an effect by name, or one of the four
-  controls on a layer row. A press on the page closes the panel again, as does
-  the header button that opened it — there is no close cross on it.
+  using — and dragging a heading (hold it first on a touch screen) **moves the
+  section into another order**. Settings → Panel takes a section out of the
+  panel altogether, or a single thing inside one: a page action, an effect by
+  name, or one of the controls on the layer stack — bar **Image** and **Start
+  over** inside it, which stay because nothing else in the app does their job.
+  A press on the page closes the panel again, as does the header button that
+  opened it — there is no close cross on it.
 - **Canvas** — one finger (or a pen, or the mouse) draws, two pinch and pan,
   and with a fine pointer the cursor **is the nib**: a circle the size of the
   mark you are about to leave, on the page you are about to leave it on, growing
