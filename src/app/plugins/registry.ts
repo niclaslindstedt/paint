@@ -22,6 +22,7 @@
 // family, and it is what the toolbar renders, what Settings → Tools lists, and
 // what the user's order is a permutation of.
 
+import { orderById } from "../order.ts";
 import type { PaintPlugin, ToolGroup } from "./types.ts";
 
 const registry = new Map<string, PaintPlugin>();
@@ -120,36 +121,20 @@ export function registeredEntries(): ToolbarEntry[] {
   return entries;
 }
 
-/** Reorder `entries` by the ids in `order`, in place.
+/** Reorder `entries` by the ids in `order`, in place — so a tool this build
+ *  added after that order was written lands where its maker put it rather than
+ *  at the end of a list that had never heard of it, and reordering the toolbar
+ *  never has to be redone after an update. The rule itself is `order.ts`'s,
+ *  because a canvas preset's kit and the right-hand panel's sections are stored
+ *  the same way and go stale the same way.
  *
- *  "In place" is the whole subtlety, and it is what keeps a saved order from
- *  going stale: the entries the order *doesn't* name — a tool this build added
- *  after that order was written — keep their registration index, and the ones it
- *  does name fill the slots that are left, in the order given. So a new tool
- *  lands where its maker put it rather than at the end of a list written before
- *  it existed, and reordering the toolbar never has to be redone after an
- *  update.
- *
- *  Exported for its own test: it is pure, and it is the one piece of the
- *  toolbar's order that can be got wrong quietly. */
+ *  Exported for its own test: it is the one piece of the toolbar's order that
+ *  can be got wrong quietly. */
 export function orderEntries(
   entries: readonly ToolbarEntry[],
   order: readonly string[],
 ): ToolbarEntry[] {
-  // Only ids this build actually has, and each of them once: a stale settings
-  // blob is the usual source of both, and either would leave a hole below.
-  const seen = new Set<string>();
-  const named: ToolbarEntry[] = [];
-  for (const id of order) {
-    if (seen.has(id)) continue;
-    const entry = entries.find((e) => e.id === id);
-    if (!entry) continue;
-    seen.add(id);
-    named.push(entry);
-  }
-  if (named.length === 0) return [...entries];
-  let next = 0;
-  return entries.map((entry) => (seen.has(entry.id) ? named[next++]! : entry));
+  return orderById(entries, order);
 }
 
 /** Whether an entry is offered, given the ids the user has switched on. */

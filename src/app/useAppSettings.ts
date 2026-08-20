@@ -14,7 +14,6 @@ import { withDefaults, withPreset } from "./kit.ts";
 import {
   cleanCanvasPresets,
   cleanHiddenSizes,
-  moveInOrder,
   type CanvasPreset,
 } from "./canvasPresets.ts";
 import {
@@ -22,11 +21,16 @@ import {
   type DownloadFormat,
   type ExportScope,
 } from "./export.ts";
+import { moveInOrder } from "./order.ts";
 import {
-  allPlugins,
-  defaultEnabledPlugins,
-  pluginById,
-} from "./plugins/registry.ts";
+  ids,
+  optional,
+  strings,
+  toolColors,
+  toolDials,
+  toolSizes,
+} from "./settingsClean.ts";
+import { defaultEnabledPlugins, pluginById } from "./plugins/registry.ts";
 import { DEFAULT_TEXT_FONT, TEXT_FONTS } from "./plugins/builtin/text.ts";
 import {
   DEFAULT_GAUGE,
@@ -88,6 +92,20 @@ export type AppSettings = {
    *  tool added by a later release lands where its maker put it rather than at
    *  the end of an order written before it existed (see `orderEntries`). */
   toolOrder: string[];
+  /** The right-hand panel's order, by section id — what Settings → Panel
+   *  reorders and what a section dragged by its grip writes.
+   *
+   *  Empty until someone moves one, and then only as long as the ids it names,
+   *  exactly like `toolOrder` and for the same reason (see `order.ts`). */
+  panelOrder: string[];
+  /** The panel's sections switched off, by section id. Stored as the ones that
+   *  are *off*, so a section a later release adds arrives in the panel rather
+   *  than hidden from every install that already holds this key. */
+  hiddenPanelSections: string[];
+  /** The individual things inside those sections switched off — one page action,
+   *  one effect, one of the controls on a layer row — by the namespaced item ids
+   *  `panelSections.ts` declares. Off-list for the same reason as above. */
+  hiddenPanelItems: string[];
   /** The pages you have set up and named — what New image offers beside the
    *  sizes this build ships, and where a page's own kit of tools comes from
    *  (see `canvasPresets.ts`).
@@ -290,6 +308,13 @@ const BASE_SETTINGS: Omit<AppSettings, "enabledPlugins"> = {
   // Empty on purpose: an untouched toolbar is the one its tools registered in,
   // so this only ever holds the ways your toolbar differs from the box.
   toolOrder: [],
+  // Empty on purpose, all three: a fresh install shows every section of the
+  // right-hand panel, with everything in it, in the order `panelSections.ts`
+  // ships them — so these only ever hold the ways your panel differs from the
+  // box.
+  panelOrder: [],
+  hiddenPanelSections: [],
+  hiddenPanelItems: [],
   // Empty on purpose, both of them: a fresh install offers the four sizes it
   // ships with and nothing of its own, so this only ever holds the ways your
   // New image shelf differs from the box.
@@ -364,111 +389,6 @@ export function defaultSettings(): AppSettings {
 
 const STORAGE_KEY = "paint:settings";
 
-/** Clean a persisted map of string to string — the group memories. */
-function strings(value: unknown): Record<string, string> {
-  const out: Record<string, string> = {};
-  if (typeof value !== "object" || value === null || Array.isArray(value)) {
-    return out;
-  }
-  for (const [key, at] of Object.entries(value)) {
-    if (typeof at === "string") out[key] = at;
-  }
-  return out;
-}
-
-/** Clean a persisted map of per-tool widths. A width for a tool this build no
- *  longer ships is kept for the same reason a tuning is — downgrading and
- *  upgrading again shouldn't forget how you had it set — but a value that isn't
- *  a usable width at all is dropped, because the picker can't recover from one. */
-function toolSizes(value: unknown): Record<string, number> {
-  const out: Record<string, number> = {};
-  if (typeof value !== "object" || value === null || Array.isArray(value)) {
-    return out;
-  }
-  for (const [tool, size] of Object.entries(value)) {
-    if (typeof size !== "number" || !Number.isFinite(size)) continue;
-    if (size <= 0 || size > MAX_SIZE) continue;
-    out[tool] = size;
-  }
-  return out;
-}
-
-/** Clean a persisted map of tool tunings, and fold in the one setting this
- *  replaced.
- *
- *  Only the shape is checked here, not the ranges: a dial's bounds belong to
- *  the plugin that declares it, and `resolveDials` clamps against them at every
- *  read — so a value for a tool this build no longer ships, or a dial it has
- *  since dropped, is *kept* rather than pruned. Downgrading and upgrading again
- *  shouldn't silently forget how you had your brush set.
- *
- *  `legacy` is the old global hardness slider, which every soft-edged tool used
- *  to share. A blob written before dials existed carries one number for all of
- *  them, so it is handed to each tool that offers a hardness dial today — once,
- *  and only when that tool has no tuning of its own to overwrite. */
-function toolDials(
-  value: unknown,
-  legacy: unknown,
-): Record<string, Record<string, number>> {
-  const out: Record<string, Record<string, number>> = {};
-  if (typeof value === "object" && value !== null && !Array.isArray(value)) {
-    for (const [tool, dials] of Object.entries(value)) {
-      if (typeof dials !== "object" || dials === null) continue;
-      const kept: Record<string, number> = {};
-      for (const [dial, at] of Object.entries(dials as object)) {
-        if (typeof at === "number" && Number.isFinite(at)) kept[dial] = at;
-      }
-      if (Object.keys(kept).length > 0) out[tool] = kept;
-    }
-  }
-  if (typeof legacy === "number" && Number.isFinite(legacy) && legacy !== 1) {
-    const hardness = Math.max(0, Math.min(1, legacy));
-    for (const plugin of allPlugins()) {
-      if (!plugin.dials?.some((d) => d.id === "hardness")) continue;
-      if (out[plugin.id]?.hardness !== undefined) continue;
-      out[plugin.id] = { ...out[plugin.id], hardness };
-    }
-  }
-  return out;
-}
-
-/** Clean a persisted map of a tool's own inks — the same shape check the
- *  tunings get, and the same "keep what you can't use" rule: a colour for a
- *  tool this build no longer ships, or for a swatch it has since dropped, is
- *  held rather than pruned, because downgrading and upgrading again shouldn't
- *  forget how you had your ramp mixed. What each value *means* is the swatch's
- *  to say, and `resolveSwatches` re-checks it at every read. */
-function toolColors(value: unknown): Record<string, Record<string, string>> {
-  const out: Record<string, Record<string, string>> = {};
-  if (typeof value !== "object" || value === null || Array.isArray(value)) {
-    return out;
-  }
-  for (const [tool, colors] of Object.entries(value)) {
-    if (typeof colors !== "object" || colors === null) continue;
-    const kept: Record<string, string> = {};
-    for (const [swatch, color] of Object.entries(colors as object)) {
-      if (typeof color === "string") kept[swatch] = color;
-    }
-    if (Object.keys(kept).length > 0) out[tool] = kept;
-  }
-  return out;
-}
-
-/** Read one of the nullable defaults back: a string, or the explicit `null`
- *  that means "follow the app theme". A blob written before the field existed
- *  doesn't name it at all and keeps the shipped answer; a blob holding
- *  something that is neither is a blob nothing could paint from, and falls back
- *  the same way. */
-function optional(
-  stored: Record<string, unknown>,
-  key: string,
-  fallback: string | null,
-): string | null {
-  if (!(key in stored)) return fallback;
-  const at = stored[key];
-  return typeof at === "string" || at === null ? at : fallback;
-}
-
 /** Read a persisted settings blob back into a whole `AppSettings`.
  *
  *  Exported for the tests: it is the one place an install carries state across
@@ -513,13 +433,18 @@ export function parseSettings(raw: string): AppSettings {
   // first. So the shape is checked and the contents are left alone — the same
   // "keep what you can't use, in case a downgrade wants it" rule the tunings
   // follow.
-  merged.toolOrder = Array.isArray(merged.toolOrder)
-    ? merged.toolOrder.filter((id): id is string => typeof id === "string")
-    : [];
+  merged.toolOrder = ids(stored.toolOrder);
   // The New image shelf renders straight off these two, and a canvas preset is a
   // button somebody presses Create on — so a half-written one is dropped rather
   // than kept (see `cleanCanvasPresets`). A *drawing* that pointed at it is
   // untouched: it keeps its size and falls back to the app-wide toolbar.
+  // The panel's three lists are ids in exactly the same sense, and an id this
+  // build doesn't know is harmless in all three: `orderById` ignores one it
+  // can't place, and a hidden id that names nothing hides nothing. So the shape
+  // is checked and the contents are left alone.
+  merged.panelOrder = ids(stored.panelOrder);
+  merged.hiddenPanelSections = ids(stored.hiddenPanelSections);
+  merged.hiddenPanelItems = ids(stored.hiddenPanelItems);
   merged.canvasPresets = cleanCanvasPresets(stored.canvasPresets);
   merged.hiddenCanvasSizes = cleanHiddenSizes(stored.hiddenCanvasSizes);
   merged.groupTools = strings(stored.groupTools);
@@ -817,6 +742,47 @@ export function useAppSettings() {
     [setSettings],
   );
 
+  /** Switch one section of the right-hand panel on or off. */
+  const setPanelSectionEnabled = useCallback(
+    (id: string, enabled: boolean) =>
+      setSettings((prev) => ({
+        ...prev,
+        hiddenPanelSections: enabled
+          ? prev.hiddenPanelSections.filter((held) => held !== id)
+          : prev.hiddenPanelSections.includes(id)
+            ? prev.hiddenPanelSections
+            : [...prev.hiddenPanelSections, id],
+      })),
+    [setSettings],
+  );
+
+  /** Switch one thing inside a section on or off — a page action, an effect,
+   *  one of the controls on a layer row. */
+  const setPanelItemEnabled = useCallback(
+    (id: string, enabled: boolean) =>
+      setSettings((prev) => ({
+        ...prev,
+        hiddenPanelItems: enabled
+          ? prev.hiddenPanelItems.filter((held) => held !== id)
+          : prev.hiddenPanelItems.includes(id)
+            ? prev.hiddenPanelItems
+            : [...prev.hiddenPanelItems, id],
+      })),
+    [setSettings],
+  );
+
+  /** Move one section of the panel to `to` in the order — what the settings
+   *  page's arrows send, and what dragging a section by its grip resolves to.
+   *  The whole current order goes in, for the reason `moveTool` gives. */
+  const movePanelSection = useCallback(
+    (order: readonly string[], from: number, to: number) =>
+      setSettings((prev) => ({
+        ...prev,
+        panelOrder: moveInOrder(order, from, to),
+      })),
+    [setSettings],
+  );
+
   /** Remember which member of a group was last in hand — what its toolbar
    *  button wears while you are holding something else. */
   const setGroupTool = useCallback(
@@ -837,6 +803,9 @@ export function useAppSettings() {
     setSettings,
     setPluginEnabled,
     moveTool,
+    setPanelSectionEnabled,
+    setPanelItemEnabled,
+    movePanelSection,
     setGroupTool,
     addCustomColor,
     removeCustomColor,
@@ -911,6 +880,12 @@ export const LIVE_SETTINGS = [
   // buttons arguing about which one meant it.
   "canvasPresets",
   "hiddenCanvasSizes",
+  // The panel's arrangement, for the reason the switchboard above it is here:
+  // the panel is *behind the dialog*, and a section you switch off should leave
+  // it as you press the switch rather than when you find the Save button.
+  "panelOrder",
+  "hiddenPanelSections",
+  "hiddenPanelItems",
 ] as const satisfies readonly (keyof AppSettings)[];
 
 export type LiveSetting = (typeof LIVE_SETTINGS)[number];

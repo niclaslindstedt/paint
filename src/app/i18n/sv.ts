@@ -1,5 +1,8 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 // The Swedish catalog — code-split and loaded on demand (see `./index.ts`).
+//
+// oss-spec:allow-large-file: it satisfies `Catalog`, so it is `en.ts` line for
+// line — see the note there.
 
 import type { Catalog } from "./en.ts";
 
@@ -723,6 +726,7 @@ export const sv: Catalog = {
       general: "Allmänt",
       appearance: "Utseende",
       tools: "Verktyg",
+      panel: "Panel",
       canvas: "Rityta",
       download: "Nedladdning",
       storage: "Lagring",
@@ -774,6 +778,41 @@ export const sv: Catalog = {
       shortcut: "Kortkommando: {key}",
       moveUp: "Flytta {name} tidigare i verktygsfältet",
       moveDown: "Flytta {name} senare i verktygsfältet",
+    },
+    panel: {
+      intro:
+        "Högerpanelen med locket av: vilka avsnitt den visar, i vilken ordning, och vad som är kvar i vart och ett av dem.",
+      sectionsTitle: "Avsnitt",
+      sectionsHint:
+        "I den ordning panelen visar dem — flytta en rad så flyttar panelen med, eller dra ett avsnitt i greppet på dess rubrik. Att stänga av ett döljer det bara; inget du redan ritat rörs.",
+      itemsHint: "Vad som finns i det",
+      moveUp: "Flytta {name} uppåt i panelen",
+      moveDown: "Flytta {name} nedåt i panelen",
+      empty:
+        "Alla avsnitt är avstängda. Inställningar → Panel sätter tillbaka dem.",
+      drag: "Dra {name} för att flytta det",
+      pageHint: "Ändra storlek, vänd och spegla sidan — och släng teckningen.",
+      effectsHint: "Dragen som ändrar hur ett streck ser ut.",
+      colorHint: "Tonarbetet: nivåer, kurvor, kulör, balans.",
+      layersHint:
+        "Stapeln, översta först — och vilket lager ditt nästa streck hamnar på.",
+      layersVisibility: "Visa och dölj",
+      layersVisibilityHint:
+        "Ögat på varje rad. Stäng av det och ett lager som redan är dolt förblir dolt.",
+      layersLock: "Lås",
+      layersLockHint:
+        "Hänglåset på varje rad. Ett låst lager tar inga streck, och arket längst ner i en teckning kommer låst — så att stänga av detta lämnar det så.",
+      layersReorder: "Flytta i stapeln",
+      layersReorderHint: "Pilarna som flyttar det valda lagret upp och ner.",
+      layersDelete: "Ta bort lager",
+      layersDeleteHint: "Papperskorgen på det valda lagret.",
+      resizeHint: "Raden som öppnar Ändra storlek, med sidans mått bredvid.",
+      flipHint: "Paret som vrider sidan ett kvarts varv, åt båda hållen.",
+      mirrorHint:
+        "Paret som speglar sidan från vänster till höger, eller uppifrån och ner.",
+      addHint: "Plustecknet på rubriken.",
+      resetHint:
+        "Varje streck och varje lager, borta i ett steg som går att ångra.",
     },
     canvas: {
       intro:

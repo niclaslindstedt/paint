@@ -13,7 +13,6 @@ import {
   cleanHiddenSizes,
   kitCustomizes,
   kitGroupTool,
-  moveInOrder,
   removeCanvasPreset,
   saveCanvasPreset,
   SOLID_STOCK,
@@ -245,19 +244,6 @@ describe("kitCustomizes", () => {
 
   it("says nothing about a tool the page says nothing about", () => {
     expect(kitCustomizes(kit, "shapes", ["rectangle", "ellipse"])).toBe(false);
-  });
-});
-
-describe("moveInOrder", () => {
-  it("walks an id up and down the list", () => {
-    expect(moveInOrder(["a", "b", "c"], 2, 0)).toEqual(["c", "a", "b"]);
-    expect(moveInOrder(["a", "b", "c"], 0, 1)).toEqual(["b", "a", "c"]);
-  });
-
-  it("leaves the order alone for a move off the ends", () => {
-    expect(moveInOrder(["a", "b"], 0, 5)).toEqual(["a", "b"]);
-    expect(moveInOrder(["a", "b"], -1, 0)).toEqual(["a", "b"]);
-    expect(moveInOrder(["a", "b"], 1, 1)).toEqual(["a", "b"]);
   });
 });
 
