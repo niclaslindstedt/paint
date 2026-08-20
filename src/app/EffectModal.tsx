@@ -3,12 +3,15 @@ import { useEffect } from "react";
 
 import {
   Button,
+  GripIcon,
   Modal,
   SegmentedControl,
   ToggleRow,
 } from "@niclaslindstedt/oss-framework/components";
+import { useMediaQuery } from "@niclaslindstedt/oss-framework/hooks";
 
 import {
+  autoLevels,
   curvesAreStraight,
   straightCurves,
   type CurveChannel,
@@ -17,11 +20,13 @@ import { holdBackdrop } from "./backdrop.ts";
 import { CurveEditor, straightLine } from "./CurveEditor.tsx";
 import {
   choiceValue,
+  controlRange,
   controlReadout,
   controlValue,
   curveSet,
   offersScope,
   switchValue,
+  unclaimedControls,
   withChoice,
   withControl,
   withCurveSet,
@@ -30,7 +35,13 @@ import {
   type EffectDescriptor,
   type EffectScope,
 } from "./effects.ts";
+import { EffectPeek } from "./EffectPeek.tsx";
+import type { Histogram } from "./histogram.ts";
 import { useT } from "./i18n/index.ts";
+import { LevelsBar } from "./LevelsBar.tsx";
+import type { RenderOptions } from "./render.ts";
+import type { Drawing, Point } from "./types.ts";
+import { useDialogDrag } from "./useDialogDrag.ts";
 
 // One effect's options — and the one press that lands it.
 //
@@ -58,11 +69,36 @@ import { useT } from "./i18n/index.ts";
 // is open (`holdBackdrop`): the page it is previewing is the page behind it, and
 // a preview seen through a black — or blurred — veil is not one.
 //
+// ## Where the card sits, and what that costs
+//
+// A dialog whose subject is the page behind it has a problem no other dialog
+// has: it is *in front of the answer*. Two widths, two answers, and the dialog
+// picks between them here rather than leaving the stylesheet to re-derive it
+// (`data-previewing`, see `styles.css`):
+//
+//   - **A screen with room beside it.** The card drops to the foot of the window
+//     and can be dragged anywhere from there by its title row (`useDialogDrag`).
+//     There is no resting place that is right for every drawing — the
+//     interesting part of a landscape sketch is often exactly where a
+//     bottom-anchored card lands — so the last word is the hand's.
+//   - **A phone.** The card is the screen; there is no aside to step to. So it
+//     goes edge to edge and carries its own window onto the page instead: a
+//     preview you can pan and zoom, painted from the very same draft (see
+//     `EffectPeek`). A preview of a page nobody can see is not a preview.
+//
 // The controls are read off the descriptor and nothing here knows which effect
 // it is showing — a new effect is a descriptor in `effects.ts` and its catalog
-// strings, and this dialog renders it without being told. Four kinds of control
-// exist and that is the whole list: a slider, a switch, a pick-one, and — for
-// the one effect whose value is a line rather than a number — a tone curve.
+// strings, and this dialog renders it without being told. Five kinds of control
+// exist and that is the whole list: a slider, a switch, a pick-one, a tone
+// curve, and a levels bar — the last two being the ones whose value is a shape
+// rather than a number, and both declared by the descriptor exactly as the
+// sliders are.
+
+/** The width at which the card has room to step aside rather than being the
+ *  whole screen. The same breakpoint the app docks its sidebar at one size up —
+ *  and the *only* place it is decided, because the marker below carries the
+ *  answer into the stylesheet. */
+const ROOMY = "(min-width: 768px)";
 
 type Props = {
   descriptor: EffectDescriptor;
@@ -84,6 +120,23 @@ type Props = {
    *  primary button is dead rather than hidden, so the dialog still explains
    *  itself instead of silently doing nothing. */
   empty: boolean;
+  /** The page this is aimed at, for the controls that have to *show* it: the
+   *  window on a phone, and the histogram under a levels bar. `null` where
+   *  there is nothing to show — the dialog then renders every control it has,
+   *  minus its pictures. */
+  page: {
+    drawing: Drawing;
+    /** How the page is painted, the draft effect included, so the window in
+     *  here and the canvas behind it are painted from one value. */
+    options: RenderOptions;
+    /** What the canvas was looking at when this opened — where the window
+     *  opens, so the first thing it shows is the thing you were looking at. */
+    look: { at: Point; scale: number } | null;
+    /** The tones of the layers it would land on, counted once per opening
+     *  (see `histogram.ts`). `null` for an effect with no levels bar, or a page
+     *  whose pixels could not be read. */
+    tones: Histogram | null;
+  } | null;
   onCancel: () => void;
   onApply: (effect: Effect) => void;
 };
@@ -96,13 +149,33 @@ export function EffectModal({
   onScope,
   target,
   empty,
+  page,
   onCancel,
   onApply,
 }: Props) {
   const t = useT();
+  const roomy = useMediaQuery(ROOMY);
+  const drag = useDialogDrag(roomy);
   // The scrim, for as long as these options are open — and put back exactly as
   // it was on the way out, whatever the Appearance tab has it set to.
   useEffect(() => holdBackdrop(), []);
+
+  const levels = descriptor.levels;
+  const levelsRange = levels && {
+    black: controlRange(descriptor, levels.blackId),
+    white: controlRange(descriptor, levels.whiteId),
+    gamma: controlRange(descriptor, levels.gammaId),
+  };
+  /** One levels control's label, with its value already in it — the same string
+   *  the slider it stands in for wore. */
+  const levelsLabel = (id: string) => {
+    const control = controlRange(descriptor, id);
+    return control
+      ? t(control.nameKey, {
+          value: String(controlReadout(control, controlValue(draft, id))),
+        })
+      : id;
+  };
 
   return (
     <Modal
@@ -128,13 +201,75 @@ export function EffectModal({
         </footer>
       }
     >
-      {/* The marker the stylesheet reads to move the card off the middle of
-          the page it is previewing — see `styles.css`. */}
-      <div data-previewing className="flex flex-col gap-4 px-5 py-5">
-        <h2 id="effect-title" className="text-base font-bold text-fg-bright">
-          {t(descriptor.nameKey)}
-        </h2>
+      {/* The marker the stylesheet reads to place the card off the middle of the
+          page it is previewing, and which of the two ways it does that — see
+          `styles.css`. It scrolls its own contents, because on a phone this is
+          the whole screen and there is a window at the top of it. */}
+      <div
+        data-previewing={roomy ? "loose" : "full"}
+        className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-5 py-5"
+      >
+        {/* The title row, which on a wide screen is also the handle the card is
+            moved by. The pointer may take hold of the whole row — a title is a
+            big, obvious thing to grab, and it says so with the cursor — while
+            the *announced* control is the grip beside it, which is what a
+            keyboard puts focus on and moves with the arrows. Two ways in, one
+            behaviour, and no application region wrapped around a heading. */}
+        <div
+          ref={drag.gripRef}
+          onPointerDown={drag.onPointerDown}
+          className={`flex items-center gap-1 ${roomy ? "cursor-move touch-none" : ""}`}
+        >
+          {roomy && (
+            <span
+              role="button"
+              tabIndex={0}
+              aria-label={t("effects.move")}
+              title={t("effects.move")}
+              onKeyDown={drag.onKeyDown}
+              className="-ml-1 inline-flex h-6 w-4 shrink-0 cursor-grab items-center justify-center rounded text-muted hover:text-fg-bright focus:outline-2 focus:outline-offset-2 focus:outline-accent"
+            >
+              <GripIcon className="h-3.5 w-3.5" />
+            </span>
+          )}
+          <h2
+            id="effect-title"
+            className="min-w-0 flex-1 text-base font-bold text-fg-bright"
+          >
+            {t(descriptor.nameKey)}
+          </h2>
+          {roomy && drag.moved && (
+            <button
+              type="button"
+              onClick={drag.recentre}
+              className="shrink-0 cursor-pointer text-[11px] text-muted hover:text-fg-bright"
+            >
+              {t("effects.recentre")}
+            </button>
+          )}
+        </div>
         <p className="text-xs text-muted">{t(descriptor.hintKey)}</p>
+
+        {/* The window onto the page, on the widths where the page is behind the
+            whole screen. It sticks to the top of the scroller: the controls
+            below it are what you are dragging, and a preview that scrolls away
+            while you drag is one you cannot use. */}
+        {!roomy && page && (
+          <div className="sticky top-0 z-10 -mx-5 -mt-4 bg-surface px-5 pt-4 pb-2">
+            <EffectPeek
+              drawing={page.drawing}
+              options={page.options}
+              look={page.look}
+              labels={{
+                title: t("effects.peek.title"),
+                hint: t("effects.peek.hint"),
+                fit: t("effects.peek.fit"),
+                before: t("effects.peek.before"),
+                zoom: (percent: string) => t("canvas.zoomPercent", { percent }),
+              }}
+            />
+          </div>
+        )}
 
         {/* Pick-one options first: which tones a colour balance is aimed at,
             or which of a curve's four lines the hand is on. They come above the
@@ -155,7 +290,7 @@ export function EffectModal({
           </div>
         ))}
 
-        {/* The one control that is not a number. */}
+        {/* The first control that is not a number. */}
         {descriptor.curve &&
           (() => {
             const spec = descriptor.curve;
@@ -195,7 +330,114 @@ export function EffectModal({
             );
           })()}
 
-        {descriptor.controls.map((control) => {
+        {/* …and the second: three numbers drawn over a picture of the tones they
+            are aimed at. The sliders they stand in for are not rendered — they
+            are the same three fields on the same draft, reached by a control
+            that shows what they are for (see `unclaimedControls`). */}
+        {levels &&
+          levelsRange?.black &&
+          levelsRange.white &&
+          levelsRange.gamma &&
+          (() => {
+            const range = {
+              black: levelsRange.black!,
+              white: levelsRange.white!,
+              gamma: levelsRange.gamma!,
+            };
+            const auto = autoLevels(page?.tones ?? null, range);
+            const neutral =
+              controlValue(draft, levels.blackId) === range.black.min &&
+              controlValue(draft, levels.whiteId) === range.white.max &&
+              controlValue(draft, levels.gammaId) === 1;
+            return (
+              <div className="flex flex-col gap-1">
+                <div className="flex items-baseline justify-between gap-2">
+                  <span className="text-xs text-muted">
+                    {t(levels.labelKey)}
+                  </span>
+                  <span className="flex gap-3">
+                    <button
+                      type="button"
+                      disabled={!auto}
+                      onClick={() =>
+                        auto &&
+                        onDraft(
+                          withControl(
+                            withControl(draft, levels.blackId, auto.black),
+                            levels.whiteId,
+                            auto.white,
+                          ),
+                        )
+                      }
+                      className="cursor-pointer text-[11px] text-muted hover:text-fg-bright disabled:cursor-default disabled:opacity-40"
+                    >
+                      {t(levels.autoKey)}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={neutral}
+                      onClick={() =>
+                        onDraft(
+                          withControl(
+                            withControl(
+                              withControl(
+                                draft,
+                                levels.blackId,
+                                range.black.min,
+                              ),
+                              levels.whiteId,
+                              range.white.max,
+                            ),
+                            levels.gammaId,
+                            1,
+                          ),
+                        )
+                      }
+                      className="cursor-pointer text-[11px] text-muted hover:text-fg-bright disabled:cursor-default disabled:opacity-40"
+                    >
+                      {t(levels.resetKey)}
+                    </button>
+                  </span>
+                </div>
+                <LevelsBar
+                  histogram={page?.tones ?? null}
+                  black={controlValue(draft, levels.blackId)}
+                  white={controlValue(draft, levels.whiteId)}
+                  gamma={controlValue(draft, levels.gammaId)}
+                  range={range}
+                  onChange={(next) =>
+                    onDraft(
+                      withControl(
+                        withControl(
+                          withControl(draft, levels.blackId, next.black),
+                          levels.whiteId,
+                          next.white,
+                        ),
+                        levels.gammaId,
+                        next.gamma,
+                      ),
+                    )
+                  }
+                  labels={{
+                    black: levelsLabel(levels.blackId),
+                    white: levelsLabel(levels.whiteId),
+                    gamma: levelsLabel(levels.gammaId),
+                  }}
+                  hint={t(levels.hintKey)}
+                  note={
+                    page?.tones
+                      ? t("effects.levels.range", {
+                          low: String(page.tones.low),
+                          high: String(page.tones.high),
+                        })
+                      : null
+                  }
+                />
+              </div>
+            );
+          })()}
+
+        {unclaimedControls(descriptor).map((control) => {
           const value = controlValue(draft, control.id);
           return (
             <label key={control.id} className="flex flex-col gap-1">
@@ -272,7 +514,11 @@ export function EffectModal({
             ? t("effects.empty", { target })
             : t("effects.warning", { target })}
         </p>
-        <p className="text-[11px] text-muted">{t("effects.previewHint")}</p>
+        <p className="text-[11px] text-muted">
+          {roomy || !page
+            ? t("effects.previewHint")
+            : t("effects.peek.previewHint")}
+        </p>
       </div>
     </Modal>
   );

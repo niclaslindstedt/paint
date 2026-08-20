@@ -73,21 +73,55 @@
   backdrop-filter: blur(var(--modal-backdrop-blur, 0px));
 }
 
-/* ── A previewing dialog steps aside ─────────────────────────────────────────
+/* ── A previewing dialog gets out of the way ─────────────────────────────────
    An effect's options are the one dialog whose subject is the page *behind* it:
    the sliders are painted onto the drawing as they move (see `render.ts`)
    and the scrim is held back so you can see them land. A card centred in the
-   window would then sit over the middle of the very thing it is previewing, so
-   it sits at the foot of the screen instead — over the toolbar, which nothing in
-   this dialog needs, rather than over the picture.
+   window would then sit over the middle of the very thing it is previewing.
+
+   There are two answers to that and the dialog picks between them by *width*,
+   which it says in the marker rather than leaving this file to re-derive with a
+   media query of its own (see `EffectModal`):
+
+   • `loose` — a screen with room beside the card. It sits at the foot of the
+     window (over the toolbar, which nothing in this dialog needs, rather than
+     over the picture) and can be **dragged** anywhere from there by its title
+     row: no single resting place is right for every drawing. The offset is two
+     custom properties written by `useDialogDrag`, applied here as `translate`
+     rather than `transform` so it can never collide with the framework's own
+     swipe-to-close transform.
+   • `full` — a phone, where the card *is* the screen. There is no aside to step
+     to, so it stops pretending: edge to edge, no rounding, no border, and the
+     preview it owes you is a window inside it instead (see `EffectPeek`).
 
    It lives here because the card is the framework's element rather than ours:
    all `Modal` gives an app is what goes *inside* it, so the dialog marks its own
    content and this reaches the card through it. A browser without `:has()` shows
-   a centred dialog that previews exactly as well — which is why this is one
-   property and no layout depends on it. */
-[role="dialog"]:has(> [data-previewing]) {
+   an ordinary centred dialog that previews exactly as well — which is why every
+   rule below is cosmetic and no layout depends on one. */
+[role="dialog"]:has(> [data-previewing="loose"]) {
   align-self: end;
+  translate: var(--dialog-drag-x, 0px) var(--dialog-drag-y, 0px);
+}
+
+[role="dialog"]:has(> [data-previewing="full"]) {
+  align-self: stretch;
+  height: 100%;
+  max-height: none;
+  max-width: none;
+  border-width: 0;
+  border-radius: 0;
+  /* `centered` modals carry no safe-area spacers of their own — the framework
+     only adds those to the sheet layout — so a card taken edge to edge here has
+     to keep itself out from under the notch and the home indicator. */
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* …and the wrapper's own margin goes with it, or "edge to edge" is edge to edge
+   less four points on every side. */
+div:has(> [role="dialog"] > [data-previewing="full"]) {
+  padding: 0;
 }
 
 /* ── The sync glyph as a button-island cell ──────────────────────────────────

@@ -5,6 +5,7 @@ import { ADJUST_KINDS, CURVE_CHANNELS } from "../src/app/adjust.ts";
 import {
   BLUR_TAIL,
   choiceValue,
+  controlRange,
   controlReadout,
   controlValue,
   curveSet,
@@ -17,6 +18,7 @@ import {
   effectsIn,
   offersScope,
   switchValue,
+  unclaimedControls,
   withChoice,
   withControl,
   withCurveSet,
@@ -188,6 +190,35 @@ describe("the controls", () => {
     // A curve has no single number to stand for it, and says so rather than
     // making one up.
     expect(effectReadout(effectDescriptor("curves")!.preset)).toBe("");
+  });
+});
+
+describe("a control claimed by a richer one", () => {
+  it("leaves the levels sliders to the bar that draws them", () => {
+    const levels = effectDescriptor("levels")!;
+    const claimed = unclaimedControls(levels).map((c) => c.id);
+    // All three of them are the bar's, so the dialog draws no slider at all
+    // for this effect — the same three fields, reached by a control that shows
+    // what they are for.
+    expect(claimed).toEqual([]);
+    expect(levels.controls).toHaveLength(3);
+  });
+
+  it("leaves every other effect's sliders exactly as they were", () => {
+    for (const descriptor of EFFECTS) {
+      if (descriptor.levels) continue;
+      expect(unclaimedControls(descriptor)).toBe(descriptor.controls);
+    }
+  });
+
+  it("only ever claims controls the effect actually has", () => {
+    for (const descriptor of EFFECTS) {
+      const levels = descriptor.levels;
+      if (!levels) continue;
+      for (const id of [levels.blackId, levels.whiteId, levels.gammaId]) {
+        expect(controlRange(descriptor, id)).not.toBeNull();
+      }
+    }
   });
 });
 

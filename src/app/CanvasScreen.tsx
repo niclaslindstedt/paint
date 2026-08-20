@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { Suspense, lazy } from "react";
 
@@ -29,14 +29,8 @@ import {
   type PastePayload,
 } from "./clipboard.ts";
 import { DownloadMenu } from "./DownloadMenu.tsx";
-import { bakeEffect, effectTargets } from "./bake.ts";
-import {
-  defaultScope,
-  effectDescriptor,
-  type Effect,
-  type EffectKind,
-  type EffectScope,
-} from "./effects.ts";
+import { bakeEffect } from "./bake.ts";
+import { effectDescriptor } from "./effects.ts";
 import { DrawingTitle } from "./DrawingTitle.tsx";
 import type { MenuEdge } from "./gestures.ts";
 import { HeaderIconButton } from "./HeaderIconButton.tsx";
@@ -74,6 +68,7 @@ import { TextEntry } from "./TextEntry.tsx";
 import { Toolbar } from "./Toolbar.tsx";
 import { ToolFlash } from "./ToolFlash.tsx";
 import { presetsFor, toolSize, type AppSettings } from "./useAppSettings.ts";
+import { useEffecting } from "./useEffecting.ts";
 import { useSelection } from "./useSelection.ts";
 import type { PresetSettings } from "./presets.ts";
 import type { Point } from "./types.ts";
@@ -283,18 +278,6 @@ export function CanvasScreen({
   const [menuAt, setMenuAt] = useState<Point | null>(null);
   // The resize dialog, which is the one page action that has a question to ask.
   const [resizing, setResizing] = useState(false);
-  // Which effect's options are open, if any — the panel names the effect, this
-  // screen owns the dialog, exactly as it owns the resize one.
-  //
-  // The **draft** and the **scope** sit here rather than inside the dialog
-  // because they are what the canvas paints while the sliders move: one value,
-  // showing in the dialog and on the page, so the two cannot disagree. Screen
-  // state all the same — the document hears nothing until Apply.
-  const [effecting, setEffecting] = useState<{
-    kind: EffectKind;
-    draft: Effect;
-    scope: EffectScope;
-  } | null>(null);
   // Bumped when the page changes shape under the view, so the canvas can fit the
   // sheet again — see `PaintCanvas`'s `refitToken`.
   const [refitToken, setRefitToken] = useState(0);
@@ -368,41 +351,34 @@ export function CanvasScreen({
     settings.toolDials[TEXT_TOOL_ID],
   );
 
-  /** Open one effect's options.
-   *
-   *  The draft is seeded from the descriptor's preset — a visible setting, so
-   *  the page shows something from the first frame the dialog is up — and the
-   *  scope from the narrower of the ones it offers. Neither is remembered
-   *  between openings: an effect leaves nothing on the document to read back,
-   *  which is exactly what makes it an effect (see `effects.ts`). */
-  const openEffect = useCallback((kind: EffectKind) => {
-    const descriptor = effectDescriptor(kind);
-    if (!descriptor) return;
-    setEffecting({
-      kind,
-      draft: descriptor.preset,
-      scope: defaultScope(descriptor),
-    });
-  }, []);
+  // The page this drawing actually paints on, and the ink an unpicked mark
+  // resolves to on it: the drawing's pinned colour when it has one, otherwise
+  // the canvas theme's. Both travel to the renderer and to every image export,
+  // so screen and file agree. Resolved *above* the "no drawing open" guard
+  // below, because the hooks that read them may not sit under one.
+  const pageColor = resolvePageColor(drawing?.background, darkCanvas);
+  // Read off that page rather than off the app: a mark with no colour of its
+  // own has to read against the sheet under it, and the sheet is no longer
+  // always the theme's — a page can pin its own colour, and the default page is
+  // white whichever way the app is painting (see `defaultInk`).
+  const ink = defaultInk(isDarkColor(pageColor));
+  // What a page with no sheet at all is drawn as. Theme-coloured, so it reads
+  // as "there is nothing here" in a dark app and in a light one alike.
+  const checker = checkerColors(darkCanvas);
 
-  // Which layers the open dialog would land on, and the preview the canvas
-  // paints from them. One object per (effect, scope) rather than one per frame,
-  // because the mark cache compares it by identity (see `cache.ts`) — and
-  // `undefined` while no dialog is open, so a drawing with none pays nothing.
-  const targets = useMemo(
-    () =>
-      drawing && effecting
-        ? effectTargets(drawing, effecting.scope, activeLayer(drawing).id)
-        : [],
-    [drawing, effecting],
-  );
-  const preview = useMemo(
-    () =>
-      effecting && targets.length > 0
-        ? { effect: effecting.draft, layerIds: new Set(targets) }
-        : null,
-    [effecting, targets],
-  );
+  // An effect's options, while they are open: the draft, where it would land,
+  // the preview the canvas paints from it, and the page the dialog shows (see
+  // `useEffecting.ts`). Screen state throughout — the document hears nothing
+  // until Apply.
+  const effect = useEffecting({
+    drawing,
+    pageColor,
+    ink,
+    checker,
+    view,
+    window: surfaceRef,
+  });
+  const effecting = effect.effecting;
 
   // A placement belongs to the page it was dropped on. Opening another drawing
   // with one still floating drops it rather than carrying it across — settling
@@ -411,10 +387,8 @@ export function CanvasScreen({
   useEffect(() => setPlacement(null), [openPage]);
   // A caption belongs to the page it was begun on, for the same reason.
   useEffect(() => setTyping(null), [openPage]);
-  // The panel is about the page it was opened over, so it closes with it — and
-  // so does an effect's options, which are aimed at that page and no other.
+  // The panel is about the page it was opened over, so it closes with it.
   useEffect(() => setLayersOpen(false), [openPage]);
-  useEffect(() => setEffecting(null), [openPage]);
   // …and the selection's menu is about a mark on this page too.
   useEffect(() => setMenuAt(null), [openPage]);
 
@@ -678,20 +652,6 @@ export function CanvasScreen({
 
   if (!drawing) return null;
 
-  // The page this drawing actually paints on, and the ink an unpicked mark
-  // resolves to on it: the drawing's pinned colour when it has one, otherwise
-  // the canvas theme's. Both travel to the renderer and to every image export,
-  // so screen and file agree.
-  const pageColor = resolvePageColor(drawing.background, darkCanvas);
-  // Read off that page rather than off the app: a mark with no colour of its
-  // own has to read against the sheet under it, and the sheet is no longer
-  // always the theme's — a page can pin its own colour, and the default page is
-  // white whichever way the app is painting (see `defaultInk`).
-  const ink = defaultInk(isDarkColor(pageColor));
-  // What a page with no sheet at all is drawn as. Theme-coloured, so it reads
-  // as "there is nothing here" in a dark app and in a light one alike.
-  const checker = checkerColors(darkCanvas);
-
   return (
     <div className="flex h-full min-h-0 flex-col">
       {/* The header pads by the top safe-area inset and nothing on top of it,
@@ -808,7 +768,7 @@ export function CanvasScreen({
             // The effect being set up, if any. It goes to the renderer as a
             // *view* — no undo step, no push to the cloud — and comes out of
             // the same composite the bake will rasterise (see `bake.ts`).
-            preview={preview}
+            preview={effect.preview}
             pageColor={pageColor}
             tool={tool}
             ink={{
@@ -973,7 +933,7 @@ export function CanvasScreen({
                 // showing you is the page the panel was covering.
                 onEffect={(kind) => {
                   setLayersOpen(false);
-                  openEffect(kind);
+                  effect.open(kind);
                 }}
                 onTransform={transformPage}
                 onClose={() => setLayersOpen(false)}
@@ -1037,7 +997,7 @@ export function CanvasScreen({
             onMoveSection={movePanelSection}
             docked
             onResize={() => setResizing(true)}
-            onEffect={openEffect}
+            onEffect={effect.open}
             onTransform={transformPage}
             onClose={() => undefined}
           />
@@ -1162,39 +1122,34 @@ export function CanvasScreen({
               <EffectModal
                 descriptor={descriptor}
                 draft={effecting.draft}
-                onDraft={(next) =>
-                  setEffecting((current) =>
-                    current ? { ...current, draft: next } : null,
-                  )
-                }
+                onDraft={effect.setDraft}
                 scope={effecting.scope}
-                onScope={(next) =>
-                  setEffecting((current) =>
-                    current ? { ...current, scope: next } : null,
-                  )
-                }
+                onScope={effect.setScope}
                 target={
                   effecting.scope === "layer"
                     ? layerDisplayName(activeLayer(drawing), {
                         background: t("layers.background"),
                         base: t("layers.base"),
                       })
-                    : t("effects.targetLayers", { n: String(targets.length) })
+                    : t("effects.targetLayers", {
+                        n: String(effect.targets.length),
+                      })
                 }
-                empty={targets.length === 0}
-                onCancel={() => setEffecting(null)}
-                onApply={(effect) => {
+                empty={effect.targets.length === 0}
+                page={effect.page}
+                onCancel={effect.close}
+                onApply={(landing) => {
                   // Rasterising needs a canvas, so it happens here where one is
                   // — what reaches the store is a stroke list like any other.
                   const strokes = bakeEffect(
                     drawing,
-                    effect,
-                    targets,
+                    landing,
+                    effect.targets,
                     { pageColor, defaultInk: ink },
                     () => freshId("stroke"),
                   );
                   if (strokes) store.applyStrokes(strokes);
-                  setEffecting(null);
+                  effect.close();
                 }}
               />
             </Suspense>

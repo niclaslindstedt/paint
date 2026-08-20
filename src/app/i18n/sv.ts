@@ -134,6 +134,16 @@ export const sv: Catalog = {
     empty: "Det finns ingenting på {target} att lägga den på.",
     previewHint:
       "Sidan bakom visar effekten medan du ställer in den. Ingenting läggs på teckningen förrän du använder den.",
+    move: "Dra eller använd piltangenterna för att flytta inställningarna",
+    recentre: "Tillbaka",
+    peek: {
+      title: "Förhandsvisning",
+      hint: "Dra för att flytta, nyp eller rulla för att zooma.",
+      fit: "Anpassa",
+      before: "Före",
+      previewHint:
+        "Rutan ovan visar effekten medan du ställer in den. Ingenting läggs på teckningen förrän du använder den.",
+    },
     blur: {
       name: "Oskärpa",
       hint: "Gör det som redan finns mjukt, som om det vore ur fokus. Gör det igen och du gör oskärpan oskarp.",
@@ -161,6 +171,12 @@ export const sv: Catalog = {
       black: "Svartpunkt: {value}",
       white: "Vitpunkt: {value}",
       gamma: "Mellantoner: {value}",
+      editor: "Toner",
+      editorHint:
+        "Dra in ändarna dit märkena börjar och slutar; mitthandtaget sätter mellantonerna. De skuggade ändarna är det som kastas bort.",
+      range: "Märkena går från {low} till {high}.",
+      reset: "Återställ",
+      auto: "Auto",
     },
     curves: {
       name: "Kurvor",
