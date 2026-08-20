@@ -28,6 +28,7 @@ domain:   types · layers · render · plugins/* · migrations · canvas · expo
           defaults / kit (what a fresh start is made of, and putting it in hand)
           canvasSize / canvasPresets (what page a drawing is made on)
           transform (mirror / turn / resize) · handoff (between namespaces)
+          effects / adjust / bake / histogram (a change made to the picture)
           panelSections (what the right-hand panel is made of)
           order (what you do to a stored arrangement of ids)
           sidebarDnd (which drops are legal)
@@ -373,15 +374,70 @@ the same thing that makes it acceptable: it happens when a _dialog's_ slider
 moves, never during a gesture, and it is bounded to the part of the page actually
 on the canvas rather than to the sheet.
 
-Curves is the one effect whose value is not a number, and the descriptor admits
-it rather than the dialog special-casing it: `EffectCurve` names the field
-holding the four lines and the choice naming which one the hand is on, and
-`EffectModal` renders `CurveEditor` for it exactly as it renders a slider for a
-control. The line through the handles is a **monotone** cubic (Fritsch–Carlson),
-shared between the editor and the painter so what you drag and what lands on the
-pixels are the same function. An ordinary spline overshoots, and an overshoot on
-a tone curve is a bright band with dark edges either side of the handle you
-dragged.
+Two effects have a value that is not a number, and the descriptor admits both
+rather than the dialog special-casing either.
+
+**Curves** declares an `EffectCurve`: the field holding the four lines and the
+choice naming which one the hand is on. `EffectModal` renders `CurveEditor` for
+it exactly as it renders a slider for a control. The line through the handles is
+a **monotone** cubic (Fritsch–Carlson), shared between the editor and the painter
+so what you drag and what lands on the pixels are the same function. An ordinary
+spline overshoots, and an overshoot on a tone curve is a bright band with dark
+edges either side of the handle you dragged.
+
+**Levels** declares an `EffectLevels` naming three of its _own_ controls, and
+`unclaimedControls` is how the dialog knows not to draw sliders for them as well:
+the black point, the white point and the midtone gamma are rendered together as
+`LevelsBar`, over a histogram of the very pixels the effect would land on. Three
+sliders are the one shape that cannot answer the question you have in front of a
+levels control — where does the picture start and where does it stop? — and on a
+scan whose ink runs from tone 40 to tone 200, "black point: 40" only means
+anything once the shape says so.
+
+Counting those tones is `histogram.ts`, split on the usual line: `tally` is
+arithmetic over a pixel buffer and is tested in node, and `layerTones` is the one
+wrapper that needs a DOM. It paints the target layers' marks onto a small
+off-screen surface (the same marks-on-nothing surface a bake uses — the sheet
+under them is not what the effect lands on) and counts luminance, skipping the
+transparent pixels a layer is mostly made of. It samples at 384 pixels on the
+long side, because a histogram is a **shape** rather than a measurement. What it
+must never do is depend on the draft: `CanvasScreen` therefore memoises it on the
+drawing and the _scope_ alone, so a slider dragged end to end rasterises the page
+zero further times. Where the middle handle sits is `adjust.ts`'s `gammaAt` — a
+gamma is an exponent, not a distance, so the handle's travel is two geometric
+runs meeting at 1 in the middle — and `autoLevels` is the same module's answer to
+putting the two ends on the ends of the data.
+
+### A dialog in front of the thing it is previewing
+
+The effect dialog is the only one in the app whose subject is the page **behind**
+it, which makes where the card sits a real question rather than a matter of
+taste. There are two answers and `EffectModal` picks between them on width,
+publishing the choice as `data-previewing="loose" | "full"` so `styles.css` reads
+it rather than re-deriving it from a media query of its own. Reaching the card at
+all goes through that marker: a framework `Modal` gives an app what goes _inside_
+it and nothing else, so the dialog marks its own content and `:has()` reaches the
+card through it. Every rule hanging off it is cosmetic — a browser without
+`:has()` gets an ordinary centred dialog that previews exactly as well.
+
+**Loose** is a screen with room beside the card: it drops to the foot of the
+window and is **draggable** from there by its title row (`useDialogDrag`). The
+offset is written as two custom properties and applied as `translate` rather than
+`transform`, so it can never collide with the framework's own swipe-to-close
+transform. The clamp is asymmetric on purpose — the grip _is_ the title row, so a
+card whose top edge went off the top of the window is one nothing could drag
+back.
+
+**Full** is a phone, where the card is the screen and there is no aside to step
+to. It goes edge to edge and carries its own window onto the page instead:
+`EffectPeek`, a small canvas painting the same drawing through the same
+`renderDrawing` with the same `preview` object, panned and pinched through the
+canvas's own `viewport.ts` arithmetic. It is not the canvas — no cache, no trail,
+no gesture — and it clips to what it shows, which is what makes repainting it
+straight through the renderer affordable. It opens on what the canvas was looking
+at when the dialog opened (a document point taken once, at the opening), and
+falls back to framing the marks when that window would catch none of them: a
+preview showing blank page looks exactly like an effect that did nothing.
 
 ### The panel is a list the user arranges, not a block of statements
 

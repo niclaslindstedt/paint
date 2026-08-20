@@ -106,6 +106,11 @@ The app owns the domain and the stores ("store stays in the app"):
   the plugin contract (`start` / `move` / `end`) rather than by knowing any tool.
   It is what the size button and the size panel preview, painted through
   `render.ts` like anything else.
+- `src/app/effects.ts` / `adjust.ts` / `bake.ts` / `histogram.ts` — a change
+  made **to** the picture rather than a mark on it: what the effects are, the
+  arithmetic of the colour ones, turning a layer into a baked bitmap, and
+  counting the tones a levels bar draws its handles over. All four are pure bar
+  the bake and the count, which need a canvas and nothing else.
 - `src/app/PaintCanvas.tsx`, `CanvasScreen.tsx`, `Toolbar.tsx`,
   `SideMenuContent.tsx`, `SettingsModal.tsx` + `settings/` — the screens.
 - `src/output.ts` — the §19.4 central output module (semantic log helpers over

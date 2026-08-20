@@ -143,6 +143,19 @@ export const en = {
     empty: "There is nothing on {target} to apply it to.",
     previewHint:
       "The page behind is showing the effect as you set it. Nothing lands on the drawing until you apply it.",
+    // Moving the card off the thing it is previewing — a wide screen only,
+    // where there is somewhere to move it to.
+    move: "Drag or use the arrow keys to move these options",
+    recentre: "Put back",
+    // The window the options carry when they are the whole screen.
+    peek: {
+      title: "Preview",
+      hint: "Drag to move it, pinch or scroll to zoom.",
+      fit: "Fit",
+      before: "Before",
+      previewHint:
+        "The window above is showing the effect as you set it. Nothing lands on the drawing until you apply it.",
+    },
     blur: {
       name: "Blur",
       hint: "Softens what is already there, as though it were out of focus. Blur it again and you blur the blur.",
@@ -170,6 +183,12 @@ export const en = {
       black: "Black point: {value}",
       white: "White point: {value}",
       gamma: "Midtones: {value}",
+      editor: "Tones",
+      editorHint:
+        "Drag the ends in to where the marks start and stop; the middle handle sets the midtones. The shaded ends are what gets thrown away.",
+      range: "The marks run from {low} to {high}.",
+      reset: "Reset",
+      auto: "Auto",
     },
     curves: {
       name: "Curves",

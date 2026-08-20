@@ -36,12 +36,34 @@ narrow one — and find the **Effects** section under the Image actions, or
 drags it into another order, and Settings → Panel switches a section — or a
 single effect by name — off altogether (see [the panel](panel.md)).
 
-Press a row to open its options. **The page behind shows the effect as you set
-it** — the dialog steps down to the foot of the screen and stops dimming the
-page, so what you are dialling in is the drawing itself rather than a number you
-have to guess at. A radius of 20 page pixels means nothing until you see it. And
-it is the same painting the effect will actually make, on the same layers, so
-what you approve is what you get.
+Press a row to open its options. **The effect is shown as you set it** — never as
+a number you have to guess at. A radius of 20 page pixels means nothing until you
+see it, and what you are shown is the same painting the effect will actually
+make, on the same layers, so what you approve is what you get.
+
+Where you see it depends on how much room there is.
+
+**On a screen with room beside the dialog**, it is the page itself. The card
+steps down to the foot of the window and stops dimming the page behind it, so the
+drawing is the preview. And because no single resting place is right for every
+drawing — the part you care about is often exactly where a bottom-anchored card
+lands — **you can drag the card by its title** and put it wherever it is out of
+the way. It stays there for as long as it is open; **Put back** appears beside
+the title once you have moved it. The arrow keys move it too, if you would rather
+not reach for the mouse.
+
+**On a phone**, the dialog is the whole screen — three sliders, a scope picker
+and a warning do not fit beside a picture on 390 points of width — so it carries
+its own **preview window** at the top instead. It shows the same page with the
+same effect on it, it stays put while you scroll down to the controls, and it is
+a real window rather than a thumbnail: **drag it to move around the page, pinch
+or scroll to zoom in**. It opens on whatever you were looking at when you reached
+for the effect, or on your marks if that would have been blank page.
+
+Two buttons sit in its corner. **Fit** puts the whole page back in view. **Hold
+Before** and the effect comes out of the picture for as long as you hold it,
+which is the comparison every adjustment wants and the one thing a live preview
+cannot show on its own.
 
 Nothing lands until you press **Apply**. A slider dragged from end to end and
 thought better of costs you nothing — no undo step, no history entry, nothing to

@@ -128,6 +128,32 @@ export type EffectCurve = {
   resetKey: TKey;
 };
 
+/** The other control that is not a slider: three numbers drawn *over a picture
+ *  of the tones they are aimed at*.
+ *
+ *  A black point, a white point and a midtone gamma are perfectly expressible as
+ *  three sliders, and were — but three sliders are the one shape that cannot
+ *  answer the question you actually have in front of a levels control, which is
+ *  "where does the picture start and where does it stop?". Drawn over a
+ *  histogram the answer is the shape itself: pull the ends in to where the data
+ *  is and the picture opens out.
+ *
+ *  So an effect may claim three of its own controls for a levels bar. The
+ *  dialog then renders the bar instead of those sliders — they are the same
+ *  three numbers on the same effect, reached by a control that shows what they
+ *  are for. */
+export type EffectLevels = {
+  /** The controls it stands in for, by id. */
+  blackId: string;
+  whiteId: string;
+  gammaId: string;
+  labelKey: TKey;
+  hintKey: TKey;
+  resetKey: TKey;
+  /** The button that puts the two ends on the ends of the data. */
+  autoKey: TKey;
+};
+
 /** One on/off option — a toggle in the dialog. */
 export type EffectSwitch = {
   id: string;
@@ -149,6 +175,10 @@ export type EffectDescriptor = {
   choices?: readonly EffectChoice[];
   /** A tone curve, for the one effect that is a line rather than a number. */
   curve?: EffectCurve;
+  /** A levels bar, for the one effect whose three numbers are places on a
+   *  histogram. The controls it names are rendered by the bar rather than as
+   *  sliders of their own — see `unclaimedControls`. */
+  levels?: EffectLevels;
   /** The control whose value stands for the effect on the panel's row — the one
    *  that says how much of it there is. Absent for an effect with no single
    *  number to stand for it, which is what a curve is. */
@@ -312,6 +342,15 @@ export const EFFECTS: readonly EffectDescriptor[] = [
       },
     ],
     switches: [],
+    levels: {
+      blackId: "black",
+      whiteId: "white",
+      gammaId: "gamma",
+      labelKey: "effects.levels.editor",
+      hintKey: "effects.levels.editorHint",
+      resetKey: "effects.levels.reset",
+      autoKey: "effects.levels.auto",
+    },
     preset: { kind: "levels", black: 0.06, white: 0.94, gamma: 1 },
     scopes: ["layer", "drawing"],
   },
@@ -500,6 +539,32 @@ export function defaultScope(descriptor: EffectDescriptor): EffectScope {
  *  shows no picker — one option is not a decision. */
 export function offersScope(descriptor: EffectDescriptor): boolean {
   return descriptor.scopes.length > 1;
+}
+
+/** The controls the dialog should draw a slider for: every one the effect
+ *  declares, less any a richer control has claimed.
+ *
+ *  One claimer today — the levels bar, which is three of them at once — but the
+ *  dialog asks this rather than knowing that, so the next control that stands in
+ *  for a handful of numbers is a descriptor field and nothing else. */
+export function unclaimedControls(
+  descriptor: EffectDescriptor,
+): readonly EffectControl[] {
+  const levels = descriptor.levels;
+  if (!levels) return descriptor.controls;
+  const claimed = new Set([levels.blackId, levels.whiteId, levels.gammaId]);
+  return descriptor.controls.filter((control) => !claimed.has(control.id));
+}
+
+/** One levels control's declared range, for the bar that has to place a handle
+ *  inside it. `null` for a descriptor whose levels field names a control it does
+ *  not have — which no descriptor in the box does, and which the bar then simply
+ *  renders without. */
+export function controlRange(
+  descriptor: EffectDescriptor,
+  id: string,
+): EffectControl | null {
+  return descriptor.controls.find((control) => control.id === id) ?? null;
 }
 
 /** How far this effect can move ink, in document pixels.

@@ -6,7 +6,9 @@ and what colour it all leans. Six adjustments, and between them they cover what
 you would open an Image menu for.
 
 They are [effects](effects.md) in every way that matters. You set one up, the
-page behind shows it while you do, and nothing lands until you press **Apply** —
+drawing shows it while you do — on the page behind the dialog where there is room
+for one, in the dialog's own preview window on a phone — and nothing lands until
+you press **Apply** —
 at which point the layers it was aimed at become a picture of themselves with
 the adjustment in them. Undo puts your marks back; a reload will not. The same
 scope rules apply: **This layer** or **All layers**, and hidden or locked layers
@@ -27,15 +29,37 @@ The two you reach for first.
 
 ## Levels
 
-The same three handles every histogram has ever had.
+The same three handles every histogram has ever had — drawn, as they always have
+been, **over the histogram itself**.
+
+The shape behind them is your own picture: how many pixels of the layers this
+would land on sit at each tone, darkest on the left, lightest on the right. That
+is the whole reason the control looks like this. A scan of a pencil sketch has
+nothing above tone 200 and nothing below 40, and "black point: 40" only means
+something once you can see that the picture starts there.
 
 - **Black point** — the tone that becomes black. Everything below it is black.
 - **White point** — the tone that becomes white. Everything above it is white.
-- **Midtones** — where the middle sits between the two. Above 1 lifts the
-  midtones, below 1 drops them, and the two ends stay put either way.
+- **Midtones** — where the middle sits between the two. Drag it toward the
+  shadows to lift the midtones and toward the highlights to drop them; it sits
+  dead centre when nothing is being done to them.
 
-Reading a washed-out scan back to a full range is a black point in a little, a
-white point in a little, and a nudge of the middle.
+Drag any of the three, or press anywhere on the bar to bring the nearest one to
+you. The **shaded ends** are what is about to be thrown away — everything outside
+the two handles comes out flat black or flat white — which is the one thing a
+levels control can get badly wrong, so it is the thing drawn loudest.
+
+**Auto** puts the two ends exactly on the ends of your data, which is the whole
+of "read a washed-out scan back to a full range" in one press. **Reset** puts all
+three back to doing nothing.
+
+Each handle takes keyboard focus in the ordinary tab order, reads its value out,
+and moves under the arrow keys (hold Shift for bigger steps, Home and End for the
+extremes).
+
+If the tones could not be counted — nothing on the layer, or a browser that
+refused to hand the pixels back — the bar comes up empty and the handles work
+exactly as they otherwise would.
 
 ## Curves
 

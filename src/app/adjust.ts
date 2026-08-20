@@ -162,6 +162,90 @@ export function curvesAreStraight(curves: CurveSet): boolean {
   });
 }
 
+// --- Levels geometry --------------------------------------------------------
+//
+// Where the three levels handles sit under a histogram, and what a handle
+// dragged to a spot means. Black and white are tones and place themselves — the
+// handle sits at the tone. The middle one does not: what it sets is a *gamma*,
+// which is neutral at 1, runs to 3 lifting the midtones and down to 0.1 dropping
+// them, and is therefore not a distance along anything.
+//
+// Every levels control ever built solves that the same way, and so does this:
+// the handle's place is read as a fraction of the way from the black handle to
+// the white one, neutral is dead centre, and each half of the travel is a
+// geometric run out to that side's end of the range. Centre it and the gamma is
+// exactly 1; drag it toward the shadows and the midtones lift, which is the
+// direction that hand movement has meant since the first histogram.
+//
+// Here rather than in the editor because it is arithmetic and belongs where the
+// rest of the levels arithmetic is — the same reason the curve geometry below
+// is shared with the painter instead of living in `CurveEditor`.
+
+/** Where the middle handle sits when the gamma is neutral. */
+const NEUTRAL_MID = 0.5;
+
+/** The gamma a middle handle at `at` means, where `at` is the fraction of the
+ *  way from the black handle to the white one.
+ *
+ *  Clamped to the range the control declares, so the editor and the slider it
+ *  stands in for can never disagree about what is reachable. */
+export function gammaAt(at: number, min: number, max: number): number {
+  const t = clamp01(at);
+  if (t <= 0) return max;
+  if (t >= 1) return min;
+  // Two geometric halves meeting at 1: left of centre runs 1 → max, right of
+  // centre runs 1 → min. A geometric run is the right one because gamma is an
+  // exponent — halving it and doubling it are the same size of change.
+  const away = (NEUTRAL_MID - t) / NEUTRAL_MID;
+  return away >= 0 ? Math.pow(max, away) : Math.pow(min, -away);
+}
+
+/** The closest the two ends may be pulled together, as a tone fraction. Any
+ *  nearer and the picture is two colours and the middle handle has nowhere to
+ *  stand. Four levels rather than one so a levels bar's handles stay far enough
+ *  apart for a thumb to tell them apart. */
+export const MIN_LEVELS_SPAN = 4 / 255;
+
+/** The two ends put on the ends of the data — what a levels bar's "Auto" does.
+ *
+ *  It is the one thing a histogram is *for*: the ink in a scanned sketch runs
+ *  from tone 40 to tone 200 and nothing outside that is anything at all, so the
+ *  black point belongs at 40 and the white point at 200 and the picture opens
+ *  out. Answering it here rather than in the editor keeps it testable and keeps
+ *  the editor to turning pointers into handles.
+ *
+ *  `null` when there is nothing to fit to — no tones counted, or a page so flat
+ *  that pulling the ends onto it would leave no range at all.
+ *
+ *  The tones are taken structurally rather than as a `Histogram`, so this module
+ *  keeps depending on nothing (see the note at the top of the file). */
+export function autoLevels(
+  tones: { count: number; low: number; high: number } | null,
+  range: {
+    black: { min: number; max: number };
+    white: { min: number; max: number };
+  },
+): { black: number; white: number } | null {
+  if (!tones || tones.count === 0) return null;
+  const low = clamp01(tones.low / 255);
+  const high = clamp01(tones.high / 255);
+  if (high - low < MIN_LEVELS_SPAN) return null;
+  const black = Math.min(range.black.max, Math.max(range.black.min, low));
+  const white = Math.max(range.white.min, Math.min(range.white.max, high));
+  return white - black >= MIN_LEVELS_SPAN ? { black, white } : null;
+}
+
+/** The inverse: where a gamma puts the middle handle. */
+export function gammaFraction(gamma: number, min: number, max: number): number {
+  const g = Math.min(max, Math.max(min, gamma));
+  if (g === 1) return NEUTRAL_MID;
+  const away =
+    g > 1
+      ? Math.log(g) / Math.log(Math.max(1.000001, max))
+      : -(Math.log(g) / Math.log(Math.min(0.999999, min)));
+  return clamp01(NEUTRAL_MID - away * NEUTRAL_MID);
+}
+
 // --- Curve geometry ---------------------------------------------------------
 //
 // A curve is a handful of handles and the line through them, and which line
