@@ -634,6 +634,24 @@ export function CrayonIcon({ className }: IconProps) {
   );
 }
 
+/** A stick of board chalk — the stub a chalk tray holds, leaning with the
+ *  rest of the drawing tools. What tells it from the pencil and the crayon it
+ *  shares a silhouette with is the working end: nothing sharpens chalk, it
+ *  *wears*, so the stick is a bare, slightly fatter stub cut off at a slant —
+ *  and the solid speck of dust fallen under the face is the one mark only a
+ *  dusty medium earns (the drawn-vs-solid darkness a third family member
+ *  needs to read at 18 px). */
+export function ChalkIcon({ className }: IconProps) {
+  return (
+    <svg {...toolBase} className={className} aria-hidden="true">
+      <g transform="rotate(45 12 12)">
+        <path d="M9.2 6.2a2.8 2.8 0 0 1 5.6 0v10.9l-5.6 2.4Z" />
+        <circle cx="12.9" cy="21.3" r="0.9" fill="currentColor" stroke="none" />
+      </g>
+    </svg>
+  );
+}
+
 /** A calligraphy nib — the dip pen, held the way the rest of them are: a
  *  narrow holder, the nib's shoulders flaring out of it, and the slit running
  *  back from the point. The breather hole it used to carry was a 1.6-unit

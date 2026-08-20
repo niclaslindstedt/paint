@@ -94,17 +94,31 @@ All three engines converged on the same skeleton; start from it.
 - **Small renders lie.** A ribbon that looks flat navy at 1× is often a
   perfectly good simulation whose shading only reads at 3×. Crop before
   concluding anything: `scripts/zoom.ts <sheet.png> x y w h [zoom]`.
+- **Exercise the tool at its own gauge sizes.** A document pixel is real
+  distance here (`units.ts`), so the default stick is often over a hundred
+  pixels wide — and every amplitude (fray, lanes, dust reach, the budget's
+  coarsening) reads differently at the size the tool actually ships at than
+  on the 18-px stroke that is comfortable to lay out. The chalk was first
+  tuned at a-twentieth-scale and every conclusion had to be re-drawn.
+- **Judge through the app's own blit.** The engines place their field with
+  `imageSmoothingQuality: "high"`; a harness that blits nearest-neighbour
+  shows a budget-coarsened mark as a mosaic of squares the app never draws.
+  Give the sheet's shim a bilinear `drawImage` (see `chalk-sheet.ts`) before
+  concluding anything about grain.
 - **Then get the number.** `scripts/probe-ink.ts` prints mean film per
   window (slow vs fast section, head vs tail), coverage when starved, and
   per-simulation cost. A retune is `probe → change one constant → probe`.
-- **Measure the pixels, not the field.** A field engine strokes nothing, and
-  the field arrays miss the `DENSITY`/`SHOW` curve — so probe end-to-end by
-  shimming `globalThis.document` with a `createElement` whose context keeps
-  every `putImageData`, and call the _public_ painter (budgets, store and
-  fallback included; `live = true` bypasses the store). Tests read the same
-  pixels off `FakeContext.images`. Report **mean alpha** and **coverage**
-  (cells over ~0.04) separately: an opacity change moves only the mean,
-  pressing into the sheet moves both, and that difference is the medium.
+- **Measure the pixels, not the field — capture `putImageData`** in the probe
+  AND in the tests. A field engine strokes nothing, and neither the field
+  arrays nor stroke tallies say what the user sees (the `DENSITY`/`SHOW`
+  curve and Beer–Lambert sit between). Probe end-to-end by shimming
+  `globalThis.document` with a `createElement` whose context keeps every
+  `putImageData`, and call the _public_ painter — budgets, store and fallback
+  included; `live = true` bypasses the store (`chalk-probe.ts` is a worked
+  example). Tests read the same pixels off `FakeContext.images`. Report
+  **mean alpha** and **coverage** (cells over ~0.04) separately — they move
+  independently, and the difference is the medium: an opacity change moves
+  only the mean, pressing into the sheet moves both.
 
 Tuning lessons that cost real time:
 
@@ -259,3 +273,15 @@ medium you are simulating. `brush-shot.ts` is worth copying for any medium you
 have a photograph of: one mark at the size and colour of the reference, so the
 render and the photograph can be held side by side rather than compared against
 a memory of one.
+
+…and the chalk's pair, the worked example of an **end-to-end** harness: both
+drive the public painter through a shimmed `document` (so budgets, the store
+and the fallback are all inside the measurement) and composite what it wrote
+onto a dark board:
+
+```sh
+npx vite-node $S/chalk-sheet.ts          # pressure / crossings / streaks /
+                                         # dust / taps, on a dark board
+npx vite-node $S/chalk-probe.ts          # coverage+brightness per pressure,
+                                         # halo sparseness, lane contrast, cost
+```

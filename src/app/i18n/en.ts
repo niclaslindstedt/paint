@@ -510,6 +510,11 @@ export const en = {
       china: "China marker",
       shading: "Shading",
     },
+    chalk: {
+      writing: "Writing",
+      side: "Side of the stick",
+      heading: "Heading",
+    },
     calligraphy: {
       italic: "Italic",
       foundational: "Foundational",
@@ -735,6 +740,11 @@ export const en = {
       name: "Crayon",
       description:
         "A stick of wax dragged over the paper's tooth: it skips the valleys, clumps on the grain, and burnishes solid when you lean on it. Softness runs from china marker to oil pastel.",
+    },
+    chalk: {
+      name: "Chalk",
+      description:
+        "A soft board chalk: it sparkles around dark pinholes, streaks down a broad drag, dusts past its own edge, and bolds where a second pass fills the tooth in.",
     },
     calligraphy: {
       name: "Calligraphy pen",

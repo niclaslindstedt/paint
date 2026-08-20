@@ -462,6 +462,11 @@ export const sv: Catalog = {
       china: "Märkpenna av vax",
       shading: "Skuggning",
     },
+    chalk: {
+      writing: "Skrivstil",
+      side: "Kritans sida",
+      heading: "Rubrik",
+    },
     calligraphy: {
       italic: "Italic",
       foundational: "Foundational",
@@ -674,6 +679,11 @@ export const sv: Catalog = {
       name: "Vaxkrita",
       description:
         "En vaxkrita dragen över papprets struktur: den hoppar över dalarna, klumpar sig på kornet och blir täckande när du trycker. Mjukheten går från märkpenna av vax till oljepastell.",
+    },
+    chalk: {
+      name: "Tavelkrita",
+      description:
+        "En mjuk tavelkrita: den gnistrar kring mörka porer, stryks i ränder på bredden, dammar utanför sin egen kant och blir fetare där ett andra drag fyller strukturen.",
     },
     calligraphy: {
       name: "Kalligrafipenna",

@@ -291,6 +291,29 @@ export const CRAYON_PRESETS: readonly BuiltinPreset[] = [
   },
 ];
 
+/** The chalk, by the three things anyone does at a board: write with the worn
+ *  tip, shade with the side of the stick laid over, and lean on it for a
+ *  heading — which on a board is also how a line is made bold, because chalk
+ *  has no wider nib to change to. */
+export const CHALK_PRESETS: readonly BuiltinPreset[] = [
+  { id: "writing", nameKey: "presets.chalk.writing", size: mm(9.5) },
+  {
+    id: "side",
+    nameKey: "presets.chalk.side",
+    size: mm(24),
+    // The stick laid over and drawn lightly: a broad, streaky, broken pass
+    // with the board showing through — the swan's body in the reference
+    // photograph, and the only way chalk shades at all.
+    dials: { pressure: 0.55 },
+  },
+  {
+    id: "heading",
+    nameKey: "presets.chalk.heading",
+    size: mm(9.5),
+    dials: { pressure: 1.45 },
+  },
+];
+
 /** The broad nib, by the hand you are writing. A calligrapher does not change
  *  the pen, they change the angle they hold it at and the nib they put in it —
  *  and those two numbers are the difference between an italic, a foundational
