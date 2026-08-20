@@ -256,11 +256,30 @@ export const HIGHLIGHTER_PRESETS: readonly BuiltinPreset[] = [
   },
 ];
 
-/** The crayon, by how hard it is bearing down: the flat laid on for colouring
- *  in, the light broad pass that leaves the paper's speckle showing, and the
- *  corner leant on until the mark goes solid. */
+/** The crayon, by which stick of wax is in the hand — three crayon pens off
+ *  the same shelf, the way the paintbrush's row is four brushes off one rack
+ *  (see `SOFT` in `./dials.ts` for the axis) — plus the light broad pass that
+ *  is the other way anyone holds one:
+ *
+ *  the wax crayon it ships as; the oil pastel, softer and buttery, digging to
+ *  the bottom of the tooth and slabbing colour on at an ordinary touch; the
+ *  china marker, hardened wax on a point for a dense sticky line; and the
+ *  shading pass, which is the same wax crayon under a light hand with the
+ *  paper's speckle showing through. */
 export const CRAYON_PRESETS: readonly BuiltinPreset[] = [
   { id: "coloring", nameKey: "presets.crayon.coloring", size: mm(8) },
+  {
+    id: "pastel",
+    nameKey: "presets.crayon.pastel",
+    size: mm(10),
+    dials: { soft: 1.7 },
+  },
+  {
+    id: "china",
+    nameKey: "presets.crayon.china",
+    size: mm(2),
+    dials: { soft: 0.3 },
+  },
   {
     id: "shading",
     nameKey: "presets.crayon.shading",
@@ -269,12 +288,6 @@ export const CRAYON_PRESETS: readonly BuiltinPreset[] = [
     // crayon mark is not a light one — the speckle is the paper coming through
     // the wax, which is what easing the hand off the rest of the way gives.
     dials: { pressure: 0.5 },
-  },
-  {
-    id: "solid",
-    nameKey: "presets.crayon.solid",
-    size: mm(5),
-    dials: { pressure: 1.45 },
   },
 ];
 

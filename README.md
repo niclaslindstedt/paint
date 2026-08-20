@@ -33,8 +33,9 @@ the same [`oss-framework`](https://github.com/niclaslindstedt/oss-framework).
   highlighter, eraser, airbrush, bucket and gradient, text, the shapes, a
   selection marquee and the dropper — and the media that simulate their medium
   (a graphite pencil, a watercolour brush that spreads and granulates, a bristle
-  paintbrush that goes from a round to a one-stroke flat on a dial, a crayon, a
-  board chalk that sparkles and dusts past its own edge, a calligraphy nib)
+  paintbrush that goes from a round to a one-stroke flat on a dial, a wax
+  crayon that runs from china marker to oil pastel on a dial, a board chalk
+  that sparkles and dusts past its own edge, a calligraphy nib)
   wait in
   Settings → Tools — the **…** at the end of the toolbar opens it — so the
   toolbar stays as simple as you want it and grows when
@@ -312,8 +313,9 @@ npm run preview
   squeezed toward a flat, which way the blade is turned and how hard you are
   bearing on it for the paintbrush,
   water, pigment and granulation for
-  the watercolour brush, flow for the airbrush, pressure for the crayon and the
-  chalk, the
+  the watercolour brush, flow for the airbrush, softness and pressure for the
+  crayon — which stick of wax is in it, and how hard the hand is on it —
+  pressure for the chalk, the
   lead's grade for the pencil — 8H through 9B, as a row of chips rather than a
   slider, because there is nothing between a 2B and a 3B — the chisel of a felt
   tip for the marker and the highlighter, the angle of the nib for the

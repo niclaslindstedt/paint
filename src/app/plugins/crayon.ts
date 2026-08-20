@@ -1,6 +1,24 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 // The crayon.
 //
+// **How this build draws one:** the wax simulation (`waxSim.ts` over
+// `waxField.ts`) — a sheet model, like the pencil's. There is a piece of paper
+// with a tooth on it and a stick of wax dragged over it, and the mark is
+// whatever the paper kept: the clumped speckle of a light pass, the valleys
+// filling in under a second one, the near-solid a leaned-on stick burnishes
+// to, and the same stroke coming out differently on rough stock and
+// hot-pressed. The `soft` dial picks the stick — china marker to wax crayon
+// to oil pastel — the way the pencil's grade picks the lead.
+//
+// What is below is the **fallback**: the geometric grain painter this app
+// drew crayons with before the simulation, kept because the engine must be
+// able to say no — no DOM, a view pulled back until the mark is a hairline, a
+// face under a few cells — and every one of those must still draw. The
+// fallback fires at sizes where the medium's character cannot show, which is
+// what makes falling back invisible; the seam is `paintCrayon` at the foot of
+// this file, so "it must fall back rather than fail" is a property of the
+// seam instead of a thing every caller has to remember.
+//
 // A crayon mark is not a line with a rough edge. It is **wax pressed onto a
 // textured sheet**, and almost everything that makes one recognisable follows
 // from that one fact:
@@ -30,8 +48,12 @@
 // lattice, they agree about where the paper is low — the sheet reads as one
 // sheet rather than as a pile of separately-textured decals.
 
+import { SOLID_GROUND, type GroundProfile } from "../ground.ts";
+import type { Rect } from "../geometry.ts";
 import type { Point } from "../types.ts";
 import { mm } from "../units.ts";
+import { paintSimulatedWax } from "./waxSim.ts";
+import { WAX_CRAYON } from "./waxField.ts";
 import {
   HAIRLINE,
   PIXEL,
@@ -318,22 +340,55 @@ function stampTip(
 
 /** Paint a crayon mark: wax pressed onto the page's tooth along a path.
  *
+ *  The seam. The simulation answers whether it actually ran, and a `false`
+ *  falls through to the geometric grain painter here rather than at the call
+ *  site — a browser with no canvas to work on, a view pulled back until the
+ *  mark is a hairline, a face finer than a couple of cells: all of them draw,
+ *  and all of them draw the mark this app has always drawn.
+ *
  *  `pressure` is how hard the hand bears down — a fraction of the ordinary,
  *  1 being it. It reaches only the *deposit*, never the geometry: bearing down
  *  fills the paper's valleys in, easing off leaves the sheet showing through,
- *  and neither makes the stick any wider. */
+ *  and neither makes the stick any wider. `soft` is which stick is in the
+ *  hand — china marker to oil pastel, wax crayon at 1 — and **both** engines
+ *  take both, so a mark that fell through keeps the stick and the weight it
+ *  was drawn with (see `SOFT` in `builtin/dials.ts`). */
 export function paintCrayon(
   ctx: CanvasRenderingContext2D,
   points: readonly Point[],
   size: number,
   scale = 1,
   pressure = 1,
+  soft = WAX_CRAYON,
+  ground: GroundProfile = SOLID_GROUND,
+  color = "#000000",
+  clip?: Rect,
+  live = false,
 ): void {
   const first = points[0];
   if (!first) return;
+  if (
+    paintSimulatedWax(
+      ctx,
+      points,
+      size,
+      scale,
+      pressure,
+      soft,
+      ground,
+      color,
+      clip,
+      live,
+    )
+  ) {
+    return;
+  }
   const alpha = ctx.globalAlpha;
 
-  const bearDown = Math.max(0, pressure);
+  // The fallback keeps the stick's grade the honest way it can without a
+  // sheet to dig into: a softer stick sheds more onto the same tooth, so the
+  // grade rides the deposit beside the hand's own weight.
+  const bearDown = Math.max(0, pressure) * (0.72 + 0.28 * Math.max(0, soft));
 
   if (size * scale < HAIRLINE) {
     // Pulled back far enough that the whole mark is inside one pixel. The

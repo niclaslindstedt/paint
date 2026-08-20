@@ -23,6 +23,7 @@
 
 import { mm } from "../../units.ts";
 import { HARDEST_LEAD, SOFTEST_LEAD } from "../graphite.ts";
+import { HARDEST_WAX, SOFTEST_WAX, WAX_CRAYON } from "../waxField.ts";
 import type { ToolDial } from "../types.ts";
 
 /** How much of the page shows through. The dial the *drawn* tools offer,
@@ -373,6 +374,32 @@ export const PRESSURE: ToolDial = {
   min: 0.5,
   max: 1.5,
   step: 0.05,
+};
+
+/** Which stick of wax is in the crayon — its grade, the way `GRADE` is the
+ *  pencil's.
+ *
+ *  A crayon has exactly one axis past the hand and this is it: the hard end
+ *  is a china marker (hardened wax on a point — a dense, sticky line that
+ *  still breaks on the tooth), 1 is the classroom wax crayon, and the soft
+ *  end is an oil pastel — nearly butter, digging to the bottom of the tooth
+ *  and slabbing colour on at a light touch. It reaches how far the face digs
+ *  and how freely it crumbles (see `waxField.ts`), so a softer stick is a
+ *  fuller, creamier mark and never a wider one.
+ *
+ *  A slider rather than the grade's ladder of chips, because wax is blended,
+ *  not boxed: there is a whole shelf between a crayon and a pastel, and the
+ *  presets already hand out the three sticks anyone would name (see
+ *  `CRAYON_PRESETS`). The ends are the medium's own, so the dial and the
+ *  field cannot drift apart. */
+export const SOFT: ToolDial = {
+  id: "soft",
+  nameKey: "dials.soft.name",
+  hintKey: "dials.soft.hint",
+  min: HARDEST_WAX,
+  max: SOFTEST_WAX,
+  step: 0.05,
+  default: WAX_CRAYON,
 };
 
 /** How far the paint bucket's edge fades out past the outline it traced, in

@@ -143,6 +143,7 @@ import {
   PRESSURE,
   RUB,
   SAMPLE,
+  SOFT,
   STRENGTH,
   WATER,
 } from "./dials.ts";
@@ -729,11 +730,14 @@ export function registerBuiltinPlugins(): void {
     // paper there is behaves exactly as it does on glass, and a wash laid over
     // one goes round it. (Resisting the water is what a wax resist *is* — see
     // `docs/features/surface.md`.)
-    // …and the one axis a stick of wax has: how hard it is bearing down. A
-    // pale crayon mark is the tooth showing through it rather than the whole
-    // mark faded, which is why there is no opacity here (see `OPACITY` in
-    // `./dials.ts`).
-    dials: [PRESSURE],
+    // The two axes a crayon has, the pencil's pair one shelf along: which
+    // stick is in the hand — china marker to wax crayon to oil pastel — and
+    // how hard it is bearing down. The mark is *simulated* (see
+    // `plugins/waxSim.ts`): the stick's face is dragged over the page's own
+    // sheet and the mark is whatever the tooth caught, so a pale crayon mark
+    // is the paper showing through the wax rather than the whole mark faded —
+    // which is why there is no opacity here (see `OPACITY` in `./dials.ts`).
+    dials: [SOFT, PRESSURE],
     presets: CRAYON_PRESETS,
     // Wax is caught on the tooth the same way graphite is, but it does not
     // come away the same way: a rubber worked at a crayon mark *smears* it
