@@ -158,6 +158,16 @@ export const sv: Catalog = {
       colorHint:
         "Låt kornen färga och inte bara ljusa upp. Av ger det grå korn film ger.",
     },
+    imageTitle: "Bild",
+    cutout: {
+      name: "Ta bort bakgrund",
+      hint: "Behåller det du ritat över med ett markeringsverktyg och tar bort allt annat — klippet letar upp motivets exakta kant nära din kontur, så det räcker att rita ungefär rätt.",
+      feather: "Fjädring: {value} px",
+      tolerance: "Färgtolerans: {value} %",
+      smoothness: "Jämnhet: {value} %",
+      noSubject:
+        "Rita först över motivet med ett markeringsverktyg — ungefär räcker, klippet letar upp den exakta kanten nära din kontur.",
+    },
     colorTitle: "Färg",
     brightness: {
       name: "Ljus & kontrast",
@@ -888,6 +898,7 @@ export const sv: Catalog = {
         "Varje teckning i den här skissboken slås ihop till ett enda lager, upplåst, med allt som ligger på den — även dolda lager. Nya streck hamnar där. Ångra tar tillbaka staplarna; att slå på lager igen gör det inte.",
       pageHint: "Ändra storlek, vänd och spegla sidan — och släng teckningen.",
       effectsHint: "Dragen som ändrar hur ett streck ser ut.",
+      imageHint: "Bildkirurgin: att klippa ut ett motiv ur sin bakgrund.",
       colorHint: "Tonarbetet: nivåer, kurvor, kulör, balans.",
       layersHint:
         "Stapeln, översta först — och vilket lager ditt nästa streck hamnar på.",

@@ -22,7 +22,13 @@ const ids = (sections: readonly { id: string }[]) => sections.map((s) => s.id);
 
 describe("PANEL_SECTIONS", () => {
   it("ships colour under the stack", () => {
-    expect(ids(PANEL_SECTIONS)).toEqual(["page", "effects", "layers", "color"]);
+    expect(ids(PANEL_SECTIONS)).toEqual([
+      "page",
+      "effects",
+      "layers",
+      "image",
+      "color",
+    ]);
   });
 
   it("gives every effect a row to be switched off by", () => {
@@ -61,8 +67,8 @@ describe("orderedSections", () => {
 
   it("puts colour back above the stack for someone who works that way", () => {
     expect(
-      ids(orderedSections(["page", "effects", "color", "layers"])),
-    ).toEqual(["page", "effects", "color", "layers"]);
+      ids(orderedSections(["page", "effects", "color", "layers", "image"])),
+    ).toEqual(["page", "effects", "color", "layers", "image"]);
   });
 
   it("keeps a section the stored order has never heard of", () => {
@@ -99,6 +105,7 @@ describe("switching things off", () => {
       "page",
       "effects",
       "layers",
+      "image",
     ]);
   });
 
@@ -144,11 +151,11 @@ describe("switching things off", () => {
     expect(
       ids(
         visibleSections(
-          ["layers", "page", "effects", "color"],
+          ["layers", "page", "effects", "image", "color"],
           ["effects"],
           [],
         ),
       ),
-    ).toEqual(["layers", "page", "color"]);
+    ).toEqual(["layers", "page", "image", "color"]);
   });
 });

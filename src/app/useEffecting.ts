@@ -5,6 +5,7 @@ import { effectTargets } from "./bake.ts";
 import {
   defaultScope,
   effectDescriptor,
+  withSubject,
   type Effect,
   type EffectKind,
   type EffectScope,
@@ -89,6 +90,7 @@ export function useEffecting({
   checker,
   view,
   window: viewportRef,
+  subject,
 }: {
   drawing: Drawing | null;
   pageColor: string;
@@ -100,6 +102,11 @@ export function useEffecting({
   view: CanvasView | null;
   /** The element the canvas fills, for the size of that window. */
   window: { current: HTMLElement | null };
+  /** The traced subject an aimed effect opens with — the selection's contours,
+   *  read at the moment of opening (a getter over a ref for the same reason
+   *  `view` is: `open` must keep its identity across every gesture). The draft
+   *  keeps its stamp from then on: it is what you had traced when you asked. */
+  subject?: () => readonly (readonly Point[])[] | null;
 }): EffectingControl {
   const [effecting, setEffecting] = useState<Effecting | null>(null);
   const viewRef = useRef<CanvasView | null>(null);
@@ -113,7 +120,7 @@ export function useEffecting({
       const box = viewportRef.current?.getBoundingClientRect();
       setEffecting({
         kind,
-        draft: descriptor.preset,
+        draft: withSubject(descriptor.preset, subject?.() ?? []),
         scope: defaultScope(descriptor),
         look:
           seen && box
@@ -127,7 +134,7 @@ export function useEffecting({
             : null,
       });
     },
-    [viewportRef],
+    [viewportRef, subject],
   );
 
   const close = useCallback(() => setEffecting(null), []);

@@ -183,7 +183,9 @@ function effectSection(group: {
     hintKey:
       group.id === "color"
         ? "settings.panel.colorHint"
-        : "settings.panel.effectsHint",
+        : group.id === "image"
+          ? "settings.panel.imageHint"
+          : "settings.panel.effectsHint",
     madeOfItems: true,
     items: EFFECTS.filter((effect) => effect.group === group.id).map(
       (effect) => ({
@@ -207,7 +209,7 @@ function effectSection(group: {
  *
  *  A section this list doesn't name (a third effect group, say) follows the ones
  *  it does rather than vanishing. */
-const SHIPPED_ORDER = ["page", "effects", "layers", "color"] as const;
+const SHIPPED_ORDER = ["page", "effects", "layers", "image", "color"] as const;
 
 const REGISTERED: readonly PanelSection[] = [
   PAGE,

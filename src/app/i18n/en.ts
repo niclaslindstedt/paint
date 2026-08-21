@@ -173,6 +173,16 @@ export const en = {
       colorHint:
         "Speckle the colours as well as the light. Off leaves the grey grain film does.",
     },
+    imageTitle: "Image",
+    cutout: {
+      name: "Delete background",
+      hint: "Keeps what you traced with a selection tool and deletes everything else — the cut finds the subject's exact edge near your outline, so the tracing only has to be roughly right.",
+      feather: "Feather: {value} px",
+      tolerance: "Colour tolerance: {value}%",
+      smoothness: "Smoothness: {value}%",
+      noSubject:
+        "Trace the subject with a selection tool first — roughly is fine, the cut searches for the exact edge near your outline.",
+    },
     colorTitle: "Colour",
     brightness: {
       name: "Brightness & contrast",
@@ -963,6 +973,8 @@ export const en = {
       pageHint:
         "Resize, flip and mirror the page — and throw the drawing away.",
       effectsHint: "The passes that change what a mark looks like.",
+      imageHint:
+        "The picture surgery: cutting a subject out of its background.",
       colorHint: "The tonal work: levels, curves, hue, balance.",
       layersHint:
         "The stack, topmost first — and which layer your next mark lands on.",

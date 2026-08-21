@@ -5,10 +5,12 @@ something else; scatter grain over a photograph to take the flatness off it. You
 set it up, you apply it, and it is then part of the picture — like reaching for
 a real can of spray, not like putting a coloured gel over a lamp.
 
-The panel splits them in two. **Effects** is this page — blur and noise, the
-passes that change what a mark looks like. **Colour** is the tonal work — levels,
-curves, hue, colour balance — and it is the same machinery throughout, so
-everything below applies to it too. See [`color.md`](color.md).
+The panel splits them in three. **Effects** is this page — blur and noise, the
+passes that change what a mark looks like. **Image** is surgery on what the
+picture is — cutting a subject out of its background (see
+[`delete-background.md`](delete-background.md)). **Colour** is the tonal work —
+levels, curves, hue, colour balance (see [`color.md`](color.md)). It is the
+same machinery throughout, so everything below applies to all of them.
 
 That is the whole idea, and everything else follows from it:
 

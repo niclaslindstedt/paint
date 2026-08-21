@@ -31,6 +31,7 @@ domain:   types · layers · merge · render · plugins/* · migrations · canva
           transform (mirror / turn / resize / crop) · crop (aiming one)
           handoff (between namespaces)
           effects / adjust / bake / histogram (a change made to the picture)
+          cutout / effectCutout (a subject found from a rough tracing of it)
           panelSections (what the right-hand panel is made of)
           order (what you do to a stored arrangement of ids)
           sidebarDnd (which drops are legal)
@@ -296,6 +297,12 @@ edit.
 The split follows the usual line. `effects.ts` is pure: what the effects are,
 what each offers to set, and where each may be applied — noise is a layer's
 alone, blur offers the layer or the whole stack. `effectPaint.ts` is the pixels.
+The one effect that is _aimed_ rather than only dialled — Delete background —
+follows the same split one more time: `cutout.ts` is pure (a rough tracing and
+an RGBA buffer in, the subject's found border and an alpha mask out — the whole
+solve testable in node), and `effectCutout.ts` is the shim that reads pixels off
+the context and multiplies the mask into their alpha. Its tracing rides on the
+effect draft itself, stamped from the selection when the dialog opens.
 Neither of those two touches pixels one at a time — the blur is one filtered
 `drawImage` and the grain is a deterministic speck tile laid as a pattern
 anchored to the page — which is what makes them cheap enough to preview live. The

@@ -111,6 +111,10 @@ The app owns the domain and the stores ("store stays in the app"):
   arithmetic of the colour ones, turning a layer into a baked bitmap, and
   counting the tones a levels bar draws its handles over. All four are pure bar
   the bake and the count, which need a canvas and nothing else.
+- `src/app/cutout.ts` / `effectCutout.ts` — the aimed effect: finding a traced
+  subject's true border in a band around the tracing (pure, node-testable), and
+  the shim that cuts a context's pixels down to it. The tracing is stamped onto
+  the effect draft from the selection when its dialog opens.
 - `src/app/PaintCanvas.tsx`, `CanvasScreen.tsx`, `Toolbar.tsx`,
   `SideMenuContent.tsx`, `SettingsModal.tsx` + `settings/` — the screens.
 - `src/output.ts` — the §19.4 central output module (semantic log helpers over

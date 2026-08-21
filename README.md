@@ -191,6 +191,11 @@ the same [`oss-framework`](https://github.com/niclaslindstedt/oss-framework).
   all from the panel's **Colour** section, all previewed on the page as you set
   them, and all landing exactly the way an effect does. See
   [`docs/features/color.md`](docs/features/color.md).
+- **Delete a photo's background.** Trace roughly over the subject with a
+  selection tool and the panel's **Image** section cuts it out of its
+  background — the cut finds the subject's exact edge near your outline, on
+  your device, with feather, colour tolerance and smoothness to taste. See
+  [`docs/features/delete-background.md`](docs/features/delete-background.md).
 - **Vector, not pixels.** Undo is exact, the document is small enough for a
   phone, and a synced copy is readable JSON rather than a blob.
 - **A real file format.** `.pct` is a zip holding one transparent PNG per layer
@@ -373,7 +378,8 @@ npm run preview
   or corner, lock it to a shape (the page's own, one of the named ratios, or two
   numbers you type) from the little card at the foot of the page, and Enter cuts
   the sheet down to it; the **Effects** section under it blurs or grains what is already there,
-  and **Colour** under the stack holds the levels, curves, hue and balance.
+  the **Image** section under the stack deletes a traced subject's background,
+  and **Colour** holds the levels, curves, hue and balance.
   Every heading folds its section away, so you can collapse the ones you are not
   using — and dragging a heading (hold it first on a touch screen) **moves the
   section into another order**. Settings → Panel takes a section out of the

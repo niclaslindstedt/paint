@@ -31,6 +31,7 @@
 // See "Softening without `ctx.filter`" below.
 
 import { adjustPixels, type Adjustment } from "./adjust.ts";
+import { paintCutout } from "./effectCutout.ts";
 import { BLUR_TAIL, GRAIN_CEILING, type Effect } from "./effects.ts";
 import { createSurface, type Surface } from "./surface.ts";
 
@@ -77,6 +78,7 @@ export function paintEffect(
   if (!region) return;
   if (effect.kind === "blur") blur(ctx, region, effect.radius, paint);
   else if (effect.kind === "noise") grain(ctx, region, effect, paint);
+  else if (effect.kind === "cutout") paintCutout(ctx, region, effect, paint);
   // Everything left is a colour adjustment — the union says so, so there is no
   // "unknown effect" branch here to fall through to nothing.
   else recolor(ctx, region, effect);
@@ -124,7 +126,7 @@ function recolor(
   ctx.restore();
 }
 
-type Region = { x: number; y: number; width: number; height: number };
+export type Region = { x: number; y: number; width: number; height: number };
 
 /** The part of the page that is actually on this canvas, in whole canvas
  *  pixels — `null` when the sheet is entirely off it. Everything below works on
