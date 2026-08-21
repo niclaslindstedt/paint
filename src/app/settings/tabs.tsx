@@ -183,6 +183,12 @@ export function GeneralTab({
           checked={settings.showGrid}
           onChange={(next) => update("showGrid", next)}
         />
+        <ToggleRow
+          label={t("settings.general.showPixelGrid")}
+          hint={t("settings.general.showPixelGridHint")}
+          checked={settings.showPixelGrid}
+          onChange={(next) => update("showPixelGrid", next)}
+        />
       </Section>
 
       <Section title={t("settings.general.toolNameTitle")}>

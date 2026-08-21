@@ -25,10 +25,22 @@ export type CanvasView = { scale: number; tx: number; ty: number };
 /** The size of the window onto the page, in CSS pixels. */
 export type Viewport = { width: number; height: number };
 
-/** How far the view may be zoomed. A tenth shows a whole page on a phone; 8×
- *  is enough to place a mark precisely without the page turning to mush. */
+/** How far the view may be zoomed, in CSS pixels per document pixel. A tenth
+ *  shows a whole page on a phone.
+ *
+ *  The ceiling is *sixteen* rather than the eight that was enough to place a
+ *  mark precisely, and the reason is the pixel grid (see `pixelGrid.ts`). That
+ *  grid's band is measured in these same CSS pixels — it opens at five and is
+ *  fully up at seven — so the two numbers are directly comparable, and eight
+ *  left barely a seventh of a document pixel of headroom above it: enough to
+ *  *see* the lattice, not enough to work inside it. Sixteen clears the top of
+ *  the band twice over, on every screen alike, which is the point of both being
+ *  in CSS pixels rather than in the readout's device ones. Nothing costs more
+ *  for the room: a repaint is culled to the window, so a deeper zoom paints
+ *  *less* of the page, not more.
+ */
 export const MIN_SCALE = 0.1;
-export const MAX_SCALE = 8;
+export const MAX_SCALE = 16;
 
 /** The scale at which one document pixel is one *device* pixel — the zoom the
  *  readout calls 100%.

@@ -367,6 +367,36 @@ Settings → General can put a light grid behind the page to line boxes and
 arrows up. It is a drawing aid only: it is painted by the page element, never by the
 document, so it can never reach a downloaded file.
 
+## The pixel grid
+
+Zoom in far enough and the page rules itself into **single pixels** — the
+squares a downloaded image resolves to, one to a colour. They appear when a
+pixel is about **five pixels wide on screen** and are fully up at seven; below
+that the lines are too close together to read as squares at all and the page
+would just look tinted, so nothing is drawn.
+
+That is a size rather than a percentage, and deliberately. The zoom readout
+counts your screen's own dots, and a phone has about three of them where a
+desktop monitor has one — so the same reading of 700% shows you a pixel three
+times smaller on the phone, and a grid pinned to the percentage would be a
+readable lattice on the desktop and a grey wash on the phone. Pinned to the
+apparent size instead, it arrives when the squares are big enough to see
+wherever you are: around **500%** on a desktop screen, nearer **1000%** on a
+retina laptop and **1500%** on a phone. Those are the same picture.
+
+The fade does more than smooth the arrival. The grid is lightest exactly where
+the squares are smallest, so it never crowds them — the lines darken as the room
+to draw them appears.
+
+It is there to work against, not to look at: the ink is a faint grey that reads
+on a white sheet and on a black one, and — like the grid above — it is painted
+on the screen and never on the drawing, so no downloaded file has it in it.
+Settings → **General** switches it off.
+
+Zoom itself now reaches **sixteen** screen pixels to the document pixel, twice
+the top of that band, so there is room to work among the pixels rather than only
+to see them — and, being the same measure, the same room on every device.
+
 ## The tool you picked, named
 
 Switch tools — from the toolbar or with the tool's shortcut key — and its name

@@ -122,6 +122,7 @@ function screen() {
       pageColor: "#fff",
       defaultInk: "#000",
       showGrid: false,
+      showPixelGrid: false,
       checker: ["#eee", "#ddd"],
       washDetail: 1,
       leadDetail: 1,
