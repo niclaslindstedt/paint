@@ -52,7 +52,7 @@ import type { Rect } from "./geometry.ts";
 import type { EffectPreview } from "./render.ts";
 import { visibleStrokes } from "./layers.ts";
 import { paintLoupe } from "./loupe.ts";
-import { paintPixelGrid } from "./pixelGrid.ts";
+import { paintPixelGrid, showsPixels } from "./pixelGrid.ts";
 import { paintOutline } from "./plugins/builtin/select.ts";
 import type { DraftStroke } from "./plugins/types.ts";
 import { liftBounds, relayFixed } from "./relay.ts";
@@ -176,6 +176,14 @@ export function paintFrame(frame: Frame): void {
     // colour is (see `ground.ts`).
     ground: frame.drawing.ground,
     grid: frame.showGrid ? GRID_STEP : undefined,
+    // Zoomed in among the document's own pixels, a bitmap is painted as the
+    // squares it is made of rather than interpolated (see `pixelGrid.ts`).
+    //
+    // Off the *zoom* and not off `showPixelGrid`: switching the ruling off says
+    // you would rather not see the lattice drawn, not that you would rather see
+    // a blur where the picture's pixels are. The two settle the same question
+    // from the same number and are only ever turned off separately.
+    ...(showsPixels(view.scale) ? { pixels: true } : {}),
     checker: frame.checker,
     washDetail: frame.washDetail,
     leadDetail: frame.leadDetail,

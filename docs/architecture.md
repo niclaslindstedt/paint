@@ -1253,7 +1253,14 @@ where a cell is 2.3 CSS pixels: the readout says full strength and the glass
 shows a wash. In CSS pixels the grid arrives at the same apparent size
 everywhere, at 500% on a 1× monitor and 1500% on that phone. The fade is not
 only about the pop either — it puts the least ink where the cell is smallest, so
-the grid darkens in step with the room to draw it in. `MAX_SCALE` is sixteen
+the grid darkens in step with the room to draw it in. The same threshold decides
+one other thing, and has to: `showsPixels` turns bitmap filtering to nearest
+(`RenderOptions.pixels` → `PaintDetail.pixels` → the image plugin), because a
+lattice ruled over a smoothly interpolated picture has no pixel edges to line up
+with and the grid gets blamed for it. Screen-only, like the grid — an export is
+1:1 and has nothing to interpolate — and distinct from `Shape.smoothing`, which
+is a fact about the picture and does export. The mark cache compares it, since
+crossing the threshold repaints every bitmap without changing a stroke. `MAX_SCALE` is sixteen
 rather than eight for the band's sake too, and in the band's own units: eight
 left a seventh of a document pixel of headroom above it, enough to see the
 lattice and not enough to work inside it.

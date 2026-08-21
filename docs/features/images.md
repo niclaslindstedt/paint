@@ -55,3 +55,10 @@ The picture is still **placed at the size it was dropped at**: a 4000-pixel phot
 covers 4000 pixels of page (and grows the page to fit), it simply holds fewer
 stored pixels than that behind it. Zoom a long way into a very large import and
 you will see the difference; at any normal zoom you will not.
+
+Zoom in far enough — the same zoom the [pixel grid](canvas.md) arrives at — and a
+picture stops being smoothed and shows the squares it is actually made of. That
+is a property of how far in you are looking and nothing else: it is not recorded
+on the picture and it changes no downloaded file, which is always the drawing at
+1:1. The one filtering that _is_ part of the document is the pixel-art choice
+offered when you scale a whole page, and that one travels with it.

@@ -6,7 +6,9 @@ import {
   PIXEL_GRID_FULL,
   paintPixelGrid,
   pixelGridAlpha,
+  showsPixels,
 } from "../src/app/pixelGrid.ts";
+import { detailFor } from "../src/app/render.ts";
 import type { CanvasView } from "../src/app/viewport.ts";
 import { MAX_SCALE } from "../src/app/viewport.ts";
 
@@ -139,6 +141,44 @@ describe("pixelGridAlpha", () => {
     // than twice over, and a cell up there is a square you can aim at.
     expect(MAX_SCALE).toBeGreaterThanOrEqual(PIXEL_GRID_FULL * 2);
     expect(pixelGridAlpha(MAX_SCALE)).toBe(pixelGridAlpha(PIXEL_GRID_FULL));
+  });
+});
+
+describe("showsPixels", () => {
+  it("turns over where the grid opens, and not somewhere else", () => {
+    // The two have to agree. A grid ruled over a smoothly interpolated bitmap
+    // is a lattice over a blur: there are no pixel edges in the picture for it
+    // to line up with, and the grid gets blamed for it.
+    expect(showsPixels(PIXEL_GRID_FROM - 0.01)).toBe(false);
+    expect(showsPixels(PIXEL_GRID_FROM)).toBe(true);
+    expect(showsPixels(PIXEL_GRID_FULL)).toBe(true);
+    expect(showsPixels(1)).toBe(false);
+    expect(showsPixels(Number.NaN)).toBe(false);
+  });
+
+  it("is a step where the grid is a fade", () => {
+    // Nothing can half-interpolate, so this one cannot ramp. It turns over at
+    // the bottom of the band, where the grid is still drawing nothing.
+    expect(showsPixels(PIXEL_GRID_FROM)).toBe(true);
+    expect(pixelGridAlpha(PIXEL_GRID_FROM)).toBe(0);
+  });
+
+  it("reaches the painter that has to act on it", () => {
+    // The whole chain from a view to a bitmap's filtering: the frame reads the
+    // scale, the options carry it, and the detail is what the painter is told.
+    const ctx = recorder();
+    expect(
+      detailFor(ctx, { pageColor: "#fff", defaultInk: "#000", scale: 1 })
+        .pixels,
+    ).toBeUndefined();
+    expect(
+      detailFor(ctx, {
+        pageColor: "#fff",
+        defaultInk: "#000",
+        scale: 1,
+        pixels: true,
+      }).pixels,
+    ).toBe(true);
   });
 });
 

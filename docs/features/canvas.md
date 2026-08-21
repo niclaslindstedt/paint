@@ -388,10 +388,18 @@ The fade does more than smooth the arrival. The grid is lightest exactly where
 the squares are smallest, so it never crowds them — the lines darken as the room
 to draw them appears.
 
-It is there to work against, not to look at: the ink is a faint grey that reads
-on a white sheet and on a black one, and — like the grid above — it is painted
-on the screen and never on the drawing, so no downloaded file has it in it.
-Settings → **General** switches it off.
+A **picture shows its own pixels** at that zoom too. Below it a bitmap is
+smoothed, as anything scaled up should be; from it, the squares are drawn hard,
+so what the grid rules and what the picture is made of are the same thing. Without
+that the grid looks like it is lying — it rules a lattice over a soft gradient,
+and there are no pixel edges in the picture for it to line up with. This follows
+the zoom alone, not the switch below: turning the ruling off says you would
+rather not see lines drawn, not that you would rather see a blur.
+
+The grid is there to work against, not to look at: the ink is a faint grey that
+reads on a white sheet and on a black one, and — like the grid above — it is
+painted on the screen and never on the drawing, so no downloaded file has it in
+it. Settings → **General** switches it off.
 
 Zoom itself now reaches **sixteen** screen pixels to the document pixel, twice
 the top of that band, so there is room to work among the pixels rather than only
