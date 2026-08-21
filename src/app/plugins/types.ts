@@ -123,8 +123,11 @@ export type ToolDial = {
    *  the stroke, so a painter reads a chipped dial exactly as it reads a
    *  dragged one and nothing downstream knows the difference. `label` is a
    *  designation rather than a word (`4B`, `#6`), which is why it is a plain
-   *  string and not a catalog key. */
-  choices?: readonly { value: number; label: string }[];
+   *  string and not a catalog key. The exception carries `labelKey`: a choice
+   *  that is a *word* ("Add", "Erase") rather than a designation is read by
+   *  whoever the app is in the language of, so it names a catalog string and
+   *  keeps `label` as the identity the panel keys the chip by. */
+  choices?: readonly { value: number; label: string; labelKey?: TKey }[];
 };
 
 /** A picture of what one answer to a `ToolOption` does, painted by the tool that
@@ -319,6 +322,22 @@ export type ToolContext = {
    *  can; a test need not). A tool that needs it must cope with its absence by
    *  beginning no stroke. */
   probe?: CanvasProbe | null;
+  /** The selection as it stands — closed contours in document coordinates, the
+   *  same currency `ToolBehaviour.selection` answers in — or absent when
+   *  nothing is selected (or the caller has none to offer: a test, a preview).
+   *
+   *  Offered like the probe, and read by the same narrow audience: a selection
+   *  tool that *works the window over* rather than replacing it (the selection
+   *  pencil) needs to know what is already chosen to add its stroke to it.
+   *  Every other tool ignores it — the window's effect on an ordinary mark is
+   *  the canvas's business (`Stroke.clip`), never the behaviour's. */
+  selection?: readonly (readonly Point[])[] | null;
+  /** Whether the press is held with the modifier key (Ctrl, or ⌘ on a Mac).
+   *  Absent means no. A tool may read it as its alternate mode — the selection
+   *  pencil flips between painting selection in and painting it away — the way
+   *  every desktop paint program hangs a second verb off the same drag. Touch
+   *  has no modifier; a tool that offers one must offer it as a setting too. */
+  modifier?: boolean;
 };
 
 /** Where a stroke is landing: how finely it is being rasterised, and what it is
@@ -445,9 +464,16 @@ export type ToolBehaviour = {
    *  a tool can choose marks with any gesture it likes without the canvas, the
    *  store or the screen learning a new shape.
    *
+   *  `ctx` is the context the gesture was driven with, for the one tool that
+   *  needs more than the draft: the selection pencil reads the selection as it
+   *  stands off it (`ToolContext.selection`) to answer with that selection
+   *  worked over rather than replaced. Optional, and absent means "no selection
+   *  up, no modifier held" — which is what a caller with no context to give (a
+   *  test, a preview) should mean.
+   *
    *  `null` for a gesture that chose nothing — a press that never moved, a trace
    *  that found no area — which is what clears the selection. */
-  selection?(draft: DraftStroke): Point[][] | null;
+  selection?(draft: DraftStroke, ctx?: ToolContext): Point[][] | null;
   /** What a press **reads off the page** — asked only of a tool whose descriptor
    *  carries `picksColor`, and instead of beginning a gesture.
    *
@@ -677,6 +703,17 @@ export type PaintPlugin = {
    *  and `entersText`, it is a descriptor flag rather than a tool id anything
    *  recognises. */
   selects?: boolean;
+  /** True when this `selects` tool's gesture **works the selection over**
+   *  rather than replacing it — the selection pencil. Meaningless without
+   *  `selects`, which it refines.
+   *
+   *  Two things read it, both off the flag and never off an id. The canvas: a
+   *  press inside a settled selection begins another stroke of it instead of
+   *  sliding the window (a tool that adds to the selection has every reason to
+   *  press inside it, and sliding is what the marquees are for). And the
+   *  behaviour's own `selection` answer is built *from* the selection as it
+   *  stands (`ToolContext.selection`) rather than from the draft alone. */
+  combinesSelection?: boolean;
   /** True when the tool's mark is *typed* rather than drawn — the text tool.
    *
    *  A press begins no gesture; it opens a caret on the page instead, and the
@@ -711,9 +748,13 @@ export type PaintPlugin = {
    *  tool gets no size button, and its own settings move to a cog beside the
    *  ink instead (see `plugins/controls.ts`).
    *
-   *  Only tools that *do* leave a mark need declare it. A tool that leaves none
-   *  — the hand, the dropper, the selection family — has no width for the same
-   *  reason it has no ink, and that is read off the flags it already carries. */
+   *  Tools that leave no mark mostly need not declare it — the hand and the
+   *  dropper have no width for the same reason they have no ink, and that is
+   *  read off the flags they already carry. The marquees are the exception that
+   *  says it outright: a selection tool *can* have a width (the selection
+   *  pencil's nib is one), so the four whose gesture is a drag or a press
+   *  declare `sizeless` themselves rather than having the family's flag decide
+   *  for the one member it would be wrong about. */
   sizeless?: boolean;
   /** How a width is **shown**: on the size button, and on every button of the
    *  width row.

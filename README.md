@@ -348,10 +348,14 @@ npm run preview
   and pours a ramp of its own colours through it — press where the first colour
   starts, drag the way it should run, let go where the last one lands. Press the
   button again to choose which.
-- **Selection** — one button, four ways to pick marks out: a box (`V`), an
-  oval, a freehand lasso, and a **trace** that follows the contours of whatever
-  is drawn under your finger rather than a shape you drew over it. Press the
-  button again to choose which. Move what you caught by switching to the hand
+- **Selection** — one button, five ways to pick marks out: a box (`V`), an
+  oval, a freehand lasso, a **trace** that follows the contours of whatever is
+  drawn under your finger rather than a shape you drew over it, and a
+  **selection pencil** that paints the selection in like a pencil line — every
+  stroke adds to it, its Erase mode (or a held `Ctrl`/`Cmd`) paints it away, and
+  its feather makes a Delete fade out softly. Press the button again to choose
+  which. With something selected, **Invert selection** at the head of the side
+  panel flips the window to everything it wasn't. Move what you caught by switching to the hand
   and dragging from inside the outline; copy, cut and delete with
   `Ctrl/Cmd + C`, `X` and `Delete`, or from the menu a right-click (or a long
   press) opens on them. `Ctrl/Cmd + V` pastes marks, a picture or words back

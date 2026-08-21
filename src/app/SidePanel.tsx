@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, type ReactNode } from "react";
 
 import { useLocalStorageState } from "@niclaslindstedt/oss-framework/hooks";
 import { useDragDrop } from "@niclaslindstedt/oss-framework/sidebar";
@@ -58,6 +58,19 @@ import type { PaintStore } from "./usePaintStore.ts";
 // 224-pixel panel saying what the button beside it says. Escape and a press on
 // the page still dismiss it, as they do for every floating surface here.
 
+/** One contextual action — a row of the **Actions** block at the head of the
+ *  panel. Plain strings rather than catalog keys, because what exists depends
+ *  on what the *screen* is holding (a selection, today) and the screen is where
+ *  the words are resolved. */
+export type PanelAction = {
+  id: string;
+  label: string;
+  /** The one line under the pointer saying what it does. */
+  hint?: string;
+  icon?: ReactNode;
+  onSelect: () => void;
+};
+
 type Props = {
   store: PaintStore;
   drawing: Drawing;
@@ -72,6 +85,12 @@ type Props = {
    *  handed the whole order it is a permutation of, for the reason `order.ts`
    *  gives. */
   onMoveSection: (order: readonly string[], from: number, to: number) => void;
+  /** What can be done to the thing the screen is holding *right now* — the
+   *  **Actions** block at the very top of the panel (see `PanelAction`).
+   *  Contextual, so it is none of the arrangeable sections' business: it is not
+   *  in the stored order, not switchable from Settings → Panel, and the panel
+   *  leaves it out entirely — heading and all — when there is nothing to do. */
+  actions?: readonly PanelAction[];
   /** Docked beside the canvas rather than floating over it. A docked panel has
    *  no close button and no Escape: it is part of the screen, not a thing you
    *  opened. */
@@ -108,6 +127,7 @@ export function SidePanel({
   defaultInk,
   settings,
   onMoveSection,
+  actions = [],
   docked = false,
   onResize,
   onCrop,
@@ -181,6 +201,39 @@ export function SidePanel({
           : "absolute inset-y-0 right-0 z-20 flex w-56 max-w-[80%] flex-col overflow-y-auto overscroll-contain border-l border-line bg-surface shadow-2xl"
       }
     >
+      {/* The contextual block, above everything the user arranges: what can be
+          done to the thing the screen is holding right now — a selection's
+          invert, today. It exists only while there is something to do, so an
+          empty page never shows a heading over nothing, and it sits at the top
+          because it is about *now* where the sections are about the page. */}
+      {actions.length > 0 && (
+        <div className="shrink-0 border-b border-line">
+          <div className="flex items-center gap-1 px-2 py-1.5">
+            <span className="min-w-0 flex-1 truncate text-xs font-bold tracking-wide text-muted uppercase">
+              {t("panel.actionsTitle")}
+            </span>
+          </div>
+          <div className="flex flex-col gap-1 px-2 pb-2">
+            {actions.map((action) => (
+              <button
+                key={action.id}
+                type="button"
+                onClick={action.onSelect}
+                title={action.hint}
+                className="flex cursor-pointer items-center gap-2 rounded border border-line px-2 py-1.5 text-sm text-fg hover:bg-surface-2 hover:text-fg-bright"
+              >
+                {action.icon && (
+                  <span className="shrink-0 text-muted">{action.icon}</span>
+                )}
+                <span className="min-w-0 flex-1 truncate text-left">
+                  {action.label}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {sections.map((section) => {
         const open = isOpen(section.id);
         const zone = dnd.dropZone(section.id, section.id);

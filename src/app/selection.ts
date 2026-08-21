@@ -73,6 +73,13 @@ export type SelectionRegion = readonly (readonly Point[])[];
 export type Selection = {
   region: SelectionRegion;
   box: Box;
+  /** How softly a Delete through this window fades out, in document pixels —
+   *  the selection pencil's feather dial, stamped when the window was cut (see
+   *  `useSelection.ts` for what a feathered delete files). Absent, and every
+   *  window the marquees cut, means the hard edge deletes have always had.
+   *  Screen state like the rest of the window: it travels with the window as
+   *  it is slid and stretched, and it is nowhere in the document. */
+  feather?: number;
 };
 
 /** The smallest box holding every contour, or `null` when there is nothing
@@ -95,14 +102,18 @@ export function regionBox(region: SelectionRegion): Box | null {
 }
 
 /** The selection a gesture's contours make, or `null` for an outline that
- *  encloses nothing — which is what "select nothing" arrives as. */
+ *  encloses nothing — which is what "select nothing" arrives as. `feather` is
+ *  how softly a Delete through it fades out; absent (and 0, which is the dial
+ *  at rest) records nothing, so a marquee's window is the object it always
+ *  was. */
 export function selectionOf(
   region: SelectionRegion | null | undefined,
+  feather?: number,
 ): Selection | null {
   if (!region || region.length === 0) return null;
   const box = regionBox(region);
   if (!box || box.width <= 0 || box.height <= 0) return null;
-  return { region, box };
+  return { region, box, ...(feather && feather > 0 ? { feather } : {}) };
 }
 
 /** A rectangle as a window — the shape a box marquee cuts, and the one two
@@ -116,6 +127,25 @@ export function boxRegion(box: Box): SelectionRegion {
       { x: box.x + box.width, y: box.y + box.height },
       { x: box.x, y: box.y + box.height },
     ],
+  ];
+}
+
+/** The window turned inside out: everything on the page the selection *isn't*.
+ *
+ *  Even-odd is what makes this one line of geometry rather than a clipping
+ *  algorithm — the page's own rectangle with the selection's contours inside it
+ *  reads as the page minus the selection, exactly as `maskOutside` cuts a
+ *  mark's complement. A contour that runs past the page's edge comes out
+ *  *kept* out there (even-odd is exclusive-or), which is the honest reading of
+ *  "everything I didn't select": a mark hanging off the sheet was as unchosen
+ *  as the rest. */
+export function invertRegion(
+  region: SelectionRegion,
+  page: { width: number; height: number },
+): SelectionRegion {
+  return [
+    ...boxRegion({ x: 0, y: 0, width: page.width, height: page.height }),
+    ...region.map((loop) => loop.map((p) => ({ ...p }))),
   ];
 }
 

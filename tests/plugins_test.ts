@@ -115,18 +115,22 @@ describe("registry", () => {
       "hexagon",
       "star",
       "doublearrow",
-      // The selection family: the box marquee, then the oval, the lasso and
-      // the one that traces what is painted. They share a button too.
+      // The selection family: the box marquee, then the oval, the lasso, the
+      // one that traces what is painted, and the pencil that paints the
+      // selection in. They share a button too.
       "select",
       "select-oval",
       "select-lasso",
       "select-trace",
+      "select-draw",
       "text",
       "dropper",
       "hand",
       // Registered, but never in the toolbar: the painter behind a dropped
-      // image (see `toolPlugins`).
+      // image, and the erasing mark a feathered delete files (see
+      // `toolPlugins`).
       "image",
+      "erase-region",
     ]);
   });
 
@@ -161,7 +165,7 @@ describe("registry", () => {
     // replaced — kept registered so every stroke ever drawn with it still
     // paints, offered nowhere because the paintbrush is how a flat is picked
     // up now.
-    expect(hidden).toEqual(["flatbrush", "image"]);
+    expect(hidden).toEqual(["flatbrush", "image", "erase-region"]);
     for (const id of hidden) {
       expect(toolPlugins().map((p) => p.id)).not.toContain(id);
       expect(registeredEntries().map((e) => e.id)).not.toContain(id);
@@ -1118,6 +1122,7 @@ describe("select behaviour", () => {
       "select-oval",
       "select-lasso",
       "select-trace",
+      "select-draw",
     ]);
     // …and they are exactly the family behind the one button, so no selection
     // tool can ever be offered without the switch that turns them all on.

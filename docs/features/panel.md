@@ -5,6 +5,15 @@ than to a mark: the **Image** actions at the top, **Effects** and **Colour**,
 and the **layer stack**. Not everyone uses all of it, and not everyone reaches
 for it in the same order — so the arrangement is yours rather than the app's.
 
+## The Actions block
+
+One block is not a section at all. With a selection up, **Actions** appears at
+the very top of the panel — Invert selection lives there — and disappears the
+moment there is nothing to act on. It is about what the screen is holding right
+now rather than about the page, which is why it sits above the sections, is not
+in their order, and has no switch in Settings → Panel: a contextual block you
+could reorder or hide would be a block you could lose.
+
 ## Move a section
 
 **Drag a section by its heading** and it goes where you drop it; the ones it

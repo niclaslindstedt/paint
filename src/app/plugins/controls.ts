@@ -32,14 +32,16 @@ import type { PaintPlugin } from "./types.ts";
 
 /** Whether a width means anything to this tool's mark.
  *
- *  Two ways to have no width: say so (`sizeless`, for a tool that marks the
- *  page but not by the nib), or leave no mark at all — and the second is
- *  already on the descriptor, so the tools that navigate, sample or select
- *  need declare nothing. */
+ *  Two ways to have no width: say so (`sizeless`, for a tool whose gesture has
+ *  no nib in it — the bucket, and the marquees), or leave no mark at all — and
+ *  the second is already on the descriptor, so the tools that navigate or
+ *  sample need declare nothing. `selects` alone no longer answers it: the
+ *  selection pencil chooses marks *with a nib*, and its width is as real as the
+ *  eraser's, so the members of that family that have none say so themselves. */
 export function usesSize(plugin: PaintPlugin | undefined): boolean {
   if (!plugin) return false;
   if (plugin.sizeless) return false;
-  return !(plugin.navigates || plugin.picksColor || plugin.selects);
+  return !(plugin.navigates || plugin.picksColor);
 }
 
 /** Whether the colour in the toolbar means anything with this tool in hand.

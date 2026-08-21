@@ -237,6 +237,12 @@ export const en = {
   panel: {
     collapse: "Hide {name}",
     expand: "Show {name}",
+    // The contextual block at the head of the panel — shown only while there
+    // is something to act on (see `SidePanel.tsx`).
+    actionsTitle: "Actions",
+    invertSelection: "Invert selection",
+    invertSelectionHint:
+      "Select everything on the page the selection isn't — and nothing it is.",
   },
   crop: {
     title: "Crop",
@@ -474,6 +480,15 @@ export const en = {
     feather: {
       name: "Feather: {value} mm",
       hint: "Fades the fill's edge out instead of stopping it.",
+    },
+    mode: {
+      name: "Mode",
+      hint: "Add paints selection in; Erase paints it away. Holding Ctrl (⌘ on a Mac) flips it for one stroke.",
+      add: "Add",
+      erase: "Erase",
+    },
+    selectFeather: {
+      hint: "How softly a Delete through the selection fades out — the edges and corners go gently instead of dead sharp.",
     },
     sample: {
       name: "Sample: {value}",
@@ -756,7 +771,7 @@ export const en = {
     selection: {
       name: "Select",
       description:
-        "Cut a window in the page — with a box, an oval, a lasso, or by tracing what is painted under the pointer. Press it again to choose which. Paint inside it and the mark is cut to it; drag it with the hand to carry what is painted there, or with the marquee to slide the window itself.",
+        "Cut a window in the page — with a box, an oval, a lasso, by tracing what is painted under the pointer, or by drawing it in with a nib. Press it again to choose which. Paint inside it and the mark is cut to it; drag it with the hand to carry what is painted there, or with the marquee to slide the window itself.",
     },
     select: {
       name: "Box select",
@@ -775,6 +790,11 @@ export const en = {
       name: "Trace select",
       description:
         "Press an area and the selection follows the contours of what is drawn there, rather than a shape you drew over it.",
+    },
+    selectDraw: {
+      name: "Draw select",
+      description:
+        "Paint the selection like a pencil line: everything the nib covers is selected, and every stroke adds to what is already chosen. Its Erase mode — the chip in the size panel, or Ctrl (⌘) held — paints selection away instead, and the feather dial makes a Delete fade out softly at the edges.",
     },
     marker: {
       name: "Marker",
@@ -850,6 +870,11 @@ export const en = {
       name: "Image",
       description:
         "A picture dropped onto the page. It has no button — drop an image file on the canvas and place it.",
+    },
+    eraseRegion: {
+      name: "Feathered delete",
+      description:
+        "A delete through a feathered selection, kept as one soft-edged erasing mark. It has no button — press Delete through a selection the Draw select tool cut with its feather up.",
     },
   },
   settings: {

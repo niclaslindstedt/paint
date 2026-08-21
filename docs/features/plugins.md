@@ -60,7 +60,7 @@ A **group** is a family of tools that share one toolbar button and one switch.
 The shapes are the case it was built for, and they are the reason it exists:
 eleven of them as eleven buttons would be most of a phone's toolbar spent on one
 idea, and eleven switches in Settings → Tools for a question nobody asks eleven
-times. The four selection tools are the second, the two fills the third, and the
+times. The five selection tools are the second, the two fills the third, and the
 **two ways of taking a mark off** the fourth: press the eraser again and the
 rubber is behind it.
 
@@ -159,19 +159,30 @@ behaviour's business. It says only that no palette can reach it, which is why a
 charcoal or a silverpoint landing next year is one flag rather than a change to
 the toolbar.
 
-## Four ways to select
+## Five ways to select
 
 The selection tools are the same arrangement, for the same reason: which _shape_
 of window you cut is a smaller question than which tool you are holding.
 So one button holds a **box** marquee (**V**), an **oval**, a freehand **lasso**,
-and a **trace** — and the button wears whichever you last used.
+a **trace**, and the **selection pencil** — and the button wears whichever you
+last used.
 
 They differ only in the gesture. Every one of them ends by answering one question
-— `selection(draft)`, "what did this gesture choose?" — with **closed contours in
-document coordinates**, and the screen takes contours and nothing else. That is
-why a lasso needed no new idea anywhere outside `plugins/`: the canvas, the store
-and the renderer are unchanged, and a build that adds a fifth way to select adds
-a fifth behaviour and nothing more.
+— `selection(draft, ctx)`, "what did this gesture choose?" — with **closed
+contours in document coordinates**, and the screen takes contours and nothing
+else. That is why a lasso needed no new idea anywhere outside `plugins/`: the
+canvas, the store and the renderer are unchanged, and a build that adds a sixth
+way to select adds a sixth behaviour and nothing more.
+
+The pencil is the one member whose answer is built from more than the draft: it
+reads the selection as it stands off the context (`ToolContext.selection`) and
+answers with that selection **worked over** — its stroke's capsule painted in,
+or, under its erase mode, painted away (see `regionMask.ts` for the arithmetic,
+which is the bucket's rasterise-and-trace run in reverse). Its descriptor says so
+with `combinesSelection`, which is also what tells the canvas that a press inside
+the window begins another stroke of it rather than sliding it. And it is the one
+member with a real nib, so it alone skips the family's `sizeless` and carries a
+width, a mode chip and a feather dial.
 
 The trace tool is the interesting one. It has no shape of its own at all: it asks
 the same probe the paint bucket asks — a rasterised snapshot of the page, flooded

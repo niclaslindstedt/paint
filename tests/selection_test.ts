@@ -6,6 +6,7 @@ import {
   boxRegion,
   eraseRegion,
   inBox,
+  invertRegion,
   maskOf,
   moveRegion,
   moveRegionContents,
@@ -459,5 +460,53 @@ describe("offsetTo", () => {
 
   it("moves nothing when there is nothing to move", () => {
     expect(offsetTo([], { x: 50, y: 50 })).toEqual({ x: 0, y: 0 });
+  });
+});
+
+describe("invertRegion", () => {
+  const page = { width: 100, height: 80 };
+
+  it("turns the window inside out on the page", () => {
+    const region = boxRegion({ x: 20, y: 20, width: 30, height: 30 });
+    const inverted = invertRegion(region, page);
+    // What was in is out, what was out is in — and the page's own edge bounds
+    // the new window.
+    expect(regionHolds(inverted, { x: 30, y: 30 })).toBe(false);
+    expect(regionHolds(inverted, { x: 5, y: 5 })).toBe(true);
+    expect(regionHolds(inverted, { x: 90, y: 70 })).toBe(true);
+    expect(regionHolds(inverted, { x: 120, y: 40 })).toBe(false);
+  });
+
+  it("inverts back to where it started", () => {
+    const region = boxRegion({ x: 10, y: 10, width: 20, height: 20 });
+    const twice = invertRegion(invertRegion(region, page), page);
+    // Even-odd again: the page rectangle appears twice and cancels out, so the
+    // reading is the original window.
+    expect(regionHolds(twice, { x: 15, y: 15 })).toBe(true);
+    expect(regionHolds(twice, { x: 60, y: 60 })).toBe(false);
+  });
+
+  it("keeps a hole's arithmetic — the hole becomes selected, the ring does not", () => {
+    const ring = [
+      ...boxRegion({ x: 10, y: 10, width: 40, height: 40 }),
+      ...boxRegion({ x: 20, y: 20, width: 20, height: 20 }),
+    ];
+    const inverted = invertRegion(ring, page);
+    expect(regionHolds(inverted, { x: 15, y: 30 })).toBe(false);
+    expect(regionHolds(inverted, { x: 30, y: 30 })).toBe(true);
+    expect(regionHolds(inverted, { x: 70, y: 30 })).toBe(true);
+  });
+});
+
+describe("a selection's feather", () => {
+  it("rides selectionOf when the window was cut with one", () => {
+    const region = boxRegion({ x: 0, y: 0, width: 10, height: 10 });
+    expect(selectionOf(region, 6)?.feather).toBe(6);
+  });
+
+  it("records nothing for the dial at rest, so a marquee's window is unchanged", () => {
+    const region = boxRegion({ x: 0, y: 0, width: 10, height: 10 });
+    expect(selectionOf(region)?.feather).toBeUndefined();
+    expect(selectionOf(region, 0)?.feather).toBeUndefined();
   });
 });

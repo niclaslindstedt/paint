@@ -391,6 +391,33 @@ export function TraceSelectIcon({ className }: IconProps) {
   );
 }
 
+/** The selection pencil — the stroke it leaves, drawn as the family draws
+ *  itself: dashed, because what it leaves is a marquee and not a mark. The
+ *  silhouette is one capsule on the set's 45° diagonal — the shape one stroke
+ *  of it selects — and the solid wedge inside its near end is the nib: the
+ *  fifth member of a dashed family has to differ in ink, and a filled point is
+ *  what says *drawn* at 18 pixels where a curve difference says nothing. Inside
+ *  the silhouette and on its own axis, so the box measures as the capsule and
+ *  not as a lean. */
+export function DrawSelectIcon({ className }: IconProps) {
+  return (
+    <svg {...toolBase} className={className} aria-hidden="true">
+      <g transform="rotate(-45 12 12)">
+        <rect
+          x="2.6"
+          y="8.3"
+          width="18.8"
+          height="7.4"
+          rx="3.7"
+          strokeDasharray="3.4 2.8"
+          strokeLinecap="butt"
+        />
+        <path d="M3.9 12l3.4-1.9v3.8Z" fill="currentColor" stroke="none" />
+      </g>
+    </svg>
+  );
+}
+
 /** Cut — the scissors, for the selection menu's middle action. */
 export function ScissorsIcon({ className }: IconProps) {
   return (
@@ -409,6 +436,33 @@ export function PasteIcon({ className }: IconProps) {
     <svg {...base} className={className} aria-hidden="true">
       <path d="M9 4.4H6.6a1.8 1.8 0 0 0-1.8 1.8v13.4a1.8 1.8 0 0 0 1.8 1.8h10.8a1.8 1.8 0 0 0 1.8-1.8V6.2a1.8 1.8 0 0 0-1.8-1.8H15" />
       <rect x="9" y="2.4" width="6" height="4" rx="1.2" />
+    </svg>
+  );
+}
+
+/** Invert selection — the panel's contextual action. An abstract action shows
+ *  its two states rather than an arrow between them: the dashed square is the
+ *  window (the family's own mark for one), and the disc inside it is half
+ *  solid, half open — what was in becomes out in one picture. Chrome, not a
+ *  tool: it sits beside the framework's icons in a panel row, so it is drawn
+ *  on `base` like the scissors above it. */
+export function InvertSelectionIcon({ className }: IconProps) {
+  return (
+    <svg {...base} className={className} aria-hidden="true">
+      <rect
+        x="3.9"
+        y="3.9"
+        width="16.2"
+        height="16.2"
+        strokeDasharray="3.1 2.6"
+        strokeLinecap="butt"
+      />
+      <path
+        d="M12 7.4a4.6 4.6 0 0 1 0 9.2Z"
+        fill="currentColor"
+        stroke="none"
+      />
+      <path d="M12 7.4a4.6 4.6 0 0 0 0 9.2" />
     </svg>
   );
 }
