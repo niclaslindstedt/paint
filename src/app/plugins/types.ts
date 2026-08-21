@@ -727,8 +727,11 @@ export type PaintPlugin = {
    *  is the whole of what your preview has to say. */
   sizePreview?: "press" | "circle" | "life";
   /** What this tool offers under **Advanced** in the size panel, past the width
-   *  every tool shares. Two at most: the panel is a thing you reach into
-   *  mid-stroke, and a rack of sliders is a settings screen.
+   *  every tool shares. As few as the tool can be described in: the panel is a
+   *  thing you reach into mid-stroke, and a rack of sliders is a settings
+   *  screen. Most tools come to two; a nib takes three (how chiselled it is,
+   *  which way it is turned, and how heavily it lays ink) and a loaded brush
+   *  five, which is the ceiling anything here has needed.
    *
    *  Declaring one is the whole of adding it — the picker renders the list, the
    *  settings blob keeps a value per tool per dial, and the behaviour reads it

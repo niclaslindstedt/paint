@@ -523,7 +523,12 @@ most of the time rather than on the middle of the rack: the pen at 0.5 mm (the
 liner that outsells the rest put together), the pencil at 0.7 (0.5 is the lead a
 shop sells most of, but a sketching hand wants the blunter point), the marker at
 its 2 mm bullet, the paintbrush at a #6, the airbrush at a general-purpose
-12 mm pattern. A default that is not one of the five is a fresh install whose
+12 mm pattern — which is also where the airbrush's rack now stops. It used to
+run on to 25 and 50 mm, and a pattern that covers a third of a phone in one
+pass is a thing you reach for once a drawing rather than one of the five
+settings a thumb should be able to hit without reading; the gun is still made
+that wide, so the slider still goes there and the **Background** preset lands
+on 50 mm in one press. A default that is not one of the five is a fresh install whose
 size row has nothing lit up in it.
 
 The slider under them is **not linear and not one scale**. It has three bands:
@@ -747,8 +752,8 @@ round brush is bought for and the one a stylus will one day move for you.
 | **Pencil**          | lead, pressure                                |
 | **Crayon**          | pressure                                      |
 | **Chalk**           | pressure                                      |
-| **Marker**          | opacity, chisel                               |
-| **Highlighter**     | opacity, chisel                               |
+| **Marker**          | opacity, chisel, nib angle                    |
+| **Highlighter**     | opacity, chisel, nib angle                    |
 | **Calligraphy pen** | nib angle, ink                                |
 | **Eraser**          | strength                                      |
 | **Rubber**          | pressure                                      |
@@ -815,7 +820,13 @@ stain weaker — which is what a glaze is. **Granulation** is the paper and the 
 rather than the brush: ultramarine on rough stock mottles enough to see across a
 room, phthalo on hot-pressed does not mottle at all. **Chisel** is the shape
 of a felt tip, from a round bullet to a flat wedge, and **nib angle** is the
-tilt a broad nib is held at, in degrees. **Strength** is how much of a mark one
+tilt that wedge — or a broad nib, or a brush squeezed toward a blade — is held
+at, in degrees. The two go together: on a chisel the angle is what decides
+which direction comes out broad and which comes out a hairline, so a marker
+rests at the italic −45° a right hand holds a pen at and a highlighter rests
+square across the line of type at 90°, where an underline gets the full band
+and a stroke down the page gets the edge. Turn a highlighter to 0° and it
+strikes a margin down the page instead. **Strength** is how much of a mark one
 pass of the eraser takes off: it is the ink's own alpha under `destination-out`,
 so turning it down gives you the pencil eraser you knock a highlight back with
 rather than the one that takes the page to white in a single drag. **Feather** fades

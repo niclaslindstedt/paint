@@ -91,9 +91,9 @@ connect a storage backend yourself.
   a flat, which way the blade is turned and how hard the hand is bearing on it
   for the paintbrush, flow for the
   airbrush, softness and pressure for the crayon, pressure for the chalk, the
-  lead's grade and the hand on it for the pencil, the chisel of a felt tip for
-  the marker and the highlighter, the nib's angle and its dip of ink for the
-  calligraphy pen, strength for the eraser,
+  lead's grade and the hand on it for the pencil, the chisel of a felt tip and which way it
+  is turned for the marker and the highlighter, the nib's angle and its dip of
+  ink for the calligraphy pen, strength for the eraser,
   pressure for the rubber, a feathered edge for the paint bucket and the
   gradient, how much page one press of the dropper reads, opacity for the pen,
   the felt tips, the shapes and type. The simulated media carry no opacity —
