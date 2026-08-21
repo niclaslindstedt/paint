@@ -47,17 +47,22 @@ self-contained document: it syncs as one file, exports as one file, and works
 offline with nothing to fetch.
 
 That does mean pictures take up room in a document that lives in your browser's
-storage, so the _stored_ bitmap is scaled down on the way in — the longest edge
-is capped at 2000 pixels, and photos are re-encoded as JPEG. An image already
-inside the cap is stored exactly as it was.
+storage, so a really large one is scaled down on the way in — the longest edge is
+capped at **3200 pixels**, and photos are re-encoded as JPEG. Anything inside the
+cap is stored exactly as it was, and the cap is set where it is on purpose: it
+clears a phone screenshot, whichever phone. A screenshot is the one picture whose
+whole point is its pixels, so it arrives with every one of them.
 
-The picture is still **placed at the size it was dropped at**: a 4000-pixel photo
-covers 4000 pixels of page (and grows the page to fit), it simply holds fewer
-stored pixels than that behind it. Zoom a long way into a very large import and
-you will see the difference; at any normal zoom you will not.
+A picture that _is_ scaled down is then **placed at the size it is stored at**. A
+6000-pixel photo becomes a 3200-pixel picture rather than a 6000-pixel one drawn
+from 3200 pixels of data — so one pixel of the picture is always one pixel of the
+page. That is what lets the [pixel grid](canvas.md) rule the squares a picture is
+genuinely made of, and it is why a download of it is the picture rather than an
+enlargement of it.
 
 Zoom in far enough — the same zoom the [pixel grid](canvas.md) arrives at — and a
-picture stops being smoothed and shows the squares it is actually made of. That
+picture stops being smoothed and shows the squares it is actually made of, which
+line up with the grid because they _are_ the page's own pixels. That
 is a property of how far in you are looking and nothing else: it is not recorded
 on the picture and it changes no downloaded file, which is always the drawing at
 1:1. The one filtering that _is_ part of the document is the pixel-art choice
