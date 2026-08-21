@@ -330,6 +330,12 @@ describe("the committed marks cache", () => {
       "the grid coming on",
       { options: { pageColor: "#fff", defaultInk: "#000", grid: 40 } },
     ],
+    [
+      // Every bitmap on the page is filtered the other way and not one stroke
+      // has changed, so this is a change only the options can carry.
+      "the view crossing into the document's own pixels",
+      { options: { pageColor: "#fff", defaultInk: "#000", pixels: true } },
+    ],
   ] as [string, Partial<CacheSpec>][])(
     "repaints after %s",
     (_label, change) => {

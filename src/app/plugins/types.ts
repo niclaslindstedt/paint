@@ -368,6 +368,11 @@ export type PaintDetail = {
    *  so every surface painting the same document has to be told the same number.
    *  Absent is all of it. */
   washDetail?: number;
+  /** The view is in among the document's own pixels (see `showsPixels`), so a
+   *  bitmap should be painted as the squares it is made of rather than
+   *  interpolated. Absent is the ordinary smooth filtering — and absent is what
+   *  an export passes, which is 1:1 and has nothing to interpolate. */
+  pixels?: boolean;
   /** …and how finely the graphite simulation works a mark out, where it works
    *  anything out at all (see `MIN_LEAD_DETAIL`). Handed down for the same
    *  reason and absent means the same thing. */
@@ -406,6 +411,13 @@ export type PaintDetail = {
  *  sheet, i.e. draw everything and let the paper do nothing. A painter called
  *  directly (a test, a one-off) then behaves exactly as it did before the
  *  renderer measured anything. */
+/** The view is far enough in that a document pixel is a visible square, so a
+ *  painter that resolves a *bitmap* should show its pixels rather than
+ *  interpolate between them (see `pixelGrid.ts`). One painter reads it — the
+ *  dropped image — and it is handed down with the scale rather than recorded on
+ *  a mark for the same reason the wash's detail is: it is a property of the
+ *  view, and every surface showing the same document has to be told the same
+ *  thing. Absent means the ordinary smooth filtering. */
 export const FULL_DETAIL: PaintDetail = { scale: 1 };
 
 /** What a tool does with a pointer gesture, and how its strokes are painted.

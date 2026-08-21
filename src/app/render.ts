@@ -327,6 +327,17 @@ export type RenderOptions = InkContext & {
    *  marks. A **screen-only** drawing aid: the PNG export leaves it unset, so a
    *  grid can never reach an exported file. */
   grid?: number;
+  /** Paint bitmaps as the squares they are made of rather than interpolating
+   *  them — what a view zoomed in past `showsPixels` asks for (see
+   *  `pixelGrid.ts`), so a picture shows its pixels at the zoom the grid is
+   *  ruling them.
+   *
+   *  **Screen-only**, and for a sharper reason than the grid: an export is 1:1,
+   *  where there is nothing to interpolate and the choice cannot arise. The one
+   *  bitmap filtering that *is* the document's — a page scaled up as pixel art —
+   *  is recorded on the mark instead (`Shape.smoothing`), and that one exports,
+   *  because it is a fact about the picture rather than about the view. */
+  pixels?: boolean;
   /** The two squares of the transparency chequer, painted under the marks where
    *  a page has no sheet at all (see `canvas.ts`). **Screen-only**, for the same
    *  reason the grid is: it is how "there is nothing here" is drawn, and an
@@ -921,6 +932,9 @@ export function detailFor(
     // …and whether these marks are the gesture in flight, which is the other
     // thing a painter may spend differently on (see `PaintDetail.live`).
     ...(options.live ? { live: true } : {}),
+    // …and whether the view is in among the document's own pixels, which is
+    // what tells a bitmap to show its squares instead of a blur.
+    ...(options.pixels ? { pixels: true } : {}),
   };
 }
 

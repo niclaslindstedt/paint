@@ -20,7 +20,7 @@ export const imageBehaviour: ToolBehaviour = {
   // No gesture draws an image: it arrives as a file.
   start: () => null,
   move: (draft) => draft,
-  paint: (ctx2d, stroke) => {
+  paint: (ctx2d, stroke, detail) => {
     const shape = stroke.shape;
     if (shape.kind !== "image") return;
     // No bytes yet: a stroke loaded from a backend whose image file couldn't be
@@ -34,7 +34,18 @@ export const imageBehaviour: ToolBehaviour = {
     // A picture scaled up as pixel art keeps its pixels square. Set at paint
     // time rather than baked into the bytes, so it holds at every zoom (see
     // `transform.ts`).
-    if (shape.smoothing === "nearest") ctx2d.imageSmoothingEnabled = false;
+    //
+    // …and so does *any* picture, once the view is in among the document's own
+    // pixels (see `pixelGrid.ts`). Interpolated at that zoom a bitmap is a soft
+    // gradient with no pixel edges in it at all, which makes the grid ruled
+    // over it look like it is lying about where the boundaries are — it isn't;
+    // there was simply nothing on screen to line up with. The two cases differ
+    // in where they are decided and in what they mean: `smoothing` is a fact
+    // about the picture and travels with the mark into an export, this is a
+    // fact about the view and never leaves the screen.
+    if (shape.smoothing === "nearest" || detail?.pixels) {
+      ctx2d.imageSmoothingEnabled = false;
+    }
     ctx2d.drawImage(img, box.x, box.y, box.width, box.height);
   },
 };

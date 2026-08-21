@@ -84,6 +84,29 @@ export const PIXEL_GRID_FROM = 5;
  *  actually work in. */
 export const PIXEL_GRID_FULL = 7;
 
+/** Whether the view is far enough in that a document pixel is a *thing on
+ *  screen* rather than a sample of one — the same threshold the grid opens at,
+ *  and deliberately the same number.
+ *
+ *  Two decisions hang off it, and they have to agree or the grid looks like it
+ *  is lying. The grid rules the lattice; this says a **bitmap** should be drawn
+ *  as the squares it is made of rather than smoothly interpolated (see
+ *  `plugins/builtin/image.ts`). Interpolated, a picture at 3000% is a soft
+ *  gradient with no pixel edges anywhere in it — so the grid rules a lattice
+ *  over a blur and nothing lines up with anything, which is exactly the
+ *  complaint, and the grid is not the part that is wrong.
+ *
+ *  A step rather than the grid's fade: half-interpolating is not a thing a
+ *  rasteriser can do, and the switch is invisible anyway — at this zoom the two
+ *  filterings differ by less than the blur they disagree about.
+ *
+ *  Read off `view.scale`, in CSS pixels, for `PIXEL_GRID_FROM`'s reason: it is
+ *  about whether a pixel is big enough to *look at*, which the readout's
+ *  device-pixel percentage does not answer. */
+export function showsPixels(scale: number): boolean {
+  return Number.isFinite(scale) && scale >= PIXEL_GRID_FROM;
+}
+
 /** The grid's ink, at full strength. A fixed translucent grey for the guide
  *  grid's reason (see `render.ts`): it has to read on a white sheet and on a
  *  black one, and it is never the thing you are looking at. */

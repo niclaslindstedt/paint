@@ -686,6 +686,10 @@ export function sameFrame(a: CacheSpec, b: CacheSpec): boolean {
     a.options.pageColor === b.options.pageColor &&
     a.options.defaultInk === b.options.defaultInk &&
     a.options.grid === b.options.grid &&
+    // Crossing into the pixels repaints every bitmap on the page with the other
+    // filtering, and changes no stroke at all — so the cache has to be able to
+    // see it happen (see `RenderOptions.pixels`).
+    a.options.pixels === b.options.pixels &&
     // The chequer under a page with no sheet: it is theme-coloured, so flipping
     // the app between light and dark repaints it without touching a stroke.
     a.options.checker?.[0] === b.options.checker?.[0] &&
