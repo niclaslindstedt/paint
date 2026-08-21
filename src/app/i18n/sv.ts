@@ -1019,6 +1019,10 @@ export const sv: Catalog = {
       browserTab: "webbläsarflik",
       pluginsTitle: "Plugin",
       pluginsRegistered: "{n} verktygsplugin registrerade",
+      picturesTitle: "Bilder i den här teckningen",
+      picturesNone: "Inga bilder på den här sidan.",
+      picturesHint:
+        "Sparad bitmapp → ritad, och hur många sidpixlar en av bildens egna pixlar täcker. Allt annat än 1.000 betyder att bilden förstoras innan den ritas, så att dess pixlar hamnar inuti pixelrutnätets rutor i stället för på deras kanter.",
     },
     logs: {
       intro:

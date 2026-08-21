@@ -1093,6 +1093,10 @@ export const en = {
       browserTab: "browser tab",
       pluginsTitle: "Plugins",
       pluginsRegistered: "{n} tool plugins registered",
+      picturesTitle: "Pictures in this drawing",
+      picturesNone: "No pictures on this page.",
+      picturesHint:
+        "Bitmap stored → drawn, and how many page pixels one of the picture's own pixels covers. Anything but 1.000 means the picture is magnified before it is drawn, so its pixels fall inside the pixel grid's cells rather than on their edges.",
     },
     logs: {
       intro:

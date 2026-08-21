@@ -27,6 +27,8 @@ import {
 
 import { defaultInk, isDarkColor, resolvePageColor } from "../canvas.ts";
 import { drawingToPng, exportFileName } from "../export.ts";
+import { cachedImage } from "../images.ts";
+import { visibleStrokes } from "../layers.ts";
 import { useT } from "../i18n/index.ts";
 import { log, logStore } from "../log.ts";
 import { serializeDoc } from "../migrations.ts";
@@ -37,6 +39,7 @@ import type {
   BackdropBlur,
   BackdropDarkness,
 } from "../useAppSettings.ts";
+import type { Drawing } from "../types.ts";
 import type { PaintStore } from "../usePaintStore.ts";
 import {
   DROPBOX_APP_KEY,
@@ -521,13 +524,72 @@ function UpdateCheck({ pwa }: { pwa: PwaUpdate }) {
   );
 }
 
+/** What a picture in the open drawing is *made of*, against what it is *drawn
+ *  at* — the one fact that decides whether its pixels can land on the page's
+ *  own lattice, and the one nobody could read off the screen.
+ *
+ *  A bitmap stored smaller than it is placed is magnified before the view ever
+ *  gets to it: its pixels come out `placed ÷ stored` document pixels wide, so
+ *  its colour changes fall *inside* the pixel grid's cells rather than on their
+ *  edges (see `pixelGrid.ts`). That reads as the grid being wrong and it is
+ *  not, which is exactly why this readout exists — it is a number instead of an
+ *  argument. Anything but `1.000` is the picture, not the grid.
+ *
+ *  `bitmapOf` is how a picture's real size is looked up — the decode cache in
+ *  the app, a stub in a test, which is the whole reason it is a parameter. */
+export function pictureFacts(
+  drawing: Drawing | null,
+  bitmapOf: (
+    src: string,
+  ) => { naturalWidth: number; naturalHeight: number } | null = cachedImage,
+): {
+  name: string;
+  stored: string;
+  placed: string;
+  ratio: string;
+  exact: boolean;
+  kind: string;
+}[] {
+  if (!drawing) return [];
+  const out = [];
+  let n = 0;
+  for (const stroke of visibleStrokes(drawing)) {
+    const shape = stroke.shape;
+    if (shape.kind !== "image") continue;
+    n += 1;
+    const placedWidth = Math.abs(shape.to.x - shape.from.x);
+    const placedHeight = Math.abs(shape.to.y - shape.from.y);
+    const bitmap = shape.src ? bitmapOf(shape.src) : null;
+    const storedWidth = bitmap?.naturalWidth ?? 0;
+    const storedHeight = bitmap?.naturalHeight ?? 0;
+    // The encoding, straight off the data URL's own header — which is what
+    // answers "did the phone hand us a re-encoded JPEG?" without guessing.
+    const header = /^data:([^;,]+)/.exec(shape.src ?? "");
+    const ratio = storedWidth > 0 ? placedWidth / storedWidth : 0;
+    out.push({
+      name: `#${String(n)}`,
+      stored: storedWidth
+        ? `${String(storedWidth)}×${String(storedHeight)}`
+        : "…",
+      placed: `${String(Math.round(placedWidth))}×${String(Math.round(placedHeight))}`,
+      ratio: storedWidth ? ratio.toFixed(3) : "…",
+      exact: storedWidth > 0 && Math.abs(ratio - 1) < 0.001,
+      kind: header?.[1]?.replace("image/", "") ?? "?",
+    });
+  }
+  return out;
+}
+
 export function DeveloperTab({
   settings,
   update,
   pwa,
+  drawing,
 }: {
   settings: AppSettings;
   update: Update;
+  /** The drawing that is open behind the dialog, for the picture readout. */
+  drawing: Drawing | null;
   /** The live PWA update lifecycle, threaded down from `App` rather than
    *  started again here: `usePwaUpdate` owns a service-worker registration, and
    *  a second one in a dialog would be a second machine arguing with the first
@@ -536,6 +598,7 @@ export function DeveloperTab({
 }) {
   const t = useT();
   const standalone = useStandaloneMobile();
+  const pictures = pictureFacts(drawing);
   return (
     <div>
       <p className="mb-3 text-xs text-muted">{t("settings.developer.intro")}</p>
@@ -582,6 +645,32 @@ export function DeveloperTab({
             </li>
           ))}
         </ul>
+      </Section>
+
+      <Section title={t("settings.developer.picturesTitle")}>
+        {pictures.length === 0 ? (
+          <p className="text-sm text-muted">
+            {t("settings.developer.picturesNone")}
+          </p>
+        ) : (
+          <>
+            <p className="mb-2 text-xs text-muted">
+              {t("settings.developer.picturesHint")}
+            </p>
+            <ul className="selectable flex flex-col gap-1 font-mono text-xs">
+              {pictures.map((picture) => (
+                <li
+                  key={picture.name}
+                  className={picture.exact ? "text-muted" : "text-fg-bright"}
+                >
+                  {picture.name} {picture.stored} {picture.kind} →{" "}
+                  {picture.placed} · {picture.ratio}
+                  {picture.exact ? "" : " ⚠"}
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
       </Section>
 
       <Section title={t("settings.developer.buildTitle")}>
