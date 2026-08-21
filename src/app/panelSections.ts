@@ -98,6 +98,11 @@ const PAGE: PanelSection = {
       hintKey: "settings.panel.resizeHint",
     },
     {
+      id: "page:crop",
+      nameKey: "page.crop",
+      hintKey: "settings.panel.cropHint",
+    },
+    {
       id: "page:flip",
       nameKey: "page.flip",
       hintKey: "settings.panel.flipHint",

@@ -122,6 +122,13 @@ connect a storage backend yourself.
   new page over the old one and lets it be pulled by its corners, crop-tool
   style, with a latch that keeps the proportions. The same panel's bin starts
   the drawing over — every mark, every layer and the page colour.
+- Crop a drawing by eye: Crop… in the same panel puts a rectangle over the page
+  with everything it would cut away dimmed, draggable by any edge, any corner or
+  from the middle. A small card at the foot of the canvas locks the shape — keep
+  the page's own proportions, drag freely, pick 1:1, 4:3, 3:2, 16:9 or 9:16, or
+  type two numbers of your own — and Enter (or Crop) cuts the sheet down to the
+  rectangle. Marks that fall outside it are kept in the document rather than
+  deleted, so undo, or a bigger page later, brings them back.
 - Blur or scatter grain from the right-hand panel's Effects section, with the
   radius, the amount, the speck size and coloured-or-grey grain set in the
   effect's own dialog. An effect is applied once and is then part of the picture:

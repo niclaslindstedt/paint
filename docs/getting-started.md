@@ -96,11 +96,18 @@ the top right folds it away when you want the whole width for the drawing; on a
 narrower one that same button opens it over the page (so does a swipe in from
 the right edge), and a press on the page closes it again.
 
-At the top of it, **Image**: **Resize…**, **Flip** left or right — a quarter turn
-each way — and **Mirror** horizontally or vertically. Resize asks whether you
-mean _everything_ (the page and the marks together) or the _canvas only_ (a
-bigger sheet for more room, a smaller one to crop), and draws the before and
-after so you can see which edge is about to go. Under it are **Effects** and the
+At the top of it, **Image**: **Resize…**, **Crop…**, **Flip** left or right — a
+quarter turn each way — and **Mirror** horizontally or vertically. Resize asks
+whether you mean _everything_ (the page and the marks together) or the _canvas
+only_ (a bigger sheet for more room, a smaller one to crop), and draws the before
+and after so you can see which edge is about to go. Crop is the one you aim by
+eye: a rectangle goes up over the drawing with everything it would cut away
+dimmed, you drag it — by any edge, any corner, or from the middle — and a small
+card at the foot of the page says what shape it is allowed to be. Keep the page's
+own proportions, drag freely, pick 1:1, 4:3, 3:2, 16:9 or 9:16, or type your own
+two numbers; change your mind halfway and the rectangle you have already aimed is
+refitted rather than thrown away. **Enter** or **Crop** takes it, **Escape** or
+**Cancel** leaves the page alone, and undo brings back anything it cut. Under it are **Effects** and the
 **layer stack**: add a layer, pick which one you are drawing on, hide it, move it
 up or down, delete it, or **merge** several of them onto one. A drawing starts as
 a single layer, so that half stays out of the way until you want it. **Colour**

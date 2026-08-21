@@ -259,7 +259,7 @@ arrow, `V` the selection marquee, `T` text, `I` the colour dropper, `D` the hand
 (drag the page around) — left to right in the order a hand uses them;
 `Ctrl/Cmd + Z` undoes a mark. The hamburger top left opens the drawings — so
 does a swipe in from that edge, on anything with a touch screen — the panel on the right
-resizes, flips and mirrors the page, and the **…** at the end of the toolbar
+resizes, crops, flips and mirrors the page, and the **…** at the end of the toolbar
 opens Settings → Tools, which switches the rest of the media on and puts the
 toolbar in another order.
 
@@ -365,7 +365,10 @@ npm run preview
   over it. The Background stays at the bottom of the stack: it is the page, so it
   does not move and nothing slides under it. The **Image** heading above the
   stack resizes, flips and mirrors the page, and its bin starts the drawing
-  over; the **Effects** section under it blurs or grains what is already there,
+  over; **Crop…** there puts a rectangle over the drawing — drag it by any edge
+  or corner, lock it to a shape (the page's own, one of the named ratios, or two
+  numbers you type) from the little card at the foot of the page, and Enter cuts
+  the sheet down to it; the **Effects** section under it blurs or grains what is already there,
   and **Colour** under the stack holds the levels, curves, hue and balance.
   Every heading folds its section away, so you can collapse the ones you are not
   using — and dragging a heading (hold it first on a touch screen) **moves the

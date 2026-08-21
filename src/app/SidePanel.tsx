@@ -78,6 +78,9 @@ type Props = {
   docked?: boolean;
   /** Open the resize dialog. Owned by the screen, like every other dialog. */
   onResize: () => void;
+  /** Start a crop: the rectangle goes up over the canvas, which is the screen's
+   *  space rather than this panel's (see `CanvasScreen`). */
+  onCrop: () => void;
   /** Open one effect's options. The dialog is the screen's, like the resize
    *  one — this panel says which effect, and nothing else about it. */
   onEffect: (kind: EffectKind) => void;
@@ -107,6 +110,7 @@ export function SidePanel({
   onMoveSection,
   docked = false,
   onResize,
+  onCrop,
   onEffect,
   onMerge,
   onTransform,
@@ -221,6 +225,7 @@ export function SidePanel({
                 store={store}
                 drawing={drawing}
                 onResize={onResize}
+                onCrop={onCrop}
                 onTransform={onTransform}
               />
             ) : section.id === "layers" ? (

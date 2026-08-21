@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-// Turning the whole page around: mirror it, turn it a quarter, scale it, or
-// change the sheet under it without touching a mark.
+// Turning the whole page around: mirror it, turn it a quarter, scale it, crop
+// it, or change the sheet under it without touching a mark.
 //
-// All four are the same thing — a map from one point on the page to another —
+// All of them are the same thing — a map from one point on the page to another —
 // applied to every stroke's geometry and, where the page's shape changes, to
 // the page itself. A vector document is what makes this cheap and exact: there
 // is no resampling to lose, so mirroring a drawing twice returns the document it
@@ -25,6 +25,7 @@
 // and the store is left as the one place that knows about undo.
 
 import { textBox } from "./plugins/builtin/text.ts";
+import type { Box } from "./bounds.ts";
 import { clampCanvasSize, type CanvasSize } from "./canvasSize.ts";
 import type { Drawing, Point, Shape, Stroke } from "./types.ts";
 
@@ -311,6 +312,34 @@ export function resizeCanvas(
   anchor: ResizeAnchor,
 ): PageEdit {
   const shift = anchorOffset(drawing, to, anchor);
+  const at = (p: Point) => ({ x: p.x + shift.x, y: p.y + shift.y });
+  return {
+    width: to.width,
+    height: to.height,
+    strokes:
+      shift.x === 0 && shift.y === 0
+        ? drawing.strokes
+        : drawing.strokes.map((stroke) => mapStroke(stroke, at, 1)),
+  };
+}
+
+/** Crop the page to a rectangle drawn on it: the sheet becomes that rectangle
+ *  and every mark shifts with it, keeping its size and its place in the picture.
+ *
+ *  This is `resizeCanvas` with its nine anchors replaced by a box — the same
+ *  edit, aimed. Marks that end up outside the new sheet are kept in the document
+ *  rather than deleted, exactly as they are when the sheet is simply made
+ *  smaller: nothing is painted or exported off the page, and growing the page
+ *  again (or undoing) brings them back.
+ *
+ *  The box is taken as whole pixels — `crop.ts` rounds it — and the sides are
+ *  clamped to what a page is allowed to be. */
+export function cropDrawing(drawing: Drawing, box: Box): PageEdit {
+  const to = clampCanvasSize({
+    width: Math.round(box.width),
+    height: Math.round(box.height),
+  });
+  const shift = { x: -Math.round(box.x), y: -Math.round(box.y) };
   const at = (p: Point) => ({ x: p.x + shift.x, y: p.y + shift.y });
   return {
     width: to.width,
