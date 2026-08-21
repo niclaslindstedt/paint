@@ -319,8 +319,8 @@ npm run preview
   pressure for the chalk, the
   lead's grade for the pencil — 8H through 9B, as a row of chips rather than a
   slider, because there is nothing between a 2B and a 3B — the chisel of a felt
-  tip for the marker and the highlighter, the angle of the nib for the
-  calligraphy pen and how much ink its nib was dipped with, strength for the
+  tip and the angle it is held at for the marker and the highlighter, the angle
+  of the nib for the calligraphy pen and how much ink its nib was dipped with, strength for the
   eraser, pressure for the
   rubber, a feathered edge for the paint bucket and the gradient, how much page
   one press of the dropper reads, and opacity for the pen, the felt tips, the

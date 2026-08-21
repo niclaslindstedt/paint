@@ -615,11 +615,18 @@ describe("the felt tips", () => {
     const angled = toolPlugins()
       .filter((p) => p.dials?.some((d) => d.id === "angle"))
       .map((p) => p.id);
-    // The paintbrush and the broad nib: the two tools in the box that can
-    // have a flat on them, and the only two for which "which way is it
-    // turned" is a question — the brush's means nothing until its flatness
-    // dial leaves the round.
-    expect(angled).toEqual(["paintbrush", "calligraphy"]);
+    // Every tool in the box that can have a flat on it, and no others: the
+    // brush squeezed toward a blade, the two felt tips cut to a chisel, and
+    // the broad nib. For each of them "which way is it turned" is a real
+    // question — and for the round tools it is not a question at all, which is
+    // why they are not offered it. The brush's own means nothing until its
+    // flatness dial leaves the round.
+    expect(angled).toEqual([
+      "paintbrush",
+      "marker",
+      "highlighter",
+      "calligraphy",
+    ]);
     const angle = pluginById("calligraphy")!.dials!.find(
       (d) => d.id === "angle",
     )!;
@@ -627,6 +634,20 @@ describe("the felt tips", () => {
     // is neither a fraction nor a distance.
     expect(angle.unit).toBe("deg");
     expect(angle.default).toBe(-45);
+  });
+
+  it("rests each nib at the angle its own tool is held at", () => {
+    // A dial's rest has to be the angle the tool already drew at, or declaring
+    // it re-draws every untuned mark ever made with it: only a dial moved off
+    // its default reaches a stroke (see `tunedDials`).
+    const restOf = (id: string) =>
+      pluginById(id)!.dials!.find((d) => d.id === "angle")!.default;
+    // A felt tip is held like a pen — the italic hold a right hand puts one on
+    // the page at.
+    expect(restOf("marker")).toBe(-45);
+    // A highlighter is held like a ruler: square across the line of type, so an
+    // underline gets the band and a downstroke gets the hairline.
+    expect(restOf("highlighter")).toBe(90);
   });
 });
 

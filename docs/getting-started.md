@@ -31,11 +31,14 @@ the ink nor the drawing.
   you hold it over one spot.
 - **Marker** (`M`) is a felt tip: spirit ink that soaks in, so a second pass
   over the same line darkens it. Its **chisel** dial squashes the nib — leave it
-  mostly round and it draws the same weight whichever way you pull it.
+  mostly round and it draws the same weight whichever way you pull it — and its
+  **nib angle** turns whatever chisel you leave it with, so you can hold it the
+  way you hold a pen.
 - **Highlighter** (`H`) is the same nib squashed nearly flat and held square
   across the page, so an underline drawn left to right gets the full band and a
   stroke drawn down the page gets a hairline. It opens at 5 mm, which is a line
-  of type.
+  of type. Turn its **nib angle** to 0° and the asymmetry swaps over: now it is
+  the tool you strike a margin down the page with.
 - **Eraser** (`E`) rubs marks off the page. Turn its **strength** down and one
   pass fades them instead of removing them.
 - **Paint bucket** (`F`) fills the empty space you tap, up to the marks around

@@ -108,17 +108,26 @@ export const WASH_GAUGE: SizeGauge = {
 };
 
 /** The airbrush, by the pattern it throws rather than by the needle: a detail
- *  gun holds a line a couple of millimetres wide, a general-purpose one covers
- *  a couple of centimetres, and a spray can is the top of the range. */
+ *  gun holds a line a millimetre or two wide and a general-purpose one covers a
+ *  centimetre, which is where the rack stops.
+ *
+ *  It used to run on to 25 and 50 mm, and those two buttons were the width of a
+ *  hand: a pattern that covers a third of a phone in one pass is a thing you
+ *  reach for once a drawing, to lay a sky in, and it was taking two of the five
+ *  places a thumb can hit without reading. The gun is still *made* that wide —
+ *  `max` is unchanged, the slider still runs there, and the **Background**
+ *  preset lands on 50 mm in one press — but the rack is now five settings you
+ *  would actually spray with, spaced about 1.8 apart from a detail line to the
+ *  general-purpose cone. */
 export const SPRAY_GAUGE: SizeGauge = {
   min: mm(1),
   max: mm(80),
   steps: [
+    { px: mm(1) },
     { px: mm(2) },
+    { px: mm(3.5) },
     { px: mm(6) },
     { px: mm(12) },
-    { px: mm(25) },
-    { px: mm(50) },
   ],
 };
 

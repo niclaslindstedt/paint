@@ -141,6 +141,20 @@ export const ANGLE: ToolDial = {
   unit: "deg",
 };
 
+/** The highlighter's nib angle: the same dial resting square across the page.
+ *
+ *  A highlighter is held the way a ruler is, not the way a pen is — flat across
+ *  the line of type, so an underline drawn left to right gets the full band and
+ *  a stroke drawn down the page gets the hairline. That is what the tool *is*,
+ *  so it is where the dial rests; a felt tip you hold like a pen rests at the
+ *  italic −45° above.
+ *
+ *  Resting at the end of its own track is not an oversight. A nib is symmetric
+ *  under a half-turn — 90° and −90° are the same wedge — so the track holds
+ *  every angle there is exactly once, and square across is simply one of the
+ *  two ends of it. */
+export const ANGLE_ACROSS: ToolDial = { ...ANGLE, default: 90 };
+
 /** How much ink the calligraphy pen's nib is dipped with, per stroke.
  *
  *  The same dial id as the brushes' `LOAD` and a different word for it, the way

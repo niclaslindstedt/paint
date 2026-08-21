@@ -126,6 +126,7 @@ import { registerGroup, registerPlugin } from "../registry.ts";
 import type { PaintPlugin } from "../types.ts";
 import {
   ANGLE,
+  ANGLE_ACROSS,
   BEARING,
   CHISEL,
   CHISEL_FLAT,
@@ -674,7 +675,12 @@ export function registerBuiltinPlugins(): void {
     // width across, whichever way it is turned.
     grows: true,
     reach: 1,
-    dials: [OPACITY, CHISEL],
+    // The nib, in the two numbers a nib has: how chiselled it is, and which way
+    // that chisel is turned. The second used to be fixed at the italic −45°
+    // with no way to reach it, which is a tool holding your hand at an angle
+    // you did not choose — and on a chisel it is the difference between a
+    // downstroke that swells and one that thins.
+    dials: [OPACITY, CHISEL, ANGLE],
     presets: MARKER_PRESETS,
     behaviour: freehandBehaviour({
       opacity: 0.88,
@@ -682,6 +688,8 @@ export function registerBuiltinPlugins(): void {
       // Mostly round out of the box, and it has to agree with `CHISEL.default`
       // — that is what an untuned mark resolves to.
       chisel: 0.35,
+      // …and the same agreement for the angle, against `ANGLE.default`: the
+      // italic hold a right hand puts a felt tip on the page at.
       angle: -45,
     }),
   });
@@ -701,7 +709,12 @@ export function registerBuiltinPlugins(): void {
     wetness: 0.45,
     grows: true,
     reach: 1,
-    dials: [OPACITY, CHISEL_FLAT],
+    // The same pair as the marker's, both resting somewhere else: a wedge
+    // rather than a bullet, held across the line rather than along it (see
+    // `CHISEL_FLAT` and `ANGLE_ACROSS`). The angle is worth reaching now that
+    // the nib is this flat — it is what turns a highlighter into the tool you
+    // strike a vertical margin down the page with.
+    dials: [OPACITY, CHISEL_FLAT, ANGLE_ACROSS],
     presets: HIGHLIGHTER_PRESETS,
     behaviour: freehandBehaviour({
       opacity: 0.35,
@@ -710,6 +723,8 @@ export function registerBuiltinPlugins(): void {
       // to right gets the full band, a stroke drawn down the page gets the
       // hairline. That asymmetry is what a highlighter *is*, and it is the one
       // thing the old round painter could not say.
+      //
+      // Both have to agree with the defaults on the dials declared above.
       chisel: 0.85,
       angle: 90,
     }),

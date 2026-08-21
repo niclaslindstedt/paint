@@ -179,7 +179,7 @@ describe("the shipped set", () => {
     registerBuiltinPlugins();
   });
 
-  it("gives no tool more than two dials, bar the media that have more", () => {
+  it("gives no tool more than two dials, bar the ones that have more", () => {
     // The size panel is opened mid-drawing, with one thumb. A third slider is
     // a settings screen — so the bar for one is that it changes what the mark
     // *is* rather than restyling what another dial already did.
@@ -188,11 +188,20 @@ describe("the shipped set", () => {
     // limit. A head of hair is loaded or dry, dipped with much or little
     // paint, squeezed toward a blade or left round, and turned one way or the
     // other when it is a blade, and no one of those four is any of the
-    // others; and a wash is water, pigment and what the sheet does with what
-    // is left. A tool turning up on this list that is not one of these two is
-    // a tool that has grown a settings screen.
+    // others; a wash is water, pigment and what the sheet does with what is
+    // left; and a felt tip is a *nib*, which takes how chiselled it is and
+    // which way that chisel is turned before it takes anything else — on a
+    // wedge the angle decides which direction comes out broad and which comes
+    // out a hairline, which is not a restyling of the chisel dial but the other
+    // half of the same nib. A tool turning up on this list that is not one of
+    // these four is a tool that has grown a settings screen.
     const over = allPlugins().filter((p) => (p.dials?.length ?? 0) > 2);
-    expect(over.map((p) => p.id)).toEqual(["paintbrush", "watercolor"]);
+    expect(over.map((p) => p.id)).toEqual([
+      "paintbrush",
+      "watercolor",
+      "marker",
+      "highlighter",
+    ]);
   });
 
   it("keeps even those inside a panel you can still use with a thumb", () => {
