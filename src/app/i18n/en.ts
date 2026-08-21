@@ -878,7 +878,7 @@ export const en = {
         "A light grid behind the page, to line boxes and arrows up. It is a guide only — it never exports.",
       showPixelGrid: "Show the pixel grid when zoomed in",
       showPixelGridHint:
-        "Past 800% the page is ruled into single pixels — the squares an exported image resolves to — fading fully in at 1000%. A guide only; it never exports.",
+        "Once a pixel is a few pixels wide on screen — around 500% on a desktop, further in on a phone, where they are smaller — the page rules itself into single pixels, the squares an exported image resolves to. A guide only; it never exports.",
       toolNameTitle: "Tool name",
       showToolName: "Name the tool you pick",
       showToolNameHint:

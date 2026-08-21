@@ -144,8 +144,9 @@ type Props = {
   onContextMenu?: (at: Point) => void;
   /** Paint a faint grid behind the page as a drawing aid. Never exported. */
   showGrid?: boolean;
-  /** Rule the document's own pixel lattice over the page once the zoom is deep
-   *  enough for it to read (see `pixelGrid.ts`). Never exported either. */
+  /** Rule the document's own pixel lattice over the page once a document pixel
+   *  is wide enough on screen to read as a square (see `pixelGrid.ts`). Never
+   *  exported either. */
   showPixelGrid?: boolean;
   /** The transparency chequer for the app's current theme (see `canvas.ts`) —
    *  what a page with no sheet is drawn as. Never exported either. */

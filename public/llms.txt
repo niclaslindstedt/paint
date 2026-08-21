@@ -141,10 +141,13 @@ connect a storage backend yourself.
   marks back. Every download carries it without special handling.
 - Draw on a page bigger than the window: the canvas is a window onto it, with
   pinch-to-zoom, two-finger panning, and one-finger panning under the hand. Zoom
-  reaches 1600% on an ordinary screen, and past 800% the page rules itself into
-  single pixels — the squares a downloaded image resolves to — fully faded in at
-  1000%. Like the optional guide grid it is painted on the screen only and never
-  reaches a downloaded file; Settings turns it off.
+  reaches sixteen screen pixels to the document pixel, and once a pixel is about
+  five of them wide the page rules itself into single pixels — the squares a
+  downloaded image resolves to. That threshold is an apparent size rather than a
+  percentage, so it lands around 500% on a desktop screen and nearer 1500% on a
+  phone, where a pixel is physically smaller; either way the squares are big
+  enough to see when the grid arrives. Like the optional guide grid it is painted
+  on the screen only and never reaches a downloaded file; Settings turns it off.
 - Adjust the colour from the right-hand panel's Colour section: brightness and
   contrast, levels (black point, white point, midtones), curves (a draggable tone
   curve with a composite RGB line and one per channel), hue and saturation,

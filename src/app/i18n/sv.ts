@@ -809,7 +809,7 @@ export const sv: Catalog = {
         "Ett ljust rutnät bakom sidan, för att rada upp rutor och pilar. Det är bara en hjälplinje — det exporteras aldrig.",
       showPixelGrid: "Visa pixelrutnätet när du zoomar in",
       showPixelGridHint:
-        "Över 800 % rutas sidan upp i enskilda pixlar — rutorna som en exporterad bild löser upp i — helt intonat vid 1000 %. Bara en hjälplinje; det exporteras aldrig.",
+        "När en pixel är några pixlar bred på skärmen — runt 500 % på en dator, längre in på en telefon där de är mindre — rutas sidan upp i enskilda pixlar, rutorna som en exporterad bild löser upp i. Bara en hjälplinje; det exporteras aldrig.",
       toolNameTitle: "Verktygsnamn",
       showToolName: "Visa namnet på verktyget du väljer",
       showToolNameHint:

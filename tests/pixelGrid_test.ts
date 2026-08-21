@@ -15,6 +15,12 @@ import { MAX_SCALE } from "../src/app/viewport.ts";
 // first is a pure function. The second only needs a context that writes down
 // the rectangles it is handed — the grid paints nothing else — so the whole of
 // it can be checked here, without a canvas and without pixels.
+//
+// The one that is easy to get wrong, and was got wrong first, is *which* zoom
+// the band is measured in: the view's CSS-pixel scale (how big a cell looks,
+// the same on every screen) rather than the readout's device-pixel percentage
+// (how big it is in that screen's own dots). On a 3× phone the two differ by
+// three, which is the difference between a lattice and a wash.
 
 /** A 2D context that records the boxes filled through it. Enough for the grid:
  *  it lays every line as a `rect` on one path and fills it once. */
@@ -66,19 +72,42 @@ function recorder() {
 const PAGE = { width: 60, height: 40 };
 const WINDOW = { width: 800, height: 600 };
 
-/** The view that shows the page's top-left corner at `deviceScale` device
- *  pixels per document pixel, with the sheet's corner at the window's. */
-function zoomedTo(deviceScale: number, dpr = 1): CanvasView {
-  return { scale: deviceScale / dpr, tx: 0, ty: 0 };
+/** The view that shows the page's top-left corner with each document pixel
+ *  `scale` CSS pixels across, the sheet's corner on the window's. */
+function zoomedTo(scale: number): CanvasView {
+  return { scale, tx: 0, ty: 0 };
 }
 
 describe("pixelGridAlpha", () => {
   it("rules nothing at the zooms the canvas actually lives at", () => {
-    // The whole reason for the band: a one-device-pixel line is a third of the
-    // cell at 300%, so ruling it there would tint the page rather than mark it.
-    for (const percent of [10, 100, 200, 300, 400, 500, 700, 800]) {
-      expect(pixelGridAlpha(percent / 100)).toBe(0);
+    // The whole reason for the band: below it the lines are too close together
+    // to resolve into squares, so ruling them tints the page rather than marks
+    // it.
+    for (const cell of [0.1, 1, 2, 3, 4, 4.5, 5]) {
+      expect(pixelGridAlpha(cell)).toBe(0);
     }
+  });
+
+  it("is measured in how big a cell looks, not in what the readout says", () => {
+    // The bug this is here to stop. The readout counts device pixels, so on a
+    // 3× phone it says 1500% where a laptop says 500% — and both show a cell
+    // five CSS pixels across, which is the thing that decides whether there is
+    // a lattice on screen or a wash. Same view scale, same grid, whatever the
+    // pixel ratio underneath it.
+    const cell = 5.8;
+    const onePixelRatio = pixelGridAlpha(cell);
+    expect(onePixelRatio).toBeGreaterThan(0);
+    for (const dpr of [1, 2, 2.625, 3, 4]) {
+      // What a device-pixel band would have used instead: the same view, read
+      // through the screen's ratio. It must make no difference here.
+      expect(pixelGridAlpha(cell)).toBe(onePixelRatio);
+      expect(pixelGridAlpha(cell * dpr)).not.toBe(0);
+    }
+    // …and the readout's own number is emphatically not the input: a 3× phone
+    // at 690% has a cell of 2.3 CSS pixels, which is a wash and gets nothing,
+    // even though 6.9 device pixels would have been most of the way up a band
+    // measured that way.
+    expect(pixelGridAlpha(6.9 / 3)).toBe(0);
   });
 
   it("fades in across the band instead of switching on", () => {
@@ -89,9 +118,9 @@ describe("pixelGridAlpha", () => {
     expect(half).toBeCloseTo(full / 2, 9);
   });
 
-  it("is at full strength from 1000% on, and stays there", () => {
+  it("is at full strength from a seven-pixel cell on, and stays there", () => {
     const full = pixelGridAlpha(PIXEL_GRID_FULL);
-    expect(pixelGridAlpha(10)).toBe(full);
+    expect(pixelGridAlpha(8)).toBe(full);
     expect(pixelGridAlpha(16)).toBe(full);
     expect(pixelGridAlpha(1000)).toBe(full);
     // …and it is an ink, not a curtain: the picture reads straight through it.
@@ -104,11 +133,12 @@ describe("pixelGridAlpha", () => {
     expect(pixelGridAlpha(-4)).toBe(0);
   });
 
-  it("is reachable on a screen that is not retina", () => {
-    // The readout counts device pixels, so a 1× monitor tops out at
-    // `MAX_SCALE * 100`%. A grid nobody at 1× can zoom to is not a feature.
-    expect(MAX_SCALE).toBeGreaterThan(PIXEL_GRID_FULL);
-    expect(pixelGridAlpha(MAX_SCALE)).toBeGreaterThan(0);
+  it("leaves every screen the same room to work inside it", () => {
+    // `MAX_SCALE` is in the band's own units, so this holds on a phone exactly
+    // as it does on a monitor: the ceiling clears the top of the band by more
+    // than twice over, and a cell up there is a square you can aim at.
+    expect(MAX_SCALE).toBeGreaterThanOrEqual(PIXEL_GRID_FULL * 2);
+    expect(pixelGridAlpha(MAX_SCALE)).toBe(pixelGridAlpha(PIXEL_GRID_FULL));
   });
 });
 
@@ -134,9 +164,10 @@ describe("paintPixelGrid", () => {
 
   it("lands every line on a whole device pixel", () => {
     const ctx = recorder();
-    // A zoom whose cell is not a whole number of device pixels — 1060%, where
-    // the boundaries genuinely fall between pixels and something has to give.
-    paintPixelGrid(ctx, PAGE, zoomedTo(10.6, 2), 2, WINDOW);
+    // A cell that is not a whole number of *device* pixels — 5.3 CSS pixels on
+    // a 2× screen — where the boundaries genuinely fall between pixels and
+    // something has to give.
+    paintPixelGrid(ctx, PAGE, zoomedTo(5.3), 2, WINDOW);
     expect(ctx.rects.length).toBeGreaterThan(0);
     for (const r of ctx.rects) {
       expect(Number.isInteger(r.x)).toBe(true);
@@ -146,7 +177,7 @@ describe("paintPixelGrid", () => {
     // drifts: each is within half a pixel of where the boundary really is.
     const columns = ctx.rects.filter((r) => r.width === 1).map((r) => r.x);
     columns.forEach((at, i) => {
-      expect(Math.abs(at - (i + 1) * 10.6)).toBeLessThanOrEqual(0.5);
+      expect(Math.abs(at - (i + 1) * 5.3 * 2)).toBeLessThanOrEqual(0.5);
     });
   });
 

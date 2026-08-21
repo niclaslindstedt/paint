@@ -246,8 +246,8 @@ colour**, and a mark drawn in a colour you picked, keep theirs.
 
 Settings → **General** also holds the three things drawn _around_ your marks:
 the on-screen grid, the **pixel grid** that rules the page into single pixels
-once you are zoomed past 800%, and the **tool-name** label that names each tool
-over the middle of the page as you pick it.
+once you are zoomed in far enough to see them, and the **tool-name** label that
+names each tool over the middle of the page as you pick it.
 
 ## Drawings, folders, and sketchbooks
 

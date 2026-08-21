@@ -356,9 +356,13 @@ const BASE_SETTINGS: Omit<AppSettings, "enabledPlugins"> = {
   leadDetail: DEFAULT_LEAD_DETAIL,
   filled: false,
   showGrid: false,
-  // On out of the box, and it costs nothing to be: below its zoom band there is
-  // nothing to paint, and above it the lattice is what you zoomed in to work
-  // against.
+  // On out of the box, on every device, and it costs nothing to be: below its
+  // zoom band there is nothing to paint at all, and above it the lattice is what
+  // you zoomed that far in to work against. The band is in CSS pixels (see
+  // `pixelGrid.ts`), so "far enough in" means the same *apparent* size on a
+  // phone as on a monitor — which is what makes one default right for both, and
+  // is just as well, since settings travel between them (see
+  // `settingsStore.ts`).
   showPixelGrid: true,
   // On out of the box: the first thing a new user does is try the tools, and a
   // rack of unlabelled glyphs is exactly where a name earns its keep. It costs

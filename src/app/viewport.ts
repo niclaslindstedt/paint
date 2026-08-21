@@ -29,14 +29,15 @@ export type Viewport = { width: number; height: number };
  *  shows a whole page on a phone.
  *
  *  The ceiling is *sixteen* rather than the eight that was enough to place a
- *  mark precisely, and the reason is the pixel grid (see `pixelGrid.ts`). The
- *  zoom readout counts **device** pixels — 1000% is ten of them to one document
- *  pixel — so on an ordinary 1× monitor the readout tops out at exactly this
- *  number times 100. At eight that was 800%, which put the grid's own zoom band
- *  out of reach of every screen that isn't retina; at sixteen a 1× screen
- *  reaches 1600% and a 2× one 3200%, which is well past where a lattice of
- *  single pixels is worth ruling. Nothing costs more for the room: a repaint is
- *  culled to the window, so a deeper zoom paints *less* of the page, not more.
+ *  mark precisely, and the reason is the pixel grid (see `pixelGrid.ts`). That
+ *  grid's band is measured in these same CSS pixels — it opens at five and is
+ *  fully up at seven — so the two numbers are directly comparable, and eight
+ *  left barely a seventh of a document pixel of headroom above it: enough to
+ *  *see* the lattice, not enough to work inside it. Sixteen clears the top of
+ *  the band twice over, on every screen alike, which is the point of both being
+ *  in CSS pixels rather than in the readout's device ones. Nothing costs more
+ *  for the room: a repaint is culled to the window, so a deeper zoom paints
+ *  *less* of the page, not more.
  */
 export const MIN_SCALE = 0.1;
 export const MAX_SCALE = 16;

@@ -1242,12 +1242,21 @@ rules the document's own lattice — one cell per document pixel, the square a P
 export resolves to a colour — and it is the one piece of the frame painted in
 **device** pixels rather than document ones, because a boundary at a fractional
 device coordinate would be antialiased into two half-lit columns instead of one
-sharp line. Whether it is drawn at all is arithmetic on the zoom: nothing below
-eight device pixels to the document pixel (where a one-pixel line would tint the
-sheet rather than rule it), fading in to full strength at ten — 800% and 1000%
-on the readout, which counts the same device pixels (`nativeScale`). That band
-is why `MAX_SCALE` is sixteen rather than eight: at eight, a screen that is not
-retina topped out at 800% and could never reach the grid at all.
+sharp line. Whether it is drawn at all is arithmetic on the zoom, and on **which** zoom:
+`view.scale`, in CSS pixels per document pixel, rather than the readout's
+percentage, which counts device pixels (`nativeScale`) and therefore means a
+different apparent size on every screen. Nothing below five CSS pixels to the
+document pixel — where the lines are too close together to resolve into a
+lattice and the sheet just reads as tinted — fading to full strength at seven.
+Measured in device pixels instead, as it was first, the band lands on a 3× phone
+where a cell is 2.3 CSS pixels: the readout says full strength and the glass
+shows a wash. In CSS pixels the grid arrives at the same apparent size
+everywhere, at 500% on a 1× monitor and 1500% on that phone. The fade is not
+only about the pop either — it puts the least ink where the cell is smallest, so
+the grid darkens in step with the room to draw it in. `MAX_SCALE` is sixteen
+rather than eight for the band's sake too, and in the band's own units: eight
+left a seventh of a document pixel of headroom above it, enough to see the
+lattice and not enough to work inside it.
 The layer holding them is transparent to the pointer everywhere but on the grips,
 so painting inside the window still reaches the canvas. While an edge is being
 placed, a round magnifier floats beside it and repaints that part of the page at
