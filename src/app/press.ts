@@ -68,6 +68,25 @@ export function pressReach(widest: number): number {
   return Math.max(4, widest * REACH);
 }
 
+/** …and how far it should travel when the press is drawn at **life size** — the
+ *  mark at the page's own 100% rather than shrunk to fit its tile.
+ *
+ *  A fitted row can pick the reach freely, because whatever it picks is scaled
+ *  down again until the broadest mark on the row fits: that is why `REACH` can
+ *  say "three times the widest width" and have every rectangle on the row come
+ *  out the same rectangle. Life size has no such freedom. Nothing is scaled, so
+ *  a box three times a broad nib is simply off the tile — and an *unfilled* one
+ *  is off it in the worst way, because the tile then lands in the middle of the
+ *  outline, where there is no ink at all, and previews a blank sheet.
+ *
+ *  So a life-size gesture travels exactly the width of the tile it is going
+ *  into (`room`, in document pixels). Its corners land on the tile's edges, its
+ *  outline is drawn at the width being chosen and at the size that width will
+ *  land at, and the one thing the preview is *for* stays honest. */
+export function lifeReach(room: number): number {
+  return Math.max(4, room);
+}
+
 /** The marks a single press with `plugin` leaves, in press coordinates.
  *
  *  Empty for a tool whose press leaves no mark at all: the hand moves the view,

@@ -669,15 +669,35 @@ nobody had drawn — a mark invented for the preview so that the preview would
 have something to show. The nib is round and the number is the nib, so the
 circle is both the simpler drawing and the truer one.
 
-A row of widths is drawn at one scale — the one that fits the broadest of them —
-so it reads fine-to-broad the way a row of nibs does. Type is the exception, and
-says so (`sizePreview: "life"`). An "A" is the same letter at 10 pt and at
-48 pt, so a row fitted to its own cells drew five identical letters and told you
-nothing about any of them; now each sample is drawn at the size it will actually
-land at — one document pixel to one device pixel, the page at 100% — hung from
-the corner where the letter meets its baseline, and the button clips whatever
-will not fit. Half a letter at the right size says what a whole one at the wrong
-size cannot.
+Every one of them is drawn at **life size**: one document pixel to one device
+pixel, which is the page at 100%. Set the pen to 0.5 mm and the dot on the size
+button is the dot it draws; pick a marker off the width row and the blot in the
+button is the blot that lands. A nib too big for its button — a 10 mm block
+eraser, an inch-wide flat — hangs over the edge and is clipped, which is the one
+thing worth saying about a nib that size.
+
+It used to be fitted instead: the size button and each row were scaled down
+until the _broadest_ width the tool is made in fitted its tile. That drew a
+handsome row, and it made every mark on it a different lie — against a rack that
+runs up to a decorator's brush the fine end came out several times the mark it
+draws and the broad end a fraction of it, so the same 0.5 mm pen previewed
+three times too big and a marker three times too small. Ratios are what the
+numbers under the row are for; the picture's job is the size.
+
+The size button is also the full width of the button now, the same box the
+colour swatch beside it fills, because at life size the room is the thing there
+is never enough of.
+
+Type has always worked this way and it is why (`sizePreview: "life"`): an "A" is
+the same letter at 10 pt and at 48 pt, so a row fitted to its own cells drew five
+identical letters and told you nothing about any of them. Its samples are hung
+from the corner where the letter meets its baseline rather than centred, so what
+survives the clipping is the part of a letter you read a size off.
+
+The one place a mark is still fitted is a **preset chip**, where the picture sits
+beside a name in a line of text: a chip is about what "wet-in-wet" or "dry
+brush" does to a mark, not about how wide it is, and at eighteen pixels a
+life-size preset would be a solid square every time.
 
 A tool has nothing to add for this. The simulation drives the contract every
 tool already implements: `start` at a point and `end` is what a press _is_; a
