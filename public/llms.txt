@@ -160,6 +160,14 @@ connect a storage backend yourself.
   it applies to the selected layer or to every showing, unlocked layer, and it
   rasterises what it lands on so marks made afterwards are unaffected. Undo puts
   the marks back. The page colour is not a mark and is never changed.
+- Delete a picture's background from the panel's Image section: trace roughly
+  over the subject with a selection tool and the cut finds the subject's exact
+  edge near the outline — everything well inside the tracing is kept, everything
+  well outside goes, and the strip between is searched for the strongest
+  continuous colour border. Feather, colour tolerance and smoothness are set in
+  the effect's dialog, the page behind previews the cut, and it bakes the layer
+  like every effect: applied once, undo puts the marks back, and it runs
+  entirely on the device.
 
 - Stack a drawing into layers: swipe in from the right edge of the canvas (or
   use the header button) for a panel that adds, selects, shows, hides, locks,

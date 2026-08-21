@@ -79,7 +79,11 @@ describe("the catalog", () => {
     // The panel renders a section per group off this, so an adjustment with no
     // group — or one filed under the wrong heading — is a row nobody can find.
     expect(effectsIn("color").map((e) => e.kind)).toEqual(ADJUST_KINDS);
-    expect(EFFECT_GROUPS.map((g) => g.id)).toEqual(["effects", "color"]);
+    expect(EFFECT_GROUPS.map((g) => g.id)).toEqual([
+      "effects",
+      "image",
+      "color",
+    ]);
     for (const group of EFFECT_GROUPS) {
       expect(effectsIn(group.id).length).toBeGreaterThan(0);
     }

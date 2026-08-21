@@ -32,6 +32,7 @@
 
 import { straightCurves, type Adjustment, type CurveSet } from "./adjust.ts";
 import type { TKey } from "./i18n/index.ts";
+import type { Point } from "./types.ts";
 
 /** One effect, as it is being set up. Never persisted — the drawing holds the
  *  *result*, not the recipe — so this type lives here rather than in the
@@ -52,6 +53,20 @@ export type Effect =
        *  means monochrome grain, which is what film leaves. */
       color?: boolean;
     }
+  | {
+      kind: "cutout";
+      /** The traced subject: closed loops in document coordinates, read
+       *  even-odd, stamped from the selection when the dialog opens. Not a
+       *  setting — it is *what* the cut is aimed at, the way `scope` is where
+       *  (see `cutout.ts` for what is done with it). */
+      subject: readonly (readonly Point[])[];
+      /** Softness of the cut edge, in document pixels. */
+      feather: number;
+      /** 0–1: how little colour difference still counts as the border. */
+      tolerance: number;
+      /** 0–1: how continuous the found border is required to be. */
+      smoothness: number;
+    }
   // …and the colour adjustments, which are effects in every way that matters
   // here — one pass over the pixels that are there, applied once — and differ
   // only in reaching them a pixel at a time. Their arithmetic is `adjust.ts`'s.
@@ -61,13 +76,14 @@ export type EffectKind = Effect["kind"];
 
 /** Which section of the panel an effect is listed under.
  *
- *  Two, and the split is by what you came to do rather than by how the pixels
- *  are reached: **Effects** are the passes that change what the marks *look
- *  like* — softened, grainy — and **Colour** is the tonal work you would open
- *  an Image menu for. They share every mechanism (the same dialog, the same
- *  preview, the same bake), so this is one field and one filter rather than a
- *  second pipeline. */
-export type EffectGroup = "effects" | "color";
+ *  Three, and the split is by what you came to do rather than by how the
+ *  pixels are reached: **Effects** are the passes that change what the marks
+ *  *look like* — softened, grainy — **Image** is surgery on what the picture
+ *  *is* — a subject cut out of its background — and **Colour** is the tonal
+ *  work you would open an Image menu for. They share every mechanism (the
+ *  same dialog, the same preview, the same bake), so this is one field and
+ *  one filter rather than a second pipeline. */
+export type EffectGroup = "effects" | "image" | "color";
 
 /** The panel's sections, in the order it shows them, each with the heading it
  *  folds under. Adding a group is a row here and a catalog string. */
@@ -76,6 +92,7 @@ export const EFFECT_GROUPS: readonly {
   titleKey: TKey;
 }[] = [
   { id: "effects", titleKey: "effects.title" },
+  { id: "image", titleKey: "effects.imageTitle" },
   { id: "color", titleKey: "effects.colorTitle" },
 ];
 
@@ -275,6 +292,53 @@ export const EFFECTS: readonly EffectDescriptor[] = [
       },
     ],
     preset: { kind: "noise", amount: 0.35, grain: 2 },
+    scopes: ["layer"],
+  },
+  {
+    kind: "cutout",
+    group: "image",
+    nameKey: "effects.cutout.name",
+    hintKey: "effects.cutout.hint",
+    readout: "feather",
+    controls: [
+      {
+        id: "feather",
+        nameKey: "effects.cutout.feather",
+        min: 0,
+        max: 10,
+        step: 1,
+        unit: "px",
+      },
+      {
+        id: "tolerance",
+        nameKey: "effects.cutout.tolerance",
+        min: 0.05,
+        max: 1,
+        step: 0.05,
+        unit: "percent",
+      },
+      {
+        id: "smoothness",
+        nameKey: "effects.cutout.smoothness",
+        min: 0,
+        max: 1,
+        step: 0.05,
+        unit: "percent",
+      },
+    ],
+    switches: [],
+    // The preset's subject is empty by construction — the real one is stamped
+    // from the selection when the dialog opens (see `useEffecting.ts`), which
+    // is also why this effect alone can arrive with nothing to do.
+    preset: {
+      kind: "cutout",
+      subject: [],
+      feather: 1,
+      tolerance: 0.5,
+      smoothness: 0.35,
+    },
+    // A cut is aimed through a tracing of *one* picture's subject; "cut every
+    // layer to it" would slice captions and sketches to a photo's silhouette.
     scopes: ["layer"],
   },
   {
@@ -525,6 +589,24 @@ export function effectDescriptor(kind: string): EffectDescriptor | undefined {
 /** The effects one section lists, in registry order. */
 export function effectsIn(group: EffectGroup): EffectDescriptor[] {
   return EFFECTS.filter((effect) => effect.group === group);
+}
+
+/** Give an effect the traced subject it is aimed through. A no-op for every
+ *  effect that does not take one, so the dialog can stamp the selection on
+ *  whatever it opens without knowing which effect wants it. */
+export function withSubject(
+  effect: Effect,
+  subject: readonly (readonly Point[])[],
+): Effect {
+  return effect.kind === "cutout" ? { ...effect, subject } : effect;
+}
+
+/** Whether this draft has what it needs to land: a traced subject for the
+ *  effect that is aimed through one, and trivially yes for every other. The
+ *  dialog reads it the way it reads `empty` — a dead Apply with a line saying
+ *  why, rather than a button that silently does nothing. */
+export function hasSubject(effect: Effect): boolean {
+  return effect.kind !== "cutout" || effect.subject.length > 0;
 }
 
 /** The scope an effect opens on — the first it offers, which is always the

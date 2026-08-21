@@ -30,7 +30,7 @@ import {
 } from "./clipboard.ts";
 import { DownloadMenu } from "./DownloadMenu.tsx";
 import { bakeEffect } from "./bake.ts";
-import { effectDescriptor } from "./effects.ts";
+import { effectDescriptor, hasSubject } from "./effects.ts";
 import { DrawingTitle } from "./DrawingTitle.tsx";
 import type { MenuEdge } from "./gestures.ts";
 import { HeaderIconButton } from "./HeaderIconButton.tsx";
@@ -404,6 +404,12 @@ export function CanvasScreen({
     checker,
     view,
     window: surfaceRef,
+    // What the aimed effect opens with: whatever the selection holds at that
+    // moment, read through the ref so `open` survives every gesture.
+    subject: useCallback(
+      () => selectionRef.current?.region ?? null,
+      [selectionRef],
+    ),
   });
   const effecting = effect.effecting;
 
@@ -1284,7 +1290,14 @@ export function CanvasScreen({
                         n: String(effect.targets.length),
                       })
                 }
-                empty={effect.targets.length === 0}
+                empty={
+                  effect.targets.length === 0 || !hasSubject(effecting.draft)
+                }
+                emptyKey={
+                  effect.targets.length > 0 && !hasSubject(effecting.draft)
+                    ? "effects.cutout.noSubject"
+                    : undefined
+                }
                 page={effect.page}
                 onCancel={effect.close}
                 onApply={(landing) => {

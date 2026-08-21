@@ -37,7 +37,7 @@ import {
 } from "./effects.ts";
 import { EffectPeek } from "./EffectPeek.tsx";
 import type { Histogram } from "./histogram.ts";
-import { useT } from "./i18n/index.ts";
+import { useT, type TKey } from "./i18n/index.ts";
 import { LevelsBar } from "./LevelsBar.tsx";
 import type { RenderOptions } from "./render.ts";
 import type { Drawing, Point } from "./types.ts";
@@ -120,6 +120,10 @@ type Props = {
    *  primary button is dead rather than hidden, so the dialog still explains
    *  itself instead of silently doing nothing. */
   empty: boolean;
+  /** What the empty line says when the reason is not the usual one — an
+   *  aimed effect opened with nothing traced says *that*, not "the layer is
+   *  blank". The default is the ordinary nothing-on-the-layer line. */
+  emptyKey?: TKey;
   /** The page this is aimed at, for the controls that have to *show* it: the
    *  window on a phone, and the histogram under a levels bar. `null` where
    *  there is nothing to show — the dialog then renders every control it has,
@@ -149,6 +153,7 @@ export function EffectModal({
   onScope,
   target,
   empty,
+  emptyKey,
   page,
   onCancel,
   onApply,
@@ -511,7 +516,7 @@ export function EffectModal({
             rewrite. */}
         <p className="border-t border-line pt-3 text-[11px] text-muted">
           {empty
-            ? t("effects.empty", { target })
+            ? t(emptyKey ?? "effects.empty", { target })
             : t("effects.warning", { target })}
         </p>
         <p className="text-[11px] text-muted">
