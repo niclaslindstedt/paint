@@ -1235,6 +1235,19 @@ The chrome is split by what it is. The outline is painted on the canvas with the
 same marching ants the gesture was dragged with (`frame.ts`), so it is sharp at
 any zoom; the corner grips are elements over it (`SelectionFrame.tsx`), because a
 grip is a control and as an element it gets hit-testing and a cursor for free.
+The **pixel grid** (`pixelGrid.ts`) is chrome too, and for the same reason the
+outline is: it is painted after the mark cache has taken its copy of the screen,
+so it can never be baked into a cached frame and can never reach an export. It
+rules the document's own lattice — one cell per document pixel, the square a PNG
+export resolves to a colour — and it is the one piece of the frame painted in
+**device** pixels rather than document ones, because a boundary at a fractional
+device coordinate would be antialiased into two half-lit columns instead of one
+sharp line. Whether it is drawn at all is arithmetic on the zoom: nothing below
+eight device pixels to the document pixel (where a one-pixel line would tint the
+sheet rather than rule it), fading in to full strength at ten — 800% and 1000%
+on the readout, which counts the same device pixels (`nativeScale`). That band
+is why `MAX_SCALE` is sixteen rather than eight: at eight, a screen that is not
+retina topped out at 800% and could never reach the grid at all.
 The layer holding them is transparent to the pointer everywhere but on the grips,
 so painting inside the window still reaches the canvas. While an edge is being
 placed, a round magnifier floats beside it and repaints that part of the page at

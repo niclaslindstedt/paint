@@ -140,7 +140,11 @@ connect a storage backend yourself.
   the effect as the sliders move and nothing lands until Apply; undo puts the
   marks back. Every download carries it without special handling.
 - Draw on a page bigger than the window: the canvas is a window onto it, with
-  pinch-to-zoom, two-finger panning, and one-finger panning under the hand.
+  pinch-to-zoom, two-finger panning, and one-finger panning under the hand. Zoom
+  reaches 1600% on an ordinary screen, and past 800% the page rules itself into
+  single pixels — the squares a downloaded image resolves to — fully faded in at
+  1000%. Like the optional guide grid it is painted on the screen only and never
+  reaches a downloaded file; Settings turns it off.
 - Adjust the colour from the right-hand panel's Colour section: brightness and
   contrast, levels (black point, white point, midtones), curves (a draggable tone
   curve with a composite RGB line and one per channel), hue and saturation,

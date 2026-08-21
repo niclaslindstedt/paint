@@ -224,6 +224,11 @@ export type AppSettings = {
   filled: boolean;
   /** Paint the canvas over a grid, so a sketch of boxes and arrows lines up. */
   showGrid: boolean;
+  /** Rule the document's own pixels over the page once the zoom is deep enough
+   *  to show them (see `pixelGrid.ts`). Unlike the grid above this is not a
+   *  spacing you chose — it is the resolution the drawing will export at — so it
+   *  needs no zoom of its own to be set at, only a way to be switched off. */
+  showPixelGrid: boolean;
   /** Name the tool over the middle of the page for a moment when you pick one.
    *  The toolbar's glyphs are small and several tools draw a similar mark, so
    *  the label is what tells a marker from a crayon without a trial stroke —
@@ -351,6 +356,10 @@ const BASE_SETTINGS: Omit<AppSettings, "enabledPlugins"> = {
   leadDetail: DEFAULT_LEAD_DETAIL,
   filled: false,
   showGrid: false,
+  // On out of the box, and it costs nothing to be: below its zoom band there is
+  // nothing to paint, and above it the lattice is what you zoomed in to work
+  // against.
+  showPixelGrid: true,
   // On out of the box: the first thing a new user does is try the tools, and a
   // rack of unlabelled glyphs is exactly where a name earns its keep. It costs
   // a second of a corner of the page and can be switched off in Canvas.

@@ -244,9 +244,10 @@ either one re-sheets and re-inks every drawing that never chose for itself —
 including ones already drawn. A page given a colour under **New image → Page
 colour**, and a mark drawn in a colour you picked, keep theirs.
 
-Settings → **General** also holds the two things drawn _around_ your marks: the
-on-screen grid, and the **tool-name** label that names each tool over the middle
-of the page as you pick it.
+Settings → **General** also holds the three things drawn _around_ your marks:
+the on-screen grid, the **pixel grid** that rules the page into single pixels
+once you are zoomed past 800%, and the **tool-name** label that names each tool
+over the middle of the page as you pick it.
 
 ## Drawings, folders, and sketchbooks
 

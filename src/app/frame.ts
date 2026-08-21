@@ -52,6 +52,7 @@ import type { Rect } from "./geometry.ts";
 import type { EffectPreview } from "./render.ts";
 import { visibleStrokes } from "./layers.ts";
 import { paintLoupe } from "./loupe.ts";
+import { paintPixelGrid } from "./pixelGrid.ts";
 import { paintOutline } from "./plugins/builtin/select.ts";
 import type { DraftStroke } from "./plugins/types.ts";
 import { liftBounds, relayFixed } from "./relay.ts";
@@ -105,6 +106,10 @@ export type Frame = {
   pageColor: string;
   defaultInk: string;
   showGrid: boolean;
+  /** Rule the document's pixel lattice over the picture at high zoom (see
+   *  `pixelGrid.ts`). Chrome, like the selection's outline: it is painted after
+   *  the cache has taken its copy and never reaches an export. */
+  showPixelGrid: boolean;
   /** The two squares of the transparency chequer for the app as it is currently
    *  painting (see `canvas.ts`). Only ever set by a screen: it is how a page
    *  with no sheet is *shown*, and an export leaves it out so the nothing stays
@@ -335,7 +340,7 @@ export function paintFrame(frame: Frame): void {
     }
   });
 
-  paintChrome(ctx, drawing, outline, view.scale, dpr);
+  paintChrome(ctx, drawing, outline, spec, frame.showPixelGrid);
   // …and the magnifier over the lot, when a selection is being placed.
   if (frame.loupe) {
     paintLoupe(ctx, {
@@ -390,16 +395,31 @@ function underlayWithin(
   ctx.restore();
 }
 
-/** The chrome, in document coordinates: the selection's outline and the sheet's
- *  edge. Neither is a mark — they never export, and the cache takes its copy of
- *  the screen before they go on. */
+/** The chrome: the pixel grid, the selection's outline and the sheet's edge.
+ *  None of the three is a mark — they never export, and the cache takes its
+ *  copy of the screen before they go on.
+ *
+ *  The context arrives in document coordinates and leaves that way; only the
+ *  grid steps out of them, and puts them back (see `pixelGrid.ts`). */
 function paintChrome(
   ctx: CanvasRenderingContext2D,
   drawing: Drawing,
   outline: Selection | null,
-  scale: number,
-  dpr: number,
+  spec: CacheSpec,
+  pixelGrid: boolean,
 ): void {
+  const { view, dpr } = spec;
+  const scale = view.scale;
+  // The document's own lattice, once one of its pixels is worth several of the
+  // screen's. Under the outline and the edge, which are about what you have
+  // chosen and where the paper stops — both of those have to stay readable over
+  // it (see `pixelGrid.ts`).
+  if (pixelGrid) {
+    paintPixelGrid(ctx, drawing, view, dpr, {
+      width: spec.width,
+      height: spec.height,
+    });
+  }
   // The whole outline, whatever shape it is — a lasso's loop is the window, and
   // showing its box instead would be showing something else. The corner grips
   // that adjust it are elements over the canvas rather than paint on it (see
@@ -483,7 +503,7 @@ function paintPatch(
   onSheet(ctx, frame.drawing, () => {
     paintStrokes(ctx, [draft], { ...spec.options, clip: patch, live: true });
   });
-  paintChrome(ctx, frame.drawing, outline, view.scale, dpr);
+  paintChrome(ctx, frame.drawing, outline, spec, frame.showPixelGrid);
   ctx.restore();
   return true;
 }

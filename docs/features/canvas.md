@@ -367,6 +367,24 @@ Settings → General can put a light grid behind the page to line boxes and
 arrows up. It is a drawing aid only: it is painted by the page element, never by the
 document, so it can never reach a downloaded file.
 
+## The pixel grid
+
+Zoom in far enough and the page rules itself into **single pixels** — the
+squares a downloaded image resolves to, one to a colour. They start to show at
+**800%** and are fully up by **1000%**, and below that they are not drawn at
+all: a grid line is one pixel of your screen wherever you are, so at 300% it
+would be a third of every square and the page would read as tinted rather than
+ruled.
+
+It is there to work against, not to look at: the ink is a faint grey that reads
+on a white sheet and on a black one, it fades in with the zoom rather than
+snapping on, and — like the grid above — it is painted on the screen and never
+on the drawing, so no downloaded file has it in it. Settings → **General**
+switches it off.
+
+Zoom itself now reaches **1600%** on an ordinary screen and further on a retina
+one, which is what leaves room to get in among the pixels at all.
+
 ## The tool you picked, named
 
 Switch tools — from the toolbar or with the tool's shortcut key — and its name

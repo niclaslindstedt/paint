@@ -838,6 +838,7 @@ export function CanvasScreen({
             }}
             defaultInk={ink}
             showGrid={settings.showGrid}
+            showPixelGrid={settings.showPixelGrid}
             checker={checker}
             washDetail={settings.washDetail}
             leadDetail={settings.leadDetail}
