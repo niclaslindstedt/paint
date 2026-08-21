@@ -43,6 +43,7 @@ import { fieldHasKeyboard } from "./keys.ts";
 import { SaveButton, type LayerSaveControl } from "./SaveButton.tsx";
 import { SidePanel } from "./SidePanel.tsx";
 import { PaintCanvas } from "./PaintCanvas.tsx";
+import { useCropping } from "./useCropping.ts";
 import { initialPlacement, type Placement } from "./placement.ts";
 import { imageStroke } from "./plugins/builtin/image.ts";
 import { textStroke, TEXT_TOOL_ID } from "./plugins/builtin/text.ts";
@@ -74,6 +75,7 @@ import type { PresetSettings } from "./presets.ts";
 import type { Point } from "./types.ts";
 import { freshId, type PaintStore } from "./usePaintStore.ts";
 import {
+  cropDrawing,
   resizeCanvas,
   scaleDrawing,
   type ResizeAnchor,
@@ -86,6 +88,16 @@ import * as output from "../output.ts";
 // other dialog in the app it loads when it is asked for.
 const ResizeModal = lazy(() =>
   import("./ResizeModal.tsx").then((m) => ({ default: m.ResizeModal })),
+);
+
+// The crop's rectangle and its little card, likewise: nothing about cropping is
+// downloaded by someone who never crops.
+const CropFrame = lazy(() =>
+  import("./CropFrame.tsx").then((m) => ({ default: m.CropFrame })),
+);
+
+const CropModal = lazy(() =>
+  import("./CropModal.tsx").then((m) => ({ default: m.CropModal })),
 );
 
 // …and the same for an effect's options, which most drawings never open at all.
@@ -429,6 +441,24 @@ export function CanvasScreen({
     [store],
   );
 
+  // The crop being aimed: the rectangle over the page, the shape it is locked
+  // to, and the two ways out of it (see `useCropping.ts`). Screen state — the
+  // document hears nothing until Apply, and what it hears then is a page
+  // transform like a turn or a resize, so it travels with the view.
+  const crop = useCropping(
+    drawing,
+    useCallback(
+      (box) => {
+        transformPage((d) => cropDrawing(d, box));
+        // The window a selection cut is a shape in the *old* page's
+        // coordinates, and the crop has just moved every mark out from under
+        // it. Nothing sensible survives that, so it goes.
+        setSelection(null);
+      },
+      [transformPage, setSelection],
+    ),
+  );
+
   /** Keep the caption being typed: file the words as one mark on the page.
    *
    *  Nothing typed means nothing filed — an empty box is a press that changed
@@ -471,6 +501,25 @@ export function CanvasScreen({
     textDials.opacity,
     selectionRef,
   ]);
+
+  const openCrop = crop.start;
+  /** Put the crop rectangle up over the page.
+   *
+   *  Anything else floating over the page is settled first — a dropped picture
+   *  kept, a caption being typed filed — exactly as a press anywhere else on the
+   *  canvas would settle them. The crop takes the whole surface while it is up,
+   *  so a frame left underneath it would be one you could no longer reach. */
+  const startCrop = useCallback(() => {
+    settle();
+    commitText();
+    // Fit the page first. The rectangle opens *as* the page, and a page you are
+    // zoomed into has its edges — and every grip on them — somewhere off the
+    // window: a crop tool you have to pan around before you can take hold of it
+    // is a crop tool that opened wrong. Every other program that crops shows you
+    // the whole picture the moment you ask to cut it.
+    setFitToken((n) => n + 1);
+    openCrop();
+  }, [settle, commitText, openCrop]);
 
   /** The middle of the window, in document coordinates — where something that
    *  arrives without a place of its own lands: a pasted picture, a pasted line
@@ -856,7 +905,7 @@ export function CanvasScreen({
             canvas underneath. Away while something else is floating over the
             page: a placement frame and a caption box both own the surface they
             are on. */}
-          {selection && view && !placement && !typing && (
+          {selection && view && !placement && !typing && !crop.box && (
             <SelectionFrame
               view={view}
               selection={selection}
@@ -875,6 +924,36 @@ export function CanvasScreen({
               onSettle={settle}
               onCancel={() => setPlacement(null)}
             />
+          )}
+
+          {/* The crop being aimed: the rectangle over the picture, and the small
+            card beside it that says what shape the rectangle is allowed to be.
+            The card is not a `Modal` — a dialog with a backdrop over the page
+            would be a dialog over the gesture it exists to set up (see
+            `CropModal`). */}
+          {crop.box && view && (
+            <Suspense fallback={null}>
+              <CropFrame
+                view={view}
+                page={drawing}
+                box={crop.box}
+                ratio={crop.shape}
+                onChange={crop.setBox}
+                onCommit={crop.apply}
+                onCancel={crop.close}
+              />
+              <CropModal
+                page={drawing}
+                size={crop.size}
+                ratio={crop.ratio}
+                onRatio={crop.setRatio}
+                custom={crop.custom}
+                onCustom={crop.setCustom}
+                canApply={crop.crops}
+                onApply={crop.apply}
+                onCancel={crop.close}
+              />
+            </Suspense>
           )}
 
           {/* The caption being typed, in the face and size it will land in. The
@@ -934,6 +1013,12 @@ export function CanvasScreen({
                 onResize={() => {
                   setLayersOpen(false);
                   setResizing(true);
+                }}
+                // …and out of the way of the crop, which is aimed on the very
+                // page the floating panel is covering.
+                onCrop={() => {
+                  setLayersOpen(false);
+                  startCrop();
                 }}
                 // The floating panel gets out of the way of its own dialog —
                 // on a phone the two would be stacked over the page it is
@@ -1010,6 +1095,7 @@ export function CanvasScreen({
             onMoveSection={movePanelSection}
             docked
             onResize={() => setResizing(true)}
+            onCrop={startCrop}
             onEffect={effect.open}
             onMerge={() => setMerging(true)}
             onTransform={transformPage}

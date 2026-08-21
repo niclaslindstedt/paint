@@ -101,6 +101,7 @@ export const sv: Catalog = {
   page: {
     title: "Bild",
     resize: "Ändra storlek…",
+    crop: "Beskär…",
     reset: "Börja om",
     resetConfirm:
       "Kasta teckningen och börja om? Alla streck och alla lager försvinner — sidan behåller sin färg. Ångra tar tillbaka dem.",
@@ -221,6 +222,39 @@ export const sv: Catalog = {
     collapse: "Dölj {name}",
     expand: "Visa {name}",
   },
+  crop: {
+    title: "Beskär",
+    ratio: "Form",
+    ratios: {
+      keep: "Behåll {ratio}",
+      keepPlain: "Behåll formen",
+      free: "Fri",
+      square: "Kvadrat 1:1",
+      fourThree: "4:3",
+      threeTwo: "3:2",
+      sixteenNine: "16:9",
+      nineSixteen: "9:16",
+      custom: "Egen…",
+    },
+    move: "Flytta kortet",
+    recentre: "Tillbaka",
+    customWidth: "Formens bredd",
+    customHeight: "Formens höjd",
+    hint: "Dra i ramen eller dess handtag. Enter beskär, Escape lämnar sidan som den är.",
+    apply: "Beskär",
+    frame: "Den del av sidan som behålls",
+    handles: {
+      nw: "Dra i övre vänstra hörnet",
+      n: "Dra i överkanten",
+      ne: "Dra i övre högra hörnet",
+      e: "Dra i högerkanten",
+      se: "Dra i nedre högra hörnet",
+      s: "Dra i nederkanten",
+      sw: "Dra i nedre vänstra hörnet",
+      w: "Dra i vänsterkanten",
+    },
+  },
+
   resize: {
     title: "Ändra storlek",
     modeLabel: "Vad som ändras",
@@ -843,6 +877,8 @@ export const sv: Catalog = {
       layersDeleteHint: "Papperskorgen på det valda lagret.",
       layersMergeHint: "Raden under stapeln som slår ihop lager.",
       resizeHint: "Raden som öppnar Ändra storlek, med sidans mått bredvid.",
+      cropHint:
+        "Raden som lägger en ruta över teckningen och skär ner sidan till den.",
       flipHint: "Paret som vrider sidan ett kvarts varv, åt båda hållen.",
       mirrorHint:
         "Paret som speglar sidan från vänster till höger, eller uppifrån och ner.",

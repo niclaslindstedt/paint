@@ -34,6 +34,17 @@ describe("PANEL_SECTIONS", () => {
     }
   });
 
+  it("keeps the page's own actions on the Image section", () => {
+    const page = PANEL_SECTIONS.find((section) => section.id === "page");
+    expect(page?.items.map((item) => item.id)).toEqual([
+      "page:resize",
+      "page:crop",
+      "page:flip",
+      "page:mirror",
+      "page:reset",
+    ]);
+  });
+
   it("namespaces every item id, so two sections can't collide", () => {
     const items = PANEL_SECTIONS.flatMap((section) =>
       section.items.map((item) => item.id),

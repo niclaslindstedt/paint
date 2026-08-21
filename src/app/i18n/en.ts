@@ -108,6 +108,7 @@ export const en = {
   page: {
     title: "Image",
     resize: "Resize…",
+    crop: "Crop…",
     reset: "Start over",
     resetConfirm:
       "Throw this drawing away and start over? Every mark and every layer go — the page keeps its colour. Undo still brings them back.",
@@ -237,6 +238,39 @@ export const en = {
     collapse: "Hide {name}",
     expand: "Show {name}",
   },
+  crop: {
+    title: "Crop",
+    ratio: "Shape",
+    ratios: {
+      keep: "Keep {ratio}",
+      keepPlain: "Keep this shape",
+      free: "Free",
+      square: "Square 1:1",
+      fourThree: "4:3",
+      threeTwo: "3:2",
+      sixteenNine: "16:9",
+      nineSixteen: "9:16",
+      custom: "Custom…",
+    },
+    move: "Move this card",
+    recentre: "Put it back",
+    customWidth: "Ratio width",
+    customHeight: "Ratio height",
+    hint: "Drag the frame or its handles. Enter crops, Escape leaves the page as it is.",
+    apply: "Crop",
+    frame: "The part of the page to keep",
+    handles: {
+      nw: "Drag the top left corner",
+      n: "Drag the top edge",
+      ne: "Drag the top right corner",
+      e: "Drag the right edge",
+      se: "Drag the bottom right corner",
+      s: "Drag the bottom edge",
+      sw: "Drag the bottom left corner",
+      w: "Drag the left edge",
+    },
+  },
+
   resize: {
     title: "Resize",
     modeLabel: "What to resize",
@@ -919,6 +953,8 @@ export const en = {
       layersDeleteHint: "The bin on the selected layer.",
       layersMergeHint: "The row under the stack that puts layers together.",
       resizeHint: "The row that opens Resize, and the page's size beside it.",
+      cropHint:
+        "The row that puts a rectangle over the drawing and cuts the page down to it.",
       flipHint: "The pair that turns the page a quarter turn, either way.",
       mirrorHint:
         "The pair that flips the page left to right, or top to bottom.",

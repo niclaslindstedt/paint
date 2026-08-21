@@ -7,6 +7,7 @@ import {
   dragCorner,
   keepProportions,
   mirrorDrawing,
+  cropDrawing,
   resizeCanvas,
   scaleDrawing,
   turnDrawing,
@@ -255,6 +256,47 @@ describe("resizeCanvas", () => {
     const page = drawing([stroke({})]);
     const edit = resizeCanvas(page, { width: 1000, height: 800 }, "top-left");
     expect(edit.strokes).toBe(page.strokes);
+  });
+});
+
+describe("cropDrawing", () => {
+  it("makes the page the box and brings every mark with it", () => {
+    const edit = cropDrawing(
+      drawing([
+        stroke({ shape: { kind: "path", points: [{ x: 300, y: 250 }] } }),
+      ]),
+      { x: 200, y: 150, width: 400, height: 300 },
+    );
+    expect(edit.width).toBe(400);
+    expect(edit.height).toBe(300);
+    // The mark keeps its place in the picture: 100 in from the new left edge.
+    expect(first(edit.strokes)).toEqual({ x: 100, y: 100 });
+    expect(edit.strokes[0]!.size).toBe(4);
+  });
+
+  it("keeps what the crop cut off rather than deleting it", () => {
+    // The same rule the sheet resize follows: undo is not the only way back,
+    // and a page grown again brings the mark into view.
+    const edit = cropDrawing(drawing([stroke({})]), {
+      x: 400,
+      y: 300,
+      width: 200,
+      height: 200,
+    });
+    expect(edit.strokes).toHaveLength(1);
+    expect(first(edit.strokes)).toEqual({ x: -390, y: -280 });
+  });
+
+  it("hands the strokes back untouched for a crop that moved nothing", () => {
+    const page = drawing([stroke({})]);
+    const edit = cropDrawing(page, { x: 0, y: 0, width: 400, height: 300 });
+    expect(edit.strokes).toBe(page.strokes);
+  });
+
+  it("clamps the sides to what a page is allowed to be", () => {
+    const edit = cropDrawing(drawing(), { x: 0, y: 0, width: 4, height: 4 });
+    expect(edit.width).toBe(MIN_CANVAS_SIDE);
+    expect(edit.height).toBe(MIN_CANVAS_SIDE);
   });
 });
 

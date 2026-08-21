@@ -3,6 +3,7 @@ import { useState, type ReactNode } from "react";
 
 import {
   ConfirmDialog,
+  CropIcon,
   TrashIcon,
 } from "@niclaslindstedt/oss-framework/components";
 
@@ -28,7 +29,7 @@ import { PanelButton, SectionHeading } from "./shared.tsx";
 import type { SectionProps } from "./section.ts";
 
 // **Image** — what you can do to the *page* rather than to a mark: resize it,
-// turn it, mirror it, or throw the whole drawing away.
+// crop it, turn it, mirror it, or throw the whole drawing away.
 //
 // They are rows of paired buttons rather than a menu: each pair is one decision
 // (which way?), and both halves are one tap.
@@ -49,11 +50,13 @@ export function PageSection({
   drag,
   dragging,
   onResize,
+  onCrop,
   onTransform,
 }: SectionProps & {
   store: PaintStore;
   drawing: Drawing;
   onResize: () => void;
+  onCrop: () => void;
   onTransform: (
     edit: (drawing: Drawing, bitmap: BitmapTurn) => PageEdit,
   ) => void;
@@ -105,6 +108,23 @@ export function PageSection({
               </span>
               <span className="shrink-0 text-[11px] text-muted tabular-nums">
                 {drawing.width} × {drawing.height}
+              </span>
+            </button>
+          )}
+
+          {/* Cropping is the other half of "this page is the wrong size", and
+              the half you aim by eye: it puts a rectangle over the drawing and
+              cuts the sheet down to it. A row rather than a pair of buttons,
+              like resize above it, because both open something. */}
+          {on("page:crop") && (
+            <button
+              type="button"
+              onClick={onCrop}
+              className="flex cursor-pointer items-center gap-2 rounded border border-line px-2 py-1.5 text-sm text-fg hover:bg-surface-2 hover:text-fg-bright"
+            >
+              <CropIcon className="h-4 w-4 shrink-0 text-muted" />
+              <span className="min-w-0 flex-1 truncate text-left">
+                {t("page.crop")}
               </span>
             </button>
           )}

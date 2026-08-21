@@ -28,7 +28,8 @@ domain:   types · layers · merge · render · plugins/* · migrations · canva
           export
           defaults / kit (what a fresh start is made of, and putting it in hand)
           canvasSize / canvasPresets (what page a drawing is made on)
-          transform (mirror / turn / resize) · handoff (between namespaces)
+          transform (mirror / turn / resize / crop) · crop (aiming one)
+          handoff (between namespaces)
           effects / adjust / bake / histogram (a change made to the picture)
           panelSections (what the right-hand panel is made of)
           order (what you do to a stored arrangement of ids)
