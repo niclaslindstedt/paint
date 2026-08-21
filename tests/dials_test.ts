@@ -257,18 +257,19 @@ describe("the shipped set", () => {
     expect(context.globalAlpha).toBe(0.55);
   });
 
-  it("offers dials only on tools that touch the page at all", () => {
+  it("offers dials only on tools whose press does something to tune", () => {
     // A dial changes what a press *does*. Every tool that leaves a mark can
-    // have one, and so can the one that reads the page rather than marking it
-    // — the dropper's sample size is exactly this kind of setting. The hand and
-    // the marquee change nothing about the page either way, and neither has
-    // one.
-    const touchesPage = (id: string) => {
+    // have one, so can the one that reads the page rather than marking it —
+    // the dropper's sample size is exactly this kind of setting — and so can
+    // the selection pencil, whose press chooses an area the nib's width and
+    // fades a Delete by its feather. The hand and the drag-or-press marquees
+    // change nothing a dial could tune, and none of them has one.
+    const tunable = (id: string) => {
       const p = pluginById(id)!;
-      return !p.navigates && !p.selects;
+      return !p.navigates && (!p.selects || !p.sizeless);
     };
     for (const p of toolPlugins()) {
-      if ((p.dials?.length ?? 0) > 0) expect(touchesPage(p.id)).toBe(true);
+      if ((p.dials?.length ?? 0) > 0) expect(tunable(p.id)).toBe(true);
     }
   });
 

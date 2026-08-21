@@ -97,7 +97,10 @@ export function SelectionFrame({
     e.preventDefault();
     const at = documentPoint(e);
     const box = pulled(active.from.box, active.corner, at);
+    // Spread from the window the drag began with, so what else it carries (its
+    // feather) travels through the stretch untouched.
     onChange({
+      ...active.from,
       region: scaleRegion(active.from.region, active.from.box, box),
       box,
     });

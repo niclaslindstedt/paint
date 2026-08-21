@@ -54,13 +54,31 @@ describe("toolControl", () => {
   it("gives no button at all to a tool with nothing to set", () => {
     // The hand moves the view and the marquee chooses marks. Neither has a
     // width or a dial, and a button that opened an empty panel is worse than no
-    // button. Note that neither declares `sizeless`: leaving no mark is already
-    // on the descriptor.
+    // button. The hand declares nothing — leaving no mark is already on its
+    // descriptor — where the marquee says `sizeless` outright, because
+    // `selects` alone no longer implies it: the selection pencil is the member
+    // of that family a width is real for.
+    expect(pluginById("hand")!.sizeless).toBeUndefined();
     for (const id of ["hand", "select"]) {
-      const plugin = pluginById(id)!;
-      expect(plugin.sizeless).toBeUndefined();
-      expect(toolControl(plugin)).toBe("none");
+      expect(toolControl(pluginById(id)!)).toBe("none");
     }
+    for (const id of ["select-oval", "select-lasso", "select-trace"]) {
+      expect(pluginById(id)!.sizeless).toBe(true);
+    }
+  });
+
+  it("gives the selection pencil a real width, dials and all", () => {
+    // It chooses marks with a nib, so the width is as real as the eraser's —
+    // and the mode chip and the feather live under it, behind Advanced.
+    const pencil = pluginById("select-draw")!;
+    expect(pencil.selects).toBe(true);
+    expect(pencil.sizeless).toBeUndefined();
+    expect(usesSize(pencil)).toBe(true);
+    expect(hasDials(pencil)).toBe(true);
+    expect(toolControl(pencil)).toBe("size");
+    // …shown as a circle, for the eraser's reason: its press leaves a
+    // selection, not ink, and the nib is round.
+    expect(pencil.sizePreview).toBe("circle");
   });
 
   it("gives the dropper a cog for the one thing it has to set", () => {
@@ -198,7 +216,9 @@ describe("sizePreview", () => {
     const circles = toolPlugins()
       .filter((p) => sizePreview(p) === "circle")
       .map((p) => p.id);
-    expect(circles).toEqual(["eraser", "rubber"]);
+    // …and the selection pencil, whose press leaves a selection rather than
+    // ink: nothing to preview but the nib itself.
+    expect(circles).toEqual(["eraser", "rubber", "select-draw"]);
     expect(sizePreview(pluginById("pencil"))).toBe("press");
     expect(sizePreview(undefined)).toBe("press");
   });

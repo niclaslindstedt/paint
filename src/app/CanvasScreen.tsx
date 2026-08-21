@@ -34,7 +34,12 @@ import { effectDescriptor } from "./effects.ts";
 import { DrawingTitle } from "./DrawingTitle.tsx";
 import type { MenuEdge } from "./gestures.ts";
 import { HeaderIconButton } from "./HeaderIconButton.tsx";
-import { PasteIcon, ScissorsIcon, SidePanelIcon } from "./icons.tsx";
+import {
+  InvertSelectionIcon,
+  PasteIcon,
+  ScissorsIcon,
+  SidePanelIcon,
+} from "./icons.tsx";
 import { useT } from "./i18n/index.ts";
 import { activeLayer, layerDisplayName } from "./layers.ts";
 import { ImagePlacement } from "./ImagePlacement.tsx";
@@ -58,6 +63,7 @@ import { groupOf, pluginById } from "./plugins/registry.ts";
 import type { DraftStroke } from "./plugins/types.ts";
 import {
   boxRegion,
+  invertRegion,
   maskOf,
   offsetTo,
   selectionBox,
@@ -592,6 +598,32 @@ export function CanvasScreen({
     [pasteStrokes, place, viewCenter, commitText],
   );
 
+  /** Turn the window inside out: everything on the page the selection wasn't.
+   *  The feather travels — how softly a Delete fades out is a property of the
+   *  window, and inverting is a change to *where* it is, not to its edge. */
+  const invertSelection = useCallback(() => {
+    if (!selection || !drawing) return;
+    setSelection(
+      selectionOf(invertRegion(selection.region, drawing), selection.feather),
+    );
+  }, [selection, drawing, setSelection]);
+
+  /** The contextual block at the head of the right-hand panel: what can be done
+   *  to the thing this screen is holding right now (see `PanelAction`). Today
+   *  that is the selection's invert; with nothing selected the list is empty
+   *  and the panel shows no block at all. */
+  const panelActions = selection
+    ? [
+        {
+          id: "selection:invert",
+          label: t("panel.invertSelection"),
+          hint: t("panel.invertSelectionHint"),
+          icon: <InvertSelectionIcon className="h-4 w-4" />,
+          onSelect: invertSelection,
+        },
+      ]
+    : [];
+
   /** Where the selection's menu was opened, on the page — the menu holds a
    *  viewport point, because that is what a floating menu is placed with, and a
    *  paste from it wants the document point under the same pixel. */
@@ -862,17 +894,22 @@ export function CanvasScreen({
             onCommit={store.addStroke}
             // The selection gesture: the outline it drew becomes the window,
             // and nothing reaches the document. What the outline *is* — a box,
-            // an oval, a lasso loop, an area traced off the page — is the tool's
-            // business; this end takes contours either way. A gesture that chose
-            // nothing sends `null` and puts the window away.
+            // an oval, a lasso loop, an area traced off the page, the pencil's
+            // painted area — is the tool's business; this end takes contours
+            // either way. A gesture that chose nothing sends `null` and puts
+            // the window away. The active tool's feather dial rides onto the
+            // window as it is cut — only the selection pencil offers one, so a
+            // marquee's window records nothing — and it is what a Delete
+            // through the window fades out by (see `useSelection.ts`).
             selection={selection}
             onSelectRegion={(region: Point[][] | null) =>
-              setSelection(selectionOf(region))
+              setSelection(selectionOf(region, inkDials.feather))
             }
             // …the marquee's drag from inside it, which slides the window and
-            // leaves the ink where it is. Screen state, so it lands as it moves.
+            // leaves the ink where it is. Screen state, so it lands as it
+            // moves — and the feather the window was cut with travels.
             onAdjustSelection={(region: Point[][]) =>
-              setSelection(selectionOf(region))
+              setSelection(selectionOf(region, selection?.feather))
             }
             // …the hand's drag on it, which carries what is painted under it:
             // the whole move, as one edit, once the finger lifts.
@@ -1011,6 +1048,16 @@ export function CanvasScreen({
                 defaultInk={ink}
                 settings={settings}
                 onMoveSection={movePanelSection}
+                // The floating panel closes behind a contextual action for the
+                // effects' reason: the thing the action changed is the page the
+                // panel is covering.
+                actions={panelActions.map((action) => ({
+                  ...action,
+                  onSelect: () => {
+                    setLayersOpen(false);
+                    action.onSelect();
+                  },
+                }))}
                 onResize={() => {
                   setLayersOpen(false);
                   setResizing(true);
@@ -1094,6 +1141,7 @@ export function CanvasScreen({
             defaultInk={ink}
             settings={settings}
             onMoveSection={movePanelSection}
+            actions={panelActions}
             docked
             onResize={() => setResizing(true)}
             onCrop={startCrop}

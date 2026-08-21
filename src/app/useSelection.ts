@@ -16,6 +16,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { writeStrokes } from "./clipboard.ts";
 import { fieldHasKeyboard } from "./keys.ts";
+import { eraseRegionStroke } from "./plugins/builtin/eraseRegion.ts";
 import { pluginById } from "./plugins/registry.ts";
 import type { DraftStroke } from "./plugins/types.ts";
 import {
@@ -126,9 +127,25 @@ export function useSelection(
    *  A mark the window swallows whole goes; one it crosses is cut to everywhere
    *  the window isn't, so what is left of it is still the mark it was and one
    *  undo brings the whole of it back (see `eraseRegion`). The window stays up:
-   *  clearing a patch and painting something else into it is one job, not two. */
+   *  clearing a patch and painting something else into it is one job, not two.
+   *
+   *  A window that carries a **feather** (the selection pencil's) deletes the
+   *  other way this app takes pixels off: as one erasing mark, the selection's
+   *  area with the bucket's softened skirt run outward from its outline, so
+   *  what goes fades out through the corners instead of stopping dead (see
+   *  `eraseRegion.ts`). It behaves as the eraser tool does — lifting ink down
+   *  to the sheet, whatever layer it was on — because a fade has no outline a
+   *  vector cut could follow. Still one undo step either way. */
   const eraseSelection = useCallback(() => {
     if (!selection || !drawing) return;
+    const feather = selection.feather ?? 0;
+    if (feather > 0) {
+      // Nothing on the page means nothing to fade out — an invisible mark and
+      // an undo step for it would be all a press could buy.
+      if (drawing.strokes.length === 0) return;
+      store.addStroke(eraseRegionStroke(selection.region, feather));
+      return;
+    }
     const strokes = eraseRegion(drawing, selection.region);
     if (strokes) store.applyStrokes(strokes);
   }, [drawing, selection, store]);
@@ -150,6 +167,7 @@ export function useSelection(
       if (!strokes) return;
       store.applyStrokes(strokes, { fitPage: true });
       setSelection({
+        ...selection,
         region: moveRegion(selection.region, dx, dy),
         box: {
           ...selection.box,

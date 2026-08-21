@@ -108,7 +108,10 @@ export function ToolDials({
                         : "border-line text-muted hover:bg-surface-2"
                     }`}
                   >
-                    {choice.label}
+                    {/* A chip that is a word carries a catalog key; one that
+                        is a designation ("4B", "#6") is its own label in any
+                        language — see `ToolDial.choices`. */}
+                    {choice.labelKey ? t(choice.labelKey) : choice.label}
                   </button>
                 ))}
               </span>

@@ -28,10 +28,10 @@ move what is inside it. The glass paints the page again at its own scale rather
 than blowing up what is on screen, so what you are aiming at is where it really
 is, at any zoom.
 
-### Four ways to choose
+### Five ways to choose
 
 A box is not always the shape of what you want, so the selection button holds
-four gestures. Press it a second time — the way the shapes button works — and
+five gestures. Press it a second time — the way the shapes button works — and
 pick one:
 
 - **Box** — the classic marquee. Two corners.
@@ -42,6 +42,18 @@ pick one:
   it. It reads the page the paint bucket reads, so it stops where the bucket
   would stop. A press on the bare page selects nothing, because the page colour
   runs up against everything you have drawn.
+- **Draw select** — paint the selection the way a pencil paints a line.
+  Everything the nib covers is selected, a tap leaves a dab, and — unlike its
+  siblings — **every stroke adds** to what is already chosen, so an awkward
+  shape (the subject of a photograph, say) is built up stroke by stroke rather
+  than caught in one gesture. It is the one selection tool with a real nib, so
+  it alone has a width, and two settings of its own under the size button:
+
+  - **Mode** — _Add_ paints selection in, _Erase_ paints it away. On a desktop,
+    holding **Ctrl** (**⌘** on a Mac) flips whichever is set for the length of
+    one stroke — the verb is decided at the press, so releasing the key
+    mid-drag changes nothing. On touch, the chip is the switch.
+  - **Feather** — how softly a Delete through the window fades out; see below.
 
 Whichever you use, what settles is that outline — a lasso stays a lasso — and a
 traced area's holes stay holes: they are outside the window exactly as they are
@@ -55,6 +67,14 @@ with the marquee still in your hand slides the whole window somewhere else and
 leaves what is painted under it alone.
 
 Neither costs an undo step. Nothing about a window is in the drawing.
+
+## Inverting
+
+With a window up, the right-hand panel opens with an **Actions** block at its
+head, and **Invert selection** is in it: one press and the window becomes
+everything on the page it wasn't — and nothing it was. Press it twice and you
+are back where you started. The block is contextual: with nothing selected
+there are no actions, and the panel shows no heading over an empty box.
 
 ## Painting inside it
 
@@ -91,6 +111,17 @@ Three ways, because a phone and a laptop do not agree on any of them:
 What comes off is what is inside the window on the layer you are drawing on.
 Nothing is punched through the layers below it, and the window stays up
 afterwards: clearing a patch and painting something else into it is one job.
+
+### A feathered delete
+
+A window the Draw select tool cut with its **feather** dial up deletes softly:
+what goes fades out through the edges and corners instead of stopping dead, by
+the distance the dial is set to. A fade has no outline a vector cut could
+follow, so this delete lands the other way the app takes pixels off — as one
+soft-edged **erasing mark**, the same kind the eraser leaves. That means it
+behaves as the eraser does: it lifts ink down to the sheet, whatever layer the
+ink was on. One undo step takes it back either way, and a window with the
+feather at zero deletes exactly as the marquees always have.
 
 ## Copy, cut, paste
 

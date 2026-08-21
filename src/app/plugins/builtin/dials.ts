@@ -441,6 +441,43 @@ export const FEATHER: ToolDial = {
   unit: "mm",
 };
 
+/** The selection pencil's feather — the same dial as the bucket's in every way
+ *  that is persisted (same id, same range, same rest), described for what it
+ *  does *there*: how softly a Delete through the window fades out. A dial's
+ *  descriptor is how a tool talks about a number; the number itself neither
+ *  knows nor cares which tool's panel set it. */
+export const SELECT_FEATHER: ToolDial = {
+  ...FEATHER,
+  hintKey: "dials.selectFeather.hint",
+};
+
+/** Which way the selection pencil's stroke works the window: painting selection
+ *  in, or painting it away (see `select.ts`).
+ *
+ *  A switch rather than a slider — there is nothing between adding and erasing
+ *  — so it is two chips, the way every dial with a handful of answers is
+ *  pressed rather than dragged. It is the touch half of a pair: on a desktop,
+ *  holding Ctrl (⌘ on a Mac) flips whichever chip is down for the length of
+ *  the drag, which is how every paint program hangs the second verb off the
+ *  same gesture — but a finger has no Ctrl, so the chip has to exist.
+ *
+ *  The values ride `ToolContext.dials` as numbers like any dial's, and the
+ *  labels are catalog keys rather than designations because "Add" and "Erase"
+ *  are words (see `ToolDial.choices`). */
+export const SELECT_MODE: ToolDial = {
+  id: "mode",
+  nameKey: "dials.mode.name",
+  hintKey: "dials.mode.hint",
+  min: 0,
+  max: 1,
+  step: 1,
+  default: 0,
+  choices: [
+    { value: 0, label: "Add", labelKey: "dials.mode.add" },
+    { value: 1, label: "Erase", labelKey: "dials.mode.erase" },
+  ],
+};
+
 /** How much page the colour dropper reads at once, as the radius of the disc it
  *  averages — in document pixels, like every other distance a mark carries.
  *

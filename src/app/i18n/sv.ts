@@ -221,6 +221,10 @@ export const sv: Catalog = {
   panel: {
     collapse: "Dölj {name}",
     expand: "Visa {name}",
+    actionsTitle: "Åtgärder",
+    invertSelection: "Invertera markering",
+    invertSelectionHint:
+      "Markera allt på sidan som markeringen inte är — och inget av det den är.",
   },
   crop: {
     title: "Beskär",
@@ -435,6 +439,15 @@ export const sv: Catalog = {
     feather: {
       name: "Mjuk kant: {value} mm",
       hint: "Tonar ut fyllningens kant i stället för att tvärt avsluta den.",
+    },
+    mode: {
+      name: "Läge",
+      hint: "Lägg till målar in markering; Radera målar bort den. Håll Ctrl (⌘ på Mac) för att växla under ett drag.",
+      add: "Lägg till",
+      erase: "Radera",
+    },
+    selectFeather: {
+      hint: "Hur mjukt en radering genom markeringen tonas ut — kanter och hörn försvinner gradvis i stället för tvärt.",
     },
     sample: {
       name: "Yta: {value}",
@@ -687,7 +700,7 @@ export const sv: Catalog = {
     selection: {
       name: "Markera",
       description:
-        "Skär ut ett fönster i sidan — med en ruta, en oval, ett lasso eller genom att följa konturerna av det som är målat under pekaren. Tryck igen för att välja vilket. Målar du inuti det skärs strecket till fönstret; dra i det med handen för att flytta det som är målat där, eller med markeringen för att flytta fönstret.",
+        "Skär ut ett fönster i sidan — med en ruta, en oval, ett lasso, genom att följa konturerna av det som är målat under pekaren, eller genom att rita in det med en spets. Tryck igen för att välja vilket. Målar du inuti det skärs strecket till fönstret; dra i det med handen för att flytta det som är målat där, eller med markeringen för att flytta fönstret.",
     },
     select: {
       name: "Markera ruta",
@@ -706,6 +719,11 @@ export const sv: Catalog = {
       name: "Markera kontur",
       description:
         "Tryck på ett område så följer markeringen konturerna av det som är ritat där, i stället för en form du ritat över det.",
+    },
+    selectDraw: {
+      name: "Rita markering",
+      description:
+        "Måla markeringen som ett pennstreck: allt spetsen täcker markeras, och varje drag lägger till det som redan är valt. Raderläget — knappen i storlekspanelen, eller Ctrl (⌘) nedtryckt — målar bort markering i stället, och mjuk kant-ratten gör att en radering tonas ut mjukt i kanterna.",
     },
     marker: {
       name: "Tuschpenna",
@@ -781,6 +799,11 @@ export const sv: Catalog = {
       name: "Bild",
       description:
         "En bild som släppts på sidan. Den har ingen knapp — dra in en bildfil på ritytan och placera den.",
+    },
+    eraseRegion: {
+      name: "Mjuk radering",
+      description:
+        "En radering genom en markering med mjuk kant, sparad som ett mjukt raderande märke. Den har ingen knapp — tryck Delete genom en markering som Rita markering skurit med mjuk kant.",
     },
   },
   settings: {

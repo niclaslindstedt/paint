@@ -18,7 +18,7 @@
 // Nothing in the canvas, the store or the renderer knows what a selection tool
 // is called, and no stroke ever carries one of these ids.
 //
-// Four of them, behind one button (`SELECT_GROUP_ID` — the same `ToolGroup` the
+// Five of them, behind one button (`SELECT_GROUP_ID` — the same `ToolGroup` the
 // shapes use, so they cost one toolbar slot and one switch between them):
 //
 //   - **box**    the classic marquee: two corners.
@@ -29,12 +29,20 @@
 //                is painted there rather than a shape you drew over it. It is
 //                the bucket's flood, borrowed: the same probe, the same tracing,
 //                and the outline goes to the screen instead of the document.
+//   - **pencil** paint the selection the way a pencil paints ink: the stroke's
+//                capsule *is* selected, every stroke adds to what is already
+//                chosen, and its erase mode (the mode chip, or Ctrl held)
+//                paints selection away instead. The one member with a real nib,
+//                which is why it alone has a width and dials — and the one that
+//                *combines* with the selection rather than replacing it
+//                (`PaintPlugin.combinesSelection`).
 //
 // What you can then do with the marks is the screen's business (see
 // `selection.ts` and `CanvasScreen.tsx`): move them with the hand, and copy, cut
 // or delete them from the keyboard or the menu a right-click or a long press
 // opens.
 
+import { combineRegion } from "../../regionMask.ts";
 import type { Point } from "../../types.ts";
 import { isMeaningfulDrag, normalizeBox, polygonCorners } from "../ink.ts";
 import type { DraftStroke, ToolBehaviour, ToolContext } from "../types.ts";
@@ -55,6 +63,7 @@ export const SELECT_TOOL_ID = "select";
 export const SELECT_OVAL_TOOL_ID = "select-oval";
 export const SELECT_LASSO_TOOL_ID = "select-lasso";
 export const SELECT_TRACE_TOOL_ID = "select-trace";
+export const SELECT_DRAW_TOOL_ID = "select-draw";
 
 /** How long a dashed marquee's dashes are, in **device** pixels. Divided by the
  *  render scale before it reaches the context, so the ants stay the same size on
@@ -368,5 +377,127 @@ export const selectTraceBehaviour: ToolBehaviour = {
     if (draft.shape.kind !== "region") return null;
     const contours = draft.shape.contours.filter((loop) => loop.length >= 3);
     return contours.length > 0 ? contours : null;
+  },
+};
+
+// --- The selection pencil ----------------------------------------------------
+
+/** How far the pointer travels before the pencil keeps another point — the
+ *  lasso's thinning, for the lasso's reason. */
+const DRAW_STEP = 1.5;
+
+/** The value `mode` rides the dials at when a stroke paints selection *away*.
+ *  On the dial it is the second chip (see `SELECT_MODE` in `dials.ts`); on a
+ *  draft it is stamped at `start`, so the verb a gesture began with is the verb
+ *  it lands with whatever the keyboard does mid-drag. */
+export const SELECT_ERASE_MODE = 1;
+
+/** Whether a gesture of the pencil is erasing selection: the mode chip, flipped
+ *  by a held Ctrl/⌘ — the same drag, the other verb. */
+function drawErases(ctx: ToolContext): boolean {
+  const chip = (ctx.dials.mode ?? 0) === SELECT_ERASE_MODE;
+  return ctx.modifier ? !chip : chip;
+}
+
+/** What a pencil gesture has painted so far, drawn as a smoky band the width of
+ *  the nib — the mark it will select, not ink. Two coats for the marquees'
+ *  reason (visible on a dark page and a light one without knowing which), and
+ *  the erasing verb wears red so a drag that is taking selection away never
+ *  reads as one adding it. */
+function paintDrawBand(
+  ctx2d: CanvasRenderingContext2D,
+  points: readonly Point[],
+  size: number,
+  erasing: boolean,
+): void {
+  const trace = () => {
+    ctx2d.beginPath();
+    const first = points[0]!;
+    if (points.length === 1) {
+      ctx2d.arc(first.x, first.y, Math.max(size / 2, 0.5), 0, Math.PI * 2);
+      return true;
+    }
+    ctx2d.moveTo(first.x, first.y);
+    for (let i = 1; i < points.length; i++) {
+      ctx2d.lineTo(points[i]!.x, points[i]!.y);
+    }
+    return false;
+  };
+  ctx2d.lineCap = "round";
+  ctx2d.lineJoin = "round";
+  ctx2d.lineWidth = size;
+  ctx2d.globalAlpha = 1;
+  for (const coat of [
+    "rgba(255,255,255,0.4)",
+    erasing ? "rgba(185,28,28,0.4)" : "rgba(17,24,39,0.3)",
+  ]) {
+    const dot = trace();
+    if (dot) {
+      ctx2d.fillStyle = coat;
+      ctx2d.fill();
+    } else {
+      ctx2d.strokeStyle = coat;
+      ctx2d.stroke();
+    }
+  }
+}
+
+/** The selection pencil: paint the selection the way a pencil paints ink.
+ *
+ *  The draft is an ordinary `path` at the toolbar's width — the same shape a
+ *  pencil line records — and the answer is that path's capsule **combined with
+ *  the selection as it stands** (see `regionMask.ts`): painted in, or, under
+ *  the erase mode, painted away. That is what `combinesSelection` on the
+ *  descriptor declares, and it is the whole difference from the lasso: a lasso
+ *  drawn twice is two selections, a pencil stroked twice is one selection with
+ *  more in it — which is what lets an area be *built*, dab by dab, the way the
+ *  subject of a photograph actually has to be picked out.
+ *
+ *  A tap is a dab (the nib's disc), not "select nothing": a pencil pressed to
+ *  the page leaves a dot. Putting the window away is Escape, or erasing the
+ *  last of it — a selection erased down to nothing answers `null` like any
+ *  other gesture that chose nothing.
+ *
+ *  The verb is decided at `start` and stamped on the draft's dials (`mode`), so
+ *  a Ctrl released mid-drag doesn't turn a half-made erase into an add. */
+export const selectDrawBehaviour: ToolBehaviour = {
+  start: (p, ctx) => ({
+    tool: "",
+    size: Math.max(ctx.size, 1),
+    ...(drawErases(ctx) ? { dials: { mode: SELECT_ERASE_MODE } } : {}),
+    shape: { kind: "path", points: [p] },
+  }),
+  move: (draft, p) => {
+    if (draft.shape.kind !== "path") return draft;
+    const points = draft.shape.points;
+    const last = points[points.length - 1];
+    if (last && Math.hypot(p.x - last.x, p.y - last.y) < DRAW_STEP) {
+      return draft;
+    }
+    return { ...draft, shape: { kind: "path", points: [...points, p] } };
+  },
+  end: (draft) => draft,
+  paint: (ctx2d, stroke) => {
+    if (stroke.shape.kind !== "path") return;
+    const points = stroke.shape.points;
+    if (points.length === 0) return;
+    paintDrawBand(
+      ctx2d,
+      points,
+      stroke.size,
+      (stroke.dials?.mode ?? 0) === SELECT_ERASE_MODE,
+    );
+  },
+  selection: (draft, ctx) => {
+    if (draft.shape.kind !== "path") return null;
+    const points = draft.shape.points;
+    if (points.length === 0) return null;
+    const erasing = (draft.dials?.mode ?? 0) === SELECT_ERASE_MODE;
+    return combineRegion(
+      ctx?.selection ?? [],
+      points,
+      Math.max(draft.size, 1) / 2,
+      erasing,
+    );
   },
 };

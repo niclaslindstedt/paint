@@ -1092,16 +1092,21 @@ sample size is a dial, and a canvas that applied it would have to know that
 dial's name.
 
 `selects` carries one extra obligation past the flag: the behaviour answers
-`selection(draft)` with the **closed contours** its gesture chose, in document
-coordinates. That is the only currency the screen deals in, which is what lets a
-box marquee, an oval, a freehand lasso and an outline traced off the page itself
-all be selections without the canvas, the store or the renderer learning a shape
-(see `selection.ts`).
+`selection(draft, ctx)` with the **closed contours** its gesture chose, in
+document coordinates. That is the only currency the screen deals in, which is
+what lets a box marquee, an oval, a freehand lasso, an outline traced off the
+page itself and a stroke of the selection pencil all be selections without the
+canvas, the store or the renderer learning a shape (see `selection.ts`). The
+context is there for the pencil alone: its descriptor adds `combinesSelection`,
+and its answer is the selection as it stands (`ToolContext.selection`) with the
+stroke's capsule painted in or — under its erase mode, the mode chip or a held
+Ctrl (`ToolContext.modifier`) — painted away, combined on a throwaway bitmap and
+traced back to contours (`regionMask.ts`).
 
 `group` is the flag that changes how a tool is _offered_ rather than how it
 behaves. The eleven shapes each stay their own plugin — their own painter, their
 own remembered width, their own persisted id, so nothing already drawn is
-orphaned — and share one toolbar button and one switch; the four selection tools
+orphaned — and share one toolbar button and one switch; the five selection tools
 are grouped the same way, under the id the lone marquee used to hold, so a
 settings blob written before the family existed still names their button — and
 so are the two fills, under the bucket's id, and the two ways of rubbing out,
@@ -1199,7 +1204,10 @@ other (`selection.ts`, all pure and node-tested):
 - **move** — the hand carries what is painted under the window, cutting every
   mark the outline crosses in two;
 - **erase** — Delete, the menu, or a tap with the rubber takes what is inside
-  it off.
+  it off. A window the selection pencil cut with its **feather** up deletes the
+  other way the app takes pixels off: as one erasing `region` stroke with the
+  bucket's softened skirt (`plugins/builtin/eraseRegion.ts`, hidden like the
+  image plugin), because a fade has no outline a vector cut could follow.
 
 The mechanism behind all three is one optional field on a stroke: `clip`, a list
 of **masks** — closed contours in document coordinates, read with the even-odd

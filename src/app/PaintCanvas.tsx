@@ -409,14 +409,26 @@ export function PaintCanvas({
     return probe.current;
   }, [pageColor, defaultInk]);
 
+  // Whether the pointer is held with Ctrl (or ⌘) right now — read off the
+  // events as they arrive, because a modifier is a property of the press rather
+  // than of anything React renders. The selection pencil reads it as its
+  // erase mode (see `ToolContext.modifier`).
+  const modifierHeld = useRef(false);
+
   const context = useCallback(
     (): ToolContext => ({
       ...ink,
       background: pageColor,
+      modifier: modifierHeld.current,
       // Lazily: reading `probe` here would take a snapshot for every pencil
       // move. A tool that wants one asks for it.
       get probe() {
         return openProbe();
+      },
+      // Through the ref, so the context a long gesture began with still answers
+      // with the window as it stands when the gesture finally asks.
+      get selection() {
+        return inks.current.selection?.region ?? null;
       },
     }),
     [ink, pageColor, openProbe],
@@ -638,9 +650,13 @@ export function PaintCanvas({
     // The marquee, pressed inside a window it has already cut: the drag slides
     // the *window* and leaves the ink where it is. It is the other half of the
     // hand's drag, and having both is what makes a selection adjustable —
-    // "not quite there" costs a nudge rather than the whole gesture.
+    // "not quite there" costs a nudge rather than the whole gesture. Not the
+    // selection pencil, though: a tool whose strokes *combine* with the window
+    // has every reason to press inside it — that is how more of it is painted —
+    // so its press begins a stroke and the window is slid by its siblings.
     if (
       plugin.selects &&
+      !plugin.combinesSelection &&
       selection &&
       regionHolds(selection.region, toDoc(at))
     ) {
@@ -717,6 +733,7 @@ export function PaintCanvas({
 
   const handleDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
     e.currentTarget.setPointerCapture(e.pointerId);
+    modifierHeld.current = e.ctrlKey || e.metaKey;
     const at = elementPoint(e);
     pointers.current.set(e.pointerId, at);
     dropHold();
@@ -790,6 +807,7 @@ export function PaintCanvas({
 
   const handleMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
     if (!pointers.current.has(e.pointerId)) return;
+    modifierHeld.current = e.ctrlKey || e.metaKey;
     const at = elementPoint(e);
     pointers.current.set(e.pointerId, at);
     // A press that has wandered from where it landed is not being held still,
@@ -988,7 +1006,9 @@ export function PaintCanvas({
       // nothing sends `null`, which clears the selection.
       if (plugin.selects) {
         onSelectRegion?.(
-          committed ? (plugin.behaviour.selection?.(committed) ?? null) : null,
+          committed
+            ? (plugin.behaviour.selection?.(committed, context()) ?? null)
+            : null,
         );
         requestPaint();
         return;

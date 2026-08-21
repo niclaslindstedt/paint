@@ -34,7 +34,7 @@
 //
 // A fourth answer sits above those three: a tool may belong to a **group**, and
 // then the group carries the switch and the toolbar button for the whole family.
-// Four families are the case — the eleven shapes, the four ways of selecting,
+// Four families are the case — the eleven shapes, the five ways of selecting,
 // the two ways of filling an area, and the two ways of taking a mark off — and
 // all four are below.
 //
@@ -92,6 +92,7 @@ import {
   CrayonIcon,
   DiamondIcon,
   DoubleArrowIcon,
+  DrawSelectIcon,
   DropperIcon,
   EraserIcon,
   FlatBrushIcon,
@@ -144,6 +145,8 @@ import {
   PRESSURE,
   RUB,
   SAMPLE,
+  SELECT_FEATHER,
+  SELECT_MODE,
   SOFT,
   STRENGTH,
   WATER,
@@ -181,6 +184,7 @@ import {
 import { LEAD_OPTIONS } from "../leadOptions.ts";
 import { WASH_OPTIONS } from "../washOptions.ts";
 import { dropperBehaviour } from "./dropper.ts";
+import { eraseRegionBehaviour, ERASE_REGION_TOOL_ID } from "./eraseRegion.ts";
 import { fillBehaviour } from "./fill.ts";
 import {
   FILL_GROUP_ID,
@@ -193,9 +197,11 @@ import { handBehaviour } from "./hand.ts";
 import { imageBehaviour, IMAGE_TOOL_ID } from "./image.ts";
 import {
   selectBehaviour,
+  selectDrawBehaviour,
   selectLassoBehaviour,
   selectOvalBehaviour,
   selectTraceBehaviour,
+  SELECT_DRAW_TOOL_ID,
   SELECT_GROUP_ID,
   SELECT_LASSO_TOOL_ID,
   SELECT_OVAL_TOOL_ID,
@@ -320,16 +326,18 @@ const SHAPES: readonly Omit<
   },
 ];
 
-/** The selection tools, in the order the picker lays them out: the box marquee
- *  every paint program opens with, the oval beside it, then the two that follow
- *  something — the loop your hand drew, and the contours the page itself has.
+/** The widthless selection tools, in the order the picker lays them out: the
+ *  box marquee every paint program opens with, the oval beside it, then the two
+ *  that follow something — the loop your hand drew, and the contours the page
+ *  itself has. The selection pencil is registered after them, apart, because it
+ *  is the one member a width and dials are real for.
  *
- *  Only the box carries a shortcut, for the shapes' reason: the four are one
+ *  Only the box carries a shortcut, for the shapes' reason: the family is one
  *  press apart in the picker, and the letter the marquee has always answered to
  *  belongs to the one it has always meant. */
 const SELECTIONS: readonly Omit<
   PaintPlugin,
-  "group" | "selects" | "defaultSize" | "gauge" | "dials"
+  "group" | "selects" | "sizeless" | "defaultSize" | "gauge" | "dials"
 >[] = [
   {
     id: SELECT_TOOL_ID,
@@ -1096,9 +1104,42 @@ export function registerBuiltinPlugins(): void {
       // flag, asks the behaviour what was chosen, and hands the outline to the
       // screen rather than the document (see `select.ts`).
       selects: true,
+      // These four choose with a drag or a press — no nib anywhere in the
+      // gesture, so a width would be a slider that moves nothing. Said per
+      // member rather than implied by `selects`, because the pencil below is
+      // the selection tool a width *is* real for (see `PaintPlugin.sizeless`).
+      sizeless: true,
       ...member,
     });
   }
+
+  // The selection pencil — the one member of the family with a real nib, so it
+  // alone carries a width, a rack, and dials. It is registered apart from the
+  // loop above for exactly that reason: what the four marquees share is what it
+  // doesn't.
+  registerPlugin({
+    id: SELECT_DRAW_TOOL_ID,
+    group: SELECT_GROUP_ID,
+    selects: true,
+    // Each stroke works the selection over — adds to it, or under its erase
+    // mode takes from it — rather than replacing it, and a press inside the
+    // window begins another stroke instead of sliding it (see `select.ts`).
+    combinesSelection: true,
+    nameKey: "tools.selectDraw.name",
+    descriptionKey: "tools.selectDraw.description",
+    icon: DrawSelectIcon,
+    // The eraser's rack: both are round nibs worked over areas of a drawing,
+    // and "how much page one pass covers" is the same question for both.
+    gauge: ERASER_GAUGE,
+    defaultSize: mm(5),
+    // Its width shows as a circle, for the eraser's reason: its press leaves a
+    // selection, not ink, and the nib is round — the number is the nib.
+    sizePreview: "circle",
+    // The verb chip (with Ctrl/⌘ flipping it for a drag), and how softly a
+    // Delete through the window it cuts fades out (see `useSelection.ts`).
+    dials: [SELECT_MODE, SELECT_FEATHER],
+    behaviour: selectDrawBehaviour,
+  });
 
   // --- Then typing ---------------------------------------------------------
   // Straight after the marquee, because that is the order a hand actually uses
@@ -1186,5 +1227,20 @@ export function registerBuiltinPlugins(): void {
     descriptionKey: "tools.image.description",
     icon: ImageIcon,
     behaviour: imageBehaviour,
+  });
+
+  // A feathered delete is a mark too — the selection's area as one erasing
+  // region stroke, filed by the Delete key through a feathered selection. No
+  // gesture draws one, so it is hidden like the image; `erases` is what makes
+  // the renderer composite it away (see `eraseRegion.ts`).
+
+  registerPlugin({
+    id: ERASE_REGION_TOOL_ID,
+    hidden: true,
+    erases: true,
+    nameKey: "tools.eraseRegion.name",
+    descriptionKey: "tools.eraseRegion.description",
+    icon: EraserIcon,
+    behaviour: eraseRegionBehaviour,
   });
 }
