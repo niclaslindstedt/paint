@@ -59,7 +59,8 @@ connect a storage backend yourself.
   painted, or paint the selection in with a pencil-like nib that adds with every
   stroke, erases with a mode flip or a held Ctrl, and feathers what a Delete
   takes out — five gestures behind one button, pressed a second time to choose.
-  Invert the window from the side panel's Actions block.
+  Invert the window — or delete the traced subject's background — from the
+  side panel's Contextual block, which is there only while a selection is.
   What settles is an area, not a list of marks: paint in it and the mark is cut
   to it, drag it with the hand to carry what is painted under it, drag it with
   the marquee to slide the window itself, and pull its corner grips to adjust it

@@ -1,8 +1,9 @@
 # Delete background
 
 Cut the subject of a picture out of its background: trace roughly over it with
-a selection tool, open **Delete background** from the panel's **Image**
-section, and the cut finds the subject's exact edge near your outline. What you
+a selection tool, open **Delete background** from the **Contextual** block at
+the head of the right-hand panel, and the cut finds the subject's exact edge
+near your outline. What you
 keep is the subject on a transparent layer; everything else on that layer is
 gone.
 
@@ -20,8 +21,10 @@ Where the picture offers no edge to find, the cut follows your hand.
    Erase mode to take back what you overshot (see
    [`selection.md`](selection.md)). A lasso around the subject works just as
    well. Two loops are two subjects; a loop traced inside another cuts a hole.
-2. **Open the panel's Image section** and press **Delete background**. The page
-   behind shows the cut as you set it — the checkerboard showing through is
+2. **Press Delete background** in the blue **Contextual** block at the head of
+   the right-hand panel. It is there because you have something traced — with
+   nothing selected there is nothing to cut, so the row is not there either.
+   The page behind shows the cut as you set it — the checkerboard showing through is
    what will be gone. Nothing lands until you press Apply.
 3. **Adjust**, if the first answer isn't the one you wanted:
    - **Feather** — how soft the cut edge is, in page pixels. Zero keeps it

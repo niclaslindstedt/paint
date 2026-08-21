@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 import { describe, expect, it } from "vitest";
 
-import { EFFECTS } from "../src/app/effects.ts";
+import { EFFECTS, listedEffectsIn } from "../src/app/effects.ts";
 import {
   effectItemId,
   isItemOn,
@@ -22,22 +22,43 @@ const ids = (sections: readonly { id: string }[]) => sections.map((s) => s.id);
 
 describe("PANEL_SECTIONS", () => {
   it("ships colour under the stack", () => {
-    expect(ids(PANEL_SECTIONS)).toEqual([
-      "page",
-      "effects",
-      "layers",
-      "image",
-      "color",
-    ]);
+    expect(ids(PANEL_SECTIONS)).toEqual(["page", "effects", "layers", "color"]);
   });
 
-  it("gives every effect a row to be switched off by", () => {
+  it("gives every listed effect a row to be switched off by", () => {
     const items = PANEL_SECTIONS.flatMap((section) =>
       section.items.map((item) => item.id),
     );
-    for (const effect of EFFECTS) {
+    for (const effect of EFFECTS.filter((e) => !e.contextual)) {
       expect(items).toContain(effectItemId(effect.kind));
     }
+  });
+
+  it("gives a contextual effect no row at all", () => {
+    // One that is *aimed* through a selection is offered by the screen while
+    // there is something to aim it at (the panel's Contextual block), so it has
+    // no permanent row and nothing to switch off — see `EffectDescriptor
+    // .contextual`.
+    const items = PANEL_SECTIONS.flatMap((section) =>
+      section.items.map((item) => item.id),
+    );
+    const contextual = EFFECTS.filter((effect) => effect.contextual);
+    expect(contextual.length).toBeGreaterThan(0);
+    for (const effect of contextual) {
+      expect(items).not.toContain(effectItemId(effect.kind));
+    }
+  });
+
+  it("drops a group whose every effect is contextual", () => {
+    // Image is that group today: the cut is its only member and the cut is
+    // contextual, so there is no Image *effects* section — a heading nothing
+    // could ever appear under is worse than no heading. (The page's own section
+    // is titled Image too and is untouched by this; it is `page`.)
+    for (const section of PANEL_SECTIONS) {
+      expect(section.items.length).toBeGreaterThan(0);
+    }
+    expect(ids(PANEL_SECTIONS)).not.toContain("image");
+    expect(listedEffectsIn("image")).toEqual([]);
   });
 
   it("keeps the page's own actions on the Image section", () => {
@@ -67,8 +88,8 @@ describe("orderedSections", () => {
 
   it("puts colour back above the stack for someone who works that way", () => {
     expect(
-      ids(orderedSections(["page", "effects", "color", "layers", "image"])),
-    ).toEqual(["page", "effects", "color", "layers", "image"]);
+      ids(orderedSections(["page", "effects", "color", "layers"])),
+    ).toEqual(["page", "effects", "color", "layers"]);
   });
 
   it("keeps a section the stored order has never heard of", () => {
@@ -105,7 +126,6 @@ describe("switching things off", () => {
       "page",
       "effects",
       "layers",
-      "image",
     ]);
   });
 
@@ -151,11 +171,11 @@ describe("switching things off", () => {
     expect(
       ids(
         visibleSections(
-          ["layers", "page", "effects", "image", "color"],
+          ["layers", "page", "effects", "color"],
           ["effects"],
           [],
         ),
       ),
-    ).toEqual(["layers", "page", "image", "color"]);
+    ).toEqual(["layers", "page", "color"]);
   });
 });

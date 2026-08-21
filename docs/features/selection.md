@@ -70,11 +70,16 @@ Neither costs an undo step. Nothing about a window is in the drawing.
 
 ## Inverting
 
-With a window up, the right-hand panel opens with an **Actions** block at its
-head, and **Invert selection** is in it: one press and the window becomes
-everything on the page it wasn't — and nothing it was. Press it twice and you
-are back where you started. The block is contextual: with nothing selected
-there are no actions, and the panel shows no heading over an empty box.
+With a window up, the right-hand panel grows a **Contextual** block at its
+head — blue, and pulsing gently — and **Invert selection** is in it: one press
+and the window becomes everything on the page it wasn't, and nothing it was.
+Press it twice and you are back where you started. Beside it is **Delete
+background**, which cuts what you traced out of its background (see
+[`delete-background.md`](delete-background.md)).
+
+The block is contextual, and that is the whole of it: with nothing selected
+there is nothing either row could act on, so there is no block — not a heading
+over an empty box, and not two dead buttons.
 
 ## Painting inside it
 
