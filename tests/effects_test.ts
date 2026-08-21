@@ -14,8 +14,10 @@ import {
   effectDescriptor,
   effectReach,
   effectReadout,
+  CONTEXTUAL_EFFECTS,
   EFFECTS,
   effectsIn,
+  listedEffectsIn,
   offersScope,
   switchValue,
   unclaimedControls,
@@ -91,6 +93,24 @@ describe("the catalog", () => {
     expect(EFFECT_GROUPS.flatMap((group) => effectsIn(group.id)).length).toBe(
       EFFECTS.length,
     );
+  });
+
+  it("offers the aimed effect contextually rather than as a row", () => {
+    // Delete background is cut *through* a tracing, so it has nothing to do
+    // until there is one. It says so on its descriptor, and that one flag is
+    // what keeps it out of every arranged section and puts it in the panel's
+    // Contextual block instead (see `panelSections.ts` and `SidePanel.tsx`).
+    expect(CONTEXTUAL_EFFECTS.map((e) => e.kind)).toEqual(["cutout"]);
+    expect(effectDescriptor("cutout")?.contextual).toBe(true);
+    // It is still a member of its group — it is only not *listed* by it.
+    expect(effectsIn("image").map((e) => e.kind)).toEqual(["cutout"]);
+    expect(listedEffectsIn("image")).toEqual([]);
+    // …and nothing else has been quietly taken off a section on the way.
+    for (const group of EFFECT_GROUPS) {
+      expect(listedEffectsIn(group.id)).toEqual(
+        effectsIn(group.id).filter((effect) => !effect.contextual),
+      );
+    }
   });
 
   it("lets the colour work reach the whole stack", () => {

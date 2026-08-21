@@ -8,6 +8,7 @@ import {
   CopyIcon,
   ImageUpIcon,
   MenuIcon,
+  SlidersIcon,
   StarIcon,
   TrashIcon,
 } from "@niclaslindstedt/oss-framework/components";
@@ -30,7 +31,7 @@ import {
 } from "./clipboard.ts";
 import { DownloadMenu } from "./DownloadMenu.tsx";
 import { bakeEffect } from "./bake.ts";
-import { effectDescriptor, hasSubject } from "./effects.ts";
+import { CONTEXTUAL_EFFECTS, effectDescriptor, hasSubject } from "./effects.ts";
 import { DrawingTitle } from "./DrawingTitle.tsx";
 import type { MenuEdge } from "./gestures.ts";
 import { HeaderIconButton } from "./HeaderIconButton.tsx";
@@ -614,12 +615,33 @@ export function CanvasScreen({
     );
   }, [selection, drawing, setSelection]);
 
-  /** The contextual block at the head of the right-hand panel: what can be done
-   *  to the thing this screen is holding right now (see `PanelAction`). Today
-   *  that is the selection's invert; with nothing selected the list is empty
-   *  and the panel shows no block at all. */
+  /** The **Contextual** block at the head of the right-hand panel: what can be
+   *  done to the thing this screen is holding right now (see `PanelAction`).
+   *  With nothing selected the list is empty and the panel shows no block at
+   *  all.
+   *
+   *  Two rows today, and both are here for the same reason rather than by
+   *  coincidence: a window to act on is what makes either of them mean
+   *  anything. Turning the window inside out with nothing selected inverts
+   *  nothing, and Delete background is *aimed through* a tracing — a permanent
+   *  row for it was a row that spent most of its life opening a dialog whose
+   *  only content was "trace the subject first". So the cut leaves the Image
+   *  section (it is `contextual` on its descriptor now, which is what keeps it
+   *  out of the arranged sections — see `effects.ts`) and arrives up here, with
+   *  the selection that gives it something to cut.
+   *
+   *  The effects the block offers come from the registry rather than being
+   *  named here: an effect that declares itself contextual joins this list by
+   *  saying so, the way a tool joins the toolbar by registering. */
   const panelActions = selection
     ? [
+        ...CONTEXTUAL_EFFECTS.map((descriptor) => ({
+          id: `effect:${descriptor.kind}`,
+          label: t(descriptor.nameKey),
+          hint: t(descriptor.hintKey),
+          icon: <SlidersIcon className="h-4 w-4" />,
+          onSelect: () => effect.open(descriptor.kind),
+        })),
         {
           id: "selection:invert",
           label: t("panel.invertSelection"),

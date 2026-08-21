@@ -2,7 +2,11 @@
 import { SlidersIcon } from "@niclaslindstedt/oss-framework/components";
 
 import { useT } from "../i18n/index.ts";
-import { effectsIn, type EffectGroup, type EffectKind } from "../effects.ts";
+import {
+  listedEffectsIn,
+  type EffectGroup,
+  type EffectKind,
+} from "../effects.ts";
 import { effectItemId, isItemOn } from "../panelSections.ts";
 import { SectionHeading } from "./shared.tsx";
 import type { SectionProps } from "./section.ts";
@@ -42,8 +46,8 @@ export function EffectsSection({
   onEffect,
 }: SectionProps & { onEffect: (kind: EffectKind) => void }) {
   const t = useT();
-  const effects = effectsIn(section.id as EffectGroup).filter((descriptor) =>
-    isItemOn(hiddenItems, effectItemId(descriptor.kind)),
+  const effects = listedEffectsIn(section.id as EffectGroup).filter(
+    (descriptor) => isItemOn(hiddenItems, effectItemId(descriptor.kind)),
   );
 
   return (

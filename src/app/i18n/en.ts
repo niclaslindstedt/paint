@@ -248,8 +248,12 @@ export const en = {
     collapse: "Hide {name}",
     expand: "Show {name}",
     // The contextual block at the head of the panel — shown only while there
-    // is something to act on (see `SidePanel.tsx`).
-    actionsTitle: "Actions",
+    // is something to act on (see `SidePanel.tsx`). It says what it *is*
+    // rather than what is in it: "Actions" describes half the panel, while
+    // "Contextual" is the one thing true of this block and of nothing else
+    // above or below it — these rows are here because of what you are holding
+    // right now, and they go when you let go of it.
+    contextualTitle: "Contextual",
     invertSelection: "Invert selection",
     invertSelectionHint:
       "Select everything on the page the selection isn't — and nothing it is.",

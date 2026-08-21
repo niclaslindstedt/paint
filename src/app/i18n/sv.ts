@@ -231,7 +231,7 @@ export const sv: Catalog = {
   panel: {
     collapse: "Dölj {name}",
     expand: "Visa {name}",
-    actionsTitle: "Åtgärder",
+    contextualTitle: "Kontextuellt",
     invertSelection: "Invertera markering",
     invertSelectionHint:
       "Markera allt på sidan som markeringen inte är — och inget av det den är.",

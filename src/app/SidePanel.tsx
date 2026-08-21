@@ -20,6 +20,12 @@ import type { PaintStore } from "./usePaintStore.ts";
 // adjustments — and this file is the shell they sit in rather than the sections
 // themselves, which are `panel/`'s.
 //
+// **Above all four is the Contextual block**, which is not a section and is not
+// arranged with them: it holds what can be done to the thing the *screen* is
+// holding this second, it is there only while that thing is, and it says so by
+// being the one blue, slowly breathing thing in the panel. See the block itself
+// below for why that is worth a colour of its own.
+//
 // **The order is the user's, not the build's.** The sections are dragged into
 // place by the grip on their headings, switched off entirely, and thinned out a
 // function at a time from Settings → Panel. What exists, where it sits and what
@@ -58,7 +64,7 @@ import type { PaintStore } from "./usePaintStore.ts";
 // 224-pixel panel saying what the button beside it says. Escape and a press on
 // the page still dismiss it, as they do for every floating surface here.
 
-/** One contextual action — a row of the **Actions** block at the head of the
+/** One contextual action — a row of the **Contextual** block at the head of the
  *  panel. Plain strings rather than catalog keys, because what exists depends
  *  on what the *screen* is holding (a selection, today) and the screen is where
  *  the words are resolved. */
@@ -86,7 +92,7 @@ type Props = {
    *  gives. */
   onMoveSection: (order: readonly string[], from: number, to: number) => void;
   /** What can be done to the thing the screen is holding *right now* — the
-   *  **Actions** block at the very top of the panel (see `PanelAction`).
+   *  **Contextual** block at the very top of the panel (see `PanelAction`).
    *  Contextual, so it is none of the arrangeable sections' business: it is not
    *  in the stored order, not switchable from Settings → Panel, and the panel
    *  leaves it out entirely — heading and all — when there is nothing to do. */
@@ -201,16 +207,29 @@ export function SidePanel({
           : "absolute inset-y-0 right-0 z-20 flex w-56 max-w-[80%] flex-col overflow-y-auto overscroll-contain border-l border-line bg-surface shadow-2xl"
       }
     >
-      {/* The contextual block, above everything the user arranges: what can be
-          done to the thing the screen is holding right now — a selection's
-          invert, today. It exists only while there is something to do, so an
-          empty page never shows a heading over nothing, and it sits at the top
-          because it is about *now* where the sections are about the page. */}
+      {/* **Contextual** — the block above everything the user arranges: what
+          can be done to the thing the screen is holding right now (a
+          selection's invert and the cut through it, today). It exists only
+          while there is something to do, so an empty page never shows a
+          heading over nothing, and it sits at the top because it is about
+          *now* where the sections are about the page.
+
+          It is blue and it breathes, and neither is decoration. Everything
+          else in this panel is *always there*: you learn where it sits and
+          stop looking at it. These rows are the opposite — they appeared
+          because of what you just did, they will go when you let go of it, and
+          a panel you have stopped reading is exactly where a row that arrives
+          for two seconds gets missed. So the block does not sit at the panel's
+          own temperature: it carries the one colour nothing else here uses,
+          and a slow pulse that says *this is new, and it is about what you are
+          holding*. Subtle enough to sit beside a drawing — a breath every
+          three seconds, not a blink — and it stands still for anyone who has
+          asked for reduced motion (see `styles.css`). */}
       {actions.length > 0 && (
-        <div className="shrink-0 border-b border-line">
+        <div className="panel-contextual shrink-0 border-b border-line">
           <div className="flex items-center gap-1 px-2 py-1.5">
-            <span className="min-w-0 flex-1 truncate text-xs font-bold tracking-wide text-muted uppercase">
-              {t("panel.actionsTitle")}
+            <span className="panel-contextual-title min-w-0 flex-1 truncate text-xs font-bold tracking-wide uppercase">
+              {t("panel.contextualTitle")}
             </span>
           </div>
           <div className="flex flex-col gap-1 px-2 pb-2">
@@ -220,10 +239,10 @@ export function SidePanel({
                 type="button"
                 onClick={action.onSelect}
                 title={action.hint}
-                className="flex cursor-pointer items-center gap-2 rounded border border-line px-2 py-1.5 text-sm text-fg hover:bg-surface-2 hover:text-fg-bright"
+                className="panel-contextual-row flex cursor-pointer items-center gap-2 rounded border px-2 py-1.5 text-sm"
               >
                 {action.icon && (
-                  <span className="shrink-0 text-muted">{action.icon}</span>
+                  <span className="shrink-0 opacity-80">{action.icon}</span>
                 )}
                 <span className="min-w-0 flex-1 truncate text-left">
                   {action.label}

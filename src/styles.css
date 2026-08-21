@@ -288,6 +288,91 @@ select,
   }
 }
 
+/* ── The contextual block ────────────────────────────────────────────────────
+   The rows at the head of the right-hand panel that exist only while the screen
+   is holding something to act on — a selection, today (see `SidePanel.tsx`).
+
+   They are blue, and blue on purpose: **no theme in this app puts blue here**.
+   The accent is the user's own colour and lands on the thing they picked, the
+   chrome is greys, and a contextual row that borrowed either would read as one
+   more permanent control. This one is deliberately not of the panel's palette,
+   so a row that arrives for as long as a selection lasts is seen rather than
+   scrolled past.
+
+   And it breathes: a slow swell of the glow rather than a blink, three seconds
+   a cycle, never leaving the surface it sits on. The pulse is doing the one job
+   a static highlight cannot — saying *this changed just now* to someone whose
+   eye is on the drawing rather than the panel — and it is kept under the
+   threshold where a moving thing beside a picture becomes something you have to
+   look away from.
+
+   One hue, declared once, and **leant towards the theme's own foreground**
+   rather than branched on light and dark. A fixed blue that holds its edge
+   against near-black is a smudge on white, and the obvious fix — `light-dark()`
+   — answers the wrong question here: it follows the *operating system's*
+   preference, while this panel is painted by whichever of the framework's
+   fifteen themes the user picked, and the two disagree the moment somebody runs
+   a light theme on a dark desktop. Mixing a fifth of `--fg` into the blue asks
+   the surface it is actually sitting on: on a light theme `--fg` is near-black
+   and the blue settles; on a dark one it is near-white and the blue lifts. One
+   declaration, and it is right in every theme, including one a later release
+   adds. */
+:root {
+  --contextual: color-mix(in oklab, oklch(0.63 0.19 258) 82%, var(--fg));
+}
+
+@keyframes contextual-breathe {
+  0%,
+  100% {
+    border-color: color-mix(in oklab, var(--contextual) 38%, transparent);
+    box-shadow: 0 0 5px -1px
+      color-mix(in oklab, var(--contextual) 22%, transparent);
+  }
+  50% {
+    border-color: color-mix(in oklab, var(--contextual) 72%, transparent);
+    box-shadow: 0 0 11px 0
+      color-mix(in oklab, var(--contextual) 42%, transparent);
+  }
+}
+
+/* The block as a whole: the faintest blue wash under it, so two glowing rows
+   and the heading over them read as one arriving thing rather than as three. Far
+   under the rows' own weight — this is the ground they sit on, not a second
+   highlight. */
+.panel-contextual {
+  background: color-mix(in oklab, var(--contextual) 6%, transparent);
+  border-bottom-color: color-mix(in oklab, var(--contextual) 28%, transparent);
+}
+
+.panel-contextual-title {
+  color: var(--contextual);
+}
+
+.panel-contextual-row {
+  color: var(--fg);
+  border-color: color-mix(in oklab, var(--contextual) 38%, transparent);
+  animation: contextual-breathe 3s ease-in-out infinite;
+}
+
+.panel-contextual-row:hover {
+  color: var(--fg-bright);
+  background: color-mix(in oklab, var(--contextual) 12%, transparent);
+}
+
+/* Reduced motion keeps the colour and loses the breath: the blue is what says
+   "this is contextual", the pulse only says "it just appeared", and the first
+   of those is the half that has to survive. Held at the swell rather than at
+   the trough, so a still row is as legible as a breathing one at its brightest.
+   */
+@media (prefers-reduced-motion: reduce) {
+  .panel-contextual-row {
+    animation: none;
+    border-color: color-mix(in oklab, var(--contextual) 72%, transparent);
+    box-shadow: 0 0 11px 0
+      color-mix(in oklab, var(--contextual) 42%, transparent);
+  }
+}
+
 /* Installed iOS PWA edge-to-edge under the home indicator. iOS only extends the
    page under the home indicator when the *root* element carries a fixed `100vh`
    height; with `100svh` the document stops at the letterboxed viewport and iOS

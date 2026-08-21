@@ -5,14 +5,21 @@ than to a mark: the **Image** actions at the top, **Effects** and **Colour**,
 and the **layer stack**. Not everyone uses all of it, and not everyone reaches
 for it in the same order — so the arrangement is yours rather than the app's.
 
-## The Actions block
+## The Contextual block
 
-One block is not a section at all. With a selection up, **Actions** appears at
-the very top of the panel — Invert selection lives there — and disappears the
-moment there is nothing to act on. It is about what the screen is holding right
-now rather than about the page, which is why it sits above the sections, is not
-in their order, and has no switch in Settings → Panel: a contextual block you
-could reorder or hide would be a block you could lose.
+One block is not a section at all. With a selection up, **Contextual** appears
+at the very top of the panel — **Invert selection** and **Delete background**
+live there — and disappears the moment there is nothing to act on. It is about
+what you are holding right now rather than about the page, which is why it sits
+above the sections, is not in their order, and has no switch in Settings →
+Panel: a contextual block you could reorder or hide would be a block you could
+lose.
+
+It is blue, and it glows gently. Everything else in this panel is always there,
+so you learn where it sits and stop looking at it — these rows are the opposite,
+and a slow pulse in a colour nothing else here uses is how a row that arrived a
+second ago gets noticed by someone whose eye is on the drawing. If you have
+asked your system for reduced motion the colour stays and the pulse does not.
 
 ## Move a section
 

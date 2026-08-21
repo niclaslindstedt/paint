@@ -303,6 +303,16 @@ an RGBA buffer in, the subject's found border and an alpha mask out — the whol
 solve testable in node), and `effectCutout.ts` is the shim that reads pixels off
 the context and multiplies the mask into their alpha. Its tracing rides on the
 effect draft itself, stamped from the selection when the dialog opens.
+
+Being aimed also decides where it is _offered_. An effect that needs a tracing
+has nothing to do without one, so its descriptor is marked `contextual` and it
+leaves the arranged sections altogether: `panelSections.ts` builds a section's
+rows from the effects a group _lists_ rather than from the ones it holds, drops
+a group that has nothing left to list, and the screen puts the contextual ones
+in the panel's Contextual block instead — the same block the selection's invert
+is in, alive only while there is a selection to aim through. One flag on one
+descriptor; no screen and no section branches on the effect's kind to arrange
+it.
 Neither of those two touches pixels one at a time — the blur is one filtered
 `drawImage` and the grain is a deterministic speck tile laid as a pattern
 anchored to the page — which is what makes them cheap enough to preview live. The

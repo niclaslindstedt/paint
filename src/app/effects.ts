@@ -203,6 +203,21 @@ export type EffectDescriptor = {
   /** The effect as it arrives, which is deliberately a *visible* setting: an
    *  effect applied that changes nothing reads as one that is broken. */
   preset: Effect;
+  /**
+   * Offered **contextually** rather than listed as a row of its own section.
+   *
+   * An effect that is aimed through a tracing has nothing to do until there is
+   * a tracing: a permanent row for one is a row that is wrong most of the time,
+   * and a dialog that opens onto "trace the subject first" is a press that
+   * answers nothing. So such an effect leaves the arranged sections entirely
+   * and appears — glowing, at the head of the Image section — only while the
+   * screen is holding a selection to aim it through (see `SidePanel.tsx`).
+   *
+   * The cost is that it cannot be switched off from Settings → Panel, which is
+   * the same bargain every contextual action makes: a thing that only exists
+   * while it applies has no state to hide.
+   */
+  contextual?: boolean;
   /** The scopes this effect offers, in the order the dialog shows them, with
    *  the default first.
    *
@@ -297,6 +312,8 @@ export const EFFECTS: readonly EffectDescriptor[] = [
   {
     kind: "cutout",
     group: "image",
+    // Nothing to cut until something is traced — see `contextual`.
+    contextual: true,
     nameKey: "effects.cutout.name",
     hintKey: "effects.cutout.hint",
     readout: "feather",
@@ -586,10 +603,26 @@ export function effectDescriptor(kind: string): EffectDescriptor | undefined {
   return EFFECTS.find((effect) => effect.kind === kind);
 }
 
-/** The effects one section lists, in registry order. */
+/** Every effect filed under one group, in registry order — what the group *is*,
+ *  contextual ones included. */
 export function effectsIn(group: EffectGroup): EffectDescriptor[] {
   return EFFECTS.filter((effect) => effect.group === group);
 }
+
+/** The effects a section actually **lists** — the same set minus the ones that
+ *  are offered contextually instead (see `EffectDescriptor.contextual`). The
+ *  panel and the settings page both ask here, so "this one has no row" is one
+ *  rule in one place; a group with nothing left to list stops being a section
+ *  at all rather than printing a heading over an empty box. */
+export function listedEffectsIn(group: EffectGroup): EffectDescriptor[] {
+  return effectsIn(group).filter((effect) => !effect.contextual);
+}
+
+/** The effects that are offered contextually, in registry order — what the
+ *  screen offers while it is holding something to aim them through. */
+export const CONTEXTUAL_EFFECTS: readonly EffectDescriptor[] = EFFECTS.filter(
+  (effect) => effect.contextual,
+);
 
 /** Give an effect the traced subject it is aimed through. A no-op for every
  *  effect that does not take one, so the dialog can stamp the selection on

@@ -18,7 +18,7 @@
 // Pure and DOM-free, so the whole arrangement can be driven in a node test: the
 // marks each row wears are the settings tab's business, not this module's.
 
-import { EFFECT_GROUPS, EFFECTS, type EffectGroup } from "./effects.ts";
+import { EFFECT_GROUPS, listedEffectsIn, type EffectGroup } from "./effects.ts";
 import type { TKey } from "./i18n/index.ts";
 import { orderById } from "./order.ts";
 
@@ -172,7 +172,13 @@ export function effectItemId(kind: string): string {
 }
 
 /** One effect group, as a section: its rows are the effects in it, so it is
- *  made of them by definition. */
+ *  made of them by definition.
+ *
+ *  The ones offered **contextually** are not among them — they have no row to
+ *  be switched off by because they only exist while they apply (see
+ *  `EffectDescriptor.contextual`), which is also why a group made *entirely* of
+ *  those is no section at all: `REGISTERED` leaves it out rather than shipping
+ *  a heading nothing can ever appear under. */
 function effectSection(group: {
   id: EffectGroup;
   titleKey: TKey;
@@ -187,13 +193,11 @@ function effectSection(group: {
           ? "settings.panel.imageHint"
           : "settings.panel.effectsHint",
     madeOfItems: true,
-    items: EFFECTS.filter((effect) => effect.group === group.id).map(
-      (effect) => ({
-        id: effectItemId(effect.kind),
-        nameKey: effect.nameKey,
-        hintKey: effect.hintKey,
-      }),
-    ),
+    items: listedEffectsIn(group.id).map((effect) => ({
+      id: effectItemId(effect.kind),
+      nameKey: effect.nameKey,
+      hintKey: effect.hintKey,
+    })),
   };
 }
 
@@ -214,7 +218,9 @@ const SHIPPED_ORDER = ["page", "effects", "layers", "image", "color"] as const;
 const REGISTERED: readonly PanelSection[] = [
   PAGE,
   LAYERS,
-  ...EFFECT_GROUPS.map(effectSection),
+  ...EFFECT_GROUPS.map(effectSection).filter(
+    (section) => section.items.length > 0,
+  ),
 ];
 
 /** Every section, in the order this build ships them. */
