@@ -2,6 +2,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
 import {
+  lifeReach,
   pressBox,
   pressExtent,
   pressMarks,
@@ -29,8 +30,8 @@ const ctx: ToolContext = {
 
 const reach = pressReach(16);
 
-function press(tool: string, over: Partial<ToolContext> = {}) {
-  return pressMarks(pluginById(tool), { ...ctx, ...over }, reach);
+function press(tool: string, over: Partial<ToolContext> = {}, span = reach) {
+  return pressMarks(pluginById(tool), { ...ctx, ...over }, span);
 }
 
 describe("pressMarks", () => {
@@ -184,5 +185,49 @@ describe("pressScale", () => {
 
   it("copes with a mark that has no size at all", () => {
     expect(pressScale(0, 0, 25, 4)).toBe(1);
+  });
+});
+
+describe("lifeReach", () => {
+  beforeEach(() => {
+    resetPlugins();
+    registerBuiltinPlugins();
+  });
+
+  it("spans exactly the tile it is going into", () => {
+    // A row's reach is three times its widest width, because a row is scaled
+    // down again afterwards until the widest mark fits. Life size scales
+    // nothing, so the reach *is* the room: the tile's own width in document
+    // pixels.
+    expect(lifeReach(60)).toBe(60);
+  });
+
+  it("never collapses to a point", () => {
+    expect(lifeReach(0)).toBe(4);
+    expect(lifeReach(-10)).toBe(4);
+  });
+
+  it("keeps an unfilled two-anchor mark on the tile", () => {
+    // The failure this exists to prevent, and it is the worst kind: a life-size
+    // rectangle drawn at the *row's* reach is several times the tile, so the
+    // tile lands in the middle of the outline — on the one part of the mark
+    // with no ink on it — and the size button previews a blank sheet.
+    const room = 60;
+    const at = pressBox(press("rectangle", { size: 20 }, lifeReach(room)))!;
+    // The gesture's corners land on the tile's own corners, so what hangs off
+    // is the half of the line that is outside them and nothing more — the
+    // outline reads as the tile's border rather than as a mark somewhere off
+    // the side of it.
+    expect(Math.max(at.width, at.height)).toBeCloseTo(room + 20, 6);
+    // …where a row's reach is set by the broadest nib on the whole rack, not
+    // by the width in hand, and runs several tiles past the tile.
+    expect(pressReach(96)).toBeGreaterThan(room * 4);
+  });
+
+  it("leaves a one-anchor mark exactly as big as its nib", () => {
+    // Nothing about life size touches a press that never travelled: the reach
+    // only decides where a *drag* goes, so a dab is the nib and the nib is the
+    // width — which is the whole claim the size button is making.
+    expect(pressExtent(press("pencil", { size: 9 }, lifeReach(60)))).toBe(9);
   });
 });

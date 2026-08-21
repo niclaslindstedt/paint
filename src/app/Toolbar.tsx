@@ -500,11 +500,20 @@ export function Toolbar({
         </button>
 
         {/* The nib button — a press with the tool in your hand, on your page,
-            in your ink. Not a dot the width of the nib: what a width *is* is
-            different for every tool, and the mark itself is the only preview
-            that can say so (see `toolbar/PressPreview.tsx`) — bar the tools
-            whose mark can't describe itself, which ask for a plain circle
-            instead (`sizePreview`). */}
+            in your ink, **at the size it will land at**. Not a dot the width of
+            the nib: what a width *is* is different for every tool, and the mark
+            itself is the only preview that can say so (see
+            `toolbar/PressPreview.tsx`) — bar the tools whose mark can't
+            describe itself, which ask for a plain circle instead
+            (`sizePreview`).
+
+            It fills the button the way the swatch beside it fills its own, and
+            it is drawn at life size rather than fitted (`fit="life"`). Fitted
+            into a small tile it was scaled against the *broadest* nib the tool
+            is made in — a rack that runs to a brush wider than the toolbar — so
+            a fine pencil previewed as a dot several times the dot it actually
+            drew, and the one question the button exists to answer was the one
+            it got wrong. */}
         {control === "size" && (
           <button
             ref={settingsAnchor}
@@ -528,7 +537,10 @@ export function Toolbar({
               background={background}
               dials={dialValues}
               filled={filled}
-              box={26}
+              fit="life"
+              // The button's own inside: 36 across less the line around it, the
+              // same box the swatch's `inset-0` covers.
+              box={34}
             />
           </button>
         )}

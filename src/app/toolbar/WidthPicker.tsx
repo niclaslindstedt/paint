@@ -22,11 +22,12 @@ import { PressPreview, type PressTile } from "./PressPreview.tsx";
 //   - The five are **sizes a shop sells**: 0.3 / 0.5 / 0.7 / 0.9 / 2.0 mm of
 //     pencil lead, a #2 through a one-inch flat of brush, ten point through
 //     forty-eight of type. Each carries the trade's own designation where there
-//     is one, and each is drawn as **the mark it makes** — a press with the tool
-//     it belongs to, on your page, in your ink, painted by the painter that
-//     would paint it (see `PressPreview.tsx`). A width means something different
-//     to every tool, and a row of identical circles was the one thing this
-//     control could say that was the same for all of them.
+//     is one, and each is drawn as **the mark it makes, at the size it makes
+//     it** — a press with the tool it belongs to, on your page, in your ink,
+//     painted by the painter that would paint it and drawn at the page's own
+//     100% (see `PressPreview.tsx`). A width means something different to every
+//     tool, and a row of identical circles was the one thing this control could
+//     say that was the same for all of them.
 //   - The slider under them is **not linear and not one scale**. Its first tenth
 //     is finer than the tool is made, the next four tenths are the range it *is*
 //     made in, and the top half runs off to the absurd (see `plugins/gauge.ts`).
@@ -45,11 +46,29 @@ import { PressPreview, type PressTile } from "./PressPreview.tsx";
  *  track, and coarse enough that dragging it does not re-render for nothing. */
 const NOTCHES = 400;
 
-/** How big each width's press is drawn, in CSS pixels. */
-const PRESS_BOX = 30;
+/** How big each width's press is drawn, in CSS pixels — the button's own inside
+ *  (40 across, less the line around it) but two pixels short of it on each
+ *  side, so the accent tint that marks the width you are on still shows as a
+ *  ring around the mark. */
+const PRESS_BOX = 34;
 
-/** The presses this row is made of: one per width the tool is made in, every
- *  one of them scaled against the broadest.
+/** The presses this row is made of: one per width the tool is made in, and
+ *  every one of them **at life size**: the mark that width leaves, at the size
+ *  it will leave it, one document pixel to one device pixel — the page at 100%.
+ *
+ *  It used to be one scale for the whole row, the scale that fitted the
+ *  broadest width on it. That made a handsome row — five nibs running
+ *  fine-to-broad, none of them cropped — and it made every one of the five a
+ *  different lie: a rack that runs up to a decorator's brush shrinks the fine
+ *  end to a third of what it draws, and the row you were choosing a width off
+ *  was a row of ratios rather than of widths. Ratios are what the *numbers*
+ *  under the row are for.
+ *
+ *  So the row is drawn the way a shop's own rack is: at the sizes they actually
+ *  are, and the ones past the size of the tray hang over the edge of it. A
+ *  width you can measure against your own thumb is worth more than five you can
+ *  only measure against each other — and a mark too big for its button says the
+ *  one thing a fitted row could never say, which is "this is bigger than that".
  *
  *  Its own function because the row is painted twice — once here, and once at
  *  idle before the panel is ever opened, so that opening it is a row of blits
@@ -69,6 +88,7 @@ export function widthTiles(look: {
     size,
     of: sizes[sizes.length - 1] ?? size,
     box: PRESS_BOX,
+    fit: "life" as const,
   }));
 }
 

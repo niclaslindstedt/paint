@@ -1155,7 +1155,9 @@ the other. Now each says what it is on its descriptor and `controls.ts` answers
 in one place, so the tool that lands next year gets the right button without
 this file changing. `sizePreview: "life"` is the third answer and the type
 tool's: draw the sample at the size it will land at rather than fitted to the
-row, and let the button clip it.
+row, and let the button clip it — which is now what the size button and the
+width row do for _every_ tool (`PressTile.fit`), the tool-level flag remaining
+only to say that type is hung from its baseline corner rather than centred.
 
 `hidden` is the same idea taken to its end: the dropped image's painter is a
 plugin with no button anywhere and no gesture at all. An image arrives as a file,

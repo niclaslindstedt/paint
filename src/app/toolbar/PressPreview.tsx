@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useRef } from "react";
 
 import {
+  lifeReach,
   pressBox,
   pressExtent,
   pressMarks,
@@ -39,16 +40,23 @@ import { nativeScale } from "../viewport.ts";
 //     blot of ink to take a bite out of.
 //   - **It follows the dials.** The Advanced sliders are in the same panel, and
 //     turning hardness down softens the dab under your thumb as you drag it.
-//   - **The row is one scale.** Every cell is shrunk by the same amount — the
-//     amount that fits the broadest width on the row — so the row reads
+//   - **A row is one scale.** Every cell of a *row* is shrunk by the same amount
+//     — the amount that fits the broadest width on it — so the row reads
 //     fine-to-broad the way a row of nibs does, instead of five marks each
 //     fitted to its own cell and all the same size.
-//   - **…unless the size is the whole point.** A tool can ask to be shown at
-//     life size instead (`sizePreview: "life"` — the type tool), and then
-//     nothing is fitted: the mark is drawn at the page's own 100%, one document
-//     pixel to one device pixel, and the tile clips whatever will not fit. Half
-//     a letter at the size it will land at says what a whole letter shrunk to
-//     the cell cannot, which is how big your type actually is.
+//   - **A lone preview is life size.** A tile with nothing beside it to compare
+//     against has no row to be a comparison in, and the toolbar's nib button is
+//     the one that matters: it is the mark you are about to make, so it is drawn
+//     at the page's own 100% — one document pixel to one device pixel — and the
+//     tile clips whatever will not fit (`fit: "life"`). Fitted, it was a lie you
+//     could catch in one press: a hairline pencil previewed as a dot three times
+//     the dot it drew, because the row it was being scaled against ran up to a
+//     nib wider than the button.
+//   - **…and a tool can insist on life size even in a row.** `sizePreview:
+//     "life"` — the type tool, because an "A" is the same letter at 10 pt and at
+//     48 pt, so a row fitted to its own cells draws five identical letters and
+//     says nothing about any of them. Half a letter at the size it will land at
+//     says what a whole one shrunk to the cell cannot.
 //
 // Two kinds of tool fall back to the plain dot below: one whose press leaves no
 // mark at all (the hand, the dropper), and one that asks for a circle because
@@ -63,7 +71,9 @@ import { nativeScale } from "../viewport.ts";
 // already drawn — painted at idle before the button that opens it is pressed
 // (see `warmPressTiles` and `tiles.ts`).
 
-/** How much of the tile the broadest mark on the row is fitted into. */
+/** How much of the tile the broadest mark on the row is fitted into — and, at
+ *  life size, how much of it a two-anchor gesture is allowed to span before the
+ *  tile's own edge cuts it off (see `lifeReach`). */
 const FILL = 0.88;
 
 /** The smallest a mark may come out, in CSS pixels, before the fit gives up and
@@ -226,7 +236,42 @@ export type PressTile = {
   filled?: boolean;
   /** The tile's side, in CSS pixels. */
   box?: number;
+  /** How big to draw the mark in that tile.
+   *
+   *  `"row"` — the default — fits it to the row it belongs to: every cell
+   *  shrunk by the amount the broadest width on the row needs, so a row of
+   *  widths is one comparison rather than five marks each filled to its own
+   *  cell (see `pressScale`).
+   *
+   *  `"life"` draws it at the page's own 100% instead — one document pixel to
+   *  one device pixel — and lets the tile clip what will not fit. For a preview
+   *  that is *alone*: the toolbar's nib button has no row beside it, so there is
+   *  nothing for a fitted mark to be a comparison with, and the only useful
+   *  thing it can be is the mark you are about to make at the size you are
+   *  about to make it. A tool can ask for the same treatment inside a row with
+   *  `sizePreview: "life"`. */
+  fit?: "row" | "life";
 };
+
+/** Whether this tile is drawn at life size.
+ *
+ *  Two ways to ask, and they are asked by different people for the same reason.
+ *  A **caller** asks (`fit: "life"`) when its tile stands alone and a fitted
+ *  mark would be scaled against a row that isn't on the screen. A **tool** asks
+ *  (`sizePreview: "life"`) when its preview has nothing to say but the number,
+ *  and then it is life size everywhere, the width row included. */
+function atLife(tile: PressTile): boolean {
+  return tile.fit === "life" || sizePreview(tile.plugin) === "life";
+}
+
+/** The scale life size paints at: one document pixel to one device pixel, which
+ *  is the zoom the canvas readout calls 100% (see `nativeScale`). Document
+ *  pixels per CSS pixel, like every other scale here. */
+function lifeScale(): number {
+  return nativeScale(
+    typeof window === "undefined" ? 1 : window.devicePixelRatio,
+  );
+}
 
 /** What a press tile is made of: the marks a single press leaves, the yardstick
  *  they are scaled against, and how far this medium's ink reaches past its own
@@ -242,7 +287,17 @@ function pressFor(tile: PressTile): {
   reach: () => InkMeasure;
   widest: number;
 } {
-  const { plugin, size, of, color, background, dials, colors, filled } = tile;
+  const {
+    plugin,
+    size,
+    of,
+    color,
+    background,
+    dials,
+    colors,
+    filled,
+    box = DEFAULT_BOX,
+  } = tile;
   // A tool that asks for a circle is not simulated at all: there is no press
   // to paint, and the dot below is the whole preview.
   if (sizePreview(plugin) === "circle") {
@@ -252,7 +307,14 @@ function pressFor(tile: PressTile): {
   // it is broader still, which is what the slider is doing while it is being
   // dragged past everything the row offers.
   const top = Math.max(of, size);
-  const travel = pressReach(top);
+  // How far a two-anchor gesture travels. Against the row when the row is what
+  // the mark will be scaled against, and against the *tile* when nothing will
+  // be scaled at all — a life-size rectangle three times a broad nib is off the
+  // tile, and an unfilled one leaves the tile in the middle of its outline with
+  // no ink on it (see `lifeReach`).
+  const travel = atLife(tile)
+    ? lifeReach((box * FILL) / lifeScale())
+    : pressReach(top);
   const ink = { color, dials, colors, filled: filled ?? false, background };
   const press = pressMarks(plugin, { ...ink, size }, travel);
   const widest =
@@ -275,32 +337,34 @@ function pressFor(tile: PressTile): {
 
 /** How big to draw the press in its tile, in document pixels per CSS pixel.
  *
- *  Two answers, and which one a tool gets is its own to declare. The ordinary
- *  one fits the row (`pressScale`) against the geometry *grown by however far
- *  this medium's ink reaches past it*, so what is fitted is the mark that lands
- *  rather than the box the stroke claims.
+ *  Two answers. The ordinary one fits the row (`pressScale`) against the
+ *  geometry *grown by however far this medium's ink reaches past it*, so what
+ *  is fitted is the mark that lands rather than the box the stroke claims.
  *
- *  The other is life size, for a tool whose preview has nothing to say but the
- *  number (`sizePreview: "life"`). It is the scale the canvas calls 100% — one
- *  document pixel to one device pixel — so the sample measures on the glass
- *  what it will measure on the page, and the tile clips the rest. Nothing is
- *  measured for it either: the ink allowance exists to stop a fitted mark being
- *  cropped, and this one is *meant* to be. */
+ *  The other is life size — the scale the canvas calls 100%, one document pixel
+ *  to one device pixel — so the sample measures on the glass what it will
+ *  measure on the page, and the tile clips the rest. Nothing is measured for it:
+ *  the ink allowance exists to stop a fitted mark being cropped, and this one is
+ *  *meant* to be.
+ *
+ *  Where life size hangs the mark is the one thing a tool still decides. The
+ *  default is the middle of its box, which is where a dab, a band and a cone all
+ *  want to be. A tool that asked for life size *itself* (`sizePreview: "life"` —
+ *  the type tool) gets the corner where its ink starts instead: a sample too big
+ *  for the tile has to be clipped somewhere, the one corner guaranteed to have
+ *  ink in it is the one the letter stands on, and it is also how type reads — a
+ *  row of samples sharing a baseline and a left margin, each running as far up
+ *  and to the right as its size takes it. */
 function drawScale(
   tile: PressTile,
   marks: ReturnType<typeof pressFor>,
   box: number,
 ): { scale: number; offX: number; offY: number } {
   const extent = pressExtent(marks.press);
-  const ink = marks.reach();
-  if (sizePreview(tile.plugin) === "life") {
-    const ratio = typeof window === "undefined" ? 1 : window.devicePixelRatio;
-    const scale = nativeScale(ratio);
-    // Hung on the corner where the mark starts rather than centred on its box:
-    // a sample too big for the tile has to be clipped *somewhere*, and the one
-    // corner guaranteed to have ink in it is the one the letter stands on. It
-    // is also how type reads — a row of samples sharing a baseline and a left
-    // margin, each running as far up and to the right as its size takes it.
+  if (atLife(tile)) {
+    const scale = lifeScale();
+    if (sizePreview(tile.plugin) !== "life") return { scale, offX: 0, offY: 0 };
+    const ink = marks.reach();
     const half = (box / 2 - ((1 - FILL) / 2) * box) / scale;
     return {
       scale,
@@ -308,6 +372,7 @@ function drawScale(
       offY: ink.bottom * extent - half,
     };
   }
+  const ink = marks.reach();
   return {
     scale: pressScale(
       extent * ink.reach,
@@ -372,7 +437,12 @@ function pressKey(tile: PressTile): string {
     tile.background,
     tile.filled ?? false,
     tile.box ?? DEFAULT_BOX,
+    tile.fit ?? "row",
     tileRatio(),
+    // What life size comes to on this screen. Not the same number as
+    // `tileRatio`, which is capped — a tile painted at 4× and one painted at 5×
+    // are the same picture, but the *mark* on them is not the same size.
+    atLife(tile) ? lifeScale() : "",
     rendererKey(),
     tuning,
   ].join("|");
@@ -452,7 +522,14 @@ export function PressPreview(props: PressTile) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key, marks]);
 
-  if (marks.press.length === 0) return <SizeDot size={size} of={of} />;
+  // No mark to paint: the plain dot. At life size it is the nib itself, in the
+  // tile's own room; in a row it is the width relative to the row's widest.
+  if (marks.press.length === 0)
+    return atLife(props) ? (
+      <SizeDot size={size} life cap={box} />
+    ) : (
+      <SizeDot size={size} of={of} />
+    );
 
   return (
     <canvas
@@ -473,23 +550,60 @@ export function PressPreview(props: PressTile) {
 }
 
 /** The fallback: the width as a plain dot, for a tool whose press leaves no
- *  mark to paint — the hand, the dropper, or one this build doesn't ship.
+ *  mark to paint — the eraser and the rubber, whose press is a hole and shows
+ *  nothing on a bare page (`sizePreview: "circle"`); the hand and the dropper,
+ *  which leave nothing at all; or a tool this build doesn't ship.
  *
- *  `of` is the widest width on the row it belongs to, and it switches the dot
- *  from absolute to *relative*: at the nib widths a drawing tool offers the two
+ *  Three readings, and they answer three different questions.
+ *
+ *  `life` is the nib itself: the width in document pixels taken down to CSS
+ *  pixels at the page's own 100%, so a 10 mm block rubber is drawn as wide as
+ *  10 mm of page will be under your finger. It is **clipped** by the tile
+ *  rather than shrunk into it — a board eraser is wider than a toolbar button
+ *  and there is no drawing of it at life size that isn't — and clipped rather
+ *  than *capped* because those are not the same picture: a capped disc is a
+ *  clean circle, which is exactly what a nib that fits looks like, so the one
+ *  reading the row needs to survive ("this one is past the tile") would be the
+ *  one it lost. Cut off, an oversize nib reads as cut off.
+ *
+ *  `of` — the widest width on the row it belongs to — switches the dot from
+ *  absolute to *relative*: at the nib widths a drawing tool offers the two
  *  readings are the same thing, but a row whose scale runs past the cap would
- *  otherwise draw five identical dots for five sizes. */
+ *  otherwise draw five identical dots for five sizes.
+ *
+ *  Neither is the width in CSS pixels, plain, up to the cap. */
 export function SizeDot({
   size,
   of,
   cap = 18,
   className = "bg-fg",
+  life = false,
 }: {
   size: number;
   of?: number;
+  /** The most room the dot has, in CSS pixels: what it is capped at in the two
+   *  fitted readings, and the tile it is clipped by at life size. */
   cap?: number;
   className?: string;
+  life?: boolean;
 }) {
+  if (life) {
+    // A one-pixel nib is one device pixel of ink here, exactly as it is on the
+    // page — floored at a pixel so a hairline is a speck rather than nothing.
+    const d = Math.max(1, size * lifeScale());
+    return (
+      <span
+        aria-hidden="true"
+        className="relative block overflow-hidden rounded-[3px]"
+        style={{ width: `${cap}px`, height: `${cap}px` }}
+      >
+        <span
+          className={`absolute top-1/2 left-1/2 block -translate-x-1/2 -translate-y-1/2 rounded-full ${className}`}
+          style={{ width: `${d}px`, height: `${d}px` }}
+        />
+      </span>
+    );
+  }
   const d =
     of && of > cap
       ? // The floor keeps the smallest size on the row a visible dot rather
