@@ -77,6 +77,24 @@ If the picture went in but the page looks empty where it should be, give it a
 moment: a large image decodes asynchronously and the canvas repaints when it
 lands.
 
+## A picture looks soft or blurry when I zoom right in
+
+Turn on Settings → General → **Developer** and open the **Developer** tab. Under
+_Pictures in this drawing_ each picture on the page reports the size of the
+bitmap actually stored, the size it is drawn at, and the ratio between them.
+
+**1.000** means one pixel of the picture is one pixel of the page: what you are
+seeing is the picture's own pixels, and if they look soft it is because they are
+— a screenshot of a phone screen is full of antialiased edges, and at high zoom
+you are looking at the real thing.
+
+**Anything else** means the picture is magnified before it is drawn, so its
+pixels are wider than the page's and their edges land inside the [pixel
+grid's](features/canvas.md) cells rather than on them. Pictures imported before
+the cap was raised are stored that way; importing the file again fixes it. The
+line also names the encoding, which is worth a look if a picture came in through
+a photo library that re-encoded it as a JPEG on the way.
+
 ## Reporting something else
 
 Open an [issue](https://github.com/niclaslindstedt/paint/issues) with what you

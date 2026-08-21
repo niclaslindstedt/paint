@@ -412,7 +412,12 @@ export function SettingsModal({
             <StorageTab store={store} sync={sync} darkCanvas={darkCanvas} />
           )}
           {activeTab === "developer" && (
-            <DeveloperTab settings={draft} update={update} pwa={pwa} />
+            <DeveloperTab
+              settings={draft}
+              update={update}
+              pwa={pwa}
+              drawing={store.activeDrawing ?? null}
+            />
           )}
           {activeTab === "logs" && <LogsTab />}
         </div>
