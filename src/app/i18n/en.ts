@@ -146,6 +146,11 @@ export const en = {
     empty: "There is nothing on {target} to apply it to.",
     previewHint:
       "The page behind is showing the effect as you set it. Nothing lands on the drawing until you apply it.",
+    // The one effect-wide sentence about *when* rather than what: an effect
+    // whose preview costs more than a frame keeps the picture still while a
+    // slider is under the hand (see `EffectSlider`).
+    settleHint:
+      "This one is heavy to draw, so the preview catches up when you let go of a slider.",
     // Moving the card off the thing it is previewing — a wide screen only,
     // where there is somewhere to move it to.
     move: "Drag or use the arrow keys to move these options",

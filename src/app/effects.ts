@@ -212,6 +212,25 @@ export type EffectDescriptor = {
    *  effect applied that changes nothing reads as one that is broken. */
   preset: Effect;
   /**
+   * The preview costs more than a frame, so a slider hands its value over when
+   * the hand lets go rather than on every sample of the drag.
+   *
+   * Most of these are a composite or a lookup over pixels that are already on
+   * screen, and cheap enough that the page can follow a thumb. Three are not: a
+   * cut solves for the subject's true edge in a band around the tracing, a blur
+   * copies the window off and lays it back through a filter, and a grain builds
+   * a speck tile and repeats it across the sheet. At the hundred-odd samples a
+   * second a pointer reports, the page stops *following* the slider and starts
+   * running behind it — and a preview a second out of date is worse than one
+   * that waits, because the number under your thumb and the picture in front of
+   * you are answering different questions.
+   *
+   * So on these the readout follows the drag and the picture waits for the
+   * release. Which is only a change of *when*: it is the same draft, the same
+   * composite, and the same nothing-lands-until-Apply as every other effect.
+   */
+  settles?: boolean;
+  /**
    * Listed by the **page's own section** rather than by its group's.
    *
    * A group whose every effect says this has no section of its own to print,
@@ -290,6 +309,7 @@ export const EFFECTS: readonly EffectDescriptor[] = [
       },
     ],
     switches: [],
+    settles: true,
     preset: { kind: "blur", radius: 6 },
     scopes: ["layer", "drawing"],
   },
@@ -324,6 +344,7 @@ export const EFFECTS: readonly EffectDescriptor[] = [
         hintKey: "effects.noise.colorHint",
       },
     ],
+    settles: true,
     preset: { kind: "noise", amount: 0.35, grain: 2 },
     scopes: ["layer"],
   },
@@ -377,6 +398,7 @@ export const EFFECTS: readonly EffectDescriptor[] = [
       },
     ],
     switches: [],
+    settles: true,
     // The preset's subject is empty by construction — the real one is stamped
     // from the selection when the dialog opens (see `useEffecting.ts`), which
     // is also why this effect alone can arrive with nothing to do.

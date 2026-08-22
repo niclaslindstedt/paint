@@ -37,6 +37,7 @@ import {
   type EffectScope,
 } from "./effects.ts";
 import { EffectPeek } from "./EffectPeek.tsx";
+import { EffectSlider } from "./EffectSlider.tsx";
 import type { Histogram } from "./histogram.ts";
 import { useT, type TKey } from "./i18n/index.ts";
 import { LevelsBar } from "./LevelsBar.tsx";
@@ -478,35 +479,20 @@ export function EffectModal({
             );
           })()}
 
-        {unclaimedControls(descriptor).map((control) => {
-          const value = controlValue(draft, control.id);
-          return (
-            <label key={control.id} className="flex flex-col gap-1">
-              <span className="text-xs text-muted">
-                {t(control.nameKey, {
-                  value: String(controlReadout(control, value)),
-                })}
-              </span>
-              <input
-                type="range"
-                min={control.min}
-                max={control.max}
-                step={control.step}
-                value={value}
-                onChange={(e) =>
-                  onDraft(
-                    withControl(
-                      draft,
-                      control.id,
-                      Number((e.target as HTMLInputElement).value),
-                    ),
-                  )
-                }
-                className="w-full cursor-pointer"
-              />
-            </label>
-          );
-        })}
+        {unclaimedControls(descriptor).map((control) => (
+          <EffectSlider
+            key={control.id}
+            control={control}
+            value={controlValue(draft, control.id)}
+            label={(value) =>
+              t(control.nameKey, {
+                value: String(controlReadout(control, value)),
+              })
+            }
+            settles={descriptor.settles === true}
+            onChange={(next) => onDraft(withControl(draft, control.id, next))}
+          />
+        ))}
 
         {descriptor.switches.map((option) => (
           <ToggleRow
@@ -559,6 +545,12 @@ export function EffectModal({
           {roomy || !page
             ? t("effects.previewHint")
             : t("effects.peek.previewHint")}
+          {/* …and, where a repaint costs more than a frame, *when*: the
+              readout follows the thumb and the picture waits for the release
+              (see `EffectSlider`). Said out loud, because a preview that does
+              not move while a slider does reads as a broken one until you know
+              it is deliberate. */}
+          {descriptor.settles && ` ${t("effects.settleHint")}`}
         </p>
       </div>
     </Modal>
