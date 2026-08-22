@@ -14,10 +14,10 @@ import {
   effectDescriptor,
   effectReach,
   effectReadout,
-  CONTEXTUAL_EFFECTS,
   EFFECTS,
   effectsIn,
   listedEffectsIn,
+  PAGE_EFFECTS,
   offersScope,
   switchValue,
   unclaimedControls,
@@ -95,21 +95,27 @@ describe("the catalog", () => {
     );
   });
 
-  it("offers the aimed effect contextually rather than as a row", () => {
-    // Delete background is cut *through* a tracing, so it has nothing to do
-    // until there is one. It says so on its descriptor, and that one flag is
-    // what keeps it out of every arranged section and puts it in the panel's
-    // Contextual block instead (see `panelSections.ts` and `SidePanel.tsx`).
-    expect(CONTEXTUAL_EFFECTS.map((e) => e.kind)).toEqual(["cutout"]);
-    expect(effectDescriptor("cutout")?.contextual).toBe(true);
+  it("lists the cut on the page's own section, and aims it with a tool", () => {
+    // Delete background is surgery on what the picture *is*, so it is listed
+    // with resize and crop rather than under a second Image heading; and it is
+    // cut *through* a tracing, so opening it puts the tool that makes one into
+    // the hand. Both are flags on the descriptor — no screen names the effect
+    // (see `panelSections.ts` and `CanvasScreen.tsx`).
+    expect(PAGE_EFFECTS.map((e) => e.kind)).toEqual(["cutout"]);
+    expect(effectDescriptor("cutout")?.listedOnPage).toBe(true);
+    expect(effectDescriptor("cutout")?.aimTool).toBe("select-draw");
     // It is still a member of its group — it is only not *listed* by it.
     expect(effectsIn("image").map((e) => e.kind)).toEqual(["cutout"]);
     expect(listedEffectsIn("image")).toEqual([]);
     // …and nothing else has been quietly taken off a section on the way.
     for (const group of EFFECT_GROUPS) {
       expect(listedEffectsIn(group.id)).toEqual(
-        effectsIn(group.id).filter((effect) => !effect.contextual),
+        effectsIn(group.id).filter((effect) => !effect.listedOnPage),
       );
+    }
+    // Only an aimed effect names a tool; nothing else drags one into the hand.
+    for (const effect of EFFECTS) {
+      if (!effect.listedOnPage) expect(effect.aimTool).toBeUndefined();
     }
   });
 

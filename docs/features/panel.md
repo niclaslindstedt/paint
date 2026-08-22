@@ -8,8 +8,8 @@ for it in the same order — so the arrangement is yours rather than the app's.
 ## The Contextual block
 
 One block is not a section at all. With a selection up, **Contextual** appears
-at the very top of the panel — **Invert selection** and **Delete background**
-live there — and disappears the moment there is nothing to act on. It is about
+at the very top of the panel — **Invert selection** lives there — and
+disappears the moment there is nothing to act on. It is about
 what you are holding right now rather than about the page, which is why it sits
 above the sections, is not in their order, and has no switch in Settings →
 Panel: a contextual block you could reorder or hide would be a block you could

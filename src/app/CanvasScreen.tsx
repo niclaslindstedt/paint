@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { Suspense, lazy } from "react";
 
@@ -8,7 +8,6 @@ import {
   CopyIcon,
   ImageUpIcon,
   MenuIcon,
-  SlidersIcon,
   StarIcon,
   TrashIcon,
 } from "@niclaslindstedt/oss-framework/components";
@@ -31,7 +30,12 @@ import {
 } from "./clipboard.ts";
 import { DownloadMenu } from "./DownloadMenu.tsx";
 import { bakeEffect } from "./bake.ts";
-import { CONTEXTUAL_EFFECTS, effectDescriptor, hasSubject } from "./effects.ts";
+import {
+  controlValue,
+  effectDescriptor,
+  hasSubject,
+  type EffectKind,
+} from "./effects.ts";
 import { DrawingTitle } from "./DrawingTitle.tsx";
 import type { MenuEdge } from "./gestures.ts";
 import { HeaderIconButton } from "./HeaderIconButton.tsx";
@@ -302,6 +306,23 @@ export function CanvasScreen({
   // Where the selection's menu is, in viewport coordinates, or `null` for
   // closed.
   const [menuAt, setMenuAt] = useState<Point | null>(null);
+  /** The cut being aimed, or `null` — what turns the window from a marquee into
+   *  a picture of the cut (the subject red, the searched band yellow; see
+   *  `cutAim.ts`).
+   *
+   *  It begins when an aimed effect is opened, and it deliberately **outlives
+   *  that dialog**: opening Delete background with nothing traced is the
+   *  ordinary way to meet it, and everything useful happens after you close it
+   *  again — the tracing itself. The aim is what makes those minutes different
+   *  from ordinary selecting, so it holds until the cut lands, or until a tool
+   *  that doesn't choose marks says you have moved on (see `pickTool`).
+   *
+   *  It carries the band because the band is the thing worth showing and the
+   *  dialog is where it is set: the number travels back out of the dialog with
+   *  the aim (see the effect below). */
+  const [aim, setAim] = useState<{ kind: EffectKind; band: number } | null>(
+    null,
+  );
   // The resize dialog, which is the one page action that has a question to ask.
   const [resizing, setResizing] = useState(false);
   // The merge dialog — the layer panel's, and the other one that asks.
@@ -413,6 +434,27 @@ export function CanvasScreen({
     ),
   });
   const effecting = effect.effecting;
+
+  // The band the dialog is showing, kept on the aim so the page keeps drawing
+  // it after the dialog closes. `controlValue` reads it off the draft the way
+  // the dialog's own sliders do — by the control's id, not by knowing which
+  // effect this is (see `effects.ts`).
+  const draft = effecting?.draft;
+  useEffect(() => {
+    if (!draft) return;
+    setAim((held) => {
+      if (!held || held.kind !== draft.kind) return held;
+      const band = controlValue(draft, "band");
+      return band === held.band ? held : { ...held, band };
+    });
+  }, [draft]);
+
+  /** What the canvas paints the window as, while a cut is being aimed through
+   *  it. One object for as long as the band holds: the frame compares it by
+   *  identity, so a new one every render would cost the gesture's fast path
+   *  (see `trail.ts`). */
+  const band = aim?.band ?? null;
+  const aiming = useMemo(() => (band === null ? null : { band }), [band]);
 
   // A placement belongs to the page it was dropped on. Opening another drawing
   // with one still floating drops it rather than carrying it across — settling
@@ -617,31 +659,16 @@ export function CanvasScreen({
 
   /** The **Contextual** block at the head of the right-hand panel: what can be
    *  done to the thing this screen is holding right now (see `PanelAction`).
-   *  With nothing selected the list is empty and the panel shows no block at
-   *  all.
+   *  Today that is the selection's invert; with nothing selected the list is
+   *  empty and the panel shows no block at all.
    *
-   *  Two rows today, and both are here for the same reason rather than by
-   *  coincidence: a window to act on is what makes either of them mean
-   *  anything. Turning the window inside out with nothing selected inverts
-   *  nothing, and Delete background is *aimed through* a tracing — a permanent
-   *  row for it was a row that spent most of its life opening a dialog whose
-   *  only content was "trace the subject first". So the cut leaves the Image
-   *  section (it is `contextual` on its descriptor now, which is what keeps it
-   *  out of the arranged sections — see `effects.ts`) and arrives up here, with
-   *  the selection that gives it something to cut.
-   *
-   *  The effects the block offers come from the registry rather than being
-   *  named here: an effect that declares itself contextual joins this list by
-   *  saying so, the way a tool joins the toolbar by registering. */
+   *  Delete background is *not* here, though it is aimed through a selection
+   *  too. It is the press you make **before** you have one — it hands you the
+   *  pencil that traces the subject (see `openEffect`) — so a row that appeared
+   *  only once you had traced would be a row that arrived after the moment it
+   *  is for. It lives on the Image section, always. */
   const panelActions = selection
     ? [
-        ...CONTEXTUAL_EFFECTS.map((descriptor) => ({
-          id: `effect:${descriptor.kind}`,
-          label: t(descriptor.nameKey),
-          hint: t(descriptor.hintKey),
-          icon: <SlidersIcon className="h-4 w-4" />,
-          onSelect: () => effect.open(descriptor.kind),
-        })),
         {
           id: "selection:invert",
           label: t("panel.invertSelection"),
@@ -732,16 +759,48 @@ export function CanvasScreen({
 
   /** Pick a tool — and, when it is one of a family, remember it as that
    *  family's. The shapes button has to wear *a* shape while you are holding the
-   *  pencil, and the one you used last is the only answer worth giving. */
+   *  pencil, and the one you used last is the only answer worth giving.
+   *
+   *  It is also where an aim ends. Reaching for a tool that doesn't choose marks
+   *  is the plainest statement there is that you have stopped tracing a subject
+   *  and gone back to drawing, so the red and yellow come off the page and the
+   *  marching ants come back (see `aim` below). */
   const pickTool = useCallback(
     (id: string) => {
       update("activeTool", id);
       const plugin = pluginById(id);
+      if (!plugin?.selects) setAim(null);
       const group = plugin && groupOf(plugin);
       if (!group || settings.groupTools[group.id] === id) return;
       update("groupTools", { ...settings.groupTools, [group.id]: id });
     },
     [update, settings.groupTools],
+  );
+
+  /** Open one effect's options — and, for an effect that is *aimed*, put the
+   *  tool it is aimed with into the hand on the way (`aimTool`, see
+   *  `effects.ts`).
+   *
+   *  That is the whole answer to a press with nothing traced. Delete background
+   *  is on the panel always, so the ordinary way to meet it is to press it
+   *  before you have a selection — and a dialog that opens onto "trace the
+   *  subject first" with no way to start tracing is a dead end. Opening it now
+   *  hands you the selection pencil, names it over the page like any other tool
+   *  change, and the dialog's own line says what to do with it.
+   *
+   *  Which effect wants which tool is the descriptor's to say: this reads
+   *  `aimTool` and knows nothing else about it. */
+  const openEffect = useCallback(
+    (kind: EffectKind) => {
+      const descriptor = effectDescriptor(kind);
+      const tool = descriptor?.aimTool;
+      if (tool) {
+        pickTool(tool);
+        setAim({ kind, band: controlValue(descriptor.preset, "band") });
+      }
+      effect.open(kind);
+    },
+    [effect, pickTool],
   );
 
   // Dropping an image file anywhere on the canvas places it. The whole surface
@@ -930,6 +989,10 @@ export function CanvasScreen({
             // marquee's window records nothing — and it is what a Delete
             // through the window fades out by (see `useSelection.ts`).
             selection={selection}
+            // …and, while a cut is being aimed through it, what that cut is
+            // about to decide: the subject red, the band it searches yellow
+            // (see `cutAim.ts`).
+            aiming={aiming}
             onSelectRegion={(region: Point[][] | null) =>
               setSelection(selectionOf(region, inkDials.feather))
             }
@@ -1103,7 +1166,7 @@ export function CanvasScreen({
                 // showing you is the page the panel was covering.
                 onEffect={(kind) => {
                   setLayersOpen(false);
-                  effect.open(kind);
+                  openEffect(kind);
                 }}
                 onMerge={() => {
                   setLayersOpen(false);
@@ -1173,7 +1236,7 @@ export function CanvasScreen({
             docked
             onResize={() => setResizing(true)}
             onCrop={startCrop}
-            onEffect={effect.open}
+            onEffect={openEffect}
             onMerge={() => setMerging(true)}
             onTransform={transformPage}
             onClose={() => undefined}
@@ -1333,6 +1396,9 @@ export function CanvasScreen({
                     () => freshId("stroke"),
                   );
                   if (strokes) store.applyStrokes(strokes);
+                  // The cut has landed, so there is nothing left to aim: the
+                  // page goes back to ants.
+                  setAim(null);
                   effect.close();
                 }}
               />

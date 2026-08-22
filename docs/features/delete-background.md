@@ -1,18 +1,21 @@
 # Delete background
 
-Cut the subject of a picture out of its background: trace roughly over it with
-a selection tool, open **Delete background** from the **Contextual** block at
-the head of the right-hand panel, and the cut finds the subject's exact edge
-near your outline. What you
-keep is the subject on a transparent layer; everything else on that layer is
-gone.
+Cut the subject of a picture out of its background: open **Delete background**
+from the panel's **Image** section, paint over the subject, and the cut finds
+its exact edge near your outline. What you keep is the subject on a transparent
+layer; everything else on that layer is gone.
 
 The tracing only has to be roughly right. Everything well inside your outline
 is taken to be subject, everything well outside to be background, and the cut
-searches the strip in between — about twenty page pixels either side of your
-line — for the strongest continuous border: the place where the colours
-genuinely change from the subject's to the background's, all the way round.
-Where the picture offers no edge to find, the cut follows your hand.
+searches the strip in between — twenty page pixels either side of your line, or
+whatever you set **Search width** to — for the strongest continuous border: the
+place where the colours genuinely change from the subject's to the
+background's, all the way round.
+
+**Your line counts as evidence.** The border is most likely where you drew it
+and less likely the further from it the cut has to go, so where two edges are
+equally believable the one nearer your hand wins, and where the picture offers
+no edge at all the cut simply follows you.
 
 ## Making one
 
@@ -21,12 +24,20 @@ Where the picture offers no edge to find, the cut follows your hand.
    Erase mode to take back what you overshot (see
    [`selection.md`](selection.md)). A lasso around the subject works just as
    well. Two loops are two subjects; a loop traced inside another cuts a hole.
-2. **Press Delete background** in the blue **Contextual** block at the head of
-   the right-hand panel. It is there because you have something traced — with
-   nothing selected there is nothing to cut, so the row is not there either.
-   The page behind shows the cut as you set it — the checkerboard showing through is
-   what will be gone. Nothing lands until you press Apply.
+2. **Press Delete background** in the panel's **Image** section. It is always
+   there, and pressing it with nothing traced is the ordinary way to start: it
+   puts the selection pencil in your hand and tells you to trace. With a
+   subject already traced it opens straight onto the cut, and the page behind
+   shows it as you set it — the checkerboard showing through is what will be
+   gone. Nothing lands until you press Apply.
 3. **Adjust**, if the first answer isn't the one you wanted:
+   - **Search width** — how far either side of your line the cut may look, in
+     page pixels. This is the dial that matters most, and the yellow band on
+     the page is it: nothing outside that band can be taken from the subject or
+     given back to it. Narrow it when something sits close behind the subject
+     and keeps attracting the cut — at one pixel the cut is your tracing,
+     exactly as drawn. Widen it when you have scribbled quickly and the true
+     edge is further away than the cut can reach.
    - **Feather** — how soft the cut edge is, in page pixels. Zero keeps it
      crisp; a pixel or two sits naturally in a photograph; more melts the
      subject into whatever you put behind it.
@@ -48,6 +59,23 @@ with sliders: adjust the selection with the selection pencil (add what it
 missed, erase what it kept) and run the effect again. The cut can only find
 borders _near your line_, so anything sitting wholly in front of the subject
 stays until you trace around it.
+
+## Red and yellow
+
+While you are tracing for a cut, the window stops being marching ants and
+becomes a picture of what the cut is about to do:
+
+- **red** is the subject — what you have said to keep;
+- **yellow** is the band either side of your line, which is everywhere the cut
+  will look for the real edge. Nothing outside it moves.
+
+Both are laid on at a fifth of full strength, so the photograph underneath is
+still the thing you are looking at. If the yellow band is lying over something
+you do not want taken — a chair back just behind a shoulder, a cup by an elbow
+— that is the moment to pull **Search width** down or to correct the tracing,
+rather than after the cut has kept it.
+
+The ants come back when the cut lands, or when you pick up a tool that draws.
 
 ## What to expect
 

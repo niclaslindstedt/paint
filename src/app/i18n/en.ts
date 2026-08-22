@@ -177,11 +177,12 @@ export const en = {
     cutout: {
       name: "Delete background",
       hint: "Keeps what you traced with a selection tool and deletes everything else — the cut finds the subject's exact edge near your outline, so the tracing only has to be roughly right.",
+      band: "Search width: {value} px either side",
       feather: "Feather: {value} px",
       tolerance: "Colour tolerance: {value}%",
       smoothness: "Smoothness: {value}%",
       noSubject:
-        "Trace the subject with a selection tool first — roughly is fine, the cut searches for the exact edge near your outline.",
+        "Nothing is traced yet. The selection pencil is in your hand — close this, paint roughly over the subject you want to keep, then open Delete background again. Roughly is fine: the cut searches for the exact edge near your outline.",
     },
     colorTitle: "Colour",
     brightness: {

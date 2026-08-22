@@ -4,7 +4,7 @@ title: Delete background
 doc: delete-background
 ---
 
-Trace roughly over a picture's subject with a selection tool and **Delete
-background** appears at the head of the panel to cut it out of its background —
-the cut finds the exact edge near your outline, with feather, colour tolerance
-and smoothness to taste.
+Press **Delete background** in the panel's Image section, paint over the
+subject with the pencil it hands you, and the cut finds the subject's exact
+edge near your outline — with the searched band shown on the page while you
+trace, and search width, feather, colour tolerance and smoothness to taste.

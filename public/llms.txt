@@ -59,8 +59,8 @@ connect a storage backend yourself.
   painted, or paint the selection in with a pencil-like nib that adds with every
   stroke, erases with a mode flip or a held Ctrl, and feathers what a Delete
   takes out — five gestures behind one button, pressed a second time to choose.
-  Invert the window — or delete the traced subject's background — from the
-  side panel's Contextual block, which is there only while a selection is.
+  Invert the window from the side panel's Contextual block, which is there only
+  while a selection is.
   What settles is an area, not a list of marks: paint in it and the mark is cut
   to it, drag it with the hand to carry what is painted under it, drag it with
   the marquee to slide the window itself, and pull its corner grips to adjust it
@@ -161,14 +161,18 @@ connect a storage backend yourself.
   it applies to the selected layer or to every showing, unlocked layer, and it
   rasterises what it lands on so marks made afterwards are unaffected. Undo puts
   the marks back. The page colour is not a mark and is never changed.
-- Delete a picture's background from the panel's Image section: trace roughly
-  over the subject with a selection tool and the cut finds the subject's exact
-  edge near the outline — everything well inside the tracing is kept, everything
-  well outside goes, and the strip between is searched for the strongest
-  continuous colour border. Feather, colour tolerance and smoothness are set in
-  the effect's dialog, the page behind previews the cut, and it bakes the layer
-  like every effect: applied once, undo puts the marks back, and it runs
-  entirely on the device.
+- Delete a picture's background from the panel's Image section: pressing it
+  hands over the selection pencil, and painting roughly over the subject is
+  enough — the cut finds the subject's exact edge near the outline. Everything
+  well inside the tracing is kept, everything well outside goes, and the strip
+  between is searched for the strongest continuous colour border, with the
+  tracing itself counting as evidence: most likely on the line, less likely the
+  further out, and nothing looked at past the search width. While tracing, the
+  page shows what the cut is about to do — the subject washed red, the searched
+  band yellow. Search width (1–50 px), feather, colour tolerance and smoothness
+  are set in the effect's dialog, the page behind previews the cut, and it bakes
+  the layer like every effect: applied once, undo puts the marks back, and it
+  runs entirely on the device.
 
 - Stack a drawing into layers: swipe in from the right edge of the canvas (or
   use the header button) for a panel that adds, selects, shows, hides, locks,
