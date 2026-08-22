@@ -23,8 +23,10 @@ index.html → src/main.tsx ─┬─ src/App.tsx
                            │    └── SettingsModal     (lazy)
                            └─ src/app/PrivacyPage.tsx (lazy, mounted at /privacy)
 
-stores:   usePaintStore · useAppSettings · useNamespaces · useSyncEngine
+stores:   usePaintStore (+ useSketchbook, useHandoff) · useAppSettings
+          useNamespaces · useSyncEngine
 domain:   types · layers · merge · render · plugins/* · migrations · canvas
+          history (the undo timeline: the document and the window on it)
           export
           defaults / kit (what a fresh start is made of, and putting it in hand)
           canvasSize / canvasPresets (what page a drawing is made on)
@@ -1257,9 +1259,21 @@ the document.
 ## Selections
 
 A selection is an **area of the page**, and it is **not document state**. Where
-the window is, is not saved, not synced and not undoable: `CanvasScreen` holds
-one `Selection` — the contours a gesture chose, plus the box its corner grips
-hang off — and drops it when another drawing opens.
+the window is, is not saved and not synced: it is one `Selection` — the contours
+a gesture chose, plus the box its corner grips hang off — stamped with the page
+it was cut in, and shown over that page and no other.
+
+It **is** undoable, and it is the store that holds it for exactly that reason
+(`history.ts`). The undo timeline's rungs carry the document _and_ the window,
+so ⌘/Ctrl+Z steps back through whichever of them last changed: a marquee
+dragged out, a window slid, a stroke of the draw-select nib and an Escape are
+each one step back, and none of them writes a byte to storage or wakes the sync
+engine, because a rung that only moved the window changed no document. An edit
+that moves both — a paste, which lands its marks selected; a hand drag, which
+carries the window with the ink; a crop, which moves every mark out from under
+it — files both in **one** rung, so undo can't strand the outline where the
+marks no longer are. Everything else leaves the window alone: paint inside one,
+undo, and the mark is gone with the window still up, ready for the next try.
 
 It picks no marks out. What it does is decide where the next edit lands, and
 there are three of those, all on the **layer being drawn on** and none on any
@@ -1298,10 +1312,14 @@ keeps for the length of the drag so the mark cache can compare it by identity).
 It lands as **one** edit when the finger lifts — one drag, one undo step, and no
 per-frame writes to the store.
 
-The screen holds the window through `useSelection.ts` — the state, the three
-edits, and the keys that reach them, in one module rather than spread through a
-screen that is already long. The canvas holds the other side of the seam the
-same way: `useCanvasView.ts` owns the window onto the page (the measured size,
+The screen reaches the window through `useSelection.ts` — the three edits and
+the keys that reach them, in one module rather than spread through a screen that
+is already long; the window itself is the store's, because it is undoable. A
+gesture that is still in flight — a corner grip being stretched, a marquee
+sliding its window — says so (`live`), and those frames replace the present
+without a rung, so a drag costs one step back rather than one per pointer
+sample. The canvas holds the other side of the seam the same way:
+`useCanvasView.ts` owns the window onto the page (the measured size,
 the clamp, the fit tokens, the wheel and a zoom's settle frame), leaving the
 component to decide what a _press_ means.
 
@@ -1374,6 +1392,7 @@ in event handlers, and spell string-valued SVG attributes like `focusable` as
 | --------------------- | ----------------- | --------------------------------------------------- |
 | Drawings              | `usePaintStore`   | IndexedDB `paint:doc[:<ns>]` (JSON, versioned)      |
 | Undo / redo history   | `usePaintStore`   | in memory only                                      |
+| The selection window  | `usePaintStore`   | never — in memory, on the undo timeline             |
 | App settings          | `useAppSettings`  | `paint:settings`, plus `settings.json` on a backend |
 | Namespaces            | `useNamespaces`   | `paint:namespaces` + `:active`                      |
 | Theme appearance      | `App` + framework | the framework's own key                             |

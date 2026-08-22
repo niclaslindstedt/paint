@@ -8,9 +8,11 @@
 // thing you do happens inside.
 //
 // It is not document state — nothing about where the window is belongs in a
-// saved drawing, and nothing about it is undoable. What *is* document state is
-// what you do through it, and there are three of those, all of them on the
-// **layer you are drawing on** and none of them on any other:
+// saved drawing. It *is* undoable for all that: the window rides the undo
+// timeline beside the document without ever being part of it, so cutting one is
+// a step you can take back like any other (see `history.ts`). What is **in** the
+// document is what you do through it, and there are three of those, all of them
+// on the **layer you are drawing on** and none of them on any other:
 //
 //   - **paint** — a mark made while a selection is up records the outline it
 //     was cut to (`Stroke.clip`) and paints inside it forever after;

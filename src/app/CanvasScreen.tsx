@@ -148,9 +148,13 @@ const MergeLayersModal = lazy(() =>
 // painted under it travels, drag it with the marquee and the window slides and
 // leaves the ink behind. All three touch the layer being drawn on and no other.
 //
-// Nothing about the window is in the document, so nothing about it is undoable:
-// it is screen state like the placement frame and the caption box, dropped when
-// you open another drawing.
+// Nothing about the window is in the document — it is never saved and never
+// synced — but it is undoable, and that is why the window itself is the store's
+// rather than this screen's: it rides the undo timeline beside the marks, so
+// ⌘/Ctrl+Z takes back whichever of the two you did last (see `history.ts` and
+// `useSelection.ts`). The placement frame and the caption box below still are
+// screen state, and for the older reason: neither is anything at all until it
+// is settled.
 //
 // What you can do through a selection is the ordinary set, reachable the
 // ordinary three ways: ⌘/Ctrl+C, X and Delete from the keyboard, a right-click
@@ -509,8 +513,11 @@ export function CanvasScreen({
    *  pointed at — so the two travel together, and nowhere else has to remember
    *  that they do. */
   const transformPage = useCallback(
-    (edit: Parameters<typeof store.transformActive>[0]) => {
-      store.transformActive(edit);
+    (
+      edit: Parameters<typeof store.transformActive>[0],
+      options?: Parameters<typeof store.transformActive>[1],
+    ) => {
+      store.transformActive(edit, options);
       setRefitToken((n) => n + 1);
     },
     [store],
@@ -524,13 +531,14 @@ export function CanvasScreen({
     drawing,
     useCallback(
       (box) => {
-        transformPage((d) => cropDrawing(d, box));
         // The window a selection cut is a shape in the *old* page's
         // coordinates, and the crop has just moved every mark out from under
-        // it. Nothing sensible survives that, so it goes.
-        setSelection(null);
+        // it. Nothing sensible survives that, so it goes — in the same step as
+        // the crop, so one ⌘/Ctrl+Z brings the page and the window back
+        // together rather than the outline first and the picture second.
+        transformPage((d) => cropDrawing(d, box), { select: null });
       },
-      [transformPage, setSelection],
+      [transformPage],
     ),
   );
 
@@ -630,13 +638,17 @@ export function CanvasScreen({
         ? offsetTo(strokes, at)
         : { x: PASTE_NUDGE, y: PASTE_NUDGE };
       const landed = translateStrokes(strokes, by.x, by.y);
-      store.addStrokes(landed, { fitPage: true });
       // A window around what arrived, so "paste, then drag it where you wanted
-      // it" is still one gesture: the hand carries what the window holds.
+      // it" is still one gesture: the hand carries what the window holds. It
+      // lands in the same step as the marks, so undoing a paste takes the
+      // outline with it.
       const box = selectionBox(landed);
-      setSelection(box ? selectionOf(boxRegion(box)) : null);
+      store.addStrokes(landed, {
+        fitPage: true,
+        select: box ? selectionOf(boxRegion(box)) : null,
+      });
     },
-    [store, setSelection],
+    [store],
   );
 
   /** Land whatever a paste turned out to be holding.
@@ -1020,9 +1032,10 @@ export function CanvasScreen({
             // …the marquee's drag from inside it, which slides the window and
             // leaves the ink where it is. Screen state, so it lands as it
             // moves — and the feather the window was cut with travels.
-            onAdjustSelection={(region: Point[][]) =>
-              setSelection(selectionOf(region, selection?.feather))
-            }
+            onAdjustSelection={(
+              region: Point[][],
+              options?: { live?: boolean },
+            ) => setSelection(selectionOf(region, selection?.feather), options)}
             // …the hand's drag on it, which carries what is painted under it:
             // the whole move, as one edit, once the finger lifts.
             onMoveSelection={moveSelection}
