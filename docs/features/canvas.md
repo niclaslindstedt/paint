@@ -110,9 +110,13 @@ every one of them is a single undo step.
 **Resize** asks which of two things you mean, because the word covers both. In
 both, the new page is drawn over the old one and **you can pull it by its
 corners**, the way a crop tool works: the corner opposite the one in your hand
-stays put, and the width and height below follow the drag. The **Keep
-proportions** latch beside them holds the page's shape while you pull. (The
-handles take arrow keys too, if a pointer is not what you have.)
+stays put, and the width and height below follow the drag. The picture is drawn
+the shape of the page it is showing — a tall page gets a tall picture — so the
+corner moves with your finger rather than a hundred pixels at a time. The **Keep
+proportions** latch beside them holds the page's shape while you pull, and the
+corner then follows your drag as closely as that shape allows. (The handles take
+arrow keys too, if a pointer is not what you have; and the two fields take a
+typed number when you know the size you want.)
 
 - **Everything** scales the drawing. The page and every mark on it grow or
   shrink together — the same picture, at a different size — and the nib widths

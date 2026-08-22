@@ -662,12 +662,16 @@ export const PAGE_EFFECTS: readonly EffectDescriptor[] = EFFECTS.filter(
 
 /** Give an effect the traced subject it is aimed through. A no-op for every
  *  effect that does not take one, so the dialog can stamp the selection on
- *  whatever it opens without knowing which effect wants it. */
+ *  whatever it opens without knowing which effect wants it — and a no-op for
+ *  the *same* tracing handed in twice, so a screen that re-aims an open effect
+ *  as the outline is drawn (see `useEffecting`) hands the mark cache the draft
+ *  it already has rather than a copy of it. */
 export function withSubject(
   effect: Effect,
   subject: readonly (readonly Point[])[],
 ): Effect {
-  return effect.kind === "cutout" ? { ...effect, subject } : effect;
+  if (effect.kind !== "cutout" || effect.subject === subject) return effect;
+  return { ...effect, subject };
 }
 
 /** Whether this draft has what it needs to land: a traced subject for the

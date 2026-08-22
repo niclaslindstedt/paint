@@ -136,6 +136,10 @@ export const sv: Catalog = {
       "Sidan bakom visar effekten medan du ställer in den. Ingenting läggs på teckningen förrän du använder den.",
     move: "Dra eller använd piltangenterna för att flytta inställningarna",
     recentre: "Tillbaka",
+    minimize: "Lägg undan inställningarna",
+    minimizeShort: "Lägg undan",
+    restore: "Tillbaka till {name}",
+    aimNote: "Rita på sidan",
     peek: {
       title: "Förhandsvisning",
       hint: "Dra för att flytta, nyp eller rulla för att zooma.",
@@ -167,7 +171,7 @@ export const sv: Catalog = {
       tolerance: "Färgtolerans: {value} %",
       smoothness: "Jämnhet: {value} %",
       noSubject:
-        "Inget är markerat ännu. Markeringspennan ligger i handen — stäng det här, måla ungefär över motivet du vill behålla och öppna Ta bort bakgrund igen. Ungefär räcker: klippet letar upp den exakta kanten nära din kontur.",
+        "Inget är markerat ännu. Markeringspennan ligger i handen — lägg undan inställningarna med knappen nedanför och måla sedan ungefär över motivet du vill behålla. De ligger kvar under tiden, och sidan visar klippet medan du ritar. Ungefär räcker: klippet letar upp den exakta kanten nära din kontur.",
     },
     colorTitle: "Färg",
     brightness: {
