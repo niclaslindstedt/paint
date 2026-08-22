@@ -142,6 +142,94 @@ describe("cutout", () => {
     );
   });
 
+  it("searches the whole swath a nib painted, and nothing past it", () => {
+    // Two real borders: subject to mid at 30, mid to ground at 50. The hand
+    // laid the nib's *inner* rim on the true one at 30 and coloured outward, so
+    // what it painted is the stripe 30–46 and the outline it left behind is at
+    // 46 — sixteen pixels adrift of everything it meant.
+    //
+    // Told the nib's half-width, the cut searches that stripe: the band moves
+    // onto the line the nib's centre walked (38) and reaches exactly as far as
+    // the nib did, so the border at 30 is in and the one at 50 is out. Told
+    // nothing, it searches twenty pixels either side of a line nobody drew,
+    // where the wrong border is the nearer of the two — and takes it.
+    const rgba = scene(140, 140, (x, y) => {
+      const d = Math.hypot(x - 70, y - 70);
+      if (d <= 30) return [40, 55, 45] as const;
+      if (d <= 50) return [132, 130, 118] as const;
+      return [230, 225, 210] as const;
+    });
+    const painted = [ring(70, 70, 46, 64)];
+    const aimed = cutout(rgba, 140, 140, painted, { band: 8, nib: 8 })!;
+    expect(Math.abs(meanRadius(aimed.contours[0]!, 70, 70) - 30)).toBeLessThan(
+      2,
+    );
+    const blind = cutout(rgba, 140, 140, painted, { band: 20 })!;
+    expect(Math.abs(meanRadius(blind.contours[0]!, 70, 70) - 50)).toBeLessThan(
+      2,
+    );
+  });
+
+  it("takes the nib's centre and the nib's rim as the same aim", () => {
+    // The same border and the same pencil, aimed the two ways a hand aims one:
+    // running the nib's centre along the border (a stripe from 22 to 38), and
+    // laying its rim against it and colouring outward (30 to 46). Neither is
+    // recoverable from the outline — 38 and 46 are just two rings — and with
+    // the whole swath priced alike both land on the border at 30.
+    const rgba = disc(60, 60, 30);
+    const centred = cutout(rgba, 120, 120, [ring(60, 60, 38, 64)], {
+      band: 8,
+      nib: 8,
+    })!;
+    const rimmed = cutout(rgba, 120, 120, [ring(60, 60, 46, 64)], {
+      band: 8,
+      nib: 8,
+    })!;
+    for (const found of [centred, rimmed]) {
+      expect(
+        Math.abs(meanRadius(found.contours[0]!, 60, 60) - 30),
+      ).toBeLessThan(1.5);
+    }
+  });
+
+  it("never looks inside a swath that has been filled in", () => {
+    // The middle of a painted outline, filled in with the gap filler, is not a
+    // second tracing: the hand said nothing about it, so nothing in it may be
+    // taken for the border however hard an edge sits there. Here a bright core
+    // at 20 is a far stronger edge than the subject's own at 30, and the cut
+    // does not reach it — the band is the stripe from 30 to 46 and stops.
+    const rgba = scene(140, 140, (x, y) => {
+      const d = Math.hypot(x - 70, y - 70);
+      if (d <= 20) return [250, 240, 60] as const;
+      if (d <= 30) return [40, 55, 45] as const;
+      return [225, 220, 208] as const;
+    });
+    const filled = cutout(rgba, 140, 140, [ring(70, 70, 46, 64)], {
+      band: 8,
+      nib: 8,
+    })!;
+    expect(Math.abs(meanRadius(filled.contours[0]!, 70, 70) - 30)).toBeLessThan(
+      2,
+    );
+    // …and the core is kept, whole.
+    expect(filled.alpha[70 * 140 + 70]).toBeGreaterThan(250);
+  });
+
+  it("searches the nib's swath however narrow the band is set", () => {
+    // The band may be widened past the nib but not narrowed inside it: the
+    // stripe is the width of the thing that drew the outline, not a preference,
+    // and half of what the hand painted being unexaminable is not a setting
+    // worth offering. Being precise is reaching for a finer pencil.
+    const rgba = disc(60, 60, 30);
+    const found = cutout(rgba, 120, 120, [ring(60, 60, 46, 64)], {
+      band: 1,
+      nib: 8,
+    })!;
+    expect(Math.abs(meanRadius(found.contours[0]!, 60, 60) - 30)).toBeLessThan(
+      1.5,
+    );
+  });
+
   it("scores a real border high and a border through nothing low", () => {
     const found = cutout(disc(60, 60, 30), 120, 120, [wobble(60, 60, 30, 6)])!;
     // A blank scene has no border to find anywhere in the band: the cut

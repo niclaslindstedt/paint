@@ -329,10 +329,15 @@ export function CanvasScreen({
    *
    *  It carries the band because the band is the thing worth showing and the
    *  dialog is where it is set: the number travels back out of the dialog with
-   *  the aim (see the effect below). */
-  const [aim, setAim] = useState<{ kind: EffectKind; band: number } | null>(
-    null,
-  );
+   *  the aim (see the effect below). And the nib beside it, because with a
+   *  painted tracing the band is not centred on the outline at all — it sits a
+   *  nib's half-width inside it, on the line the nib's centre walked, and the
+   *  diagram is only honest if it is drawn there (see `cutAim.ts`). */
+  const [aim, setAim] = useState<{
+    kind: EffectKind;
+    band: number;
+    nib: number;
+  } | null>(null);
   // The resize dialog, which is the one page action that has a question to ask.
   const [resizing, setResizing] = useState(false);
   // The merge dialog — the layer panel's, and the other one that asks.
@@ -376,6 +381,18 @@ export function CanvasScreen({
   const dialValues = resolveDials(activePlugin, tuning);
   const inkDials = tunedDials(activePlugin, tuning);
   const size = toolSize(settings, tool);
+  /** Half the width of the nib the tool in hand paints *selection* with, or
+   *  `null` for one that has no nib.
+   *
+   *  Read off the descriptor rather than off an id, like everything else about
+   *  a tool here: a selection tool that is not `sizeless` is one whose gesture
+   *  has a real width, and its width is what the window it cuts was painted
+   *  with. Delete background is the reader that needs it — a painted outline is
+   *  the rim of a stripe as wide as this, and knowing that is the difference
+   *  between searching what the hand painted and guessing (see
+   *  `Selection.nib`). */
+  const selectNib =
+    activePlugin?.selects && !activePlugin.sizeless ? size / 2 : null;
   // …and the same two reads for the inks a tool carries of its own: the panel
   // wants every swatch it declares, the canvas only the ones re-coloured, which
   // is what a poured mark records (see `plugins/swatches.ts`).
@@ -439,7 +456,13 @@ export function CanvasScreen({
     // What the aimed effect opens with: whatever the selection holds at that
     // moment, read through the ref so `open` survives every gesture.
     subject: useCallback(
-      () => selectionRef.current?.region ?? null,
+      () =>
+        selectionRef.current
+          ? {
+              region: selectionRef.current.region,
+              nib: selectionRef.current.nib,
+            }
+          : null,
       [selectionRef],
     ),
   });
@@ -455,7 +478,14 @@ export function CanvasScreen({
     setAim((held) => {
       if (!held || held.kind !== draft.kind) return held;
       const band = controlValue(draft, "band");
-      return band === held.band ? held : { ...held, band };
+      // The nib is not a control — it is stamped from the window the cut is
+      // aimed through (see `withSubject`) — so it is read off the draft
+      // directly. Where it is absent the diagram draws the band about the line,
+      // which is what an outline nobody painted means.
+      const nib = draft.kind === "cutout" ? draft.nib : 0;
+      return band === held.band && nib === held.nib
+        ? held
+        : { ...held, band, nib };
     });
   }, [draft]);
 
@@ -467,18 +497,26 @@ export function CanvasScreen({
   // opened it with.
   const minimized = effecting?.minimized ?? false;
   const traced = selection?.region;
+  // …and how wide the nib that painted it was, which re-aims the cut just as
+  // the outline does: picking up a finer selection pencil mid-tracing narrows
+  // the search to it (see `withSubject`).
+  const tracedNib = selection?.nib;
   const setSubject = effect.setSubject;
   useEffect(() => {
     if (!minimized) return;
-    setSubject(traced ?? NOTHING_TRACED);
-  }, [minimized, traced, setSubject]);
+    setSubject({ region: traced ?? NOTHING_TRACED, nib: tracedNib });
+  }, [minimized, traced, tracedNib, setSubject]);
 
   /** What the canvas paints the window as, while a cut is being aimed through
    *  it. One object for as long as the band holds: the frame compares it by
    *  identity, so a new one every render would cost the gesture's fast path
    *  (see `trail.ts`). */
   const band = aim?.band ?? null;
-  const aiming = useMemo(() => (band === null ? null : { band }), [band]);
+  const aimNib = aim?.nib ?? 0;
+  const aiming = useMemo(
+    () => (band === null ? null : { band, nib: aimNib }),
+    [band, aimNib],
+  );
 
   // A placement belongs to the page it was dropped on. Opening another drawing
   // with one still floating drops it rather than carrying it across — settling
@@ -681,11 +719,16 @@ export function CanvasScreen({
 
   /** Turn the window inside out: everything on the page the selection wasn't.
    *  The feather travels — how softly a Delete fades out is a property of the
-   *  window, and inverting is a change to *where* it is, not to its edge. */
+   *  window, and inverting is a change to *where* it is, not to its edge — and
+   *  so does the nib, for the same reason: an inverted window is still one a
+   *  nib of that width painted. */
   const invertSelection = useCallback(() => {
     if (!selection || !drawing) return;
     setSelection(
-      selectionOf(invertRegion(selection.region, drawing), selection.feather),
+      selectionOf(invertRegion(selection.region, drawing), {
+        feather: selection.feather,
+        nib: selection.nib,
+      }),
     );
   }, [selection, drawing, setSelection]);
 
@@ -828,7 +871,10 @@ export function CanvasScreen({
       const tool = descriptor?.aimTool;
       if (tool) {
         pickTool(tool);
-        setAim({ kind, band: controlValue(descriptor.preset, "band") });
+        // The preset's band, and no nib: both are corrected from the draft the
+        // moment it is stamped with the tracing (see the effect above), which
+        // is the same commit and so ahead of any frame the canvas paints.
+        setAim({ kind, band: controlValue(descriptor.preset, "band"), nib: 0 });
       }
       effect.open(kind);
     },
@@ -1027,7 +1073,23 @@ export function CanvasScreen({
             // (see `cutAim.ts`).
             aiming={aiming}
             onSelectRegion={(region: Point[][] | null) =>
-              setSelection(selectionOf(region, inkDials.feather))
+              setSelection(
+                selectionOf(region, {
+                  feather: inkDials.feather,
+                  // The nib the window was painted with, or — for a tool that
+                  // works the selection over without a nib of its own, which is
+                  // the gap filler — whatever painted it before. Filling the
+                  // middle of a traced outline says nothing about where its
+                  // border is and must not be read as a fresh tracing: the
+                  // stripe the pencil painted is still the only place the cut
+                  // has been told to look.
+                  nib:
+                    selectNib ??
+                    (activePlugin?.combinesSelection
+                      ? selection?.nib
+                      : undefined),
+                }),
+              )
             }
             // …the marquee's drag from inside it, which slides the window and
             // leaves the ink where it is. Screen state, so it lands as it
@@ -1035,7 +1097,15 @@ export function CanvasScreen({
             onAdjustSelection={(
               region: Point[][],
               options?: { live?: boolean },
-            ) => setSelection(selectionOf(region, selection?.feather), options)}
+            ) =>
+              setSelection(
+                selectionOf(region, {
+                  feather: selection?.feather,
+                  nib: selection?.nib,
+                }),
+                options,
+              )
+            }
             // …the hand's drag on it, which carries what is painted under it:
             // the whole move, as one edit, once the finger lifts.
             onMoveSelection={moveSelection}

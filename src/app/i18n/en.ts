@@ -191,13 +191,13 @@ export const en = {
     imageTitle: "Image",
     cutout: {
       name: "Delete background",
-      hint: "Keeps what you traced with a selection tool and deletes everything else — the cut finds the subject's exact edge near your outline, so the tracing only has to be roughly right.",
+      hint: "Keeps what you traced with a selection tool and deletes everything else — the cut finds the subject's exact edge near your outline, so the tracing only has to be roughly right. Paint the tracing and the cut searches exactly the stripe you painted, so a finer pencil is a tighter search.",
       band: "Search width: {value} px either side",
       feather: "Feather: {value} px",
       tolerance: "Colour tolerance: {value}%",
       smoothness: "Smoothness: {value}%",
       noSubject:
-        "Nothing is traced yet. The selection pencil is in your hand — put these options away with the button below, then paint roughly over the subject you want to keep. They stay open while you do, and the page shows the cut as you go. Roughly is fine: the cut searches for the exact edge near your outline.",
+        "Nothing is traced yet. The selection pencil is in your hand — put these options away with the button below, then paint roughly over the subject you want to keep. They stay open while you do, and the page shows the cut as you go. Roughly is fine: the cut searches the stripe you paint for the exact edge, so run the pencil along the border and pick a finer one where you want the cut held closer.",
     },
     colorTitle: "Colour",
     brightness: {

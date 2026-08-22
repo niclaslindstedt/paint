@@ -167,13 +167,13 @@ export const sv: Catalog = {
     imageTitle: "Bild",
     cutout: {
       name: "Ta bort bakgrund",
-      hint: "Behåller det du ritat över med ett markeringsverktyg och tar bort allt annat — klippet letar upp motivets exakta kant nära din kontur, så det räcker att rita ungefär rätt.",
+      hint: "Behåller det du ritat över med ett markeringsverktyg och tar bort allt annat — klippet letar upp motivets exakta kant nära din kontur, så det räcker att rita ungefär rätt. Målar du konturen söker klippet precis i det streck du målat, så en smalare penna ger en snävare sökning.",
       band: "Sökbredd: {value} px åt varje håll",
       feather: "Fjädring: {value} px",
       tolerance: "Färgtolerans: {value} %",
       smoothness: "Jämnhet: {value} %",
       noSubject:
-        "Inget är markerat ännu. Markeringspennan ligger i handen — lägg undan inställningarna med knappen nedanför och måla sedan ungefär över motivet du vill behålla. De ligger kvar under tiden, och sidan visar klippet medan du ritar. Ungefär räcker: klippet letar upp den exakta kanten nära din kontur.",
+        "Inget är markerat ännu. Markeringspennan ligger i handen — lägg undan inställningarna med knappen nedanför och måla sedan ungefär över motivet du vill behålla. De ligger kvar under tiden, och sidan visar klippet medan du ritar. Ungefär räcker: klippet söker i det streck du målar efter den exakta kanten, så dra pennan längs kanten och byt till en smalare där klippet ska hållas närmare.",
     },
     colorTitle: "Färg",
     brightness: {

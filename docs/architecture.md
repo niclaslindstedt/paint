@@ -304,7 +304,13 @@ follows the same split one more time: `cutout.ts` is pure (a rough tracing and
 an RGBA buffer in, the subject's found border and an alpha mask out — the whole
 solve testable in node), and `effectCutout.ts` is the shim that reads pixels off
 the context and multiplies the mask into their alpha. Its tracing rides on the
-effect draft itself, stamped from the selection when the dialog opens.
+effect draft itself, stamped from the selection when the dialog opens — and with
+it the **nib** that painted the tracing, which is the one thing the outline
+cannot say. A window painted with the selection pencil has a contour that is the
+_rim_ of a stripe as wide as the nib, and the line the hand actually walked runs
+half a nib inside it; the nib's half-width travels on `Selection` beside the
+feather, and stamping it is what lets the solve tell a careful outline from a
+fat one.
 
 Being aimed also decides two things about how it is _offered_, and both are
 flags on the descriptor rather than a screen that knows which effect this is.
@@ -331,6 +337,20 @@ in its distance from the line — free on it, and steeply dearer outward until
 the band's edge, where looking stops. It is weighted to decide a tie between two
 believable borders without being able to hold the cut on the line when only one
 of them is real.
+
+A **painted** tracing moves that band and flattens that prior. The nib's
+half-width does both: the band is re-centred a nib inside the contour, onto the
+line the nib's centre walked, and the innermost nib either side of that centre
+is priced flat. The reason is that a stripe is not a line — one hand runs the
+nib's centre along the border and another lays its rim against it and colours
+inward, and the two leave the same outline behind — so every place across the
+stripe is equally the border and the picture decides between them alone. The
+band control then _opens at_ the nib, and only a change of nib re-sets it, so
+narrowing the search is reaching for a finer pencil (a dial the hand can see
+while it draws) and widening it by hand still sticks. The solve searches the
+wider of band and nib, so half of what was painted can never fall outside the
+search; the yellow on the page is drawn the same way, as two clipped strokes
+rather than one, so the diagram and the solve agree pixel for pixel.
 Neither of those two touches pixels one at a time — the blur is one filtered
 `drawImage` and the grain is a deterministic speck tile laid as a pattern
 anchored to the page — which is what makes them cheap enough to preview live. The

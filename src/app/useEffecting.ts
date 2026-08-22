@@ -9,6 +9,7 @@ import {
   type Effect,
   type EffectKind,
   type EffectScope,
+  type Tracing,
 } from "./effects.ts";
 import { layerTones, type Histogram } from "./histogram.ts";
 import { activeLayer } from "./layers.ts";
@@ -96,7 +97,7 @@ export type EffectingControl = {
    *  unchanged tracing leaves the draft's identity alone: the mark cache
    *  compares the preview by identity, so a new object per gesture would be a
    *  repaint per gesture. */
-  setSubject: (subject: readonly (readonly Point[])[]) => void;
+  setSubject: (tracing: Tracing) => void;
   /** Which layers the open dialog would land on. */
   targets: string[];
   /** What the canvas paints the draft through, or `null` with nothing open. */
@@ -104,6 +105,11 @@ export type EffectingControl = {
   /** The page the dialog shows, or `null` with no drawing to show. */
   page: EffectPage | null;
 };
+
+/** What an effect opened with nothing traced is aimed at. One object, so a
+ *  dialog opened twice over an empty page stamps the same tracing both times
+ *  and `withSubject` can go on comparing by identity. */
+const NOTHING_TRACED: Tracing = { region: [] };
 
 export function useEffecting({
   drawing,
@@ -124,11 +130,12 @@ export function useEffecting({
   view: CanvasView | null;
   /** The element the canvas fills, for the size of that window. */
   window: { current: HTMLElement | null };
-  /** The traced subject an aimed effect opens with — the selection's contours,
-   *  read at the moment of opening (a getter over a ref for the same reason
-   *  `view` is: `open` must keep its identity across every gesture). The draft
-   *  keeps its stamp from then on: it is what you had traced when you asked. */
-  subject?: () => readonly (readonly Point[])[] | null;
+  /** The traced subject an aimed effect opens with — the selection's contours
+   *  and the nib that painted them, read at the moment of opening (a getter over
+   *  a ref for the same reason `view` is: `open` must keep its identity across
+   *  every gesture). The draft keeps its stamp from then on: it is what you had
+   *  traced when you asked. */
+  subject?: () => Tracing | null;
 }): EffectingControl {
   const [effecting, setEffecting] = useState<Effecting | null>(null);
   const viewRef = useRef<CanvasView | null>(null);
@@ -153,7 +160,7 @@ export function useEffecting({
       if (!descriptor) return;
       setEffecting({
         kind,
-        draft: withSubject(descriptor.preset, subject?.() ?? []),
+        draft: withSubject(descriptor.preset, subject?.() ?? NOTHING_TRACED),
         scope: defaultScope(descriptor),
         look: looking(),
         minimized: false,
@@ -186,7 +193,7 @@ export function useEffecting({
     [looking],
   );
   const setSubject = useCallback(
-    (traced: readonly (readonly Point[])[]) =>
+    (traced: Tracing) =>
       setEffecting((current) => {
         if (!current) return current;
         const draft = withSubject(current.draft, traced);

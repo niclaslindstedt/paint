@@ -18,6 +18,14 @@
 // runs twice, the found border feeding the second pass, which measurably
 // tightens the result.
 //
+// Where the tracing was *painted* — the selection pencil, which is the tool
+// this effect puts in your hand — the band is not guessed at all: it is the
+// nib's own swath (see `CutoutOptions.nib`). A painted outline is a stripe as
+// wide as the nib, aimed with its centre by some hands and with its rim by
+// others, so the whole stripe is searched and every place across it is priced
+// alike. Narrowing the search is then narrowing the *pencil*, which is a thing
+// the hand can see while it draws.
+//
 // Everything here is pure and DOM-free — RGBA in, an alpha mask and outlines
 // out — so a whole cut is testable in node. The half that needs a canvas
 // (rasterising the layer, applying the mask) lives with the effects.
@@ -52,6 +60,26 @@ export type CutoutOptions = {
   smoothness?: number;
   /** How many times the found border is fed back in as the new tracing. */
   passes?: number;
+  /** Half-width of the **nib the tracing was painted with**, in pixels of the
+   *  bitmap — 0 (the default) for a tracing that was not painted at all.
+   *
+   *  A tracing painted with a round nib is not a line: it is a *swath*, and the
+   *  person who painted it was aiming with one of its parts. Some run the nib's
+   *  centre along the border; some lay its rim against it and colour inward.
+   *  Both are the same gesture said differently, and neither is recoverable
+   *  from the outline that comes out of it — so the whole swath is taken as
+   *  equally likely, which is what this number buys:
+   *
+   *  - the searched band is **centred `nib` inside the tracing**, on the line
+   *    the nib's centre actually walked, rather than on the outer rim the
+   *    outline records;
+   *  - and the innermost `nib` either side of that centre is priced **flat** —
+   *    the hand prior below says nothing there, because the hand said nothing
+   *    there either.
+   *
+   *  With `band` at the same number (which is what the effect opens at) the
+   *  two together are exactly "search what I painted, and nothing else". */
+  nib?: number;
 };
 
 export type CutoutResult = {
@@ -138,7 +166,11 @@ export function cutout(
   subject: readonly (readonly Point[])[],
   options: CutoutOptions = {},
 ): CutoutResult | null {
-  const band = options.band ?? CUTOUT_BAND;
+  const nib = Math.max(0, options.nib ?? 0);
+  // The nib's swath is searched whatever the dial says: it is not a preference
+  // but the width of the thing that drew the outline, and a band narrower than
+  // it would leave part of what the hand painted unexaminable.
+  const band = Math.max(options.band ?? CUTOUT_BAND, nib);
   const feather = options.feather ?? 1;
   const tolerance = clamp01(options.tolerance ?? 0.5);
   const smoothness = clamp01(options.smoothness ?? 0.35);
@@ -151,7 +183,21 @@ export function cutout(
 
   let solved: SolvedPass | null = null;
   for (let pass = 0; pass < passes; pass++) {
-    solved = solvePass(rgba, width, height, loops, band, tolerance, smoothness);
+    // The inset is the *outline's* offset from the nib's centreline, so it is
+    // spent once: from the second pass on the tracing is the border this solve
+    // found, which is already a line rather than the rim of a stripe. The flat
+    // stretch stays, because what it prices is the hand's uncertainty and that
+    // is the same however many times the border has been refined.
+    solved = solvePass(
+      rgba,
+      width,
+      height,
+      loops,
+      band,
+      { inset: pass === 0 ? nib : 0, even: nib },
+      tolerance,
+      smoothness,
+    );
     if (!solved) return null;
     loops = solved.contours.map((loop) =>
       resampleClosed(loop, stepFor([loop])),
@@ -187,16 +233,28 @@ type SolvedPass = {
   separation: number;
 };
 
+/** Where the searched band sits relative to the tracing, and how much of it the
+ *  hand has nothing to say about — both in bitmap pixels, and both zero for a
+ *  tracing that is a line rather than a painted swath (see `CutoutOptions.nib`).
+ */
+type Aim = {
+  /** How far *inside* the tracing the band is centred. */
+  inset: number;
+  /** How far either side of that centre every place is equally likely. */
+  even: number;
+};
+
 function solvePass(
   rgba: Uint8ClampedArray,
   width: number,
   height: number,
   loops: Point[][],
   band: number,
+  aim: Aim,
   tolerance: number,
   smoothness: number,
 ): SolvedPass | null {
-  const trimap = buildTrimap(loops, width, height, band);
+  const trimap = buildTrimap(loops, width, height, band, aim.inset);
   if (!trimap) return null;
   const models = learnModels(rgba, width, height, trimap);
 
@@ -217,6 +275,7 @@ function solvePass(
       loop,
       loops,
       band,
+      aim,
       tolerance,
       lambda,
       models,
@@ -264,6 +323,8 @@ type Trimap = {
   distance: Float32Array;
   /** The band half-width the zones were cut at. */
   band: number;
+  /** How far inside the tracing that band is centred (see `Aim`). */
+  inset: number;
 };
 
 function buildTrimap(
@@ -271,6 +332,7 @@ function buildTrimap(
   width: number,
   height: number,
   band: number,
+  inset: number,
 ): Trimap | null {
   let minX = Infinity;
   let minY = Infinity;
@@ -288,6 +350,9 @@ function buildTrimap(
   minY = Math.max(0, minY);
   maxX = Math.min(width, maxX);
   maxY = Math.min(height, maxY);
+  // Padded by twice the band, which still covers the zones with an inset: that
+  // only moves the band *inward*, so the outermost cell it has to reach is
+  // `band - inset` outside the tracing rather than `band`.
   const made = maskFor(
     { x: minX, y: minY, width: maxX - minX, height: maxY - minY },
     band * 2,
@@ -296,7 +361,7 @@ function buildTrimap(
   const { mask, frame } = made;
   fillRegion(mask, frame, loops);
   const distance = signedDistance(mask, frame.scale);
-  return { mask, frame, distance, band };
+  return { mask, frame, distance, band, inset };
 }
 
 /** Two-pass chamfer distance to the mask's boundary, in bitmap pixels,
@@ -377,14 +442,15 @@ function learnModels(
   // model has its fill. Bounded, deterministic, and unbiased enough.
   const stride = Math.max(1, Math.floor(cells / (MODEL_SAMPLES * 8)));
   const offset = Math.floor(rand() * stride);
+  // The zones are the band's two sides, and the band may be centred inside the
+  // tracing rather than on it (a painted swath — see `Aim`): a pixel is subject
+  // once it is past the band's inner rim, background once it is past the outer
+  // one. With no inset these are the tracing's own two sides, as before.
+  const inner = trimap.inset + trimap.band;
+  const outer = trimap.band - trimap.inset;
   for (let i = offset; i < cells; i += stride) {
     const dist = distance[i]!;
-    const into =
-      dist < -trimap.band
-        ? subjectPx
-        : dist > trimap.band
-          ? backgroundPx
-          : null;
+    const into = dist < -inner ? subjectPx : dist > outer ? backgroundPx : null;
     if (!into || into.length >= MODEL_SAMPLES * 3) continue;
     const cx = i % mask.width;
     const cy = (i - cx) / mask.width;
@@ -515,6 +581,7 @@ function solveLoop(
   loop: Point[],
   region: readonly (readonly Point[])[],
   band: number,
+  aim: Aim,
   tolerance: number,
   lambda: number,
   models: Models,
@@ -523,6 +590,10 @@ function solveLoop(
   const t = band * 2 + 1;
   const smoothed = smoothClosed(loop, 15);
   const normals = outwardNormals(smoothed, region);
+  // Column `k` of the strip is this far along the outward normal from the
+  // tracing: `k = band` is the band's centre, which the inset pushes inside the
+  // traced outline and onto the nib's own centreline.
+  const across = (k: number): number => k - band - aim.inset;
 
   // The strip: Lab colour at every (step along the outline, offset across the
   // band) cell, offsets running inside → outside.
@@ -531,7 +602,7 @@ function solveLoop(
     const c = smoothed[i]!;
     const normal = normals[i]!;
     for (let k = 0; k < t; k++) {
-      const offset = k - band;
+      const offset = across(k);
       const lab = sampleLab(
         rgba,
         width,
@@ -601,15 +672,22 @@ function solveLoop(
     }
   }
   const regionSpan = regionMax - regionMin || 1;
+  // How far past the flat stretch a cell may stray before it is at the rim. A
+  // swath whose nib is as wide as the band leaves none: the hand painted the
+  // whole strip and says nothing about where in it the border is, so the prior
+  // is flat everywhere and the picture decides alone.
+  const reach = band - aim.even;
   for (let i = 0; i < n; i++) {
     for (let k = 0; k < t; k++) {
       const cell = i * t + k;
       const edge = 1 - Math.min(1, gradient[cell]! / strong);
       const region01 = (regionRaw[cell]! - regionMin) / regionSpan;
-      // The prior: how far this cell has strayed from the traced line, priced
-      // as −log of a Gaussian in that distance and normalised to 0 on the line
-      // and ~1 at the rim (see `HAND_FALLOFF`).
-      const strayed = Math.abs(k - band) / band;
+      // The prior: how far this cell has strayed from what the hand pointed at,
+      // priced as −log of a Gaussian in that distance and normalised to 0 on
+      // the line — or anywhere across the nib's swath — and ~1 at the rim (see
+      // `HAND_FALLOFF`).
+      const strayed =
+        reach > 0 ? Math.max(0, Math.abs(k - band) - aim.even) / reach : 0;
       const hand =
         1 - Math.exp((-strayed * strayed) / (2 * HAND_FALLOFF * HAND_FALLOFF));
       cost[cell] =
@@ -648,7 +726,7 @@ function solveLoop(
   for (let i = 0; i < n; i++) {
     const c = smoothed[i]!;
     const normal = normals[i]!;
-    const offset = path[i]! - band;
+    const offset = across(path[i]!);
     contour.push({ x: c.x + normal.x * offset, y: c.y + normal.y * offset });
   }
   return { contour, onEdge: onEdge / n, separation: separation / n };

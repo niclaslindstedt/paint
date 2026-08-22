@@ -82,6 +82,22 @@ export type Selection = {
    *  Screen state like the rest of the window: it travels with the window as
    *  it is slid and stretched, and it is nowhere in the document. */
   feather?: number;
+  /** Half the width of the nib this window was **painted** with, in document
+   *  pixels — the selection pencil's, stamped when the window was cut, and
+   *  absent for every window a marquee, a lasso or a trace chose.
+   *
+   *  It is here because it is the one thing the outline cannot say. A painted
+   *  window's contour is the *rim* of a stripe as wide as the nib, and the line
+   *  the hand actually walked runs half a nib inside it — so a reader that only
+   *  has the contour cannot tell a careful outline from a fat one, and Delete
+   *  background is a reader that badly needs to (see `CutoutOptions.nib`).
+   *
+   *  Screen state like `feather`, travelling with the window as it is slid and
+   *  stretched, and nowhere in the document. The last stroke's width is the one
+   *  kept: a window built up in several passes is as accurate as the nib that
+   *  finished it, and dropping to a finer nib is how a hand says "and now
+   *  precisely here". */
+  nib?: number;
 };
 
 /** The smallest box holding every contour, or `null` when there is nothing
@@ -103,19 +119,33 @@ export function regionBox(region: SelectionRegion): Box | null {
   return { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
 }
 
+/** How a window was cut, beyond its outline — the two things about the gesture
+ *  that the contours do not carry (see `Selection`). Both optional, and both
+ *  recording nothing when they are absent or zero, so a marquee's window stays
+ *  the plain `{ region, box }` object it has always been. */
+export type SelectionCut = {
+  /** How softly a Delete through it fades out, in document pixels. */
+  feather?: number;
+  /** Half the width of the nib it was painted with, in document pixels. */
+  nib?: number;
+};
+
 /** The selection a gesture's contours make, or `null` for an outline that
- *  encloses nothing — which is what "select nothing" arrives as. `feather` is
- *  how softly a Delete through it fades out; absent (and 0, which is the dial
- *  at rest) records nothing, so a marquee's window is the object it always
- *  was. */
+ *  encloses nothing — which is what "select nothing" arrives as. */
 export function selectionOf(
   region: SelectionRegion | null | undefined,
-  feather?: number,
+  cut: SelectionCut = {},
 ): Selection | null {
   if (!region || region.length === 0) return null;
   const box = regionBox(region);
   if (!box || box.width <= 0 || box.height <= 0) return null;
-  return { region, box, ...(feather && feather > 0 ? { feather } : {}) };
+  const { feather, nib } = cut;
+  return {
+    region,
+    box,
+    ...(feather && feather > 0 ? { feather } : {}),
+    ...(nib && nib > 0 ? { nib } : {}),
+  };
 }
 
 /** A rectangle as a window — the shape a box marquee cuts, and the one two

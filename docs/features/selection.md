@@ -77,6 +77,11 @@ pick one:
     mid-drag changes nothing. On touch, the chip is the switch.
   - **Feather** — how softly a Delete through the window fades out; see below.
 
+  Its width does one more thing, in one place: **Delete background** searches
+  exactly the stripe the pencil painted for the subject's real edge, so the
+  pencil you pick is how close the cut is held to your line (see
+  [`delete-background.md`](delete-background.md)).
+
 Whichever you use, what settles is that outline — a lasso stays a lasso — and a
 traced area's holes stay holes: they are outside the window exactly as they are
 outside the paint.
