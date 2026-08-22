@@ -118,6 +118,17 @@ export type CacheSpec = {
 export type CacheWork =
   "blitted" | "appended" | "scrolled" | "carried" | "repainted";
 
+/** Something to paint *under* a carried frame, filling the page the held pixels
+ *  have shrunk away from — the whole drawing, when the app is keeping one (see
+ *  `overview.ts`).
+ *
+ *  A callback rather than a surface because the cache has no business knowing
+ *  what the picture under it is or how it got there: it owns which frames may
+ *  be carried, and this is the caller's answer to what the carry leaves bare.
+ *  Absent — the default, and every device that hasn't switched the setting on —
+ *  it leaves bare desk exactly as it always did. */
+export type Beneath = (ctx: CanvasRenderingContext2D) => void;
+
 export type MarkCache = {
   surface: Surface;
   /** The spec the pixels were painted for, or `null` when there are none. */
@@ -186,6 +197,7 @@ export function paintCommitted(
   canvas: HTMLCanvasElement,
   cache: MarkCache | null,
   spec: CacheSpec,
+  beneath?: Beneath,
 ): CacheWork {
   if (!cache) {
     paintDocument(ctx, spec);
@@ -291,7 +303,7 @@ export function paintCommitted(
   // cache deliberately remembers nothing — every carried frame resamples the
   // *last real repaint* exactly once, so a long pinch cannot compound blur by
   // blitting blits.
-  if (spec.zooming && carry(ctx, cache, spec, strokes)) {
+  if (spec.zooming && carry(ctx, cache, spec, strokes, beneath)) {
     return "carried";
   }
 
@@ -509,8 +521,9 @@ function scroll(
  *  seconds per frame.
  *
  *  What it shows is honest but soft: the last real frame, resampled, with bare
- *  desk where the gesture has revealed page the held frame never painted. Both
- *  are paid off by the settle frame the `zooming` flag promises (see
+ *  desk where the gesture has revealed page the held frame never painted —
+ *  unless the caller passes something to put there (`beneath`). Both are paid
+ *  off by the settle frame the `zooming` flag promises (see
  *  `CacheSpec.zooming`). `false` when the frame differs by anything *but* the
  *  view — a landed stroke, an undo, a resize, a decode — and the caller
  *  repaints for real, exactly as it would have without this. */
@@ -519,6 +532,7 @@ function carry(
   cache: MarkCache,
   spec: CacheSpec,
   strokes: readonly Stroke[],
+  beneath?: Beneath,
 ): boolean {
   const from = cache.painted;
   if (!from) return false;
@@ -542,6 +556,12 @@ function carry(
   if (!Number.isFinite(grew) || grew <= 0) return false;
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.clearRect(0, 0, spec.width, spec.height);
+  // The page the held pixels no longer cover, when the caller has it to give.
+  // Only on the frames that are shrinking: a frame zooming *in* is showing less
+  // of the page than the frame it was cut from, so there is nothing around the
+  // carried pixels to fill and a blit under them would be a page-sized copy
+  // nobody ever sees.
+  if (beneath && grew < 1) beneath(ctx);
   ctx.setTransform(
     grew,
     0,

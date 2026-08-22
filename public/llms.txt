@@ -152,6 +152,12 @@ connect a storage backend yourself.
   phone, where a pixel is physically smaller; either way the squares are big
   enough to see when the grid arrives. Like the optional guide grid it is painted
   on the screen only and never reaches a downloaded file; Settings turns it off.
+- Zoom out on a big drawing: only the part of the page on screen is painted, so
+  the picture fills in when the gesture ends. Settings → Performance → "render
+  the whole picture" keeps the whole drawing painted off to one side instead, at
+  the cost of a page-sized image in memory and a background repaint after every
+  change, and a zoom out then reveals it as it goes. Off out of the box on every
+  device.
 - Adjust the colour from the right-hand panel's Colour section: brightness and
   contrast, levels (black point, white point, midtones), curves (a draggable tone
   curve with a composite RGB line and one per channel), hue and saturation,

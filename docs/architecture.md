@@ -660,6 +660,20 @@ be much less than a full render:
   compares the _painted_ strokes, so hiding or reordering a layer repaints, and
   a mark landing under something already on the pixels repaints rather than
   compositing itself on top of it.
+- `overview.ts` is the one thing here the user has to ask for, and the reason is
+  that it is a _trade_ rather than a saving: with **Settings → Performance →
+  render the whole picture** switched on, the whole drawing is painted once into
+  a page-shaped surface of its own, at idle and off the frame path, and a frame
+  that is zooming _out_ draws it under the carried pixels. The carry above shows
+  bare desk where the gesture has revealed page the held frame never painted;
+  this is what puts the picture there instead, so a zoom out fills in as the
+  fingers spread rather than when they lift. What it costs is a page-sized bitmap
+  and a full document repaint every time the drawing changes and the app next
+  goes idle — free on a desktop, not free on a phone with a watercolour on the
+  page, which is why it ships off. It obeys the cache's own rules: it holds no
+  state the document doesn't, a spec that differs by so much as the page colour
+  is a different picture, it is only ever shown _under_ a mid-gesture frame, and
+  every caller carries on unchanged when there is no overview to be had.
 - `trail.ts` does the same thing one level in, for the one stroke that _is_
   changing: the gesture under your finger. Almost none of it changed either —
   two samples arrived and everything behind them is already on the screen — so
@@ -843,10 +857,21 @@ gesture began rather than accumulated frame by frame, which is what makes it
 exact and reversible. Being DOM-free, a complete pinch can be driven in a node
 test.
 
-`PaintCanvas` owns only what the maths can't: the pointers, the repaint, and the
-gesture split (one pointer draws, two pinch, a second finger mid-stroke abandons
-the stroke). The view is screen state and deliberately never reaches the store —
-where you scrolled to is not part of the document.
+`PaintCanvas` owns only what the maths can't: the pointers and the gesture split
+(one pointer draws, two pinch, a second finger mid-stroke abandons the stroke).
+The view is screen state and deliberately never reaches the store — where you
+scrolled to is not part of the document.
+
+Three seams sit beside it, each a job that is not "what does this press mean":
+`useCanvasPaint.ts` owns **when the screen is redrawn** — the pixels kept between
+frames (the mark cache, the page overview, the gesture trail), the render inputs
+gathered where an animation frame can reach them, and the coalescing that turns a
+burst of pointer samples into one paint. `useToolContext.ts` owns **what a tool
+is handed** when a press reaches it, including the page snapshot the bucket and
+the dropper read, taken lazily and kept for the gesture. And `useEdgeSwipe.ts`
+owns **whose a touch at the screen edge is** — held, undecided, until it moves
+far enough to prove it is a panel's swipe or a mark, and replayed from where it
+landed when it turns out to be ours.
 
 The **nib outline** a mouse or a stylus wears (`PointerRing.tsx`) is deliberately
 not part of a frame. It is one absolutely-positioned element moved by

@@ -829,6 +829,7 @@ export const sv: Catalog = {
       canvas: "Rityta",
       download: "Nedladdning",
       storage: "Lagring",
+      performance: "Prestanda",
       developer: "Utvecklare",
       logs: "Loggar",
     },
@@ -1032,6 +1033,14 @@ export const sv: Catalog = {
       exportTitle: "Export",
       exportHint:
         "Ladda ner hela dokumentet som JSON, eller den här sidan som PNG.",
+    },
+    performance: {
+      intro:
+        "Vad appen får kosta på sig för att kännas smidigare. Allt här är avstängt från början — appen är snabb på alla enheter ändå. Slå på något om din har utrymme över.",
+      renderingTitle: "Rendering",
+      fullRender: "Rita hela bilden",
+      fullRenderHint:
+        "Normalt ritas bara den del av sidan som syns, så en utzoomning fyller i bilden först när du släpper. Med det här påslaget hålls hela teckningen ritad vid sidan om, och utzoomningen avtäcker den medan den pågår. Det håller en sidstor bild i minnet och ritar om teckningen i bakgrunden efter varje ändring — värt det på en dator, och värt att prova innan du låter det vara på i en telefon.",
     },
     developer: {
       intro: "Diagnostik för när något ser fel ut.",

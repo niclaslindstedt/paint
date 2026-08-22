@@ -904,6 +904,7 @@ export const en = {
       canvas: "Canvas",
       download: "Download",
       storage: "Storage",
+      performance: "Performance",
       developer: "Developer",
       logs: "Logs",
     },
@@ -1113,6 +1114,17 @@ export const en = {
       unlockHint: "Enter the passphrase to read the encrypted cloud copy.",
       exportTitle: "Export",
       exportHint: "Download the whole document as JSON, or this page as a PNG.",
+    },
+    // Settings → Performance: the trades that buy smoothness with memory or
+    // with work done in the background. Named as trades, because the same
+    // switch lands differently on a desktop and on a phone.
+    performance: {
+      intro:
+        "What the app is allowed to spend to feel smoother. Everything here is off out of the box — the app is quick on every device without it. Switch one on if yours has room to spare.",
+      renderingTitle: "Rendering",
+      fullRender: "Render the whole picture",
+      fullRenderHint:
+        "Normally only the part of the page on screen is painted, so zooming out fills the picture in once your fingers lift. With this on the whole drawing is kept painted off to one side, and zooming out reveals it as you go. It holds a page-sized image in memory and repaints the drawing in the background after every change — worth it on a desktop, and worth trying before you leave it on for a phone.",
     },
     developer: {
       intro: "Diagnostics for when something looks wrong.",

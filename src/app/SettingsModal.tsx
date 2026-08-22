@@ -26,7 +26,7 @@ import {
 import { type ThemeAppearance } from "@niclaslindstedt/oss-framework/theme";
 import { type PwaUpdate } from "@niclaslindstedt/oss-framework/pwa";
 
-import { SidePanelIcon, ToolboxIcon } from "./icons.tsx";
+import { GaugeIcon, SidePanelIcon, ToolboxIcon } from "./icons.tsx";
 import { useT } from "./i18n/index.ts";
 import { APP_LOOK } from "./look.ts";
 import {
@@ -47,6 +47,7 @@ import {
 import { CanvasTab } from "./settings/canvas.tsx";
 import { DownloadTab } from "./settings/download.tsx";
 import { PanelTab } from "./settings/panel.tsx";
+import { PerformanceTab } from "./settings/performance.tsx";
 import { ToolsTab } from "./settings/tools.tsx";
 
 // The app's tabbed Settings modal — composed from the framework's `Modal` and
@@ -77,6 +78,7 @@ export type SettingsTab =
   | "canvas"
   | "download"
   | "storage"
+  | "performance"
   | "developer"
   | "logs";
 
@@ -98,6 +100,13 @@ const TABS: TabDef[] = [
   { id: "canvas", labelKey: "settings.tabs.canvas", icon: CropIcon },
   { id: "download", labelKey: "settings.tabs.download", icon: DownloadIcon },
   { id: "storage", labelKey: "settings.tabs.storage", icon: DatabaseIcon },
+  // Last of the everyday pages and first of the technical ones: what the app
+  // spends to paint, rather than what it paints (see `settings/performance.tsx`).
+  {
+    id: "performance",
+    labelKey: "settings.tabs.performance",
+    icon: GaugeIcon,
+  },
   { id: "developer", labelKey: "settings.tabs.developer", icon: CodeIcon },
   { id: "logs", labelKey: "settings.tabs.logs", icon: ScrollTextIcon },
 ];
@@ -366,6 +375,9 @@ export function SettingsModal({
         >
           {activeTab === "general" && (
             <GeneralTab settings={draft} update={update} />
+          )}
+          {activeTab === "performance" && (
+            <PerformanceTab settings={draft} update={update} />
           )}
           {activeTab === "appearance" && (
             <AppearanceTab

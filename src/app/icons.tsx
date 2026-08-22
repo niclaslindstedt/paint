@@ -849,6 +849,30 @@ export function MoreToolsIcon({ className }: IconProps) {
  *  as what is currently in it: the panel holds the page actions as well as the
  *  layer stack, and a stack of sheets said only half of that. The button sits
  *  at the right end of the header, on the side the panel comes in from. */
+/** The gauge — Settings → Performance, the page where the app is told what it
+ *  may spend to paint (see `settings/performance.tsx`).
+ *
+ *  A dial rather than a clock, and the gap at the foot is what makes the
+ *  difference: a ring closed all the way round with one hand in it is a
+ *  clock face at any size, where a scale that stops short at the bottom is
+ *  the thing every speedometer and pressure gauge in the world is drawn as.
+ *  The needle leans up and to the right — the end of the scale a gauge is
+ *  read at when something is being spent — and the hub is filled, because at
+ *  18 pixels an outlined circle of that size closes into a grey dot anyway
+ *  (see the note at the top of this file). */
+export function GaugeIcon({ className }: IconProps) {
+  return (
+    <svg {...base} className={className} aria-hidden="true">
+      <path d="M7.37 19.72A9 9 0 1 1 16.63 19.72" />
+      <path
+        d="M16.86 5.78 12.99 12.77 11.01 11.23Z"
+        fill="currentColor"
+        strokeWidth={0.8}
+      />
+      <circle cx="12" cy="12" r="1.35" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
 export function SidePanelIcon({ className }: IconProps) {
   return (
     <svg {...base} className={className} aria-hidden="true">
