@@ -685,6 +685,52 @@ describe("zooming while the view is under the fingers", () => {
     ).toBe("repainted");
   });
 
+  it("fills what a zoom out reveals, when the caller has a page to fill it with", () => {
+    // The whole point of "render the whole picture" (see `overview.ts`): the
+    // held pixels shrink away from the edges of the window, and what they leave
+    // behind is bare desk unless somebody paints under them.
+    const cache = createCache(400, 300)!;
+    const { ctx, canvas } = screen();
+    const page = drawing([stroke(100)]);
+    paintCommitted(ctx, canvas, cache, spec(page));
+    let filled = 0;
+    const beneath = () => {
+      filled++;
+    };
+    expect(
+      paintCommitted(
+        ctx,
+        canvas,
+        cache,
+        spec(page, { view: { scale: 0.5, tx: 20, ty: 20 }, zooming: true }),
+        beneath,
+      ),
+    ).toBe("carried");
+    expect(filled).toBe(1);
+  });
+
+  it("leaves it alone on a zoom *in*, which reveals nothing", () => {
+    // The carried pixels then cover the window on their own, and a page-sized
+    // blit under them is a copy nobody would ever see.
+    const cache = createCache(400, 300)!;
+    const { ctx, canvas } = screen();
+    const page = drawing([stroke(100)]);
+    paintCommitted(ctx, canvas, cache, spec(page));
+    let filled = 0;
+    expect(
+      paintCommitted(
+        ctx,
+        canvas,
+        cache,
+        spec(page, { view: { scale: 2, tx: -50, ty: -50 }, zooming: true }),
+        () => {
+          filled++;
+        },
+      ),
+    ).toBe("carried");
+    expect(filled).toBe(0);
+  });
+
   it("still scrolls exactly when only the pan moved", () => {
     // A two-finger drag that never spreads keeps the scroll path's exact
     // strips — carrying is only for the frames a scroll cannot serve.

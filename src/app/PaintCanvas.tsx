@@ -14,6 +14,7 @@ import { paintFrame } from "./frame.ts";
 import type { EffectPreview } from "./render.ts";
 import { onImageDecoded } from "./images.ts";
 import type { MarkCache } from "./cache.ts";
+import { releaseOverview, type Overview } from "./overview.ts";
 import { cursorFor, usePointerRing } from "./PointerRing.tsx";
 import { pluginById } from "./plugins/registry.ts";
 import type { CanvasProbe, DraftStroke, ToolContext } from "./plugins/types.ts";
@@ -151,6 +152,12 @@ type Props = {
   /** The transparency chequer for the app's current theme (see `canvas.ts`) —
    *  what a page with no sheet is drawn as. Never exported either. */
   checker: readonly [string, string];
+  /** Keep the whole page painted off to one side rather than only the part the
+   *  window is showing — Settings → Performance (see `overview.ts`). A render
+   *  input like the two detail settings below: nothing about a settled frame
+   *  changes, but a zoom out then reveals the picture as it goes instead of
+   *  bare desk. */
+  fullRender?: boolean;
   /** How finely the watercolour simulation resolves (see `MIN_WASH_DETAIL`).
    *  Threaded in rather than read off the module the app puts it in force on,
    *  because the canvas needs it as a *render input*: it is what makes a page
@@ -219,6 +226,7 @@ export function PaintCanvas({
   onContextMenu,
   showGrid = false,
   showPixelGrid = true,
+  fullRender = false,
   checker,
   washDetail = DEFAULT_WASH_DETAIL,
   leadDetail = DEFAULT_LEAD_DETAIL,
@@ -362,6 +370,7 @@ export function PaintCanvas({
     defaultInk,
     showGrid,
     showPixelGrid,
+    fullRender,
     checker,
     washDetail,
     leadDetail,
@@ -376,6 +385,7 @@ export function PaintCanvas({
     defaultInk,
     showGrid,
     showPixelGrid,
+    fullRender,
     checker,
     washDetail,
     leadDetail,
@@ -387,6 +397,12 @@ export function PaintCanvas({
   // The committed marks, as pixels (see `cache.ts`). Opened on the first paint
   // and kept for the life of the canvas.
   const cacheRef = useRef<MarkCache | null>(null);
+  // …and the whole page as pixels, for the frames of a zoom out (see
+  // `overview.ts`). Held here for the same reason the cache is, and dropped
+  // with the canvas: it is a page-sized bitmap, and nothing outside a frame has
+  // any use for it.
+  const overviewRef = useRef<Overview | null>(null);
+  useEffect(() => () => releaseOverview(overviewRef), []);
   // …and what the last frame painted, which is what lets a frame of a gesture
   // in flight repaint the patch it grew into rather than the whole mark (see
   // `trail.ts`). Kept for the life of the canvas for the same reason.
@@ -480,6 +496,7 @@ export function PaintCanvas({
       // here or holding a corner grip out there.
       loupe: placingAt.current ?? inks.current.adjusting,
       cache: cacheRef,
+      overview: overviewRef,
       trail: trailRef.current,
     });
   }, [viewRef, viewportRef, zooming]);
@@ -520,6 +537,7 @@ export function PaintCanvas({
     defaultInk,
     showGrid,
     showPixelGrid,
+    fullRender,
     checker,
     washDetail,
     leadDetail,

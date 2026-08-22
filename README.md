@@ -396,7 +396,10 @@ npm run preview
   and with a fine pointer the cursor **is the nib**: a circle the size of the
   mark you are about to leave, on the page you are about to leave it on, growing
   and shrinking with the zoom. Tools that mark nothing by a nib keep the
-  crosshair.
+  crosshair. Only the part of the page on screen is painted, so a zoom out fills
+  the picture in once your fingers lift; Settings → **Performance → render the
+  whole picture** keeps the whole drawing painted instead, on a device with the
+  memory to spare, and the zoom out then reveals it as you go.
 - **Header** — the drawing's name (edit in place), the favourite star, the disk
   button (when a backend is connected), the download menu (PNG, JPG, SVG, the
   layered `.pct`, or copy to the clipboard), and — at the far right — the button

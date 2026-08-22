@@ -48,6 +48,13 @@ import {
   type CacheSpec,
   type MarkCache,
 } from "./cache.ts";
+import {
+  overviewReady,
+  paintOverview,
+  releaseOverview,
+  warmOverview,
+  type OverviewHolder,
+} from "./overview.ts";
 import type { Rect } from "./geometry.ts";
 import type { EffectPreview } from "./render.ts";
 import { visibleStrokes } from "./layers.ts";
@@ -150,6 +157,14 @@ export type Frame = {
    *  first one. A holder rather than a value because the cache outlives any one
    *  frame and is `null` where there is no DOM to make one in. */
   cache: { current: MarkCache | null };
+  /** Keep the whole page painted rather than only the part the window is
+   *  showing — Settings → Performance (see `overview.ts`). It changes nothing
+   *  about what a settled frame looks like; what it buys is the frames *during*
+   *  a zoom out, which then reveal the picture instead of bare desk. */
+  fullRender: boolean;
+  /** …and where those page-sized pixels live, held across frames like the cache
+   *  and for the same reason. Emptied whenever the setting is off. */
+  overview: OverviewHolder;
   /** What the frame before this one painted, so a gesture that has merely got
    *  longer can be painted where it grew and nowhere else (see `trail.ts`).
    *  Held by the caller for the same reason the cache is. */
@@ -253,7 +268,23 @@ export function paintFrame(frame: Frame): void {
   ctx.clearRect(0, 0, width, height);
 
   frame.cache.current ??= createCache(width, height);
-  const committedWork = paintCommitted(ctx, canvas, frame.cache.current, spec);
+  // The whole page, for a frame that is zooming out to reveal (see
+  // `overview.ts`). Handed over only when the held pixels really are this
+  // picture — a stale overview is no overview at all — and the cache decides
+  // whether the frame it is painting has any use for it.
+  const overview = frame.fullRender ? frame.overview.current : null;
+  const beneath =
+    overview && overviewReady(overview, spec)
+      ? (target: CanvasRenderingContext2D) =>
+          void paintOverview(target, overview, spec)
+      : undefined;
+  const committedWork = paintCommitted(
+    ctx,
+    canvas,
+    frame.cache.current,
+    spec,
+    beneath,
+  );
 
   // Then the view: device pixels, then the view's scale and pan. From here on
   // this works in document coordinates exactly as the PNG export does.
@@ -369,6 +400,20 @@ export function paintFrame(frame: Frame): void {
   // a stale screen instead of repainting it.
   if (committedWork === "carried") frame.trail.painted = null;
   else trailPainted(frame.trail, spec, draft, outline);
+
+  // …and, last of all, the page kept off to one side, if the setting asks for
+  // one. Queued at idle rather than painted here (see `warmOverview`), and only
+  // from a frame with nothing in flight: the repaint it queues is a whole
+  // document, and a hand that is still drawing will want that time back.
+  // An effect being previewed is left out for the reason the mark cache gives
+  // up its own shortcuts while a dialog is open (see `paintCommitted`): every
+  // layer the effect names is composited as a unit, so each nudge of a slider
+  // would queue a whole-page repaint *with the effect on it*. A zoom out with
+  // the dialog open simply goes without, as it did before this existed.
+  if (!frame.fullRender) releaseOverview(frame.overview);
+  else if (!draft && !moving && !frame.zooming && !frame.preview) {
+    warmOverview(frame.overview, spec);
+  }
 }
 
 /** Where a drag has carried the window, as a selection of its own — what the

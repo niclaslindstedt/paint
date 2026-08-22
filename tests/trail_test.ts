@@ -112,6 +112,7 @@ function gesture(tool: string, points: Point[]) {
 function screen() {
   const canvas = createFakeCanvas(400, 300);
   const cache = { current: null };
+  const overview = { current: null };
   const trail = createTrail();
   const paint = (over: Partial<Frame> = {}) => {
     paintFrame({
@@ -134,6 +135,8 @@ function screen() {
       moving: null,
       loupe: null,
       cache,
+      fullRender: false,
+      overview,
       trail,
       ...over,
     });

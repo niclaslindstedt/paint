@@ -56,6 +56,20 @@ export type FakeDraw = {
    *  was for — `destination-in` cuts one picture to the shape of another (see
    *  `relayFixed` in `relay.ts`), `source-over` simply lays it on top. */
   composite: GlobalCompositeOperation;
+  /** The transform in force when it was drawn.
+   *
+   *  A blit drawn at the origin says nothing about *where* it landed: the
+   *  picture is placed by the transform instead, which is how a whole page is
+   *  put under a frame at whatever zoom the frame is at (see `overview.ts`).
+   *  Recorded here so that placement can be asserted on rather than assumed. */
+  transform: {
+    a: number;
+    b: number;
+    c: number;
+    d: number;
+    e: number;
+    f: number;
+  };
 };
 
 /** A recording 2D context, plus the tallies the tests assert on. */
@@ -264,6 +278,7 @@ export function createFakeContext(
         height: sized ? rest[rest.length - 1] : undefined,
         filter: String(ctx.filter),
         composite: ctx.globalCompositeOperation as GlobalCompositeOperation,
+        transform: { ...transform },
       });
     },
     createRadialGradient() {

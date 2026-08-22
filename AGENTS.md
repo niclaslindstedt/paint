@@ -97,6 +97,10 @@ The app owns the domain and the stores ("store stays in the app"):
   the committed marks kept as pixels, and the gesture in flight repainted only
   where it has just grown. Both are pure optimisations over `render.ts` and
   both fall back to painting the document when they cannot be sure.
+- `src/app/overview.ts` — the whole page kept as pixels, off to one side and at
+  idle, so a zoom out can reveal the picture instead of bare desk. The one
+  rendering trade the user opts into (Settings → Performance); off out of the
+  box, and every caller works unchanged without it.
 - `src/app/tiles.ts` — when a panel's little pictures are allowed to cost what
   they cost: a cache keyed by everything that decides their pixels, one shared
   queue that paints them a job per frame, and the idle hook the panels warm

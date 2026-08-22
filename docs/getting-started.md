@@ -249,6 +249,16 @@ the on-screen grid, the **pixel grid** that rules the page into single pixels
 once you are zoomed in far enough to see them, and the **tool-name** label that
 names each tool over the middle of the page as you pick it.
 
+Settings → **Performance** is where the app is told what it may spend to feel
+smoother, and everything on it is off out of the box — the app is quick on every
+device without any of it. **Render the whole picture** is the one switch there
+today: normally only the part of the page on screen is painted, so zooming out
+fills the picture in once your fingers lift, and with this on the whole drawing
+is kept painted off to one side and a zoom out reveals it as you go. It holds a
+page-sized image in memory and repaints the drawing in the background after
+every change, so it is worth it on a desktop and worth trying before you leave
+it on for a phone.
+
 ## Drawings, folders, and sketchbooks
 
 The sidebar lists the drawings in the current sketchbook, most recently edited

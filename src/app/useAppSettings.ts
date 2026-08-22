@@ -220,6 +220,23 @@ export type AppSettings = {
    *  thousand sketch strokes is a thousand fields where a painting is a few
    *  dozen. */
   leadDetail: number;
+  /** Keep the whole drawing painted off to one side, so a zoom out reveals the
+   *  picture as the fingers spread rather than after they lift (see
+   *  `overview.ts`).
+   *
+   *  Off out of the box, and the only setting in the app that is a straight
+   *  trade of *memory* for smoothness: it holds a page-sized bitmap and repaints
+   *  the whole document, at idle, every time the drawing changes. On a desktop
+   *  that is free; on a phone with a watercolour on the page it is not, and
+   *  nobody should have to find that out by their canvas going quiet. So it is
+   *  switched on by whoever knows their device has the room — which is what the
+   *  Performance page is for.
+   *
+   *  It travels with the rest of the settings rather than staying on the device
+   *  (see `settingsStore.ts`), for the reason the simulation detail does: a kit
+   *  is worth carrying, and a machine that can't afford it can turn it off in
+   *  the same two taps it took to turn on. */
+  fullRender: boolean;
   /** Whether shape tools fill rather than outline. */
   filled: boolean;
   /** Paint the canvas over a grid, so a sketch of boxes and arrows lines up. */
@@ -354,6 +371,11 @@ const BASE_SETTINGS: Omit<AppSettings, "enabledPlugins"> = {
   washDetail: DEFAULT_WASH_DETAIL,
   // …and all of the graphite simulation's, for the same reason.
   leadDetail: DEFAULT_LEAD_DETAIL,
+  // Off out of the box, on every device: it is the one setting here that can
+  // make the app *worse* on the machine it is switched on by, and a default
+  // that has to be discovered by a phone hitching is not a default (see
+  // `AppSettings.fullRender`).
+  fullRender: false,
   filled: false,
   showGrid: false,
   // On out of the box, on every device, and it costs nothing to be: below its
@@ -535,6 +557,10 @@ export function parseSettings(raw: string): AppSettings {
     merged.downloadScope = base.downloadScope;
   }
   merged.downloadTransparent = Boolean(merged.downloadTransparent);
+  // A default-*off* flag, so the plain coercion is right: a blob written before
+  // it existed holds `undefined`, and reading that as "switched off" is exactly
+  // what an install that never asked for it should get.
+  merged.fullRender = Boolean(merged.fullRender);
   // A detail off a blob written by another build (or by hand) is pulled back
   // onto the slider's own track: a control cannot show a value that is not one
   // of its own. A blob from a build that still had a `washEngine` or a
