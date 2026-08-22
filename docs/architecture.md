@@ -304,15 +304,31 @@ solve testable in node), and `effectCutout.ts` is the shim that reads pixels off
 the context and multiplies the mask into their alpha. Its tracing rides on the
 effect draft itself, stamped from the selection when the dialog opens.
 
-Being aimed also decides where it is _offered_. An effect that needs a tracing
-has nothing to do without one, so its descriptor is marked `contextual` and it
-leaves the arranged sections altogether: `panelSections.ts` builds a section's
-rows from the effects a group _lists_ rather than from the ones it holds, drops
-a group that has nothing left to list, and the screen puts the contextual ones
-in the panel's Contextual block instead — the same block the selection's invert
-is in, alive only while there is a selection to aim through. One flag on one
-descriptor; no screen and no section branches on the effect's kind to arrange
-it.
+Being aimed also decides two things about how it is _offered_, and both are
+flags on the descriptor rather than a screen that knows which effect this is.
+`listedOnPage` moves its row onto the page's own section — Image already being
+the list of surgery on the picture, and two headings both reading IMAGE having
+said less than one does; `panelSections.ts` then builds each group's section
+from the effects it _lists_ rather than from the ones it holds, and drops a
+group left with nothing. `aimTool` names the tool that supplies the tracing, and
+opening the effect puts it in the hand (`CanvasScreen.openEffect`), because the
+ordinary way to meet a cut is to press it _before_ having traced anything.
+
+That press also starts an **aim**, which outlives the dialog it opened: while
+one is live the canvas draws the window as the cut sees it rather than as
+marching ants — the subject washed red, the band the solve will search washed
+yellow (`cutAim.ts`, painted as chrome in `frame.ts` and compared by identity
+through the trail like every other chrome). It ends when the cut lands, or when
+a tool that doesn't choose marks says the user has moved on. What the yellow
+shows is the effect's own `band` control, so the picture on the page and the
+number the solve is handed are one value.
+
+Inside the solve, that band is also a **prior**: the tracing is a person
+pointing at the border, so a cell's price carries the negative log of a Gaussian
+in its distance from the line — free on it, and steeply dearer outward until
+the band's edge, where looking stops. It is weighted to decide a tie between two
+believable borders without being able to hold the cut on the line when only one
+of them is real.
 Neither of those two touches pixels one at a time — the blur is one filtered
 `drawImage` and the grain is a deterministic speck tile laid as a pattern
 anchored to the page — which is what makes them cheap enough to preview live. The

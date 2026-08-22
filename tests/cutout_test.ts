@@ -51,6 +51,18 @@ function wobble(cx: number, cy: number, radius: number, by: number): Point[] {
   return loop;
 }
 
+/** A clean ring of points at one radius — a tracing drawn steadily, where
+ *  `wobble` is one drawn by a hand. */
+function ring(cx: number, cy: number, radius: number, n = 48): Point[] {
+  return Array.from({ length: n }, (_, i) => {
+    const angle = (i / n) * Math.PI * 2;
+    return {
+      x: cx + Math.cos(angle) * radius,
+      y: cy + Math.sin(angle) * radius,
+    };
+  });
+}
+
 /** Mean distance of a loop's points from a centre. */
 function meanRadius(loop: readonly Point[], cx: number, cy: number): number {
   const total = loop.reduce(
@@ -90,6 +102,43 @@ describe("cutout", () => {
     const result = cutout(rgba, 120, 120, [wobble(66, 63, 30, 4)])!;
     expect(Math.abs(meanRadius(result.contours[0]!, 60, 60) - 30)).toBeLessThan(
       2,
+    );
+  });
+
+  it("reads the tracing as a prior: two edges, and the nearer one wins", () => {
+    // Three bands of tone, so there are two real borders inside one search:
+    // dark to mid at 30, mid to light at 42. Both are genuine edges and both
+    // separate their sides, so the picture cannot say which one the subject
+    // ends at — only the tracing can. Trace the near one and the cut keeps
+    // the near one; trace the far one and it keeps that instead. Nothing about
+    // the picture changes between these two runs.
+    const rgba = scene(140, 140, (x, y) => {
+      const d = Math.hypot(x - 70, y - 70);
+      if (d <= 30) return [40, 55, 45] as const;
+      if (d <= 42) return [132, 130, 118] as const;
+      return [230, 225, 210] as const;
+    });
+    const near = cutout(rgba, 140, 140, [ring(70, 70, 30)])!;
+    const far = cutout(rgba, 140, 140, [ring(70, 70, 42)])!;
+    expect(Math.abs(meanRadius(near.contours[0]!, 70, 70) - 30)).toBeLessThan(
+      2,
+    );
+    expect(Math.abs(meanRadius(far.contours[0]!, 70, 70) - 42)).toBeLessThan(2);
+  });
+
+  it("looks no further than the band, and the band is the user's to set", () => {
+    // The subject's edge is 12 px outside the tracing. A hand-width band finds
+    // it; a one-pixel band cannot reach it and says so by keeping the line as
+    // drawn — which is exactly what someone who has traced carefully wants (see
+    // `CUTOUT_BAND_MIN`).
+    const rgba = disc(60, 60, 42);
+    const wide = cutout(rgba, 120, 120, [ring(60, 60, 30)], { band: 20 })!;
+    const tight = cutout(rgba, 120, 120, [ring(60, 60, 30)], { band: 1 })!;
+    expect(Math.abs(meanRadius(wide.contours[0]!, 60, 60) - 42)).toBeLessThan(
+      2,
+    );
+    expect(Math.abs(meanRadius(tight.contours[0]!, 60, 60) - 30)).toBeLessThan(
+      1.5,
     );
   });
 

@@ -298,6 +298,7 @@ export function SidePanel({
                 drawing={drawing}
                 onResize={onResize}
                 onCrop={onCrop}
+                onEffect={onEffect}
                 onTransform={onTransform}
               />
             ) : section.id === "layers" ? (

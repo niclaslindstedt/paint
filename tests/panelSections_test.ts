@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 import { describe, expect, it } from "vitest";
 
-import { EFFECTS, listedEffectsIn } from "../src/app/effects.ts";
+import { EFFECTS, listedEffectsIn, PAGE_EFFECTS } from "../src/app/effects.ts";
 import {
   effectItemId,
   isItemOn,
@@ -25,35 +25,20 @@ describe("PANEL_SECTIONS", () => {
     expect(ids(PANEL_SECTIONS)).toEqual(["page", "effects", "layers", "color"]);
   });
 
-  it("gives every listed effect a row to be switched off by", () => {
+  it("gives every effect a row to be switched off by, wherever it is listed", () => {
     const items = PANEL_SECTIONS.flatMap((section) =>
       section.items.map((item) => item.id),
     );
-    for (const effect of EFFECTS.filter((e) => !e.contextual)) {
+    for (const effect of EFFECTS) {
       expect(items).toContain(effectItemId(effect.kind));
     }
   });
 
-  it("gives a contextual effect no row at all", () => {
-    // One that is *aimed* through a selection is offered by the screen while
-    // there is something to aim it at (the panel's Contextual block), so it has
-    // no permanent row and nothing to switch off — see `EffectDescriptor
-    // .contextual`.
-    const items = PANEL_SECTIONS.flatMap((section) =>
-      section.items.map((item) => item.id),
-    );
-    const contextual = EFFECTS.filter((effect) => effect.contextual);
-    expect(contextual.length).toBeGreaterThan(0);
-    for (const effect of contextual) {
-      expect(items).not.toContain(effectItemId(effect.kind));
-    }
-  });
-
-  it("drops a group whose every effect is contextual", () => {
-    // Image is that group today: the cut is its only member and the cut is
-    // contextual, so there is no Image *effects* section — a heading nothing
-    // could ever appear under is worse than no heading. (The page's own section
-    // is titled Image too and is untouched by this; it is `page`.)
+  it("drops a group whose every effect is listed on the page", () => {
+    // Image is that group today: the cut is its only member and the cut sits
+    // with the page's own actions, so there is no Image *effects* section — two
+    // headings both reading IMAGE said less than one does. (The page's own
+    // section is the one titled Image now; it is `page`.)
     for (const section of PANEL_SECTIONS) {
       expect(section.items.length).toBeGreaterThan(0);
     }
@@ -61,15 +46,20 @@ describe("PANEL_SECTIONS", () => {
     expect(listedEffectsIn("image")).toEqual([]);
   });
 
-  it("keeps the page's own actions on the Image section", () => {
+  it("keeps the page's own actions on the Image section, the cut under Crop", () => {
+    // The one effect listed here rather than by its group sits between Crop and
+    // Flip: cropping and cutting the subject out are the same sentence about a
+    // picture that is not the picture yet.
     const page = PANEL_SECTIONS.find((section) => section.id === "page");
     expect(page?.items.map((item) => item.id)).toEqual([
       "page:resize",
       "page:crop",
+      "effect:cutout",
       "page:flip",
       "page:mirror",
       "page:reset",
     ]);
+    expect(PAGE_EFFECTS.map((effect) => effect.kind)).toEqual(["cutout"]);
   });
 
   it("namespaces every item id, so two sections can't collide", () => {

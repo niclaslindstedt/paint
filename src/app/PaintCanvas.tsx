@@ -10,6 +10,7 @@ import {
   type MenuEdge,
 } from "./gestures.ts";
 import { strokeBounds } from "./bounds.ts";
+import type { CutAim } from "./cutAim.ts";
 import { paintFrame } from "./frame.ts";
 import type { EffectPreview } from "./render.ts";
 import { onImageDecoded } from "./images.ts";
@@ -115,6 +116,11 @@ type Props = {
    *  its outline, cuts every mark made inside it to it, and reads a press on it
    *  as being about the selection rather than about the page. */
   selection?: Selection | null;
+  /** A cut being aimed through that selection, or `null`/absent for none. While
+   *  one is, the window is drawn as the cut rather than as marching ants — the
+   *  subject red, the searched band yellow (see `cutAim.ts`). Hold one object
+   *  for as long as the aim holds: it is compared by identity. */
+  aiming?: CutAim | null;
   /** Called once, when a hand drag that carried the selection's *contents*
    *  lifts — the whole move, as one edit. The drag itself is shown live here and
    *  touches no document (see `selection.ts`). */
@@ -218,6 +224,7 @@ export function PaintCanvas({
   onEnterText,
   onSelectRegion,
   selection = null,
+  aiming = null,
   onMoveSelection,
   onCarrySelection,
   onAdjustSelection,
@@ -377,6 +384,7 @@ export function PaintCanvas({
     preview,
     decodedAt,
     selection,
+    aiming,
     adjusting,
   });
   inks.current = {
@@ -392,6 +400,7 @@ export function PaintCanvas({
     preview,
     decodedAt,
     selection,
+    aiming,
     adjusting,
   };
   // The committed marks, as pixels (see `cache.ts`). Opened on the first paint
@@ -489,6 +498,7 @@ export function PaintCanvas({
       viewport: viewportRef.current,
       ...inks.current,
       selection: inks.current.selection,
+      aiming: inks.current.aiming ?? null,
       zooming: zooming.current,
       draft: draftRef.current,
       moving: moving ? { ...moving, offset: moveBy.current } : null,
@@ -544,6 +554,7 @@ export function PaintCanvas({
     preview,
     decodedAt,
     selection,
+    aiming,
     adjusting,
     requestPaint,
   ]);

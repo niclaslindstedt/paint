@@ -52,6 +52,7 @@
 import { sameFrame, type CacheSpec } from "./cache.ts";
 import { runBounds, type Rect } from "./geometry.ts";
 import { groundProfile } from "./ground.ts";
+import type { CutAim } from "./cutAim.ts";
 import { pluginById } from "./plugins/registry.ts";
 import { strokeStains } from "./render.ts";
 import type { Selection } from "./selection.ts";
@@ -67,6 +68,11 @@ type Painted = {
    *  to the picture like any other. Compared by identity: the screen holds one
    *  selection object for as long as the window doesn't move. */
   outline: Selection | null;
+  /** The cut being aimed through that selection, or `null`. Chrome too, and
+   *  drawn inside the patch box the same way the outline is — so a band that
+   *  has widened under a slider is a change to the picture, and compared by
+   *  identity for the reason the outline is. */
+  aiming: CutAim | null;
 };
 
 /** What one canvas remembers between frames, so a gesture can be painted
@@ -85,8 +91,9 @@ export function trailPainted(
   spec: CacheSpec,
   draft: Stroke | null,
   outline: Selection | null,
+  aiming: CutAim | null,
 ): void {
-  trail.painted = { spec, draft, outline };
+  trail.painted = { spec, draft, outline, aiming };
 }
 
 /** The patch of page this frame differs from the one before it in, when the
@@ -102,6 +109,7 @@ export function trailAhead(
   spec: CacheSpec,
   draft: Stroke | null,
   outline: Selection | null,
+  aiming: CutAim | null,
 ): Rect | null {
   const was = trail.painted;
   if (!was || !draft || !was.draft) return null;
@@ -112,6 +120,7 @@ export function trailAhead(
   if (was.spec.drawing !== spec.drawing) return null;
   if (!sameFrame(was.spec, spec)) return null;
   if (was.outline !== outline) return null;
+  if (was.aiming !== aiming) return null;
 
   const plugin = pluginById(draft.tool);
   if (!plugin?.grows) return null;

@@ -4,6 +4,7 @@ import { useState, type ReactNode } from "react";
 import {
   ConfirmDialog,
   CropIcon,
+  SlidersIcon,
   TrashIcon,
 } from "@niclaslindstedt/oss-framework/components";
 
@@ -14,8 +15,9 @@ import {
   TurnLeftIcon,
   TurnRightIcon,
 } from "../icons.tsx";
+import { PAGE_EFFECTS, type EffectKind } from "../effects.ts";
 import { useT } from "../i18n/index.ts";
-import { isItemOn } from "../panelSections.ts";
+import { effectItemId, isItemOn } from "../panelSections.ts";
 import { stackIsReset } from "../layers.ts";
 import {
   mirrorDrawing,
@@ -39,6 +41,13 @@ import type { SectionProps } from "./section.ts";
 // action on the *document* — every mark, every layer, and the page colour with
 // them — so it belongs beside resize and flip; and something you can hit by
 // accident on the way to "flip" is not where the irreversible thing goes.
+//
+// One row here is an **effect** rather than a page action: Delete background,
+// which is surgery on what the picture is and reads as the next sentence after
+// Crop. It is not named here — the effects that say they belong on this section
+// are `PAGE_EFFECTS`, and this renders whatever that hands it (see
+// `EffectDescriptor.listedOnPage`), so nothing in this file knows which effect
+// it is showing.
 
 export function PageSection({
   section,
@@ -51,12 +60,14 @@ export function PageSection({
   dragging,
   onResize,
   onCrop,
+  onEffect,
   onTransform,
 }: SectionProps & {
   store: PaintStore;
   drawing: Drawing;
   onResize: () => void;
   onCrop: () => void;
+  onEffect: (kind: EffectKind) => void;
   onTransform: (
     edit: (drawing: Drawing, bitmap: BitmapTurn) => PageEdit,
   ) => void;
@@ -127,6 +138,27 @@ export function PageSection({
                 {t("page.crop")}
               </span>
             </button>
+          )}
+
+          {/* The effects filed on this section — a row apiece, carrying the
+              sliders glyph the effects sections use, because the press opens
+              options rather than landing anything. */}
+          {PAGE_EFFECTS.filter((effect) => on(effectItemId(effect.kind))).map(
+            (effect) => (
+              <button
+                key={effect.kind}
+                type="button"
+                onClick={() => onEffect(effect.kind)}
+                title={t(effect.hintKey)}
+                aria-label={t("effects.open", { name: t(effect.nameKey) })}
+                className="flex cursor-pointer items-center gap-2 rounded border border-line px-2 py-1.5 text-sm text-fg hover:bg-surface-2 hover:text-fg-bright"
+              >
+                <span className="min-w-0 flex-1 truncate text-left">
+                  {t(effect.nameKey)}
+                </span>
+                <SlidersIcon className="h-4 w-4 shrink-0 text-muted" />
+              </button>
+            ),
           )}
 
           {on("page:flip") && (

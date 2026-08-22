@@ -191,11 +191,12 @@ the same [`oss-framework`](https://github.com/niclaslindstedt/oss-framework).
   all from the panel's **Colour** section, all previewed on the page as you set
   them, and all landing exactly the way an effect does. See
   [`docs/features/color.md`](docs/features/color.md).
-- **Delete a photo's background.** Trace roughly over the subject with a
-  selection tool and **Delete background** appears at the head of the side
-  panel to cut it out of its background — the cut finds the subject's exact
-  edge near your outline, on your device, with feather, colour tolerance and
-  smoothness to taste. See
+- **Delete a photo's background.** **Delete background**, in the panel's Image
+  section, hands you the selection pencil: paint over the subject and it is cut
+  out of its background — the cut finds the exact edge near your outline, on
+  your device, and shows you where it is looking while you trace (the subject
+  in red, the searched band in yellow). Search width, feather, colour tolerance
+  and smoothness to taste. See
   [`docs/features/delete-background.md`](docs/features/delete-background.md).
 - **Vector, not pixels.** Undo is exact, the document is small enough for a
   phone, and a synced copy is readable JSON rather than a blob.
@@ -360,10 +361,9 @@ npm run preview
   **selection pencil** that paints the selection in like a pencil line — every
   stroke adds to it, its Erase mode (or a held `Ctrl`/`Cmd`) paints it away, and
   its feather makes a Delete fade out softly. Press the button again to choose
-  which. With something selected, the side panel grows a **Contextual** block at
-  its head — a blue, slowly glowing pair: **Invert selection** flips the window
-  to everything it wasn't, and **Delete background** cuts the traced subject out
-  of its background. Both go when the selection does. Move what you caught by switching to the hand
+  which. With something selected, the side panel grows a blue, slowly glowing
+  **Contextual** block at its head, holding **Invert selection** — one press and
+  the window is everything it wasn't. It goes when the selection does. Move what you caught by switching to the hand
   and dragging from inside the outline; copy, cut and delete with
   `Ctrl/Cmd + C`, `X` and `Delete`, or from the menu a right-click (or a long
   press) opens on them. `Ctrl/Cmd + V` pastes marks, a picture or words back
@@ -380,10 +380,12 @@ npm run preview
   over; **Crop…** there puts a rectangle over the drawing — drag it by any edge
   or corner, lock it to a shape (the page's own, one of the named ratios, or two
   numbers you type) from the little card at the foot of the page, and Enter cuts
-  the sheet down to it; the **Effects** section under it blurs or grains what is already there,
-  and **Colour** holds the levels, curves, hue and balance. Above all of them,
-  and only while something is selected, sits the blue **Contextual** block with
-  what can be done to the window you are holding.
+  the sheet down to it; **Delete background** is there too, under Crop, because cutting a subject out
+  is the other thing you do to a picture that isn't the picture yet; the
+  **Effects** section under it blurs or grains what is already there, and
+  **Colour** holds the levels, curves, hue and balance. Above all of them, and
+  only while something is selected, sits the blue **Contextual** block with what
+  can be done to the window you are holding.
   Every heading folds its section away, so you can collapse the ones you are not
   using — and dragging a heading (hold it first on a touch screen) **moves the
   section into another order**. Settings → Panel takes a section out of the

@@ -389,6 +389,7 @@ describe("a frame painted with the setting on", () => {
         selection: null,
         moving: null,
         loupe: null,
+        aiming: null,
         cache,
         fullRender,
         overview,
