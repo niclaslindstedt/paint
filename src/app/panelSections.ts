@@ -18,7 +18,12 @@
 // Pure and DOM-free, so the whole arrangement can be driven in a node test: the
 // marks each row wears are the settings tab's business, not this module's.
 
-import { EFFECT_GROUPS, listedEffectsIn, type EffectGroup } from "./effects.ts";
+import {
+  EFFECT_GROUPS,
+  listedEffectsIn,
+  PAGE_EFFECTS,
+  type EffectGroup,
+} from "./effects.ts";
 import type { TKey } from "./i18n/index.ts";
 import { orderById } from "./order.ts";
 
@@ -82,6 +87,11 @@ export type PanelSection = {
   offConfirmKey?: TKey;
 };
 
+/** The id a given effect is switched off by. */
+export function effectItemId(kind: string): string {
+  return `effect:${kind}`;
+}
+
 /** The panel's own two sections. The other two come from `EFFECT_GROUPS`, which
  *  already declares them for the effects themselves. */
 const PAGE: PanelSection = {
@@ -102,6 +112,15 @@ const PAGE: PanelSection = {
       nameKey: "page.crop",
       hintKey: "settings.panel.cropHint",
     },
+    // …and the surgery that is a cut rather than a trim. An effect, but one
+    // listed here rather than under a heading of its own — see
+    // `EffectDescriptor.listedOnPage`. Under Crop because they are the same
+    // sentence: this page is not the picture yet.
+    ...PAGE_EFFECTS.map((effect) => ({
+      id: effectItemId(effect.kind),
+      nameKey: effect.nameKey,
+      hintKey: effect.hintKey,
+    })),
     {
       id: "page:flip",
       nameKey: "page.flip",
@@ -165,11 +184,6 @@ const LAYERS: PanelSection = {
     },
   ],
 };
-
-/** The id a given effect is switched off by. */
-export function effectItemId(kind: string): string {
-  return `effect:${kind}`;
-}
 
 /** One effect group, as a section: its rows are the effects in it, so it is
  *  made of them by definition.

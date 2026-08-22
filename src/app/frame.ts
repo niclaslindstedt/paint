@@ -48,6 +48,7 @@ import {
   type CacheSpec,
   type MarkCache,
 } from "./cache.ts";
+import { paintCutAim, type CutAim } from "./cutAim.ts";
 import type { Rect } from "./geometry.ts";
 import type { EffectPreview } from "./render.ts";
 import { visibleStrokes } from "./layers.ts";
@@ -141,6 +142,14 @@ export type Frame = {
   /** The settled selection, or `null`. Ignored while `moving` is set: the drag
    *  draws its own outline, at the offset it has reached. */
   selection: Selection | null;
+  /** A cut being aimed through that selection, or `null`. While one is, the
+   *  window is drawn as the cut sees it — the subject in red, the searched band
+   *  in yellow — instead of as marching ants (see `cutAim.ts`).
+   *
+   *  Pass the *same object* for as long as the aim holds: a frame that has only
+   *  grown its gesture compares it by identity, like everything else the trail
+   *  watches (see `trail.ts`). */
+  aiming: CutAim | null;
   moving: MovingMarks | null;
   /** The point a selection is being placed at, or `null` when nothing is being
    *  placed — a corner under the finger while the marquee is dragged out, or one
@@ -235,7 +244,7 @@ export function paintFrame(frame: Frame): void {
   const patch =
     moving || frame.loupe
       ? null
-      : trailAhead(frame.trail, spec, draft, outline);
+      : trailAhead(frame.trail, spec, draft, outline, frame.aiming);
   const cache = frame.cache.current;
   if (
     patch &&
@@ -243,7 +252,7 @@ export function paintFrame(frame: Frame): void {
     cache?.painted &&
     paintPatch(ctx, frame, spec, cache, draft, patch, outline)
   ) {
-    trailPainted(frame.trail, spec, draft, outline);
+    trailPainted(frame.trail, spec, draft, outline, frame.aiming);
     return;
   }
 
@@ -348,7 +357,7 @@ export function paintFrame(frame: Frame): void {
     }
   });
 
-  paintChrome(ctx, drawing, outline, spec, frame.showPixelGrid);
+  paintChrome(ctx, drawing, outline, spec, frame.showPixelGrid, frame.aiming);
   // …and the magnifier over the lot, when a selection is being placed.
   if (frame.loupe) {
     paintLoupe(ctx, {
@@ -368,7 +377,7 @@ export function paintFrame(frame: Frame): void {
   // one, or the settle frame after a zoomed-while-drawing gesture would patch
   // a stale screen instead of repainting it.
   if (committedWork === "carried") frame.trail.painted = null;
-  else trailPainted(frame.trail, spec, draft, outline);
+  else trailPainted(frame.trail, spec, draft, outline, frame.aiming);
 }
 
 /** Where a drag has carried the window, as a selection of its own — what the
@@ -415,6 +424,7 @@ function paintChrome(
   outline: Selection | null,
   spec: CacheSpec,
   pixelGrid: boolean,
+  aiming: CutAim | null,
 ): void {
   const { view, dpr } = spec;
   const scale = view.scale;
@@ -433,7 +443,14 @@ function paintChrome(
   // that adjust it are elements over the canvas rather than paint on it (see
   // `SelectionFrame.tsx`): they are controls, and as elements they get
   // hit-testing, a cursor and a focus ring for free.
-  if (outline) paintOutline(ctx, outline.region, scale * dpr);
+  //
+  // …unless a cut is being aimed through it, in which case the window is drawn
+  // as that cut rather than as a selection: the subject red, the searched band
+  // yellow, and no ants, because "something is selected" is no longer the thing
+  // worth saying about it (see `cutAim.ts`).
+  if (outline && aiming)
+    paintCutAim(ctx, outline.region, aiming, scale, drawing);
+  else if (outline) paintOutline(ctx, outline.region, scale * dpr);
 
   // The sheet's edge, so it is visible against the desk. The width is divided
   // by the zoom so the line stays a hairline at any scale instead of fattening
@@ -511,7 +528,14 @@ function paintPatch(
   onSheet(ctx, frame.drawing, () => {
     paintStrokes(ctx, [draft], { ...spec.options, clip: patch, live: true });
   });
-  paintChrome(ctx, frame.drawing, outline, spec, frame.showPixelGrid);
+  paintChrome(
+    ctx,
+    frame.drawing,
+    outline,
+    spec,
+    frame.showPixelGrid,
+    frame.aiming,
+  );
   ctx.restore();
   return true;
 }

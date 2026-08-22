@@ -73,9 +73,9 @@ Neither costs an undo step. Nothing about a window is in the drawing.
 With a window up, the right-hand panel grows a **Contextual** block at its
 head — blue, and pulsing gently — and **Invert selection** is in it: one press
 and the window becomes everything on the page it wasn't, and nothing it was.
-Press it twice and you are back where you started. Beside it is **Delete
-background**, which cuts what you traced out of its background (see
-[`delete-background.md`](delete-background.md)).
+Press it twice and you are back where you started. (What you traced can also be
+cut out of its background — that is **Delete background**, in the panel's Image
+section; see [`delete-background.md`](delete-background.md).)
 
 The block is contextual, and that is the whole of it: with nothing selected
 there is nothing either row could act on, so there is no block — not a heading

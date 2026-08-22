@@ -31,6 +31,8 @@
 // effect should be a descriptor and its catalog strings, not a new dialog.
 
 import { straightCurves, type Adjustment, type CurveSet } from "./adjust.ts";
+import { CUTOUT_BAND, CUTOUT_BAND_MAX, CUTOUT_BAND_MIN } from "./cutout.ts";
+import { SELECT_DRAW_TOOL_ID } from "./plugins/builtin/select.ts";
 import type { TKey } from "./i18n/index.ts";
 import type { Point } from "./types.ts";
 
@@ -60,6 +62,12 @@ export type Effect =
        *  setting — it is *what* the cut is aimed at, the way `scope` is where
        *  (see `cutout.ts` for what is done with it). */
       subject: readonly (readonly Point[])[];
+      /** How far either side of the tracing the border is looked for, in
+       *  document pixels. The tracing is a *prior*, strongest on the line and
+       *  falling away outward, and this is where looking stops altogether — so
+       *  it is both the reach and the promise: nothing outside the band can be
+       *  taken or given back (see `cutout.ts`). */
+      band: number;
       /** Softness of the cut edge, in document pixels. */
       feather: number;
       /** 0–1: how little colour difference still counts as the border. */
@@ -204,20 +212,30 @@ export type EffectDescriptor = {
    *  effect applied that changes nothing reads as one that is broken. */
   preset: Effect;
   /**
-   * Offered **contextually** rather than listed as a row of its own section.
+   * Listed by the **page's own section** rather than by its group's.
    *
-   * An effect that is aimed through a tracing has nothing to do until there is
-   * a tracing: a permanent row for one is a row that is wrong most of the time,
-   * and a dialog that opens onto "trace the subject first" is a press that
-   * answers nothing. So such an effect leaves the arranged sections entirely
-   * and appears — glowing, at the head of the Image section — only while the
-   * screen is holding a selection to aim it through (see `SidePanel.tsx`).
+   * A group whose every effect says this has no section of its own to print,
+   * and Image is that group: the one effect in it is surgery on what the
+   * picture *is*, which is what the page's section — resize, crop, turn — is
+   * already the list of. Two headings both reading IMAGE, one under the other,
+   * said less than one does.
    *
-   * The cost is that it cannot be switched off from Settings → Panel, which is
-   * the same bargain every contextual action makes: a thing that only exists
-   * while it applies has no state to hide.
+   * It is a row like any other row there, on always, and switchable from
+   * Settings → Panel under the same id it would have had in its own section.
    */
-  contextual?: boolean;
+  listedOnPage?: boolean;
+  /**
+   * The tool put into the hand when this effect's dialog opens.
+   *
+   * An effect that is *aimed* is useless without the thing that aims it, and
+   * the press that opens it is the moment the user has decided to aim: opening
+   * Delete background with nothing traced used to be a dialog whose only
+   * content was "trace the subject first" and no way to start. Naming the tool
+   * here means the dialog arrives with the pencil that makes a tracing already
+   * in the hand — one flag on the descriptor rather than a screen that knows
+   * which effect needs which tool.
+   */
+  aimTool?: string;
   /** The scopes this effect offers, in the order the dialog shows them, with
    *  the default first.
    *
@@ -312,12 +330,27 @@ export const EFFECTS: readonly EffectDescriptor[] = [
   {
     kind: "cutout",
     group: "image",
-    // Nothing to cut until something is traced — see `contextual`.
-    contextual: true,
+    // Surgery on the picture, so it is listed with the page's own actions
+    // rather than under a second Image heading — see `listedOnPage`.
+    listedOnPage: true,
+    // …and it is aimed, so opening it hands you the thing that aims it.
+    aimTool: SELECT_DRAW_TOOL_ID,
     nameKey: "effects.cutout.name",
     hintKey: "effects.cutout.hint",
     readout: "feather",
     controls: [
+      // The reach comes first: it is the one dial that says *where the cut is
+      // allowed to look*, and the band it names is drawn on the page while you
+      // trace (see `SelectionFrame.tsx`), so it is the dial you set by eye
+      // rather than by result.
+      {
+        id: "band",
+        nameKey: "effects.cutout.band",
+        min: CUTOUT_BAND_MIN,
+        max: CUTOUT_BAND_MAX,
+        step: 1,
+        unit: "px",
+      },
       {
         id: "feather",
         nameKey: "effects.cutout.feather",
@@ -350,6 +383,7 @@ export const EFFECTS: readonly EffectDescriptor[] = [
     preset: {
       kind: "cutout",
       subject: [],
+      band: CUTOUT_BAND,
       feather: 1,
       tolerance: 0.5,
       smoothness: 0.35,
@@ -609,19 +643,21 @@ export function effectsIn(group: EffectGroup): EffectDescriptor[] {
   return EFFECTS.filter((effect) => effect.group === group);
 }
 
-/** The effects a section actually **lists** — the same set minus the ones that
- *  are offered contextually instead (see `EffectDescriptor.contextual`). The
- *  panel and the settings page both ask here, so "this one has no row" is one
- *  rule in one place; a group with nothing left to list stops being a section
- *  at all rather than printing a heading over an empty box. */
+/** The effects a group's own section actually **lists** — the same set minus
+ *  the ones the page's section lists instead (see
+ *  `EffectDescriptor.listedOnPage`). The panel and the settings page both ask
+ *  here, so "this one has no row of its own" is one rule in one place; a group
+ *  with nothing left to list stops being a section at all rather than printing
+ *  a heading over an empty box. */
 export function listedEffectsIn(group: EffectGroup): EffectDescriptor[] {
-  return effectsIn(group).filter((effect) => !effect.contextual);
+  return effectsIn(group).filter((effect) => !effect.listedOnPage);
 }
 
-/** The effects that are offered contextually, in registry order — what the
- *  screen offers while it is holding something to aim them through. */
-export const CONTEXTUAL_EFFECTS: readonly EffectDescriptor[] = EFFECTS.filter(
-  (effect) => effect.contextual,
+/** The effects the page's own section lists, in registry order — the surgery on
+ *  the picture, sitting with resize and crop rather than under a heading of its
+ *  own. */
+export const PAGE_EFFECTS: readonly EffectDescriptor[] = EFFECTS.filter(
+  (effect) => effect.listedOnPage,
 );
 
 /** Give an effect the traced subject it is aimed through. A no-op for every

@@ -131,6 +131,7 @@ function screen() {
       zooming: false,
       draft: null,
       selection: null,
+      aiming: null,
       moving: null,
       loupe: null,
       cache,

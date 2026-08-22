@@ -162,11 +162,12 @@ export const sv: Catalog = {
     cutout: {
       name: "Ta bort bakgrund",
       hint: "Behåller det du ritat över med ett markeringsverktyg och tar bort allt annat — klippet letar upp motivets exakta kant nära din kontur, så det räcker att rita ungefär rätt.",
+      band: "Sökbredd: {value} px åt varje håll",
       feather: "Fjädring: {value} px",
       tolerance: "Färgtolerans: {value} %",
       smoothness: "Jämnhet: {value} %",
       noSubject:
-        "Rita först över motivet med ett markeringsverktyg — ungefär räcker, klippet letar upp den exakta kanten nära din kontur.",
+        "Inget är markerat ännu. Markeringspennan ligger i handen — stäng det här, måla ungefär över motivet du vill behålla och öppna Ta bort bakgrund igen. Ungefär räcker: klippet letar upp den exakta kanten nära din kontur.",
     },
     colorTitle: "Färg",
     brightness: {

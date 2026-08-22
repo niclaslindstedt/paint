@@ -69,7 +69,21 @@ export type CutoutResult = {
   separation: number;
 };
 
+/** How far either side of the tracing the border is looked for, in pixels of
+ *  the bitmap — the default the dialog arrives with, and what twenty years of
+ *  "trace it roughly" software has settled on as roughly right for a hand.
+ *
+ *  It is a dial rather than a constant because the right answer is the
+ *  *tracing's* accuracy, which only the person who drew it knows: a careful
+ *  outline round a fiddly subject wants a narrow band that cannot wander onto
+ *  the thing behind it, and a scribble round a simple one wants a wide one. */
 export const CUTOUT_BAND = 20;
+
+/** What that dial may be set to. One pixel is "my line **is** the border, take
+ *  it as drawn"; fifty is a hand's width of search either side, past which the
+ *  strip is more picture than border and the solve costs what it costs. */
+export const CUTOUT_BAND_MIN = 1;
+export const CUTOUT_BAND_MAX = 50;
 
 /** The strip never spends more than this many columns in total across all
  *  loops in one pass — a page-sized tracing walks at a coarser step instead
@@ -82,11 +96,35 @@ const MAX_COLUMNS = 8000;
 const MODEL_COLORS = 5;
 const MODEL_SAMPLES = 4000;
 
-/** How the three prices mix. The region weight is GrabCut's idea borrowed
- *  into the band; the hand weight is deliberately faint — it only decides
- *  where the picture is silent. */
+/** How the three prices mix. The region weight is GrabCut's idea borrowed into
+ *  the band; the hand weight is what the tracing itself is worth as evidence —
+ *  a third of a cell's price, which is enough to decide a tie between two real
+ *  borders and not enough to hold the cut on the line when only one of them is
+ *  real (both measured; see `tests/cutout_test.ts`). */
 const REGION_WEIGHT = 0.45;
-const HAND_WEIGHT = 0.06;
+const HAND_WEIGHT = 0.35;
+
+/** How quickly the pull toward the traced line falls away, as a fraction of the
+ *  band's half-width.
+ *
+ *  The tracing is not merely a place to start looking — it is a person pointing
+ *  at the border, and a **prior**: most likely on the line, less likely the
+ *  further out, and by construction impossible past the band (see
+ *  `CUTOUT_BAND`). So the price of leaving the line is the negative log of a
+ *  Gaussian in the distance from it, which is what `hand` below computes, and
+ *  this is that Gaussian's width: at 0.4 of the band a cell 8 px out has given
+ *  up about a fifth of the prior and one at the rim nearly all of it.
+ *
+ *  It used to be a straight ramp worth 0.06 — six percent of the price of a
+ *  cell, spread evenly across the band, which is to say the tracing barely
+ *  counted and a strong edge anywhere in twenty pixels won. That is wrong twice
+ *  over: it lets a hard line *behind* the subject (a table edge, a door frame)
+ *  outbid the subject's own softer one, and it wastes the one piece of
+ *  information the picture cannot supply — where the user says the border is.
+ *  A curve that starts steeply and flattens says the useful thing instead: a
+ *  few pixels of correction are nearly free, a wholesale departure has to be
+ *  paid for in evidence. */
+const HAND_FALLOFF = 0.4;
 
 /** Find the subject's border near a rough tracing of it.
  *
@@ -568,7 +606,12 @@ function solveLoop(
       const cell = i * t + k;
       const edge = 1 - Math.min(1, gradient[cell]! / strong);
       const region01 = (regionRaw[cell]! - regionMin) / regionSpan;
-      const hand = Math.abs(k - band) / band;
+      // The prior: how far this cell has strayed from the traced line, priced
+      // as −log of a Gaussian in that distance and normalised to 0 on the line
+      // and ~1 at the rim (see `HAND_FALLOFF`).
+      const strayed = Math.abs(k - band) / band;
+      const hand =
+        1 - Math.exp((-strayed * strayed) / (2 * HAND_FALLOFF * HAND_FALLOFF));
       cost[cell] =
         (1 - REGION_WEIGHT) * edge +
         REGION_WEIGHT * region01 +

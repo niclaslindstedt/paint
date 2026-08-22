@@ -13,7 +13,7 @@
 // itself (a WeakMap — a closed dialog's drafts take their masks with them),
 // keyed by the window they were solved for.
 
-import { CUTOUT_BAND, cutout } from "./cutout.ts";
+import { cutout } from "./cutout.ts";
 import type { EffectPaint, Region } from "./effectPaint.ts";
 import type { Effect } from "./effects.ts";
 import type { Point } from "./types.ts";
@@ -85,7 +85,7 @@ function solve(
   // two-pixel band has no border to find. The preview is then coarser than
   // the bake — which is already true of every pixel on a zoomed-out screen.
   const result = cutout(image.data, region.width, region.height, subject, {
-    band: Math.max(4, Math.round(CUTOUT_BAND * scale)),
+    band: Math.max(4, Math.round(effect.band * scale)),
     feather: effect.feather * scale,
     tolerance: effect.tolerance,
     smoothness: effect.smoothness,
