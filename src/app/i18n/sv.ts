@@ -134,6 +134,8 @@ export const sv: Catalog = {
     empty: "Det finns ingenting på {target} att lägga den på.",
     previewHint:
       "Sidan bakom visar effekten medan du ställer in den. Ingenting läggs på teckningen förrän du använder den.",
+    settleHint:
+      "Den här är tung att rita, så förhandsvisningen kommer i kapp när du släpper reglaget.",
     move: "Dra eller använd piltangenterna för att flytta inställningarna",
     recentre: "Tillbaka",
     minimize: "Lägg undan inställningarna",

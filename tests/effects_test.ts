@@ -78,6 +78,23 @@ describe("the catalog", () => {
     expect(effectDescriptor("sepia")).toBeUndefined();
   });
 
+  it("settles the three effects whose preview costs more than a frame", () => {
+    // The flag the dialog's sliders read to decide *when* the draft hears about
+    // a drag (see `EffectSlider.tsx`). It is pinned here because the cost it
+    // stands for is not visible from the descriptor: a cut solves for a traced
+    // subject's true edge, a blur copies the window off and lays it back
+    // through a filter, and a grain builds and repeats a speck tile. Everything
+    // else is a composite or a lookup over pixels already on screen, and cheap
+    // enough that the page can follow a thumb.
+    const settling = EFFECTS.filter((e) => e.settles).map((e) => e.kind);
+    expect(settling).toEqual(["blur", "noise", "cutout"]);
+    // …and a settling effect has to have a slider for it to mean anything.
+    for (const descriptor of EFFECTS) {
+      if (!descriptor.settles) continue;
+      expect(unclaimedControls(descriptor).length).toBeGreaterThan(0);
+    }
+  });
+
   it("lists every colour adjustment under the colour section", () => {
     // The panel renders a section per group off this, so an adjustment with no
     // group — or one filed under the wrong heading — is a row nobody can find.

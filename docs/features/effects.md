@@ -76,6 +76,17 @@ page before deciding — and, for **Delete background**, to draw the very thing
 the effect is aimed through (see
 [`delete-background.md`](delete-background.md)).
 
+Three of these are heavy to draw — **Blur**, **Noise** and
+[**Delete background**](delete-background.md) — and on those the preview waits
+for your hand. The number beside the slider follows your thumb as it always did;
+the picture redraws once, when you let go. A cut has to search out the subject's
+true edge, a blur has to copy the whole window off and lay it back through a
+filter, and a grain has to build its specks and repeat them across the sheet:
+asked to do that a hundred times a second, the page stops following the slider
+and starts running a second behind it, which is worse than useless — you end up
+letting go and waiting anyway, only without knowing you had to. The dialog says
+so under the sliders on those three. Everything else previews as you drag.
+
 Nothing lands until you press **Apply**. A slider dragged from end to end and
 thought better of costs you nothing — no undo step, no history entry, nothing to
 sync — and **Cancel** puts the page straight back.
