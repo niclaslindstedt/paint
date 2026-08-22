@@ -44,6 +44,17 @@ const probe: CanvasProbe = {
       { x: 20, y: 90 },
     ],
   ],
+  // The colour match is answered with the same area: a press that found the
+  // colour it was aimed at, which is the only press worth exporting a marquee
+  // for.
+  matchAt: () => [
+    [
+      { x: 20, y: 20 },
+      { x: 120, y: 20 },
+      { x: 120, y: 90 },
+      { x: 20, y: 90 },
+    ],
+  ],
 };
 
 /** One gesture with `plugin`, committed — or `null` for a tool that leaves no
@@ -65,6 +76,9 @@ function drawnWith(plugin: PaintPlugin): Stroke | null {
     filled: true,
     background: "#ffffff",
     probe,
+    // A page for the one gesture that floods the sheet rather than the picture
+    // (the gap filler), and nothing selected, so its press chooses all of it.
+    page: { width: 200, height: 140 },
   };
   let draft = plugin.behaviour.start({ x: 20, y: 20 }, ctx);
   if (!draft) return null;

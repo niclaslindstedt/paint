@@ -28,10 +28,10 @@ move what is inside it. The glass paints the page again at its own scale rather
 than blowing up what is on screen, so what you are aiming at is where it really
 is, at any zoom.
 
-### Five ways to choose
+### Seven ways to choose
 
 A box is not always the shape of what you want, so the selection button holds
-five gestures. Press it a second time — the way the shapes button works — and
+seven gestures. Press it a second time — the way the shapes button works — and
 pick one:
 
 - **Box** — the classic marquee. Two corners.
@@ -42,6 +42,28 @@ pick one:
   it. It reads the page the paint bucket reads, so it stops where the bucket
   would stop. A press on the bare page selects nothing, because the page colour
   runs up against everything you have drawn.
+- **Colour select** — press a colour and **everywhere else it appears** is
+  chosen too. Where Trace stops at the first edge it meets, this one crosses the
+  whole page, so the twenty leaves of the same green come in together. It has
+  one setting of its own under the cog:
+
+  - **Colour tolerance** — how far a shade may drift from the one you pressed
+    and still count. Tight picks out one exact colour, which is what a flat
+    drawing wants; wide takes in a whole sky, which is what a photograph needs.
+
+  Unlike Trace, a press on the **bare page is allowed and useful**: it chooses
+  the background with every mark left out of it as a hole — the selection to
+  have before a Delete, or before painting the page out from behind a sketch.
+
+- **Gap select** — press a part of the page the selection **doesn't** reach and
+  it fills with selection, out to the edges of what is already chosen. It is the
+  paint bucket's press aimed at the window instead of at the picture, and it is
+  the answer to the shape you have only gone _round_: trace a ring, draw round a
+  subject, and the middle is still a hole — one press here says "and the
+  inside". With nothing selected yet, one press chooses the whole page, an
+  unmarked sheet being one big gap. A press somewhere already chosen leaves the
+  selection exactly as it was.
+
 - **Draw select** — paint the selection the way a pencil paints a line.
   Everything the nib covers is selected, a tap leaves a dab, and — unlike its
   siblings — **every stroke adds** to what is already chosen, so an awkward

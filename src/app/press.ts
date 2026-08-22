@@ -165,6 +165,7 @@ function pagePatch(reach: number): CanvasProbe {
   return {
     colorAt: () => null,
     regionAt: () => [loop],
+    matchAt: () => [loop],
   };
 }
 

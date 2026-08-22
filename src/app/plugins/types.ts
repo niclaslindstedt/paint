@@ -67,6 +67,16 @@ export type CanvasProbe = {
   /** Closed outlines of the connected area of like colour containing `p`, in
    *  document coordinates — what a bucket fill would cover. */
   regionAt(p: Point): Point[][] | null;
+  /** Closed outlines of **everywhere the colour under `p` appears**, connected
+   *  to it or not — the other question a raster can be asked about a point (see
+   *  `flood.ts`).
+   *
+   *  `tolerance` is how far a pixel may be from that colour and still count, in
+   *  0–255 channel units; absent is the bucket's own. The speckle a photograph
+   *  matches — compression noise, a dithered sky — is dropped before the
+   *  outlines are traced, so what comes back is areas rather than a thousand
+   *  loops nobody aimed at. */
+  matchAt(p: Point, tolerance?: number): Point[][] | null;
 };
 
 /** One tunable a tool offers past its width — what the size panel puts under
@@ -332,6 +342,15 @@ export type ToolContext = {
    *  Every other tool ignores it — the window's effect on an ordinary mark is
    *  the canvas's business (`Stroke.clip`), never the behaviour's. */
   selection?: readonly (readonly Point[])[] | null;
+  /** How big the page is, in document pixels, when the caller knows (the canvas
+   *  does; a test need not).
+   *
+   *  Read by the one gesture whose answer is bounded by the *sheet* rather than
+   *  by anything drawn on it: the gap filler floods the unselected part of the
+   *  page from the press, and with nothing selected yet that is the whole of it
+   *  — which it cannot know the size of otherwise. Absent means the tool has no
+   *  page to flood and chooses nothing. */
+  page?: { width: number; height: number } | null;
   /** Whether the press is held with the modifier key (Ctrl, or ⌘ on a Mac).
    *  Absent means no. A tool may read it as its alternate mode — the selection
    *  pencil flips between painting selection in and painting it away — the way

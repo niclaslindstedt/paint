@@ -60,7 +60,7 @@ A **group** is a family of tools that share one toolbar button and one switch.
 The shapes are the case it was built for, and they are the reason it exists:
 eleven of them as eleven buttons would be most of a phone's toolbar spent on one
 idea, and eleven switches in Settings → Tools for a question nobody asks eleven
-times. The five selection tools are the second, the two fills the third, and the
+times. The seven selection tools are the second, the two fills the third, and the
 **two ways of taking a mark off** the fourth: press the eraser again and the
 rubber is behind it.
 
@@ -159,38 +159,56 @@ behaviour's business. It says only that no palette can reach it, which is why a
 charcoal or a silverpoint landing next year is one flag rather than a change to
 the toolbar.
 
-## Five ways to select
+## Seven ways to select
 
-The selection tools are the same arrangement, for the same reason: which _shape_
-of window you cut is a smaller question than which tool you are holding.
+The selection tools are the same arrangement, for the same reason: _how_ you cut
+the window is a smaller question than which tool you are holding.
 So one button holds a **box** marquee (**V**), an **oval**, a freehand **lasso**,
-a **trace**, and the **selection pencil** — and the button wears whichever you
-last used.
+a **trace**, a **colour match**, a **gap filler** and the **selection pencil** —
+and the button wears whichever you last used.
 
 They differ only in the gesture. Every one of them ends by answering one question
 — `selection(draft, ctx)`, "what did this gesture choose?" — with **closed
 contours in document coordinates**, and the screen takes contours and nothing
 else. That is why a lasso needed no new idea anywhere outside `plugins/`: the
-canvas, the store and the renderer are unchanged, and a build that adds a sixth
-way to select adds a sixth behaviour and nothing more.
+canvas, the store and the renderer are unchanged, and a build that adds an
+eighth way to select adds an eighth behaviour and nothing more.
 
-The pencil is the one member whose answer is built from more than the draft: it
-reads the selection as it stands off the context (`ToolContext.selection`) and
-answers with that selection **worked over** — its stroke's capsule painted in,
-or, under its erase mode, painted away (see `regionMask.ts` for the arithmetic,
-which is the bucket's rasterise-and-trace run in reverse). Its descriptor says so
-with `combinesSelection`, which is also what tells the canvas that a press inside
-the window begins another stroke of it rather than sliding it. And it is the one
-member with a real nib, so it alone skips the family's `sizeless` and carries a
-width, a mode chip and a feather dial.
+Two members answer from more than the draft. The **pencil** reads the selection
+as it stands off the context (`ToolContext.selection`) and answers with that
+selection **worked over** — its stroke's capsule painted in, or, under its erase
+mode, painted away (see `regionMask.ts` for the arithmetic, which is the bucket's
+rasterise-and-trace run in reverse). The **gap filler** reads the same selection
+and floods the part of the page it does _not_ cover, out from where you pressed
+(`fillGap`, the same module): what bounds that flood is the window rather than
+any colour, which is how the middle of a shape you have only gone round gets
+filled in. Both say so with `combinesSelection`, which is also what tells the
+canvas that a press inside the window is another go with the tool rather than a
+drag of it. The gap filler is the one tool that needs to know how big the sheet
+is, because with nothing selected its answer is all of it — `ToolContext.page`
+is there for that and nothing else.
 
-The trace tool is the interesting one. It has no shape of its own at all: it asks
-the same probe the paint bucket asks — a rasterised snapshot of the page, flooded
-from where you pressed and traced back into outlines (see `flood.ts`) — and hands
-those outlines over as the selection. So it stops where the bucket would stop,
-which is what makes it follow what is _drawn_ rather than a shape drawn over it.
-Nothing about it reaches the document; the outline becomes the window and the
-draft is thrown away.
+The pencil is also the one member with a real nib, so it alone skips the
+family's `sizeless` and carries a width, a mode chip and a feather dial.
+
+The two that read the page are the interesting ones. Neither has a shape of its
+own at all: both ask the probe the paint bucket asks — a rasterised snapshot of
+the page — and hand the outlines that come back over as the selection. Nothing
+about either reaches the document; the outline becomes the window and the draft
+is thrown away.
+
+What differs is the question. The **trace** floods out from where you pressed
+until the colour changes (`regionAt`), so it stops where the bucket would stop
+and follows what is _drawn_ rather than a shape drawn over it. The **colour
+match** tests the whole snapshot instead of walking out from the seed
+(`matchAt`), so it chooses every area of that colour wherever it fell — with a
+tolerance dial, because "this blue" is one value on a drawing and ten thousand on
+a photograph, and with the speckle dropped before the outlines are traced
+(`despeckle`) so a noisy photograph chooses areas rather than a thousand
+freckles. It is also the one of the pair that may be pressed on the **bare
+sheet**: tracing the page colour would hand back one area bordering every mark
+there is, where matching it hands back the page with each mark as a hole in
+it — which is the background, without what is drawn on it.
 
 ## Brushes are their medium
 

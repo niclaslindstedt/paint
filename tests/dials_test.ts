@@ -262,14 +262,22 @@ describe("the shipped set", () => {
     // have one, so can the one that reads the page rather than marking it —
     // the dropper's sample size is exactly this kind of setting — and so can
     // the selection pencil, whose press chooses an area the nib's width and
-    // fades a Delete by its feather. The hand and the drag-or-press marquees
-    // change nothing a dial could tune, and none of them has one.
-    const tunable = (id: string) => {
-      const p = pluginById(id)!;
-      return !p.navigates && (!p.selects || !p.sizeless);
-    };
+    // fades a Delete by its feather.
+    //
+    // A marquee with no nib is the one case worth pinning down. Most of them
+    // drag out a shape and there is nothing about that to tune, so they carry
+    // nothing; the one that *reads the page* — the colour match — is tuned by
+    // how far a colour may drift and still be chosen, which is a property of
+    // the reading rather than of a nib. So a nibless selection tool may have
+    // dials, and every one it has must be that kind.
+    const READS_THE_PAGE = new Set(["tolerance"]);
     for (const p of toolPlugins()) {
-      if ((p.dials?.length ?? 0) > 0) expect(tunable(p.id)).toBe(true);
+      const dials = p.dials ?? [];
+      if (dials.length === 0) continue;
+      expect(p.navigates ?? false).toBe(false);
+      if (p.selects && p.sizeless) {
+        expect(dials.every((d) => READS_THE_PAGE.has(d.id))).toBe(true);
+      }
     }
   });
 

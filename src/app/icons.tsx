@@ -49,6 +49,15 @@
 // two edges instead of one. That is most of what "too heavy" turns out to mean
 // when one of these is compared against the sheet it came from.
 //
+// **The marquees are their own weight band inside the tool band.** A dashed
+// outline is half air, so the seven selection glyphs measure a quarter to a
+// third under the implements they sit beside and are meant to: measure a new
+// one against the marquees (49.4 of stroke at the median, 14 of fill) and not
+// against the pencil, or it comes back thickened until it stops looking like a
+// marquee. The three that carry a solid — the tracing pointer, the colour
+// selection's bead, the gap filler's middle — are the top of that band at about
+// 56, and the size of the solid is the whole of the difference.
+//
 // The one glyph in the toolbar's tool band that is **not** an implement is the
 // ellipsis that ends it (`MoreToolsIcon`) — it stands for the tools that are
 // not in the row, and drawing it as a twelfth implement would have made it read
@@ -384,6 +393,59 @@ export function TraceSelectIcon({ className }: IconProps) {
       />
       <path
         d="m8.6 8.2 5.6 4.2-2.4.4 1.4 2.6-1.6.8-1.3-2.6-1.7 1.8Z"
+        fill="currentColor"
+        stroke="none"
+      />
+    </svg>
+  );
+}
+
+/** The colour selection — a drop, dashed. The family's dashes say marquee; the
+ *  drop says the thing being chosen is a *colour* rather than an area, which is
+ *  the whole difference from the tracing tool beside it. The solid bead in its
+ *  belly is the colour itself, and it is what carries the glyph at 18 pixels,
+ *  where the drop's point and the oval marquee's curve say much the same thing.
+ *
+ *  The bead is the sixth member's weight difference and it is measured, not
+ *  chosen: at r 1.8 the glyph carries 56.9 of stroke against the marquee
+ *  family's own 49.4 median — level with the tracing tool, which is the other
+ *  member with a solid in it. Two tenths more radius put it over. */
+export function MatchSelectIcon({ className }: IconProps) {
+  return (
+    <svg {...toolBase} className={className} aria-hidden="true">
+      <path
+        d="M12 4C15.5 8.5 19.4 11.2 19.4 13.6A7.4 7.4 0 1 1 4.6 13.6C4.6 11.2 8.5 8.5 12 4Z"
+        strokeDasharray="3.4 2.8"
+        strokeLinecap="butt"
+      />
+      <circle cx="12" cy="14.4" r="1.8" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+/** The gap filler — the box marquee with its middle filled in, which is the
+ *  action itself: the outline was already chosen and the press adds what it
+ *  goes round. The solid echoes the outline's own corners rather than being a
+ *  dot, so the pair reads as an area inside an area, and it stands five units
+ *  clear of the dashes: that daylight is what says "two things, and one of them
+ *  has just arrived" instead of "a speck". Filling the middle out to 6.8 units
+ *  square measured 62.1 of stroke against the marquee family's 49.4 median —
+ *  the solid-area trap the eraser family already found — where 5.4 lands at
+ *  52.5 with the same reading. */
+export function GapSelectIcon({ className }: IconProps) {
+  return (
+    <svg {...toolBase} className={className} aria-hidden="true">
+      <path
+        d="M3.4 3.4h17.2v17.2H3.4Z"
+        strokeDasharray="3.4 2.8"
+        strokeLinecap="butt"
+      />
+      <rect
+        x="9.3"
+        y="9.3"
+        width="5.4"
+        height="5.4"
+        rx="1.2"
         fill="currentColor"
         stroke="none"
       />

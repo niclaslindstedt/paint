@@ -56,9 +56,12 @@ connect a storage backend yourself.
   arrow. Press the button a second time for the family and the fill toggle.
 - Cut a window in the page with the selection tools: draw a box, an oval or a
   freehand lasso over what you drew, trace the contours of what is already
-  painted, or paint the selection in with a pencil-like nib that adds with every
-  stroke, erases with a mode flip or a held Ctrl, and feathers what a Delete
-  takes out — five gestures behind one button, pressed a second time to choose.
+  painted, pick one colour out everywhere it appears (with a tolerance dial, and
+  a press on the bare paper choosing the background with the marks left out of
+  it), fill in a gap the selection has gone round but not covered, or paint the
+  selection in with a pencil-like nib that adds with every stroke, erases with a
+  mode flip or a held Ctrl, and feathers what a Delete takes out — seven
+  gestures behind one button, pressed a second time to choose.
   Invert the window from the side panel's Contextual block, which is there only
   while a selection is.
   What settles is an area, not a list of marks: paint in it and the mark is cut

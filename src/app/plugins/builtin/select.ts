@@ -18,7 +18,7 @@
 // Nothing in the canvas, the store or the renderer knows what a selection tool
 // is called, and no stroke ever carries one of these ids.
 //
-// Five of them, behind one button (`SELECT_GROUP_ID` — the same `ToolGroup` the
+// Seven of them, behind one button (`SELECT_GROUP_ID` — the same `ToolGroup` the
 // shapes use, so they cost one toolbar slot and one switch between them):
 //
 //   - **box**    the classic marquee: two corners.
@@ -29,20 +29,36 @@
 //                is painted there rather than a shape you drew over it. It is
 //                the bucket's flood, borrowed: the same probe, the same tracing,
 //                and the outline goes to the screen instead of the document.
+//   - **match**  press a colour and *everywhere else it appears* is chosen too.
+//                The same probe again, asked the other question a raster can
+//                answer about a point: not "what area is this part of" but
+//                "where else is this colour" — so it crosses the page where the
+//                trace stops at the first edge, and it may be pressed on the
+//                bare sheet, which is how the background gets chosen.
+//   - **gap**    press a part of the page the selection doesn't reach and it
+//                fills with selection, out to the edges of what is already
+//                chosen. The bucket's gesture aimed at the *window* rather than
+//                at the picture: it is what fills in the middle of a shape you
+//                have only gone round. With nothing selected it chooses the
+//                whole page, an unmarked sheet being one gap.
 //   - **pencil** paint the selection the way a pencil paints ink: the stroke's
 //                capsule *is* selected, every stroke adds to what is already
 //                chosen, and its erase mode (the mode chip, or Ctrl held)
 //                paints selection away instead. The one member with a real nib,
-//                which is why it alone has a width and dials — and the one that
-//                *combines* with the selection rather than replacing it
-//                (`PaintPlugin.combinesSelection`).
+//                which is why it alone has a width and a rack.
+//
+// The last two *combine* with the selection rather than replacing it
+// (`PaintPlugin.combinesSelection`), which is also what tells the canvas that a
+// press inside the window is another go with the tool rather than a drag of the
+// window itself.
 //
 // What you can then do with the marks is the screen's business (see
 // `selection.ts` and `CanvasScreen.tsx`): move them with the hand, and copy, cut
 // or delete them from the keyboard or the menu a right-click or a long press
 // opens.
 
-import { combineRegion } from "../../regionMask.ts";
+import { combineRegion, fillGap } from "../../regionMask.ts";
+import { regionHolds } from "../../selection.ts";
 import type { Point } from "../../types.ts";
 import { isMeaningfulDrag, normalizeBox, polygonCorners } from "../ink.ts";
 import type { DraftStroke, ToolBehaviour, ToolContext } from "../types.ts";
@@ -63,6 +79,8 @@ export const SELECT_TOOL_ID = "select";
 export const SELECT_OVAL_TOOL_ID = "select-oval";
 export const SELECT_LASSO_TOOL_ID = "select-lasso";
 export const SELECT_TRACE_TOOL_ID = "select-trace";
+export const SELECT_MATCH_TOOL_ID = "select-match";
+export const SELECT_GAP_TOOL_ID = "select-gap";
 export const SELECT_DRAW_TOOL_ID = "select-draw";
 
 /** How long a dashed marquee's dashes are, in **device** pixels. Divided by the
@@ -310,6 +328,31 @@ export const selectLassoBehaviour: ToolBehaviour = {
   },
 };
 
+/** Paint a region-shaped draft as ants — the painter the three press tools
+ *  share (see `selectTraceBehaviour`, `selectMatchBehaviour`,
+ *  `selectGapBehaviour`). All three answer with contours off a raster rather
+ *  than with a shape a hand drew, so all three look the same going down. */
+const paintRegionDraft: ToolBehaviour["paint"] = (ctx2d, stroke, detail) => {
+  if (stroke.shape.kind !== "region") return;
+  const contours = stroke.shape.contours;
+  if (contours.length === 0) return;
+  paintAnts(ctx2d, detail?.scale ?? 1, (path) => {
+    path.beginPath();
+    for (const loop of contours) {
+      if (loop.length >= 3) tracePolygon(path, loop);
+    }
+  });
+};
+
+/** …and what such a draft chose: the contours it holds, or `null` when it
+ *  holds none — a press that found nothing means "select nothing", the way a
+ *  marquee's tap does. */
+const regionChosen: NonNullable<ToolBehaviour["selection"]> = (draft) => {
+  if (draft.shape.kind !== "region") return null;
+  const contours = draft.shape.contours.filter((loop) => loop.length >= 3);
+  return contours.length > 0 ? contours : null;
+};
+
 /** Whether two colours off the page are the same one. Both sides come from the
  *  same two places — the probe's `#rrggbb` and the resolved page colour — so a
  *  string compare is the whole of it, bar the case. */
@@ -362,22 +405,121 @@ export const selectTraceBehaviour: ToolBehaviour = {
     return contours ? { ...draft, shape: { kind: "region", contours } } : draft;
   },
   end: (draft) => draft,
-  paint: (ctx2d, stroke, detail) => {
-    if (stroke.shape.kind !== "region") return;
-    const contours = stroke.shape.contours;
-    if (contours.length === 0) return;
-    paintAnts(ctx2d, detail?.scale ?? 1, (path) => {
-      path.beginPath();
-      for (const loop of contours) {
-        if (loop.length >= 3) tracePolygon(path, loop);
-      }
-    });
+  paint: paintRegionDraft,
+  selection: regionChosen,
+};
+
+// --- The colour match --------------------------------------------------------
+
+/** Where the tolerance dial rests, as the share of the whole colour distance a
+ *  pixel may sit from the one pressed and still be chosen.
+ *
+ *  A tenth of the way is a shade under the bucket's own tolerance
+ *  (`DEFAULT_TOLERANCE`, 24 of 255), which is the number picked so a flood can
+ *  walk across an anti-aliased edge without walking through the line — the same
+ *  ask, so the same rest. It must agree with `MATCH_TOLERANCE`'s default in
+ *  `dials.ts`, which is what an untouched dial resolves to. */
+const MATCH_REST = 0.1;
+
+/** Everywhere the colour under `p` appears, as contours — or `null` when there
+ *  is nothing to answer with: no probe, off the page, or a match that came back
+ *  with no area in it.
+ *
+ *  Unlike the tracing tool, a press on the **bare sheet is allowed**, and that
+ *  is the point of it. Tracing the page colour would hand back one area
+ *  bordering every mark on the page — the press that meant the least choosing
+ *  the most — but *matching* it hands back the sheet with every mark as a hole
+ *  in it, which is precisely "the background, and not what is drawn on it": the
+ *  selection you want before a Delete, or before painting the page out from
+ *  behind a sketch. */
+function matchedAt(p: Point, ctx: ToolContext): Point[][] | null {
+  const contours = ctx.probe?.matchAt(
+    p,
+    Math.round((ctx.dials.tolerance ?? MATCH_REST) * 255),
+  );
+  if (!contours || !contours.some((loop) => loop.length >= 3)) return null;
+  return contours;
+}
+
+/** The colour match: press a colour and everywhere else it appears is chosen
+ *  too.
+ *
+ *  It is the tracing tool's press asked the *other* question a raster can
+ *  answer about a point (see `flood.ts`). Trace asks "what area is this part
+ *  of" and walks out from the press until the colour changes, so it chooses one
+ *  connected area; this asks "where else is this colour" and tests the whole
+ *  page, so it chooses the twenty leaves of the same green wherever they fell.
+ *  Neither is the other with a setting flipped, which is why the family has
+ *  both.
+ *
+ *  How far a colour may drift and still count is its one dial (`MATCH_TOLERANCE`
+ *  — the tolerance every tool of this kind has to offer, because "this green"
+ *  means one thing on a flat drawing and another on a photograph). Speckle is
+ *  dropped before the outlines are traced, so a noisy photograph chooses areas
+ *  rather than a thousand freckles.
+ *
+ *  A press tool like the bucket and the trace: dragging re-aims it at whatever
+ *  colour is under the pointer now, and a press that matches nothing keeps an
+ *  empty draft so lifting still says "select nothing". */
+export const selectMatchBehaviour: ToolBehaviour = {
+  start: (p, ctx) =>
+    chrome({ kind: "region", contours: matchedAt(p, ctx) ?? [] }),
+  move: (draft, p, ctx) => {
+    const contours = matchedAt(p, ctx);
+    return contours ? { ...draft, shape: { kind: "region", contours } } : draft;
   },
-  selection: (draft) => {
-    if (draft.shape.kind !== "region") return null;
-    const contours = draft.shape.contours.filter((loop) => loop.length >= 3);
-    return contours.length > 0 ? contours : null;
+  end: (draft) => draft,
+  paint: paintRegionDraft,
+  selection: regionChosen,
+};
+
+// --- The gap filler ----------------------------------------------------------
+
+/** The selection with the unselected pocket under `p` filled in, or `null` when
+ *  there is no page to flood (a caller that offered none). */
+function gapAt(p: Point, ctx: ToolContext): Point[][] | null {
+  return ctx.page ? fillGap(ctx.selection ?? [], ctx.page, p) : null;
+}
+
+/** The gap filler: press a part of the page the selection doesn't reach and it
+ *  fills with selection, out to the edges of what is already chosen.
+ *
+ *  It is the bucket's gesture aimed at the **window** instead of at the
+ *  picture, and what bounds the flood is not colour but what is already
+ *  selected (see `fillGap` in `regionMask.ts`). That is the one thing no other
+ *  member can do: go round a shape with the pencil, the lasso or the trace and
+ *  you have chosen its *outline* — the middle is a hole, and every way of
+ *  filling it in by hand is fiddlier than the tracing was. One press here says
+ *  "and the inside".
+ *
+ *  With nothing selected yet the pocket is the whole sheet, so a press chooses
+ *  the page — which is right rather than a special case: an unmarked page has
+ *  no gaps in it, so all of it is one.
+ *
+ *  Its gesture *combines* with the selection, like the pencil's
+ *  (`PaintPlugin.combinesSelection`): what it hands back is the selection plus
+ *  the pocket, so a press inside the window is another fill rather than a drag
+ *  of it. A press that lands somewhere already chosen has no pocket under it
+ *  and leaves the selection exactly as it was. */
+export const selectGapBehaviour: ToolBehaviour = {
+  start: (p, ctx) => chrome({ kind: "region", contours: gapAt(p, ctx) ?? [] }),
+  move: (draft, p, ctx) => {
+    // Re-aimed under the drag, like the bucket — but only once the pointer has
+    // left what the press already chose. Answering costs a page of cells
+    // filled and flooded, and inside its own answer the answer cannot change.
+    if (
+      draft.shape.kind === "region" &&
+      draft.shape.contours.length > 0 &&
+      regionHolds(draft.shape.contours, p)
+    ) {
+      return draft;
+    }
+    const contours = gapAt(p, ctx);
+    return contours ? { ...draft, shape: { kind: "region", contours } } : draft;
   },
+  end: (draft) => draft,
+  paint: paintRegionDraft,
+  selection: regionChosen,
 };
 
 // --- The selection pencil ----------------------------------------------------

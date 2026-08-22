@@ -96,6 +96,7 @@ import {
   DropperIcon,
   EraserIcon,
   FlatBrushIcon,
+  GapSelectIcon,
   GradientIcon,
   HandIcon,
   HexagonIcon,
@@ -104,6 +105,7 @@ import {
   LassoIcon,
   LineIcon,
   MarkerIcon,
+  MatchSelectIcon,
   NibIcon,
   PenIcon,
   PencilIcon,
@@ -139,6 +141,7 @@ import {
   HARDNESS,
   INK,
   LOAD,
+  MATCH_TOLERANCE,
   OPACITY,
   PIGMENT,
   PRESS,
@@ -198,12 +201,16 @@ import { imageBehaviour, IMAGE_TOOL_ID } from "./image.ts";
 import {
   selectBehaviour,
   selectDrawBehaviour,
+  selectGapBehaviour,
   selectLassoBehaviour,
+  selectMatchBehaviour,
   selectOvalBehaviour,
   selectTraceBehaviour,
   SELECT_DRAW_TOOL_ID,
+  SELECT_GAP_TOOL_ID,
   SELECT_GROUP_ID,
   SELECT_LASSO_TOOL_ID,
+  SELECT_MATCH_TOOL_ID,
   SELECT_OVAL_TOOL_ID,
   SELECT_TOOL_ID,
   SELECT_TRACE_TOOL_ID,
@@ -337,7 +344,7 @@ const SHAPES: readonly Omit<
  *  belongs to the one it has always meant. */
 const SELECTIONS: readonly Omit<
   PaintPlugin,
-  "group" | "selects" | "sizeless" | "defaultSize" | "gauge" | "dials"
+  "group" | "selects" | "sizeless" | "defaultSize" | "gauge"
 >[] = [
   {
     id: SELECT_TOOL_ID,
@@ -367,6 +374,30 @@ const SELECTIONS: readonly Omit<
     descriptionKey: "tools.selectTrace.description",
     icon: TraceSelectIcon,
     behaviour: selectTraceBehaviour,
+  },
+  {
+    id: SELECT_MATCH_TOOL_ID,
+    nameKey: "tools.selectMatch.name",
+    descriptionKey: "tools.selectMatch.description",
+    icon: MatchSelectIcon,
+    // The one marquee with a number to set: how far a colour may drift from
+    // the one pressed and still be chosen. Every tool of this kind has to offer
+    // it, because "this blue" is one value on a drawing and ten thousand on a
+    // photograph (see `dials.ts`).
+    dials: [MATCH_TOLERANCE],
+    behaviour: selectMatchBehaviour,
+  },
+  {
+    id: SELECT_GAP_TOOL_ID,
+    nameKey: "tools.selectGap.name",
+    descriptionKey: "tools.selectGap.description",
+    icon: GapSelectIcon,
+    // Its press *adds* the pocket to the selection rather than replacing it —
+    // the pencil's flag, for the pencil's reason: a tool that works the window
+    // over has every reason to be pressed inside it, so the press must reach
+    // the tool instead of sliding the window (see `select.ts`).
+    combinesSelection: true,
+    behaviour: selectGapBehaviour,
   },
 ];
 
@@ -1082,12 +1113,12 @@ export function registerBuiltinPlugins(): void {
   // The marquee sits near the hand, because the two are a pair here: you select
   // with one and move what you selected with the other.
   //
-  // Four ways of choosing, behind one button — the shapes' arrangement, for the
-  // shapes' reason. Which *shape* you pick marks out with is a smaller question
-  // than which tool you are holding, and four buttons for it would be four
-  // slots of a phone's toolbar spent on one idea. The group keeps the id the
-  // lone marquee had, so an install that had the marquee switched on gets the
-  // family in the same slot (see `select.ts`).
+  // Six ways of choosing, behind one button — the shapes' arrangement, for the
+  // shapes' reason. *How* you pick marks out is a smaller question than which
+  // tool you are holding, and a button each would be six slots of a phone's
+  // toolbar spent on one idea. The group keeps the id the lone marquee had, so
+  // an install that had the marquee switched on gets the family in the same
+  // slot (see `select.ts`).
 
   registerGroup({
     id: SELECT_GROUP_ID,
@@ -1104,8 +1135,9 @@ export function registerBuiltinPlugins(): void {
       // flag, asks the behaviour what was chosen, and hands the outline to the
       // screen rather than the document (see `select.ts`).
       selects: true,
-      // These four choose with a drag or a press — no nib anywhere in the
-      // gesture, so a width would be a slider that moves nothing. Said per
+      // These six choose with a drag or a press — no nib anywhere in the
+      // gesture, so a width would be a slider that moves nothing (the colour
+      // match has a dial all the same: a tolerance is not a nib). Said per
       // member rather than implied by `selects`, because the pencil below is
       // the selection tool a width *is* real for (see `PaintPlugin.sizeless`).
       sizeless: true,

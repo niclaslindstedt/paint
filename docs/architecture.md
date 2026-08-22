@@ -1153,18 +1153,22 @@ dial's name.
 `selection(draft, ctx)` with the **closed contours** its gesture chose, in
 document coordinates. That is the only currency the screen deals in, which is
 what lets a box marquee, an oval, a freehand lasso, an outline traced off the
-page itself and a stroke of the selection pencil all be selections without the
-canvas, the store or the renderer learning a shape (see `selection.ts`). The
-context is there for the pencil alone: its descriptor adds `combinesSelection`,
-and its answer is the selection as it stands (`ToolContext.selection`) with the
-stroke's capsule painted in or — under its erase mode, the mode chip or a held
-Ctrl (`ToolContext.modifier`) — painted away, combined on a throwaway bitmap and
+page itself, every area of one colour at once and a stroke of the selection
+pencil all be selections without the canvas, the store or the renderer learning
+a shape (see `selection.ts`). The context is there for the two that _work the
+window over_ rather than replacing it, both marked `combinesSelection`: the
+pencil answers with the selection as it stands (`ToolContext.selection`) and the
+stroke's capsule painted in — or, under its erase mode, the mode chip or a held
+Ctrl (`ToolContext.modifier`), painted away — and the gap filler answers with
+that same selection plus the unselected pocket its press landed in, flooded out
+to the window's own edges and no further than the sheet (`ToolContext.page`,
+which exists for that one question). Both are combined on a throwaway bitmap and
 traced back to contours (`regionMask.ts`).
 
 `group` is the flag that changes how a tool is _offered_ rather than how it
 behaves. The eleven shapes each stay their own plugin — their own painter, their
 own remembered width, their own persisted id, so nothing already drawn is
-orphaned — and share one toolbar button and one switch; the five selection tools
+orphaned — and share one toolbar button and one switch; the seven selection tools
 are grouped the same way, under the id the lone marquee used to hold, so a
 settings blob written before the family existed still names their button — and
 so are the two fills, under the bucket's id, and the two ways of rubbing out,
@@ -1239,7 +1243,11 @@ so a fill zooms, undoes and syncs like any other mark. The gradient files the
 same stroke with a `Gradient` on it — the run across the page and the colours
 along it, which is geometry as much as ink and so travels with the mark when it
 is moved, scaled or turned. The dropper reads the same snapshot for a colour,
-averaged over the disc its sample size asks for.
+averaged over the disc its sample size asks for. The colour selection asks the
+same snapshot the other question a point can be asked of a raster — not "what
+area is this pixel part of" but "where else is this colour" (`matchAt`, with the
+speckle a photograph matches dropped before anything is traced) — and hands the
+outlines to the screen rather than to the document.
 
 `render.ts` dispatches each stroke to the plugin named in `stroke.tool`, falling
 back to a generic painter when the plugin is unknown — a document from a newer

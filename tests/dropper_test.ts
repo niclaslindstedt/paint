@@ -26,6 +26,7 @@ function watching(): { probe: CanvasProbe; asked: (number | undefined)[] } {
         return "#123456";
       },
       regionAt: () => null,
+      matchAt: () => null,
     },
   };
 }

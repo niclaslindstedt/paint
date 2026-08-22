@@ -34,7 +34,8 @@ in-set. Any glyph whose parts touch gets an `ascii` read as well as a row —
 Everything lives in `scripts/` here and needs nothing installed: `png.mjs`
 decodes PNGs with node's `zlib`, and Chromium renders the SVG. Copy
 `glyphs.config.example.json` next to your work, point it at the icon source,
-and list the glyphs.
+and list the glyphs. The config and the `out` directory are **throwaway and
+neither is gitignored** — delete both before you commit.
 
 ```sh
 S=.agent/skills/glyph-design/scripts

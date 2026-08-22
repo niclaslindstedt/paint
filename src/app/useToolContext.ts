@@ -16,7 +16,8 @@
 //     events as they arrive rather than off anything React rendered.
 //   - **the window** — read through a ref, so the context a long gesture began
 //     with still answers with the selection as it stands when the gesture
-//     finally asks.
+//     finally asks. The page's own size comes off the same ref, for the same
+//     reason.
 //   - **the page as pixels** — the snapshot the bucket and the dropper read
 //     (`probe.ts`). Taken lazily and kept for the gesture: the document cannot
 //     change while a pointer is down, so one snapshot answers every question a
@@ -80,8 +81,16 @@ export function useToolContext({
       get selection() {
         return selectionRef.current?.region ?? null;
       },
+      // The sheet itself, for the one gesture whose answer is bounded by it
+      // rather than by anything drawn on it (see `ToolContext.page`). Off the
+      // same ref the probe is built from, so a long gesture reads the page it
+      // is actually on.
+      get page() {
+        const sheet = pageRef.current;
+        return { width: sheet.width, height: sheet.height };
+      },
     }),
-    [ink, pageColor, openProbe, selectionRef, modifierHeld],
+    [ink, pageColor, openProbe, selectionRef, modifierHeld, pageRef],
   );
 
   /** A pointer event's position on the element, in CSS pixels. */

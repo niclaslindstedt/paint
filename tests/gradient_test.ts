@@ -43,6 +43,7 @@ const page: CanvasProbe = {
       { x: 0, y: 60 },
     ],
   ],
+  matchAt: () => null,
 };
 
 const ctx: ToolContext = {
@@ -104,6 +105,7 @@ describe("the gradient tool", () => {
         asked++;
         return page.regionAt(p);
       },
+      matchAt: (p) => page.matchAt(p),
     };
     pour({ x: 10, y: 10 }, { x: 90, y: 50 }, { probe: counting });
     expect(asked).toBe(1);
