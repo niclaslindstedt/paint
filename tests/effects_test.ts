@@ -24,6 +24,7 @@ import {
   withChoice,
   withControl,
   withCurveSet,
+  withSubject,
   withSwitch,
   type Effect,
 } from "../src/app/effects.ts";
@@ -260,5 +261,34 @@ describe("effectReach", () => {
     expect(effectReach(blur)).toBe(blur.radius * BLUR_TAIL);
     // Grain lands on the pixel it is over, so it moves nothing.
     expect(effectReach(noise)).toBe(0);
+  });
+});
+
+describe("aiming an effect at a tracing", () => {
+  const traced = [
+    [
+      { x: 0, y: 0 },
+      { x: 10, y: 0 },
+      { x: 10, y: 10 },
+    ],
+  ];
+
+  it("stamps the tracing on the effect that is aimed through one", () => {
+    const aimed = withSubject(effectDescriptor("cutout")!.preset, traced);
+    expect(aimed.kind === "cutout" && aimed.subject).toBe(traced);
+  });
+
+  it("leaves an effect that takes no subject exactly as it was", () => {
+    expect(withSubject(blur, traced)).toBe(blur);
+  });
+
+  it("hands back the same draft for the same tracing twice", () => {
+    // Identity is the contract: the options can be re-aimed on every gesture
+    // while they are put away (see `useEffecting`), and the mark cache compares
+    // the preview it is handed by identity — so an unchanged tracing has to
+    // mean an unchanged draft, or the page repaints for nothing.
+    const aimed = withSubject(effectDescriptor("cutout")!.preset, traced);
+    expect(withSubject(aimed, traced)).toBe(aimed);
+    expect(withSubject(aimed, [...traced])).not.toBe(aimed);
   });
 });

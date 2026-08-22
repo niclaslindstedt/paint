@@ -30,6 +30,16 @@ no edge at all the cut simply follows you.
    subject already traced it opens straight onto the cut, and the page behind
    shows it as you set it — the checkerboard showing through is what will be
    gone. Nothing lands until you press Apply.
+
+   You do not have to close it to trace. **Put away**, in the dialog's footer,
+   folds the options down to a strip at the foot of the canvas and leaves the
+   page to your hand — on a phone, where the dialog is the whole screen, that
+   is the only way to draw the tracing with the cut already open. Paint over
+   the subject with the options still down and **the cut follows your outline
+   as you draw it**: the settings stay where you put them, the page keeps
+   showing what will be kept, and the strip brings the dialog back when you are
+   ready to apply.
+
 3. **Adjust**, if the first answer isn't the one you wanted:
    - **Search width** — how far either side of your line the cut may look, in
      page pixels. This is the dial that matters most, and the yellow band on
@@ -55,8 +65,9 @@ no edge at all the cut simply follows you.
 
 If the cut misjudges a stretch — it kept a plant that stood in front of the
 subject, or shaved a shoe off — the correction is your tracing, not a fight
-with sliders: adjust the selection with the selection pencil (add what it
-missed, erase what it kept) and run the effect again. The cut can only find
+with sliders: put the options away, adjust the selection with the selection
+pencil (add what it missed, erase what it kept), and watch the cut redraw
+itself against the outline you now have. The cut can only find
 borders _near your line_, so anything sitting wholly in front of the subject
 stays until you trace around it.
 

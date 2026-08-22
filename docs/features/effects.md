@@ -67,6 +67,15 @@ Before** and the effect comes out of the picture for as long as you hold it,
 which is the comparison every adjustment wants and the one thing a live preview
 cannot show on its own.
 
+**Put away** — beside Cancel in the footer — folds the options down to a strip
+at the foot of the canvas and gives the page back to your hand. They are still
+open: every slider is where you left it, the page goes on showing the effect,
+and the strip is the way back to them. Use it when the card is in front of the
+part of the drawing you are judging it by, when you want to zoom in on the
+page before deciding — and, for **Delete background**, to draw the very thing
+the effect is aimed through (see
+[`delete-background.md`](delete-background.md)).
+
 Nothing lands until you press **Apply**. A slider dragged from end to end and
 thought better of costs you nothing — no undo step, no history entry, nothing to
 sync — and **Cancel** puts the page straight back.

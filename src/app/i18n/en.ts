@@ -150,6 +150,16 @@ export const en = {
     // where there is somewhere to move it to.
     move: "Drag or use the arrow keys to move these options",
     recentre: "Put back",
+    // …and folding it away entirely, which every width has: the options stay
+    // open, the page gets the hand back, and a strip at the foot of the canvas
+    // is the way back to them (see `EffectBar`). Two strings for the one
+    // action: the button wears the short one and says the long one on hover,
+    // because "Put away" beside Cancel and Apply is a footer and "Put these
+    // options away" is an explanation.
+    minimize: "Put these options away",
+    minimizeShort: "Put away",
+    restore: "Back to {name}",
+    aimNote: "Trace it on the page",
     // The window the options carry when they are the whole screen.
     peek: {
       title: "Preview",
@@ -182,7 +192,7 @@ export const en = {
       tolerance: "Colour tolerance: {value}%",
       smoothness: "Smoothness: {value}%",
       noSubject:
-        "Nothing is traced yet. The selection pencil is in your hand — close this, paint roughly over the subject you want to keep, then open Delete background again. Roughly is fine: the cut searches for the exact edge near your outline.",
+        "Nothing is traced yet. The selection pencil is in your hand — put these options away with the button below, then paint roughly over the subject you want to keep. They stay open while you do, and the page shows the cut as you go. Roughly is fine: the cut searches for the exact edge near your outline.",
     },
     colorTitle: "Colour",
     brightness: {

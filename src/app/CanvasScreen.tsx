@@ -37,6 +37,7 @@ import {
   type EffectKind,
 } from "./effects.ts";
 import { DrawingTitle } from "./DrawingTitle.tsx";
+import { EffectBar } from "./EffectBar.tsx";
 import type { MenuEdge } from "./gestures.ts";
 import { HeaderIconButton } from "./HeaderIconButton.tsx";
 import {
@@ -94,6 +95,11 @@ import {
 } from "./transform.ts";
 import { nativeScale, toDocumentPoint, type CanvasView } from "./viewport.ts";
 import * as output from "../output.ts";
+
+/** No tracing at all, as one value rather than a fresh empty list per render —
+ *  what an aimed effect is re-aimed at when its options are put away. The draft
+ *  it lands on is compared by identity (see `useEffecting`). */
+const NOTHING_TRACED: readonly (readonly Point[])[] = [];
 
 // The resize dialog is a click away, never a first paint away — like every
 // other dialog in the app it loads when it is asked for.
@@ -448,6 +454,20 @@ export function CanvasScreen({
       return band === held.band ? held : { ...held, band };
     });
   }, [draft]);
+
+  // Folded away, the options go on watching the page: what you trace while they
+  // are down becomes the effect's subject as you draw it, so the cut on the page
+  // is the cut for the outline you have now (see `EffectBar`). Only the tracing
+  // is watched — the draft is otherwise nobody's but the dialog's — and only
+  // while it is down, because with the dialog up the subject is the one you
+  // opened it with.
+  const minimized = effecting?.minimized ?? false;
+  const traced = selection?.region;
+  const setSubject = effect.setSubject;
+  useEffect(() => {
+    if (!minimized) return;
+    setSubject(traced ?? NOTHING_TRACED);
+  }, [minimized, traced, setSubject]);
 
   /** What the canvas paints the window as, while a cut is being aimed through
    *  it. One object for as long as the band holds: the frame compares it by
@@ -1196,6 +1216,30 @@ export function CanvasScreen({
             tools with the panel open still says what you switched to. */}
           <ToolFlash tool={tool} enabled={settings.showToolName} />
 
+          {/* An effect's options, folded away — the way back to them, and the
+            way out of them, while the page has the hand (see `EffectBar`).
+            Inside the canvas rather than over the whole screen: what it is
+            standing beside is the drawing. */}
+          {effecting?.minimized &&
+            (() => {
+              const descriptor = effectDescriptor(effecting.kind);
+              if (!descriptor) return null;
+              return (
+                <EffectBar
+                  name={t(descriptor.nameKey)}
+                  // The one thing worth saying down here, and only where it is
+                  // true: an effect aimed with a tool is folded away *in order*
+                  // to use that tool. The rest are simply out of the way.
+                  note={descriptor.aimTool ? t("effects.aimNote") : null}
+                  onRestore={() => effect.setMinimized(false)}
+                  onCancel={() => {
+                    setAim(null);
+                    effect.close();
+                  }}
+                />
+              );
+            })()}
+
           {/* The zoom readout, floating over the canvas rather than sitting in
             the header — six icon buttons up there left a phone's title field
             too narrow to read. It counts *device* pixels — 100% is one document
@@ -1353,8 +1397,11 @@ export function CanvasScreen({
       {/* An effect's options. Mounted only while they are open, so the sliders
           always start from the descriptor's preset — and nothing lands on the
           drawing until Apply, however much the page behind is already showing
-          (see `EffectModal`). */}
+          (see `EffectModal`). Folded away, the card goes and the effect stays:
+          the draft, the preview on the page and the strip above are all still
+          here, and bringing it back finds every slider where it was left. */}
       {effecting &&
+        !effecting.minimized &&
         (() => {
           const descriptor = effectDescriptor(effecting.kind);
           if (!descriptor) return null;
@@ -1385,6 +1432,7 @@ export function CanvasScreen({
                     : undefined
                 }
                 page={effect.page}
+                onMinimize={() => effect.setMinimized(true)}
                 onCancel={effect.close}
                 onApply={(landing) => {
                   // Rasterising needs a canvas, so it happens here where one is

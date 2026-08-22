@@ -37,8 +37,9 @@ import { toDocumentPoint, type CanvasView } from "./viewport.ts";
 //     cache (see `cache.ts`), so it must be one object per (draft, targets) and
 //     not one per render.
 //   - `tones` is counted once per opening, for the effects that draw one.
-//   - `look` is taken **once**, when the dialog opens: it is where you were, not
-//     where you are.
+//   - `look` is taken when the dialog opens, and again when it comes back from
+//     minimized — never in between. It is where you were when you last asked to
+//     see the options, not where you are frame by frame.
 //
 // Nothing here touches the document. A draft is screen state like the view or a
 // half-typed caption, and the store hears nothing until the dialog's Apply.
@@ -50,8 +51,18 @@ export type Effecting = {
   scope: EffectScope;
   /** What the canvas was looking at when this opened — where the dialog's own
    *  window onto the page opens, on the widths where the dialog *is* the screen
-   *  (see `EffectPeek`). */
+   *  (see `EffectPeek`). Taken again when the options come back from minimized,
+   *  because by then "where you were" is somewhere else. */
   look: { at: Point; scale: number } | null;
+  /** Folded away to a strip, with the page left to the hand.
+   *
+   *  It is still open — the draft is intact and the page is still previewing it
+   *  — it is simply not in front of the drawing. That is the whole point: an
+   *  effect aimed through a tracing (Delete background) is a dialog that asks
+   *  for something only the canvas can give, and on a phone the dialog *is* the
+   *  canvas. Minimized, the subject is traced with the options still open and
+   *  the page shows the cut as the outline grows. */
+  minimized: boolean;
 };
 
 /** What the dialog is handed to show the page with. */
@@ -75,6 +86,17 @@ export type EffectingControl = {
   close: () => void;
   setDraft: (next: Effect) => void;
   setScope: (next: EffectScope) => void;
+  /** Fold the options away to a strip, or bring them back. Coming back takes
+   *  `look` again: the window the dialog carries opens on the page as you are
+   *  looking at it now, not as you left it however many gestures ago. */
+  setMinimized: (next: boolean) => void;
+  /** Re-aim an open effect at a tracing — what the screen calls while the
+   *  options are folded away and the selection is being drawn. Nothing happens
+   *  to an effect that is not aimed through one (see `withSubject`), and an
+   *  unchanged tracing leaves the draft's identity alone: the mark cache
+   *  compares the preview by identity, so a new object per gesture would be a
+   *  repaint per gesture. */
+  setSubject: (subject: readonly (readonly Point[])[]) => void;
   /** Which layers the open dialog would land on. */
   targets: string[];
   /** What the canvas paints the draft through, or `null` with nothing open. */
@@ -112,29 +134,32 @@ export function useEffecting({
   const viewRef = useRef<CanvasView | null>(null);
   viewRef.current = view;
 
+  /** Where the canvas is looking, right now — the middle of the window in
+   *  document coordinates. Read at the two moments the dialog needs it: when it
+   *  opens, and when it comes back from being folded away. */
+  const looking = useCallback(() => {
+    const seen = viewRef.current;
+    const box = viewportRef.current?.getBoundingClientRect();
+    if (!seen || !box) return null;
+    return {
+      at: toDocumentPoint(seen, { x: box.width / 2, y: box.height / 2 }),
+      scale: seen.scale,
+    };
+  }, [viewportRef]);
+
   const open = useCallback(
     (kind: EffectKind) => {
       const descriptor = effectDescriptor(kind);
       if (!descriptor) return;
-      const seen = viewRef.current;
-      const box = viewportRef.current?.getBoundingClientRect();
       setEffecting({
         kind,
         draft: withSubject(descriptor.preset, subject?.() ?? []),
         scope: defaultScope(descriptor),
-        look:
-          seen && box
-            ? {
-                at: toDocumentPoint(seen, {
-                  x: box.width / 2,
-                  y: box.height / 2,
-                }),
-                scale: seen.scale,
-              }
-            : null,
+        look: looking(),
+        minimized: false,
       });
     },
-    [viewportRef, subject],
+    [looking, subject],
   );
 
   const close = useCallback(() => setEffecting(null), []);
@@ -146,6 +171,27 @@ export function useEffecting({
   const setScope = useCallback(
     (scope: EffectScope) =>
       setEffecting((current) => (current ? { ...current, scope } : null)),
+    [],
+  );
+  const setMinimized = useCallback(
+    (minimized: boolean) =>
+      setEffecting((current) => {
+        if (!current || current.minimized === minimized) return current;
+        return {
+          ...current,
+          minimized,
+          look: minimized ? current.look : looking(),
+        };
+      }),
+    [looking],
+  );
+  const setSubject = useCallback(
+    (traced: readonly (readonly Point[])[]) =>
+      setEffecting((current) => {
+        if (!current) return current;
+        const draft = withSubject(current.draft, traced);
+        return draft === current.draft ? current : { ...current, draft };
+      }),
     [],
   );
 
@@ -202,6 +248,8 @@ export function useEffecting({
     close,
     setDraft,
     setScope,
+    setMinimized,
+    setSubject,
     targets,
     preview,
     page,

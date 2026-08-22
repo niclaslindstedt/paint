@@ -3,6 +3,7 @@ import { useEffect } from "react";
 
 import {
   Button,
+  ChevronDownIcon,
   GripIcon,
   Modal,
   SegmentedControl,
@@ -86,6 +87,20 @@ import { useDialogDrag } from "./useDialogDrag.ts";
 //     preview you can pan and zoom, painted from the very same draft (see
 //     `EffectPeek`). A preview of a page nobody can see is not a preview.
 //
+// ## Folding it away
+//
+// Both of those still assume the card is the thing you are looking at, and one
+// effect breaks that assumption outright: **Delete background is aimed with a
+// tool**, and a tool needs the page. So the footer carries a Put away button —
+// the footer because it is the one row of this card that does not scroll — and
+// pressing it puts the card away without closing it: the draft is intact, the
+// page goes on previewing it, and what is left is a strip at the foot of the
+// canvas (see `EffectBar`). Trace the subject with the options still open, watch
+// the cut follow the outline, and bring them back to apply.
+//
+// It is not only for the aimed one. Any of these can be in front of the part of
+// the drawing you are judging it by, and on a phone all of them are.
+//
 // The controls are read off the descriptor and nothing here knows which effect
 // it is showing — a new effect is a descriptor in `effects.ts` and its catalog
 // strings, and this dialog renders it without being told. Five kinds of control
@@ -143,6 +158,10 @@ type Props = {
   } | null;
   onCancel: () => void;
   onApply: (effect: Effect) => void;
+  /** Fold the card away to a strip and leave the page to the hand. The draft
+   *  stays exactly as it is and the page keeps previewing it — see the note on
+   *  minimizing at the top of this file. */
+  onMinimize: () => void;
 };
 
 export function EffectModal({
@@ -157,6 +176,7 @@ export function EffectModal({
   page,
   onCancel,
   onApply,
+  onMinimize,
 }: Props) {
   const t = useT();
   const roomy = useMediaQuery(ROOMY);
@@ -192,6 +212,22 @@ export function EffectModal({
       closeLabel={t("common.cancel")}
       footer={
         <footer className="flex shrink-0 items-center justify-end gap-2 border-t border-line bg-surface-3 px-4 py-3">
+          {/* Out of the way — in the footer rather than up in the title row,
+              because the footer is the one part of this card that does not
+              scroll. On a phone the options are a column taller than the
+              screen and the title row is the first thing to leave it; a way
+              out of the dialog you have to scroll back up for is one you look
+              for while holding a half-drawn tracing. */}
+          <Button
+            variant="secondary"
+            onClick={onMinimize}
+            title={t("effects.minimize")}
+          >
+            <span className="flex items-center gap-1.5">
+              <ChevronDownIcon className="h-4 w-4" />
+              {t("effects.minimizeShort")}
+            </span>
+          </Button>
           <span className="flex-1" />
           <Button variant="secondary" onClick={onCancel}>
             {t("common.cancel")}
