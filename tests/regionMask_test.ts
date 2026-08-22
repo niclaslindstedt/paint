@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   combineRegion,
+  fillGap,
   fillRegion,
   maskFor,
   maskRegion,
@@ -183,5 +184,67 @@ describe("combineRegion", () => {
         true,
       ),
     ).toBeNull();
+  });
+});
+
+describe("fillGap", () => {
+  const page = { width: 200, height: 140 };
+  /** A ring: a square with a square hole in it, read even-odd — what going
+   *  round a shape with the pencil or the trace actually leaves you with. */
+  const ring = [square(40, 30, 100, 80), square(70, 55, 40, 30)];
+
+  it("fills the middle a selection has only gone round", () => {
+    const filled = fillGap(ring, page, { x: 90, y: 70 })!;
+    // The hole is inside the window now, and the ring's own ink still is.
+    expect(regionHolds(filled, { x: 90, y: 70 })).toBe(true);
+    expect(regionHolds(filled, { x: 45, y: 35 })).toBe(true);
+    // …and nothing outside it came along.
+    expect(regionHolds(filled, { x: 10, y: 10 })).toBe(false);
+    expect(regionHolds(filled, { x: 190, y: 130 })).toBe(false);
+  });
+
+  it("chooses the whole page when nothing is selected yet", () => {
+    // An unmarked sheet has no gaps in it, so all of it is one.
+    const filled = fillGap([], page, { x: 12, y: 12 })!;
+    for (const p of [
+      { x: 1, y: 1 },
+      { x: 100, y: 70 },
+      { x: 199, y: 139 },
+    ]) {
+      expect(regionHolds(filled, p)).toBe(true);
+    }
+  });
+
+  it("takes the part of the page outside the selection, and stops at it", () => {
+    const filled = fillGap([square(40, 30, 100, 80)], page, { x: 5, y: 5 })!;
+    expect(regionHolds(filled, { x: 5, y: 5 })).toBe(true);
+    expect(regionHolds(filled, { x: 190, y: 130 })).toBe(true);
+    // The selection is *also* in the window — a fill adds, it never takes
+    // away — so the whole page is chosen by the time this press has landed.
+    expect(regionHolds(filled, { x: 90, y: 70 })).toBe(true);
+  });
+
+  it("hands the selection back untouched from a press inside it", () => {
+    // There is no pocket under that press, and retracing the window through
+    // the mask would move every corner of it by a fraction for nothing.
+    expect(fillGap(ring, page, { x: 45, y: 35 })).toEqual(ring);
+  });
+
+  it("chooses nothing from a press off the page", () => {
+    expect(fillGap(ring, page, { x: -5, y: 70 })).toBeNull();
+    expect(fillGap(ring, page, { x: 90, y: 999 })).toBeNull();
+    // …and with nothing selected either, there is still nothing to hand back
+    // rather than a window at a press that never landed.
+    expect(fillGap([], page, { x: 999, y: 999 })).toBeNull();
+  });
+
+  it("keeps what it traces on the page", () => {
+    const filled = fillGap([], page, { x: 100, y: 70 })!;
+    for (const p of filled.flat()) {
+      expect(p.x).toBeGreaterThanOrEqual(0);
+      expect(p.y).toBeGreaterThanOrEqual(0);
+      expect(p.x).toBeLessThanOrEqual(page.width);
+      expect(p.y).toBeLessThanOrEqual(page.height);
+    }
   });
 });

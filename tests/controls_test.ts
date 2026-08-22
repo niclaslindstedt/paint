@@ -62,9 +62,30 @@ describe("toolControl", () => {
     for (const id of ["hand", "select"]) {
       expect(toolControl(pluginById(id)!)).toBe("none");
     }
-    for (const id of ["select-oval", "select-lasso", "select-trace"]) {
+    for (const id of [
+      "select-oval",
+      "select-lasso",
+      "select-trace",
+      "select-match",
+      "select-gap",
+    ]) {
       expect(pluginById(id)!.sizeless).toBe(true);
     }
+  });
+
+  it("gives the colour match a cog, for the one number a nibless marquee has", () => {
+    // Sizeless like its siblings — there is no nib in a press — but not
+    // settingless: how far a colour may drift and still be chosen is a
+    // property of the reading, and the cog is where a widthless tool's
+    // settings live (the bucket's own arrangement).
+    const match = pluginById("select-match")!;
+    expect(match.sizeless).toBe(true);
+    expect(usesSize(match)).toBe(false);
+    expect(hasDials(match)).toBe(true);
+    expect(toolControl(match)).toBe("dials");
+    // The gap filler has nothing to set at all: what bounds its flood is the
+    // selection, and there is no number in that.
+    expect(toolControl(pluginById("select-gap")!)).toBe("none");
   });
 
   it("gives the selection pencil a real width, dials and all", () => {

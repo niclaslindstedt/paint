@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 // The window the colour tools read the page through.
 //
-// The dropper wants the colour under the pointer and the bucket wants the shape
-// of the area under it, and neither question can be answered from the document:
-// a stroke list says what was drawn, not what is on top after twenty passes of
-// a translucent highlighter. So both are answered from a *raster* — the same
+// The dropper wants the colour under the pointer, the bucket wants the shape of
+// the area under it, and the colour selection wants everywhere *else* that
+// colour appears — and none of the three can be answered from the document: a
+// stroke list says what was drawn, not what is on top after twenty passes of a
+// translucent highlighter. So all three are answered from a *raster* — the same
 // renderer the screen and the PNG export use, run once onto an off-screen
 // canvas at the moment of the press.
 //
@@ -18,7 +19,7 @@
 // feeds — the flood, the tracing, the tool behaviours — is pure (see
 // `flood.ts`), which is why the tools stay testable in node.
 
-import { regionAt as traceRegion } from "./flood.ts";
+import { matchAt as traceMatch, regionAt as traceRegion } from "./flood.ts";
 import type { CanvasProbe } from "./plugins/types.ts";
 import { renderDrawing, type InkContext } from "./render.ts";
 import type { Drawing, Point } from "./types.ts";
@@ -169,6 +170,15 @@ export function createProbe(drawing: Drawing, ink: InkContext): CanvasProbe {
       if (!shot) return null;
       return traceRegion(shot.pixels, shot.width, shot.height, p, {
         scale: shot.scale,
+      });
+    },
+    matchAt(p, tolerance) {
+      if (!onPage(p)) return null;
+      const shot = pixels();
+      if (!shot) return null;
+      return traceMatch(shot.pixels, shot.width, shot.height, p, {
+        scale: shot.scale,
+        ...(tolerance === undefined ? {} : { tolerance }),
       });
     },
   };

@@ -466,6 +466,10 @@ export const sv: Catalog = {
     selectFeather: {
       hint: "Hur mjukt en radering genom markeringen tonas ut — kanter och hörn försvinner gradvis i stället för tvärt.",
     },
+    tolerance: {
+      name: "Färgtolerans: {value} %",
+      hint: "Hur mycket en färg får avvika från den du tryckte på och ändå markeras. Snävt plockar ut en exakt nyans; brett tar med en hel himmel.",
+    },
     sample: {
       name: "Yta: {value}",
       hint: "Hur mycket av sidan ett tryck läser av. Bredare ger medelfärgen av en spretig yta i stället för en enstaka prick.",
@@ -717,7 +721,7 @@ export const sv: Catalog = {
     selection: {
       name: "Markera",
       description:
-        "Skär ut ett fönster i sidan — med en ruta, en oval, ett lasso, genom att följa konturerna av det som är målat under pekaren, eller genom att rita in det med en spets. Tryck igen för att välja vilket. Målar du inuti det skärs strecket till fönstret; dra i det med handen för att flytta det som är målat där, eller med markeringen för att flytta fönstret.",
+        "Skär ut ett fönster i sidan — med en ruta, en oval, ett lasso, genom att följa konturerna av det som är målat under pekaren, genom att plocka ut en färg var den än finns, genom att fylla igen en lucka markeringen ritat runt, eller genom att rita in det med en spets. Tryck igen för att välja vilket. Målar du inuti det skärs strecket till fönstret; dra i det med handen för att flytta det som är målat där, eller med markeringen för att flytta fönstret.",
     },
     select: {
       name: "Markera ruta",
@@ -736,6 +740,16 @@ export const sv: Catalog = {
       name: "Markera kontur",
       description:
         "Tryck på ett område så följer markeringen konturerna av det som är ritat där, i stället för en form du ritat över det.",
+    },
+    selectMatch: {
+      name: "Markera färg",
+      description:
+        "Tryck på en färg så markeras allt annat på sidan som har den färgen — toleransratten avgör hur mycket en nyans får avvika och ändå räknas. Där Markera kontur stannar vid första kanten går den här över hela sidan, och den får tryckas på det tomma papperet: då markeras bakgrunden med dina streck utelämnade.",
+    },
+    selectGap: {
+      name: "Markera lucka",
+      description:
+        "Tryck på en del av sidan som markeringen inte når så fylls den med markering, ut till kanterna av det som redan är valt — så fyller du i mitten på en form du bara ritat runt. Med ingenting markerat väljer ett tryck hela sidan.",
     },
     selectDraw: {
       name: "Rita markering",

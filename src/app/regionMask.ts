@@ -11,12 +11,14 @@
 // is ordinary vector geometry that zooms, undoes and syncs like everything
 // else.
 //
-// The one caller today is the selection pencil (`select.ts`), which paints
-// selection the way a pencil paints ink: each stroke is stamped into a mask the
-// current selection was first filled into, adding or taking away, and the
-// mask's outline is the new selection. The pieces are exported separately —
-// fill a region in, stamp a path, trace the result — because they are the same
-// pieces any later raster-to-region job needs.
+// Two callers, both in the selection family (`select.ts`). The selection pencil
+// paints selection the way a pencil paints ink: each stroke is stamped into a
+// mask the current selection was first filled into, adding or taking away, and
+// the mask's outline is the new selection. The gap filler floods the mask's
+// *empty* cells instead of stamping them, so a press in a pocket the selection
+// encloses fills that pocket in (`fillGap`). The pieces are exported separately
+// — fill a region in, stamp a path, flood what is empty, trace the result —
+// because they are the same pieces any later raster-to-region job needs.
 //
 // Everything here is pure and DOM-free, like `flood.ts` under it: buffers in,
 // points out, the whole pipeline testable in node.
@@ -189,6 +191,105 @@ export function maskRegion(
       })),
     );
   return out.length > 0 ? out : null;
+}
+
+/** Flood the **unfilled** cells of a mask, starting at the cell (`sx`, `sy`),
+ *  and fill them in. `false` when that cell was filled already — there is no
+ *  pocket there, because the press landed in the selection.
+ *
+ *  Four-connected and scanline, the bucket's own walk (see `floodMask` in
+ *  `flood.ts`), which is what makes the two tools stop in the same places: a
+ *  gap sealed only by a diagonal join is still sealed. */
+function floodEmpty(mask: BinaryMask, sx: number, sy: number): boolean {
+  const { width, height, data } = mask;
+  if (sx < 0 || sy < 0 || sx >= width || sy >= height) return false;
+  if (data[sy * width + sx] === 1) return false;
+  const stack: number[] = [sx, sy];
+  while (stack.length > 0) {
+    const y = stack.pop()!;
+    const x = stack.pop()!;
+    const row = y * width;
+    if (data[row + x] === 1) continue;
+
+    let left = x;
+    while (left > 0 && data[row + left - 1] === 0) left--;
+    let right = x;
+    while (right < width - 1 && data[row + right + 1] === 0) right++;
+    for (let i = left; i <= right; i++) data[row + i] = 1;
+
+    for (const ny of [y - 1, y + 1]) {
+      if (ny < 0 || ny >= height) continue;
+      const nrow = ny * width;
+      let run = false;
+      for (let i = left; i <= right; i++) {
+        const open = data[nrow + i] === 0;
+        if (open && !run) stack.push(i, ny);
+        run = open;
+      }
+    }
+  }
+  return true;
+}
+
+/** The whole page, worked over by one press of the gap filler: whatever the
+ *  selection already holds, **plus** the unselected pocket the press landed in
+ *  — out to the selection's own edges, and no further than the page.
+ *
+ *  It is the bucket's idea aimed at the window instead of at the picture. What
+ *  bounds the flood is not colour but what is already chosen, so an outline
+ *  selected all the way round — traced round a ring, painted round a subject —
+ *  can have its forgotten middle filled in with one press, which no other
+ *  member of the family can do: a lasso would have to be drawn round the hole
+ *  by hand and a trace needs the hole to be a *painted* area.
+ *
+ *  Two answers are not new contours. A press inside the selection has no pocket
+ *  under it and hands the selection straight back unchanged (rather than the
+ *  half-pixel-different retracing the mask would give); a press off the page
+ *  hands back `null`, which is the "chose nothing" every selection tool's tap
+ *  means. And with nothing selected at all, the pocket is the whole sheet —
+ *  which is exactly right: the page has no gaps in it yet, so all of it is one.
+ */
+export function fillGap(
+  region: readonly (readonly Point[])[],
+  page: { width: number; height: number },
+  seed: Point,
+): Point[][] | null {
+  if (
+    seed.x < 0 ||
+    seed.y < 0 ||
+    seed.x >= page.width ||
+    seed.y >= page.height
+  ) {
+    return null;
+  }
+  const made = maskFor(
+    { x: 0, y: 0, width: page.width, height: page.height },
+    0,
+  );
+  if (!made) return null;
+  const { mask, frame } = made;
+  fillRegion(mask, frame, region);
+  // The cell the press landed in, read the way `fillRegion` writes them: cell
+  // (x, y) is the one whose centre is at ((x + 0.5) / scale) on the page.
+  const sx = Math.floor((seed.x - frame.x) * frame.scale);
+  const sy = Math.floor((seed.y - frame.y) * frame.scale);
+  if (!floodEmpty(mask, sx, sy)) {
+    return region.length > 0
+      ? region.map((loop) => loop.map((p) => ({ ...p })))
+      : null;
+  }
+  const filled = maskRegion(mask, frame);
+  // The mask is a whole cell wider than the page in each direction (see
+  // `maskFor`), so a pocket that runs to the edge traces a hair outside it.
+  // Held to the page here rather than left to whoever reads the window.
+  return (
+    filled?.map((loop) =>
+      loop.map((p) => ({
+        x: Math.min(Math.max(p.x, 0), page.width),
+        y: Math.min(Math.max(p.y, 0), page.height),
+      })),
+    ) ?? null
+  );
 }
 
 /** The box around a run of contours and a path together, or `null` when both

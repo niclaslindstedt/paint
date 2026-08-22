@@ -2,6 +2,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { hexToHsv } from "../src/app/color.ts";
+import { regionHolds } from "../src/app/selection.ts";
 import { dropperBehaviour } from "../src/app/plugins/builtin/dropper.ts";
 import { fillBehaviour } from "../src/app/plugins/builtin/fill.ts";
 import { freehandBehaviour } from "../src/app/plugins/builtin/freehand.ts";
@@ -14,6 +15,8 @@ import {
   selectBehaviour,
   selectLassoBehaviour,
   selectOvalBehaviour,
+  selectGapBehaviour,
+  selectMatchBehaviour,
   selectTraceBehaviour,
   SELECT_GROUP_ID,
 } from "../src/app/plugins/builtin/select.ts";
@@ -116,12 +119,16 @@ describe("registry", () => {
       "star",
       "doublearrow",
       // The selection family: the box marquee, then the oval, the lasso, the
-      // one that traces what is painted, and the pencil that paints the
-      // selection in. They share a button too.
+      // one that traces what is painted, the one that matches a colour
+      // wherever it appears, the one that fills a gap the selection goes
+      // round, and the pencil that paints the selection in. They share a
+      // button too.
       "select",
       "select-oval",
       "select-lasso",
       "select-trace",
+      "select-match",
+      "select-gap",
       "select-draw",
       "text",
       "dropper",
@@ -953,7 +960,11 @@ describe("fill behaviour", () => {
   ];
   const withProbe = (region: Point[][] | null): ToolContext => ({
     ...ctx,
-    probe: { colorAt: () => "#123456", regionAt: () => region },
+    probe: {
+      colorAt: () => "#123456",
+      regionAt: () => region,
+      matchAt: () => region,
+    },
   });
 
   it("files the traced area as a vector stroke", () => {
@@ -1122,6 +1133,8 @@ describe("select behaviour", () => {
       "select-oval",
       "select-lasso",
       "select-trace",
+      "select-match",
+      "select-gap",
       "select-draw",
     ]);
     // …and they are exactly the family behind the one button, so no selection
@@ -1245,7 +1258,11 @@ describe("select behaviour", () => {
     ];
     const probed: ToolContext = {
       ...ctx,
-      probe: { colorAt: () => "#123456", regionAt: () => blob },
+      probe: {
+        colorAt: () => "#123456",
+        regionAt: () => blob,
+        matchAt: () => blob,
+      },
     };
     const draft = selectTraceBehaviour.start({ x: 5, y: 5 }, probed)!;
     expect(draft.shape).toEqual({ kind: "region", contours: blob });
@@ -1268,11 +1285,116 @@ describe("select behaviour", () => {
             { x: 0, y: 300 },
           ],
         ],
+        matchAt: () => null,
       },
     };
     const draft = selectTraceBehaviour.start({ x: 5, y: 5 }, sheet)!;
     expect(draft.shape).toEqual({ kind: "region", contours: [] });
     expect(selectTraceBehaviour.selection!(draft)).toBeNull();
+  });
+
+  it("chooses a colour everywhere it appears, the bare sheet included", () => {
+    // The press the tracing tool has to refuse is the one this answers: the
+    // page colour matched across the page, with every mark on it left out as a
+    // hole. That is "the background, and not what is drawn on it".
+    const scattered = [
+      [
+        { x: 2, y: 2 },
+        { x: 9, y: 3 },
+        { x: 7, y: 11 },
+      ],
+      [
+        { x: 40, y: 40 },
+        { x: 48, y: 41 },
+        { x: 46, y: 49 },
+      ],
+    ];
+    const sheet: ToolContext = {
+      ...ctx,
+      probe: {
+        colorAt: () => ctx.background,
+        regionAt: () => null,
+        matchAt: () => scattered,
+      },
+    };
+    const draft = selectMatchBehaviour.start({ x: 5, y: 5 }, sheet)!;
+    expect(draft.shape).toEqual({ kind: "region", contours: scattered });
+    expect(selectMatchBehaviour.selection!(draft)).toEqual(scattered);
+  });
+
+  it("reads how far a colour may drift off its own dial", () => {
+    // The tolerance is a fraction of the whole colour distance on the dial and
+    // 0–255 channel units at the raster, and the tool is the one place that
+    // conversion happens.
+    const asked: (number | undefined)[] = [];
+    const watching = (dials: Record<string, number>): ToolContext => ({
+      ...ctx,
+      dials,
+      probe: {
+        colorAt: () => "#123456",
+        regionAt: () => null,
+        matchAt: (_p, tolerance) => {
+          asked.push(tolerance);
+          return null;
+        },
+      },
+    });
+    selectMatchBehaviour.start({ x: 5, y: 5 }, watching({}));
+    selectMatchBehaviour.start({ x: 5, y: 5 }, watching({ tolerance: 0.4 }));
+    expect(asked).toEqual([26, 102]);
+  });
+
+  it("fills the middle of a selection that only went round it", () => {
+    // The one gesture in the family bounded by the *window* rather than by
+    // anything drawn: a ring with the press in its hole comes back as the ring
+    // with the hole filled in.
+    const ring = [
+      [
+        { x: 40, y: 30 },
+        { x: 140, y: 30 },
+        { x: 140, y: 110 },
+        { x: 40, y: 110 },
+      ],
+      [
+        { x: 70, y: 55 },
+        { x: 110, y: 55 },
+        { x: 110, y: 85 },
+        { x: 70, y: 85 },
+      ],
+    ];
+    const sheet: ToolContext = {
+      ...ctx,
+      selection: ring,
+      page: { width: 200, height: 140 },
+    };
+    const draft = selectGapBehaviour.start({ x: 90, y: 70 }, sheet)!;
+    const chosen = selectGapBehaviour.selection!(draft)!;
+    expect(regionHolds(chosen, { x: 90, y: 70 })).toBe(true);
+    expect(regionHolds(chosen, { x: 45, y: 35 })).toBe(true);
+    expect(regionHolds(chosen, { x: 10, y: 10 })).toBe(false);
+  });
+
+  it("chooses the whole page with nothing selected yet", () => {
+    const bare: ToolContext = { ...ctx, page: { width: 200, height: 140 } };
+    const draft = selectGapBehaviour.start({ x: 12, y: 12 }, bare)!;
+    const chosen = selectGapBehaviour.selection!(draft)!;
+    expect(regionHolds(chosen, { x: 190, y: 130 })).toBe(true);
+  });
+
+  it("stays where it is while the drag is still inside what it chose", () => {
+    // Answering costs a page of cells filled and flooded; inside its own
+    // answer the answer cannot change, so it is not asked again.
+    const bare: ToolContext = { ...ctx, page: { width: 200, height: 140 } };
+    const draft = selectGapBehaviour.start({ x: 12, y: 12 }, bare)!;
+    expect(selectGapBehaviour.move(draft, { x: 150, y: 100 }, bare)).toBe(
+      draft,
+    );
+  });
+
+  it("chooses nothing when it is handed no page to flood", () => {
+    const draft = selectGapBehaviour.start({ x: 5, y: 5 }, ctx)!;
+    expect(draft.shape).toEqual({ kind: "region", contours: [] });
+    expect(selectGapBehaviour.selection!(draft)).toBeNull();
   });
 
   it("still begins a gesture where there is nothing to trace, so a press can clear the selection", () => {
