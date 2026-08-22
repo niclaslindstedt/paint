@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import {
   Button,
@@ -59,6 +59,11 @@ import type { Drawing, Point } from "./types.ts";
 //     It relaxes back to a fitted scale the moment the pointer lifts.
 //   - It is fitted to *both* pages at once, so the two rectangles mean
 //     something next to each other rather than each filling the box.
+//   - It is drawn **the shape of the page it is showing**, as wide as the dialog
+//     is and as tall as that page's proportions ask for. That is gearing, not
+//     decoration: a drag is divided by the scale the picture is drawn at, so a
+//     tall page squeezed into a letterbox is a page where a finger's width is
+//     five hundred document pixels and the corner cannot be aimed at all.
 //
 // The sampling choice belongs to scaling and to bitmaps: it decides whether a
 // picture painted larger is smoothed or keeps its pixels square. It rides onto
@@ -77,8 +82,19 @@ type Props = {
   onCanvas: (to: CanvasSize, anchor: ResizeAnchor) => void;
 };
 
-/** The box the before/after picture is drawn inside, in CSS pixels. */
-const PREVIEW = { width: 220, height: 132 };
+/** How wide the before/after picture is drawn, in CSS pixels, before the
+ *  dialog has been measured — the width it had when it was a fixed box, and
+ *  the width it keeps anywhere `ResizeObserver` is not. */
+const PREVIEW_WIDTH = 220;
+
+/** How tall it is allowed to be. The picture takes the *shape of the page it is
+ *  showing* between these two, which is not decoration: everything the handles
+ *  do is divided by the scale the picture is drawn at, so a portrait page in a
+ *  letterbox is a page where one pixel of finger is twenty of document and the
+ *  corner is unusable. A tall page gets a tall picture and the drag gets the
+ *  gearing back. */
+const PREVIEW_MIN_HEIGHT = 120;
+const PREVIEW_MAX_HEIGHT = 220;
 
 /** How much of that box the two pages are fitted into, so the corner handles —
  *  which stick out past the edge of the new page — have somewhere to be. */
@@ -307,6 +323,33 @@ function Preview({
 }) {
   const t = useT();
   const target = to ?? from;
+  // How wide the picture actually is. The dialog is as wide as the screen lets
+  // it be — a phone gives it half again what the old fixed box used — and every
+  // CSS pixel of that is document pixels the drag no longer has to guess at.
+  const [width, setWidth] = useState(PREVIEW_WIDTH);
+  const boxRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const element = boxRef.current;
+    if (!element || typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(([entry]) => {
+      const measured = entry?.contentRect.width ?? 0;
+      if (measured > 0) setWidth(measured);
+    });
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
+  // …and as tall as the page it is showing, between the two bounds above. Taken
+  // from the page as it *is* rather than as it is becoming, so the picture keeps
+  // its shape for as long as the dialog is open and a drag never resizes the
+  // thing it is being measured against.
+  const height = Math.min(
+    PREVIEW_MAX_HEIGHT,
+    Math.max(
+      PREVIEW_MIN_HEIGHT,
+      Math.round((width * from.height) / Math.max(1, from.width)),
+    ),
+  );
+  const picture = { width, height };
   // Where the drag began: the size it started from and the pointer that started
   // it. A drag is measured from its origin rather than accumulated frame by
   // frame, so it stays exact and reversible — pull a corner out and back and
@@ -329,15 +372,15 @@ function Preview({
     bottom: Math.max(target.height, offset.y + from.height),
   };
   const fitted = Math.min(
-    (PREVIEW.width - PREVIEW_INSET * 2) / Math.max(1, box.right - box.left),
-    (PREVIEW.height - PREVIEW_INSET * 2) / Math.max(1, box.bottom - box.top),
+    (picture.width - PREVIEW_INSET * 2) / Math.max(1, box.right - box.left),
+    (picture.height - PREVIEW_INSET * 2) / Math.max(1, box.bottom - box.top),
   );
   const scale = frozen ?? fitted;
   // Centre the pair in the box, then place both rectangles from that origin.
   const originX =
-    (PREVIEW.width - (box.right - box.left) * scale) / 2 - box.left * scale;
+    (picture.width - (box.right - box.left) * scale) / 2 - box.left * scale;
   const originY =
-    (PREVIEW.height - (box.bottom - box.top) * scale) / 2 - box.top * scale;
+    (picture.height - (box.bottom - box.top) * scale) / 2 - box.top * scale;
   const px = (n: number) => `${Math.round(n)}px`;
 
   const sheet = {
@@ -378,12 +421,13 @@ function Preview({
 
   return (
     <div
+      ref={boxRef}
       className="relative overflow-hidden rounded-lg border border-line bg-surface-2"
-      style={{ width: "100%", height: `${PREVIEW.height + 24}px` }}
+      style={{ width: "100%", height: `${picture.height}px` }}
     >
       <div
-        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
-        style={{ width: `${PREVIEW.width}px`, height: `${PREVIEW.height}px` }}
+        className="absolute inset-0"
+        style={{ width: `${picture.width}px`, height: `${picture.height}px` }}
       >
         {/* The page as it is now: dashed, so it reads as the outline being left
             behind rather than as a second sheet. */}

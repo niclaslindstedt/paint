@@ -379,15 +379,88 @@ describe("pulling a corner", () => {
     expect(dragCorner(out, "bottom-right", { x: -340, y: 60 })).toEqual(start);
   });
 
-  it("keeps the proportions from the axis that moved further", () => {
-    // Mostly sideways: the width leads and the height follows it.
+  it("keeps the proportions, and puts the corner where the drag points", () => {
+    // A drag straight along the diagonal keeps the proportions on its own, so
+    // the corner lands exactly where it was pulled to.
+    expect(
+      dragCorner(
+        start,
+        "bottom-right",
+        { x: 500, y: 250 },
+        { keepRatio: true },
+      ),
+    ).toEqual({ width: 1500, height: 750 });
+    // Anywhere else it is held to the shape the page began with, and to the
+    // point on that ray nearest the pointer — so a pull that is mostly
+    // sideways is mostly a widening, and takes the height with it a little.
     expect(
       dragCorner(start, "bottom-right", { x: 500, y: 10 }, { keepRatio: true }),
-    ).toEqual({ width: 1500, height: 750 });
-    // Mostly downwards: the height leads instead.
+    ).toEqual({ width: 1404, height: 702 });
+    // Both corners of one drag read the same: pulling the top-left up and left
+    // grows the page by the same amount pulling the bottom-right down and right
+    // does.
     expect(
-      dragCorner(start, "bottom-right", { x: 10, y: 250 }, { keepRatio: true }),
-    ).toEqual({ width: 1500, height: 750 });
+      dragCorner(start, "top-left", { x: -500, y: -10 }, { keepRatio: true }),
+    ).toEqual({ width: 1404, height: 702 });
+  });
+
+  it("never multiplies a drag on a page far from square", () => {
+    // The bug this rule replaced, in one case: a phone-shaped page is 2.2 times
+    // taller than it is wide, so scaling by whichever axis moved further *in
+    // proportion* let a sideways nudge outvote a longer pull downwards and
+    // multiply it — the corner left the pointer and the sides jumped by
+    // thousands. Whatever the drag, the answer is now the page nearest to it.
+    const tall = { width: 1179, height: 2556 };
+    const delta = { x: 300, y: 400 };
+    const out = dragCorner(tall, "bottom-right", delta, { keepRatio: true });
+    expect(out.width / out.height).toBeCloseTo(tall.width / tall.height, 2);
+    const away = (size: { width: number; height: number }) =>
+      Math.hypot(
+        size.width - (tall.width + delta.x),
+        size.height - (tall.height + delta.y),
+      );
+    // The two answers the axis-leading rule could give are both further from
+    // where the pointer actually went than this one is.
+    const ledByWidth = { width: 1479, height: 3206 };
+    const ledByHeight = { width: 1364, height: 2956 };
+    expect(away(out)).toBeLessThan(away(ledByWidth));
+    expect(away(out)).toBeLessThan(away(ledByHeight));
+    // …and it is not a lever. A projection can only ever be shorter than what
+    // it projects, so the corner cannot travel further than the hand did — the
+    // one property the old rule broke, and the one that made it feel like a
+    // bug rather than a handle.
+    expect(
+      Math.hypot(out.width - tall.width, out.height - tall.height),
+    ).toBeLessThanOrEqual(Math.hypot(delta.x, delta.y) + 1);
+    // The width-led answer did travel further: 300 across and 650 down, for a
+    // drag of 500.
+    expect(
+      Math.hypot(
+        ledByWidth.width - tall.width,
+        ledByWidth.height - tall.height,
+      ),
+    ).toBeGreaterThan(Math.hypot(delta.x, delta.y));
+  });
+
+  it("holds a wild drag to the proportions as well as to the range", () => {
+    // Clamping each side on its own would hand back a square page from a 2:1
+    // one, which is the one thing "keep proportions" promises not to do.
+    expect(
+      dragCorner(
+        start,
+        "bottom-right",
+        { x: 99999, y: 99999 },
+        { keepRatio: true },
+      ),
+    ).toEqual({ width: MAX_CANVAS_SIDE, height: MAX_CANVAS_SIDE / 2 });
+    expect(
+      dragCorner(
+        start,
+        "bottom-right",
+        { x: -99999, y: -99999 },
+        { keepRatio: true },
+      ),
+    ).toEqual({ width: MIN_CANVAS_SIDE * 2, height: MIN_CANVAS_SIDE });
   });
 
   it("holds a wild drag inside the sizes a page can be", () => {

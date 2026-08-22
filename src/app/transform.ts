@@ -26,7 +26,12 @@
 
 import { textBox } from "./plugins/builtin/text.ts";
 import type { Box } from "./bounds.ts";
-import { clampCanvasSize, type CanvasSize } from "./canvasSize.ts";
+import {
+  clampCanvasSize,
+  MAX_CANVAS_SIDE,
+  MIN_CANVAS_SIDE,
+  type CanvasSize,
+} from "./canvasSize.ts";
 import type { Drawing, Point, Shape, Stroke } from "./types.ts";
 
 /** Which way a mirror faces. `horizontal` swaps left and right (a mirror stood
@@ -399,13 +404,26 @@ export function cornerAnchor(corner: ResizeCorner): ResizeAnchor {
 /** The size a corner drag lands on: `start` with the pulled corner moved by
  *  `delta` document pixels, the opposite corner staying put.
  *
- *  With `keepRatio` the page holds the proportions it had when the drag began,
- *  and the axis that moved *further, in proportion* is the one that leads — so
- *  a mostly-sideways pull reads as a sideways pull rather than fighting the
- *  vertical wobble in it.
+ *  With `keepRatio` the page holds the proportions it began with, which means
+ *  the corner cannot go exactly where the pointer went: it is held to the ray
+ *  the proportions allow. **Where on that ray is the point nearest the
+ *  pointer** — the drag projected onto it — and that is the whole rule.
+ *
+ *  It is worth saying what it replaces, because the difference is the
+ *  difference between a handle and a bug. This used to take whichever axis had
+ *  moved further *in proportion* and scale by that one alone, which on a page
+ *  far from square is a lever: a 1179 × 2556 sheet is 2.2 times taller than it
+ *  is wide, so a sideways twitch of a tenth of the width outvoted a deliberate
+ *  pull down the same number of pixels and multiplied it — the corner left the
+ *  finger and the numbers jumped by thousands. A projection cannot do that.
+ *  Every pixel of the drag counts once, weighted by the side it is pushing, and
+ *  a drag straight along the diagonal — the one that keeps the proportions
+ *  exactly — is the one that moves the corner furthest.
  *
  *  Sides are rounded and clamped to the supported range, so a drag can be as
- *  wild as it likes and still hand back a page. */
+ *  wild as it likes and still hand back a page — and with `keepRatio` it is the
+ *  *scale* that is clamped rather than each side on its own, so a page held to
+ *  its proportions still has them at the end of a drag that ran off the top. */
 export function dragCorner(
   start: CanvasSize,
   corner: ResizeCorner,
@@ -414,16 +432,40 @@ export function dragCorner(
 ): CanvasSize {
   const dx = corner.endsWith("left") ? -delta.x : delta.x;
   const dy = corner.startsWith("top") ? -delta.y : delta.y;
-  let width = start.width + dx;
-  let height = start.height + dy;
 
   if (options.keepRatio && start.width > 0 && start.height > 0) {
-    const sw = width / start.width;
-    const sh = height / start.height;
-    const scale = Math.abs(sw - 1) >= Math.abs(sh - 1) ? sw : sh;
-    width = start.width * scale;
-    height = start.height * scale;
+    const { width: w, height: h } = start;
+    // The corner sits at (w, h) from the anchor and the drag asks for
+    // (w + dx, h + dy); the nearest point on the ray through (w, h) is that
+    // asked-for point projected onto it.
+    const scale = 1 + (dx * w + dy * h) / (w * w + h * h);
+    return scaleCanvasSize(start, scale);
   }
 
-  return clampCanvasSize({ width, height });
+  return clampCanvasSize({
+    width: start.width + dx,
+    height: start.height + dy,
+  });
+}
+
+/** `size` at `scale`, with the *scale* held inside the range a page may be —
+ *  so the proportions survive a drag that asked for more page than there is.
+ *  Clamping the two sides separately would not: a 2:1 page dragged past the
+ *  ceiling would come back square. */
+function scaleCanvasSize(size: CanvasSize, scale: number): CanvasSize {
+  const low = Math.max(
+    MIN_CANVAS_SIDE / size.width,
+    MIN_CANVAS_SIDE / size.height,
+  );
+  const high = Math.min(
+    MAX_CANVAS_SIDE / size.width,
+    MAX_CANVAS_SIDE / size.height,
+  );
+  const held = Number.isFinite(scale)
+    ? Math.min(Math.max(scale, low), Math.max(low, high))
+    : 1;
+  return clampCanvasSize({
+    width: size.width * held,
+    height: size.height * held,
+  });
 }
