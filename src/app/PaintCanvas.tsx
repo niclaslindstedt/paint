@@ -131,8 +131,13 @@ type Props = {
   onCarrySelection?: (offset: Point | null) => void;
   /** Called as a marquee drag slides the **window** somewhere else, leaving what
    *  is painted under it alone. Screen state, so it is reported as it moves
-   *  rather than once at the end: there is no document edit to batch. */
-  onAdjustSelection?: (region: Point[][]) => void;
+   *  rather than once at the end: there is no document edit to batch.
+   *
+   *  A settled window *is* a step you can take back, though, so the drag says
+   *  which frame this is: `live` on every frame after the first, and the whole
+   *  slide costs one ⌘/Ctrl+Z rather than one per pointer sample (see
+   *  `usePaintStore.ts`). */
+  onAdjustSelection?: (region: Point[][], options?: { live?: boolean }) => void;
   /** Called when a tap with a rubber lands inside the window — the touch way to
    *  clear a selection, where there is no Delete key to press. */
   onEraseSelection?: () => void;
@@ -298,6 +303,9 @@ export function PaintCanvas({
     pointerId: number;
     origin: Point;
     from: Selection;
+    /** Whether this slide has settled its step back yet — the first move does,
+     *  putting the window it began with behind us, and the rest ride on top. */
+    stepped: boolean;
   } | null>(null);
   // A press with a rubber that landed inside the window and hasn't moved. Lift
   // it without moving and the whole selection is rubbed out; drag and it is an
@@ -540,7 +548,12 @@ export function PaintCanvas({
       selection &&
       regionHolds(selection.region, toDoc(at))
     ) {
-      windowStart.current = { pointerId, origin: toDoc(at), from: selection };
+      windowStart.current = {
+        pointerId,
+        origin: toDoc(at),
+        from: selection,
+        stepped: false,
+      };
       return;
     }
 
@@ -677,7 +690,9 @@ export function PaintCanvas({
         sliding.from.region.map((loop) =>
           loop.map((p) => ({ x: p.x + dx, y: p.y + dy })),
         ),
+        { live: sliding.stepped },
       );
+      sliding.stepped = true;
       return;
     }
 

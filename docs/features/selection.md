@@ -88,7 +88,8 @@ corner is still that lasso, carried along proportionally. Dragging **inside** it
 with the marquee still in your hand slides the whole window somewhere else and
 leaves what is painted under it alone.
 
-Neither costs an undo step. Nothing about a window is in the drawing.
+Each is one step you can take back, and a whole drag is one step rather than one
+per twitch of your finger — see below.
 
 ## Inverting
 
@@ -102,6 +103,29 @@ section; see [`delete-background.md`](delete-background.md).)
 The block is contextual, and that is the whole of it: with nothing selected
 there is nothing either row could act on, so there is no block — not a heading
 over an empty box, and not two dead buttons.
+
+## Taking it back
+
+**⌘/Ctrl+Z undoes a selection like it undoes a mark.** Cutting a window,
+sliding it, stretching it by a corner, adding one more stroke of Draw select,
+inverting it, and putting it away with Escape are each one step back, and
+⌘/Ctrl+Shift+Z (or Ctrl+Y) puts each of them forward again. They queue up with
+your marks on the one timeline, in the order you did them, so the key always
+takes back the last thing you did — whichever of the two it was.
+
+That matters most for **Draw select**, which is built up stroke by stroke: one
+stroke that went where you didn't mean it to now costs one press to take back
+rather than the whole selection to redraw.
+
+The edits that move both move both together. Undo a paste and the pasted marks
+go with the window that was around them; undo a hand drag and the ink comes home
+with the outline still on it; undo a crop and the page comes back with the
+window it had. Painting inside a window is the other way round, on purpose:
+undo takes the mark and leaves the window up, ready for the next try.
+
+Nothing about a window is ever saved. It is not in the file, it is not pushed to
+a connected folder or Dropbox, and it is not there when you open the drawing
+tomorrow — undo reaches back through this session, not through the document.
 
 ## Painting inside it
 
@@ -170,10 +194,15 @@ point you opened the menu at — which is the only way to say _where_ on a phone
 
 ## What a selection is not
 
-It is not part of the drawing. Where the window is, is never saved, synced or
-undoable — it is screen state, dropped when you open another drawing.
+It is not part of the drawing. Where the window is, is never saved and never
+synced — it is this session's, and a selection is one of the few things you can
+undo that leaves no trace in the file.
 
 It is also not a set of marks. Nothing is "selected" in the sense of being
-picked up: an undo does not put a selection back, because there was never one in
-the document to lose. What the drawing keeps is what you _did_ through the
-window, and every one of those is an ordinary edit with an ordinary undo step.
+picked up: what you take back with ⌘/Ctrl+Z is the _window_, an area of the
+page, and never a bundle of strokes lifted out of it. What the drawing keeps is
+what you _did_ through the window, and every one of those is an ordinary edit
+with an ordinary undo step of its own.
+
+A window belongs to the page it was cut in and is shown over no other. Open
+another drawing and there is no window; come back and it is where you left it.

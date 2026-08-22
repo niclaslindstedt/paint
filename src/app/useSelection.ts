@@ -1,16 +1,21 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-// The window a selection has cut in the page, as a piece of screen state with
-// three edits hanging off it.
+// The window a selection has cut in the page, and the three edits that hang off
+// it.
 //
 // It sits beside the screen rather than in it because it is a *concern*: where
 // the window is, what the three things you can do through it are, and the keys
 // that reach them. The screen wires it to the canvas and to the menu and knows
 // nothing else about it (see `CanvasScreen.tsx`).
 //
-// Nothing here is document state. A window is not saved, not synced and not
-// undoable — what the drawing keeps is what you *did* through it, and each of
-// those is an ordinary edit with an ordinary undo step (see `selection.ts` for
-// the arithmetic, which is pure and node-tested).
+// Nothing here is *document* state: a window is never saved and never synced,
+// and what the drawing keeps is what you did through it (see `selection.ts` for
+// the arithmetic, which is pure and node-tested). It **is** undoable, though,
+// and that is why the window itself lives in the store rather than in a
+// `useState` here: cutting one, sliding one, painting one stroke of one with
+// the draw-select nib, and putting one away are each a rung of the same
+// timeline the marks land on, so ⌘/Ctrl+Z takes back whichever of the two you
+// did last (see `history.ts`). This module holds the verbs and the keys; the
+// store holds the window.
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -37,7 +42,12 @@ export type SelectionControl = {
    *  doesn't move: the canvas's frame compares it by identity to decide whether
    *  a frame can be patched (see `trail.ts`). */
   selection: Selection | null;
-  setSelection: (selection: Selection | null) => void;
+  /** Cut a window, move one, or put one away — one step back each, unless
+   *  `live` says the window is still in flight (see `usePaintStore.ts`). */
+  setSelection: (
+    selection: Selection | null,
+    options?: { live?: boolean },
+  ) => void;
   /** The window as it is *now*, for callbacks that must not be rebuilt every
    *  time it moves — a caption is kept by an effect that watches the tool, and
    *  rebuilding that on every nudge of a marquee would keep firing it. */
@@ -81,17 +91,22 @@ export function useSelection(
   onEscape: () => void,
 ): SelectionControl {
   const copied = useRef<DraftStroke[] | null>(null);
-  const [selection, setSelection] = useState<Selection | null>(null);
   const [adjusting, setAdjusting] = useState<Point | null>(null);
   const [carrying, setCarrying] = useState<Point | null>(null);
+  // The window is the store's, because it is undoable (see the head of this
+  // file). A window is cut in *one* page and shown over no other, which the
+  // store answers rather than an effect here having to drop it: opening another
+  // drawing shows none, and coming back finds this one where you left it.
+  const { selection, setSelection } = store;
   const selectionRef = useRef<Selection | null>(null);
   selectionRef.current = selection;
 
-  // A window is cut in *this* page, so it is dropped with the page rather than
-  // carried onto one it was never cut in.
+  // What a drag in flight is worth carrying to another page: nothing. The
+  // window itself needs no such sweep — it belongs to the page it was cut in
+  // and the store shows it over no other — but an offset left over from a drag
+  // the page changed under would move ink that is no longer there.
   const openPage = drawing?.id;
   useEffect(() => {
-    setSelection(null);
     setAdjusting(null);
     setCarrying(null);
   }, [openPage]);
@@ -165,14 +180,19 @@ export function useSelection(
         () => freshId("stroke"),
       );
       if (!strokes) return;
-      store.applyStrokes(strokes, { fitPage: true });
-      setSelection({
-        ...selection,
-        region: moveRegion(selection.region, dx, dy),
-        box: {
-          ...selection.box,
-          x: selection.box.x + dx,
-          y: selection.box.y + dy,
+      // The ink and the window move in one edit, so one step back brings both
+      // home rather than leaving the outline stranded where the marks no longer
+      // are.
+      store.applyStrokes(strokes, {
+        fitPage: true,
+        select: {
+          ...selection,
+          region: moveRegion(selection.region, dx, dy),
+          box: {
+            ...selection.box,
+            x: selection.box.x + dx,
+            y: selection.box.y + dy,
+          },
         },
       });
     },
@@ -213,7 +233,7 @@ export function useSelection(
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [eraseSelection, selection, tool, drawing, onEscape]);
+  }, [eraseSelection, selection, setSelection, tool, drawing, onEscape]);
 
   return {
     selection,

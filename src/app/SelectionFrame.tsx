@@ -36,9 +36,11 @@ type Props = {
   /** The window onto the page, so the grips sit exactly on the corners. */
   view: CanvasView;
   selection: Selection;
-  /** The window as this drag has it now — screen state, never a document
-   *  edit. */
-  onChange: (selection: Selection) => void;
+  /** The window as this drag has it now. Never a document edit — but a settled
+   *  one is a step you can take back, so the drag says which frame this is:
+   *  `live` on every frame after the first, so the whole stretch costs one step
+   *  back rather than one per pointer sample (see `usePaintStore.ts`). */
+  onChange: (selection: Selection, options?: { live?: boolean }) => void;
   /** How far a hand drag has carried the window since it began, in document
    *  pixels, or `null` when nothing is in flight. The frame rides along; the
    *  grips stop taking the pointer while it does, because the window they would
@@ -61,6 +63,10 @@ type Drag = {
   /** The window as it was when the grip was taken — every move is measured from
    *  here rather than accumulated, so a drag is exact and reversible. */
   from: Selection;
+  /** Whether this drag has settled its step back yet. The first frame does,
+   *  putting `from` behind us; the rest ride on top of it, so one stretch is
+   *  one ⌘/Ctrl+Z. A grip merely tapped never moves and so costs nothing. */
+  stepped: boolean;
 };
 
 export function SelectionFrame({
@@ -87,7 +93,12 @@ export function SelectionFrame({
     e.preventDefault();
     e.stopPropagation();
     e.currentTarget.setPointerCapture(e.pointerId);
-    drag.current = { pointerId: e.pointerId, corner, from: selection };
+    drag.current = {
+      pointerId: e.pointerId,
+      corner,
+      from: selection,
+      stepped: false,
+    };
     onPlacing(documentPoint(e));
   };
 
@@ -99,11 +110,15 @@ export function SelectionFrame({
     const box = pulled(active.from.box, active.corner, at);
     // Spread from the window the drag began with, so what else it carries (its
     // feather) travels through the stretch untouched.
-    onChange({
-      ...active.from,
-      region: scaleRegion(active.from.region, active.from.box, box),
-      box,
-    });
+    onChange(
+      {
+        ...active.from,
+        region: scaleRegion(active.from.region, active.from.box, box),
+        box,
+      },
+      { live: active.stepped },
+    );
+    active.stepped = true;
     onPlacing(at);
   };
 

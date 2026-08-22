@@ -3,18 +3,22 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { pageFitting, strokeBounds, unionBox, type Box } from "./bounds.ts";
 import {
-  blankDrawing,
   freshId,
   localDocBackend,
   starterDoc,
   type DocBackend,
 } from "./docBackend.ts";
 import {
-  handOffDrawing,
-  handOffFolder,
-  type Handoff,
-  type Mint,
-} from "./handoff.ts";
+  committed,
+  redone,
+  undone,
+  windowOf,
+  windowOn,
+  CLEAR,
+  type PageWindow,
+  type Rung,
+  type Timeline,
+} from "./history.ts";
 import {
   activeLayer,
   activeLayerId,
@@ -30,18 +34,18 @@ import {
 import { turnBitmap } from "./images.ts";
 import { flattenedStack, mergedStack } from "./merge.ts";
 import { parseDoc } from "./migrations.ts";
+import type { Selection } from "./selection.ts";
 import type { BitmapTurn, PageEdit } from "./transform.ts";
 import {
   liveDrawings,
-  nextActiveId,
   type AppData,
   type Drawing,
-  type Folder,
   type Layer,
   type Stroke,
 } from "./types.ts";
+import { useHandoff } from "./useHandoff.ts";
+import { useSketchbook } from "./useSketchbook.ts";
 import type { DraftStroke } from "./plugins/types.ts";
-import * as output from "../output.ts";
 
 // The app's data store. Holds one namespace's document in state, persists it
 // through a `DocBackend`, and exposes the edit actions the screens drive —
@@ -52,7 +56,9 @@ import * as output from "../output.ts";
 // up.
 //
 // Every mark is one undo step. That is the whole reason the document is vector:
-// undo is `pop()`, not a bitmap snapshot per stroke.
+// a step back is a value, not a bitmap snapshot per stroke. Every settled
+// *selection* is one too — the window rides the same timeline beside the
+// document without ever being part of it (see `history.ts`).
 //
 // The document is kept in IndexedDB (see `docDb.ts`), which is why the backend
 // below has both a synchronous `peek` and an asynchronous `hydrate`: the store
@@ -73,23 +79,37 @@ export {
   type DocBackend,
 } from "./docBackend.ts";
 
-/** The constructors the hand-off module needs to mint arriving copies and to
- *  leave a page behind when the last live one is given away. */
-const MINT: Mint = { id: freshId, blankPage: () => blankDrawing("") };
+/** What a page edit does besides landing marks.
+ *
+ *  `fitPage` grows the sheet so what it lands fits on it, in the same step: a
+ *  dropped image is placed before it is settled and may well hang off the edge,
+ *  and a picture half off the page is not what was dropped. The page only ever
+ *  grows right and down — moving the origin would shift every mark already on
+ *  it. Ordinary gestures don't ask for it: drawing past the edge is a slip, not
+ *  a request for a bigger sheet.
+ *
+ *  `select` is the window the edit leaves behind, in the **same** rung of the
+ *  timeline: a paste lands its marks selected, a drag carries the window with
+ *  the ink, a crop puts it away because it has moved every mark out from under
+ *  it. Left out, the window is untouched — given, one step back takes the marks
+ *  *and* the window, which is the only way undo can mean what it says for an
+ *  edit that changed both. */
+type EditOptions = { fitPage?: boolean; select?: Selection | null };
 
-/** Apply `patch` to the drawings named by `ids`, stamping `updatedAt` on each.
- *  The one funnel the archive / restore / file-into-folder actions share, so a
- *  bulk edit (archiving a folder takes its drawings with it) is one map rather
- *  than one per call site. */
-function patchDrawings(
-  drawings: Drawing[],
-  ids: ReadonlySet<string>,
-  patch: Partial<Drawing>,
-): Drawing[] {
-  const stamp = new Date().toISOString();
-  return drawings.map((d) =>
-    ids.has(d.id) ? { ...d, ...patch, updatedAt: stamp } : d,
-  );
+/** The present as the timeline keeps it: the document, and the window cut in
+ *  it (see `history.ts`). */
+function rungOf(state: { data: AppData; window: PageWindow | null }): Rung {
+  return { data: state.data, window: state.window };
+}
+
+/** The window an edit's `select` asks to leave behind, as the timeline keeps
+ *  it — and `undefined` for an edit that says nothing about the window, which
+ *  is what leaves the one already up alone. */
+function windowFor(
+  select: Selection | null | undefined,
+  page: string,
+): PageWindow | null | undefined {
+  return select === undefined ? undefined : windowOf(select, page);
 }
 
 export type PaintStore = ReturnType<typeof usePaintStore>;
@@ -113,15 +133,31 @@ export function usePaintStore(
   // app opens on, so the common path is hydrated on the very first render and
   // there is no placeholder to see; only switching to a sketchbook not yet read
   // this session goes through one, for as long as an IndexedDB read takes.
+  //
+  // `window` is the selection — the area a marquee (or the draw-select nib) has
+  // cut, stamped with the page it was cut in. The store holds it without ever
+  // *saving* it: it is nowhere in `data`, so no byte of it reaches disk or a
+  // backend. It is here for one reason — it rides the undo timeline beside the
+  // document, so a selection painted wrong is one ⌘/Ctrl+Z away like everything
+  // else you do (see `history.ts`).
   const [state, setState] = useState(() => {
     const at = backend.peek(slug);
-    return { slug, backend, data: at ?? starterDoc(), hydrated: at !== null };
+    return {
+      slug,
+      backend,
+      data: at ?? starterDoc(),
+      hydrated: at !== null,
+      window: null as PageWindow | null,
+    };
   });
   // Edit history. `setActive` replaces the present without pushing, so
-  // navigation never clutters undo; every content edit goes through `commit`.
-  const past = useRef<AppData[]>([]);
-  const future = useRef<AppData[]>([]);
-  const [version, setVersion] = useState(0); // re-render on history change
+  // navigation never clutters undo; every content edit goes through `commit`,
+  // and every settled change to the window through `setSelection`.
+  const timeline = useRef<Timeline>(CLEAR);
+  // The *document's* version, which is what tells the sync engine there is
+  // something to push. A window moving never bumps it: it is nowhere in the
+  // bytes (see `step` and `setSelection`).
+  const [version, setVersion] = useState(0);
 
   // Guards the write-through below: only a real change (an edit, an adopt) may
   // persist. State produced by *loading* a document — the initial mount, a
@@ -142,18 +178,24 @@ export function usePaintStore(
   const stateRef = useRef(state);
   stateRef.current = state;
 
+  // The page a window would be cut in. Read when a selection lands rather than
+  // closed over, so `setSelection` is built once and never rebuilt as the
+  // document changes under it — it travels into the canvas's own handlers, and
+  // a callback that changed with every mark would rebuild them all.
+  const pageRef = useRef<string | undefined>(undefined);
+
   // Namespace switch — or a backend swap — adopts the matching document and
   // resets history. Adjusting state during render (rather than in an effect) is
   // React's blessed way to respond to a changed input with no stale-doc flash.
   if (state.slug !== slug || state.backend !== backend) {
-    past.current = [];
-    future.current = [];
+    timeline.current = CLEAR;
     const at = backend.peek(slug);
     setState({
       slug,
       backend,
       data: at ?? starterDoc(),
       hydrated: at !== null,
+      window: null,
     });
   }
 
@@ -188,42 +230,85 @@ export function usePaintStore(
     state.backend.save(state.slug, state.data);
   }, [state]);
 
+  /** File a new document as the present, one rung further along.
+   *
+   *  `window` is the selection the edit leaves behind, in the same rung (see
+   *  `EditOptions`). Left out — the ordinary case — the window is untouched, so
+   *  painting inside one and undoing that leaves you where you were: the mark
+   *  gone, the window still up, ready for the next try. */
   const commit = useCallback(
-    (next: AppData) => {
+    (next: AppData, nextWindow?: PageWindow | null) => {
       markPersist();
       setState((prev) => {
-        past.current.push(prev.data);
-        future.current = [];
+        timeline.current = committed(timeline.current, rungOf(prev));
         // An edited document is the real one, whatever storage was about to
         // say — see the hydrate effect above.
-        return { ...prev, data: next, hydrated: true };
+        return {
+          ...prev,
+          data: next,
+          hydrated: true,
+          window: nextWindow === undefined ? prev.window : nextWindow,
+        };
       });
       setVersion((v) => v + 1);
     },
     [markPersist],
   );
 
-  const undo = useCallback(() => {
-    const prev = past.current.pop();
-    if (!prev) return;
-    markPersist();
-    setState((cur) => {
-      future.current.push(cur.data);
-      return { ...cur, data: prev };
-    });
-    setVersion((v) => v + 1);
-  }, [markPersist]);
+  /** Step the timeline, in either direction (see `history.ts`).
+   *
+   *  A rung that only moved the window changes no document, and that is worth
+   *  noticing rather than papering over: nothing is written to storage and the
+   *  version counter stands still, so taking back a marquee doesn't wake the
+   *  sync engine to push a document that hasn't changed a byte. */
+  const step = useCallback(
+    (take: typeof undone) => {
+      const at = take(timeline.current, rungOf(stateRef.current));
+      if (!at) return;
+      timeline.current = at.timeline;
+      const edited = at.present.data !== stateRef.current.data;
+      if (edited) markPersist();
+      setState((cur) => ({ ...cur, ...at.present }));
+      if (edited) setVersion((v) => v + 1);
+    },
+    [markPersist],
+  );
 
-  const redo = useCallback(() => {
-    const next = future.current.pop();
-    if (!next) return;
-    markPersist();
-    setState((cur) => {
-      past.current.push(cur.data);
-      return { ...cur, data: next };
-    });
-    setVersion((v) => v + 1);
-  }, [markPersist]);
+  const undo = useCallback(() => step(undone), [step]);
+  const redo = useCallback(() => step(redone), [step]);
+
+  /** Cut a window in the page, move one, or put one away.
+   *
+   *  A settled window is a rung of its own: Escape, a marquee dragged out,
+   *  ⌘/Ctrl+A and every stroke of the draw-select tool can each be taken back
+   *  one at a time — which is the point of the window being here at all.
+   *
+   *  `live` is for a window **in flight**: the frames of a corner grip being
+   *  dragged, or of a marquee sliding one across the page. They replace the
+   *  present without a rung, so a drag costs one step back rather than one per
+   *  pointer sample — its first frame settles the rung and the rest ride on top
+   *  of it (see `SelectionFrame.tsx` and `PaintCanvas.tsx`).
+   *
+   *  Never persists and never bumps `version`: a window is nowhere in the
+   *  document, and a sketchbook that pushed itself to the cloud every time you
+   *  dragged a marquee would be pushing nothing, loudly. */
+  const setSelection = useCallback(
+    (selection: Selection | null, options: { live?: boolean } = {}) => {
+      const page = pageRef.current;
+      setState((prev) => {
+        // Nothing showing and nothing asked for — the way an Escape with no
+        // window up, or a selection gesture that chose nothing, arrives. A
+        // press that changed nothing may not cost a step back.
+        if (!windowOn(prev.window, page) && !selection) return prev;
+        if (prev.window?.selection === selection) return prev;
+        if (!options.live) {
+          timeline.current = committed(timeline.current, rungOf(prev));
+        }
+        return { ...prev, window: page ? windowOf(selection, page) : null };
+      });
+    },
+    [],
+  );
 
   /** Re-read the persisted document, picking up edits made in another tab.
    *  Replaces the present without touching the undo history (a refresh isn't an
@@ -258,8 +343,7 @@ export function usePaintStore(
       }
       markPersist();
       setState((cur) => {
-        past.current = [];
-        future.current = [];
+        timeline.current = CLEAR;
         // An adopted remote copy is authoritative for the same reason an edit
         // is: a slower local read must not land on top of it.
         return { ...cur, data: doc, hydrated: true };
@@ -279,6 +363,7 @@ export function usePaintStore(
       data.drawings[0]
     );
   }, [data]);
+  pageRef.current = activeDrawing?.id;
 
   const setActive = useCallback(
     (id: string) => {
@@ -295,31 +380,27 @@ export function usePaintStore(
    *  single funnel every page edit goes through, so "when did this change?" has
    *  one answer and one undo step. */
   const patchActive = useCallback(
-    (patch: Partial<Drawing>) => {
+    (patch: Partial<Drawing>, nextWindow?: PageWindow | null) => {
       const active = activeDrawing;
       if (!active) return;
-      commit({
-        ...data,
-        drawings: data.drawings.map((d) =>
-          d.id === active.id
-            ? { ...d, ...patch, updatedAt: new Date().toISOString() }
-            : d,
-        ),
-      });
+      commit(
+        {
+          ...data,
+          drawings: data.drawings.map((d) =>
+            d.id === active.id
+              ? { ...d, ...patch, updatedAt: new Date().toISOString() }
+              : d,
+          ),
+        },
+        nextWindow,
+      );
     },
     [activeDrawing, commit, data],
   );
 
-  /** File a finished gesture onto the active page — one mark, one undo step.
-   *
-   *  `fitPage` grows the sheet so the mark fits on it, in the same step: a
-   *  dropped image is placed before it is settled and may well hang off the
-   *  edge, and a picture half off the page is not what was dropped. The page
-   *  only ever grows right and down — moving the origin would shift every mark
-   *  already on it. Ordinary gestures don't ask for it: drawing past the edge is
-   *  a slip, not a request for a bigger sheet. */
+  /** File a finished gesture onto the active page — one mark, one undo step. */
   const addStroke = useCallback(
-    (draft: DraftStroke, options: { fitPage?: boolean } = {}) => {
+    (draft: DraftStroke, options: EditOptions = {}) => {
       const active = activeDrawing;
       if (!active) return;
       // Nowhere to put it: every layer in the stack is locked. The gesture is
@@ -337,10 +418,13 @@ export function usePaintStore(
         ...(layer ? { layer } : {}),
       };
       const bounds = options.fitPage ? strokeBounds(stroke) : null;
-      patchActive({
-        strokes: [...active.strokes, stroke],
-        ...(bounds ? pageFitting(active, bounds) : {}),
-      });
+      patchActive(
+        {
+          strokes: [...active.strokes, stroke],
+          ...(bounds ? pageFitting(active, bounds) : {}),
+        },
+        windowFor(options.select, active.id),
+      );
     },
     [activeDrawing, patchActive],
   );
@@ -357,7 +441,7 @@ export function usePaintStore(
    *  selected — which is what makes "paste, then drag it where you wanted it"
    *  one gesture rather than two. */
   const addStrokes = useCallback(
-    (drafts: readonly DraftStroke[], options: { fitPage?: boolean } = {}) => {
+    (drafts: readonly DraftStroke[], options: EditOptions = {}) => {
       const active = activeDrawing;
       if (!active || drafts.length === 0) return [];
       // Nowhere to put them, for the same reason a single mark has nowhere to
@@ -376,10 +460,13 @@ export function usePaintStore(
           if (next) bounds = bounds ? unionBox(bounds, next) : next;
         }
       }
-      patchActive({
-        strokes: [...active.strokes, ...strokes],
-        ...(bounds ? pageFitting(active, bounds) : {}),
-      });
+      patchActive(
+        {
+          strokes: [...active.strokes, ...strokes],
+          ...(bounds ? pageFitting(active, bounds) : {}),
+        },
+        windowFor(options.select, active.id),
+      );
       return strokes.map((s) => s.id);
     },
     [activeDrawing, patchActive],
@@ -435,7 +522,7 @@ export function usePaintStore(
    *  grows it: a selection dragged past the right or bottom edge is not where
    *  anyone meant to put it. */
   const applyStrokes = useCallback(
-    (strokes: Stroke[], options: { fitPage?: boolean } = {}) => {
+    (strokes: Stroke[], options: EditOptions = {}) => {
       const active = activeDrawing;
       if (!active) return;
       let bounds: Box | null = null;
@@ -445,10 +532,13 @@ export function usePaintStore(
           if (next) bounds = bounds ? unionBox(bounds, next) : next;
         }
       }
-      patchActive({
-        strokes,
-        ...(bounds ? pageFitting(active, bounds) : {}),
-      });
+      patchActive(
+        {
+          strokes,
+          ...(bounds ? pageFitting(active, bounds) : {}),
+        },
+        windowFor(options.select, active.id),
+      );
     },
     [activeDrawing, patchActive],
   );
@@ -464,10 +554,16 @@ export function usePaintStore(
    *  The bitmaps are redrawn on the way through (`turnBitmap`), because a
    *  picture's pixels can't be mirrored by moving its frame. */
   const transformActive = useCallback(
-    (edit: (drawing: Drawing, bitmap: BitmapTurn) => PageEdit) => {
+    (
+      edit: (drawing: Drawing, bitmap: BitmapTurn) => PageEdit,
+      options: { select?: Selection | null } = {},
+    ) => {
       const active = activeDrawing;
       if (!active) return;
-      patchActive(edit(active, turnBitmap));
+      patchActive(
+        edit(active, turnBitmap),
+        windowFor(options.select, active.id),
+      );
     },
     [activeDrawing, patchActive],
   );
@@ -668,286 +764,18 @@ export function usePaintStore(
     commit({ ...data, drawings });
   }, [commit, data]);
 
-  /** Create a page and open it, optionally filed into a folder.
-   *
-   *  `init` seeds the new page — the size and the strokes an image dropped onto
-   *  the sidebar arrives with — so the drawing is created in its finished state
-   *  rather than created blank and then edited, which would be two undo steps
-   *  for one gesture. */
-  const addDrawing = useCallback(
-    (
-      name = "",
-      folderId: string | null = null,
-      init: Partial<Omit<Drawing, "id">> = {},
-    ): string => {
-      const drawing = { ...blankDrawing(name, folderId), ...init };
-      commit({
-        ...data,
-        drawings: [...data.drawings, drawing],
-        activeDrawingId: drawing.id,
-      });
-      return drawing.id;
-    },
-    [commit, data],
-  );
+  // The sketchbook itself: the pages and the folders they are filed in. Its
+  // verbs know nothing about strokes and are driven by the menu and the sidebar
+  // rather than the canvas, so they live beside the store (`useSketchbook.ts`)
+  // and land on the timeline it owns like every other edit.
+  const sketchbook = useSketchbook(data, commit, emptied);
 
-  /** Duplicate a page, marks and all — the "start from this sketch" move. */
-  const duplicateDrawing = useCallback(
-    (id: string): string | null => {
-      const source = data.drawings.find((d) => d.id === id);
-      if (!source) return null;
-      const copy: Drawing = {
-        ...source,
-        id: freshId("drawing"),
-        strokes: source.strokes.map((s) => ({ ...s, id: freshId("stroke") })),
-        createdAt: new Date().toISOString(),
-        updatedAt: undefined,
-      };
-      commit({
-        ...data,
-        drawings: [...data.drawings, copy],
-        activeDrawingId: copy.id,
-      });
-      return copy.id;
-    },
-    [commit, data],
-  );
-
-  const renameDrawing = useCallback(
-    (id: string, name: string) => {
-      commit({
-        ...data,
-        drawings: data.drawings.map((d) =>
-          d.id === id ? { ...d, name, updatedAt: new Date().toISOString() } : d,
-        ),
-      });
-    },
-    [commit, data],
-  );
-
-  /** Delete a page. The last page is never removed outright — it is replaced by
-   *  a fresh blank one, so the app always has something to draw on.
-   *
-   *  Emptying the sketchbook is a fresh start rather than merely one fewer
-   *  page, so the blank one that lands is handed over the way a first run's is:
-   *  no colour of its own, which resolves to the default page (see
-   *  `canvas.ts`), and `onEmptied` puts the default tool back in your hand. */
-  const deleteDrawing = useCallback(
-    (id: string) => {
-      const remaining = data.drawings.filter((d) => d.id !== id);
-      // "The last page" means the last *live* one: with everything else in the
-      // archive, deleting the open drawing still has to leave a page to draw
-      // on, and un-archiving one to get there would be a surprise.
-      const live = remaining.some((d) => !d.archived);
-      const drawings = live ? remaining : [...remaining, blankDrawing("")];
-      commit({
-        ...data,
-        drawings,
-        activeDrawingId: nextActiveId(drawings, data.activeDrawingId),
-      });
-      if (!live) emptied.current?.();
-    },
-    [commit, data],
-  );
-
-  /** Star / unstar a drawing — what puts it in the menu's Favorites section. */
-  const toggleFavorite = useCallback(
-    (id: string) => {
-      const target = data.drawings.find((d) => d.id === id);
-      if (!target) return;
-      commit({
-        ...data,
-        drawings: patchDrawings(data.drawings, new Set([id]), {
-          favorite: !target.favorite,
-        }),
-      });
-    },
-    [commit, data],
-  );
-
-  /** File a drawing into a folder, or lift it back to the top level with
-   *  `null`. */
-  const moveDrawingToFolder = useCallback(
-    (id: string, folderId: string | null) => {
-      commit({
-        ...data,
-        drawings: patchDrawings(data.drawings, new Set([id]), { folderId }),
-      });
-    },
-    [commit, data],
-  );
-
-  /** Deliver one side of a hand-off to another namespace's storage, then check
-   *  it actually landed there before this namespace lets go of it.
-   *
-   *  Two documents change and only one of them is in React state: the
-   *  destination isn't loaded, so it is written straight through the backend.
-   *  That write is a best-effort sink — it reports a failure rather than
-   *  throwing (see `DocBackend`) — so "it didn't throw" is not evidence the
-   *  bytes are there. Reading the destination back and looking for the ids the
-   *  hand-off minted is; only then is this side committed without the item.
-   *  Resolves to whether the move went through.
-   *
-   *  Asynchronous because the storage is: `deliver` writes to the database and
-   *  waits for it to confirm, then reads the record back past the cache. Both
-   *  waits are the guarantee — a cached read would only be the write agreeing
-   *  with itself. */
-  const deliver = useCallback(
-    async (targetSlug: string, moved: Handoff | null): Promise<boolean> => {
-      if (!moved) return false;
-      let landed = false;
-      try {
-        const written = await stateRef.current.backend.deliver(
-          targetSlug,
-          moved.target,
-        );
-        if (written) {
-          const drawings = new Set(written.drawings.map((d) => d.id));
-          const folders = new Set(written.folders.map((f) => f.id));
-          landed =
-            moved.arrived.drawings.every((id) => drawings.has(id)) &&
-            (moved.arrived.folder === undefined ||
-              folders.has(moved.arrived.folder));
-        }
-      } catch {
-        landed = false;
-      }
-      if (!landed) {
-        output.error(
-          "Couldn't move that into the other sketchbook — its copy on this device wouldn't take the change (its storage may be full). Nothing was moved.",
-        );
-        return false;
-      }
-      commit(moved.source);
-      return true;
-    },
-    [commit],
-  );
-
-  /** Hand a drawing to another sketchbook — the menu's "drop it onto a
-   *  namespace row" gesture. It lands at that sketchbook's top level: the
-   *  folder it was filed in is this one's, and doesn't exist over there. */
-  const moveDrawingToNamespace = useCallback(
-    async (id: string, targetSlug: string) => {
-      const { slug: from, backend: store } = stateRef.current;
-      if (targetSlug === from) return;
-      let moved: Handoff | null;
-      try {
-        // The destination isn't the open sketchbook, so it is very likely not
-        // in hand — hydrate it rather than reading a cache that would answer
-        // "empty" and hand the drawing to a document that wipes the rest.
-        const target = await store.hydrate(targetSlug);
-        moved = handOffDrawing(stateRef.current.data, target, id, MINT);
-      } catch {
-        return; // The destination's storage wouldn't even read — leave it be.
-      }
-      await deliver(targetSlug, moved);
-    },
-    [deliver],
-  );
-
-  /** Hand a folder — and the drawings filed in it — to another sketchbook. The
-   *  group travels together: the folder is re-created over there and its
-   *  drawings are re-filed inside it, so it arrives as a group rather than as
-   *  loose pages. */
-  const moveFolderToNamespace = useCallback(
-    async (id: string, targetSlug: string) => {
-      const { slug: from, backend: store } = stateRef.current;
-      if (targetSlug === from) return;
-      let moved: Handoff | null;
-      try {
-        const target = await store.hydrate(targetSlug);
-        moved = handOffFolder(stateRef.current.data, target, id, MINT);
-      } catch {
-        return;
-      }
-      await deliver(targetSlug, moved);
-    },
-    [deliver],
-  );
-
-  /** Hold a drawing in the archive, or bring it back out. Archiving the open
-   *  page moves the canvas to the next live one rather than leaving it on a
-   *  filed-away drawing. */
-  const setDrawingArchived = useCallback(
-    (id: string, archived: boolean) => {
-      const drawings = patchDrawings(data.drawings, new Set([id]), {
-        archived,
-      });
-      commit({
-        ...data,
-        drawings,
-        activeDrawingId: archived
-          ? nextActiveId(drawings, data.activeDrawingId)
-          : id,
-      });
-    },
-    [commit, data],
-  );
-
-  /** Create a folder. Empty until drawings are filed into it — creating one
-   *  never moves anything on its own. */
-  const addFolder = useCallback(
-    (name: string): string => {
-      const folder: Folder = {
-        id: freshId("folder"),
-        name,
-        createdAt: new Date().toISOString(),
-      };
-      commit({ ...data, folders: [...data.folders, folder] });
-      return folder.id;
-    },
-    [commit, data],
-  );
-
-  const renameFolder = useCallback(
-    (id: string, name: string) => {
-      commit({
-        ...data,
-        folders: data.folders.map((f) => (f.id === id ? { ...f, name } : f)),
-      });
-    },
-    [commit, data],
-  );
-
-  /** Archive a folder — and, with it, every drawing filed inside. Restoring the
-   *  folder restores them together, so a group is held and brought back as one
-   *  thing rather than card by card. */
-  const setFolderArchived = useCallback(
-    (id: string, archived: boolean) => {
-      const inside = new Set(
-        data.drawings.filter((d) => d.folderId === id).map((d) => d.id),
-      );
-      const drawings = patchDrawings(data.drawings, inside, { archived });
-      commit({
-        ...data,
-        folders: data.folders.map((f) =>
-          f.id === id ? { ...f, archived } : f,
-        ),
-        drawings,
-        activeDrawingId: archived
-          ? nextActiveId(drawings, data.activeDrawingId)
-          : data.activeDrawingId,
-      });
-    },
-    [commit, data],
-  );
-
-  /** Delete a folder, keeping its drawings — they lift back to the top level
-   *  rather than vanishing with the group. Deleting the box is not deleting
-   *  what was in it. */
-  const deleteFolder = useCallback(
-    (id: string) => {
-      const inside = new Set(
-        data.drawings.filter((d) => d.folderId === id).map((d) => d.id),
-      );
-      commit({
-        ...data,
-        folders: data.folders.filter((f) => f.id !== id),
-        drawings: patchDrawings(data.drawings, inside, { folderId: null }),
-      });
-    },
-    [commit, data],
+  // Handing a drawing — or a folder and everything filed in it — to another
+  // sketchbook: the one family of edits that writes a document this app does
+  // not have open, and so the one that lives beside the store (`useHandoff.ts`).
+  const { moveDrawingToNamespace, moveFolderToNamespace } = useHandoff(
+    stateRef,
+    commit,
   );
 
   return {
@@ -955,8 +783,13 @@ export function usePaintStore(
     data,
     activeDrawing,
     version,
-    canUndo: past.current.length > 0,
-    canRedo: future.current.length > 0,
+    /** The window cut in the page being looked at, and never another page's:
+     *  opening a different drawing shows none, and coming back finds this one
+     *  where you left it. */
+    selection: windowOn(state.window, activeDrawing?.id),
+    setSelection,
+    canUndo: timeline.current.past.length > 0,
+    canRedo: timeline.current.future.length > 0,
     undo,
     redo,
     reload,
@@ -978,18 +811,8 @@ export function usePaintStore(
     deleteLayer,
     mergeLayers,
     flattenLayers,
-    addDrawing,
-    duplicateDrawing,
-    renameDrawing,
-    deleteDrawing,
-    toggleFavorite,
-    moveDrawingToFolder,
+    ...sketchbook,
     moveDrawingToNamespace,
     moveFolderToNamespace,
-    setDrawingArchived,
-    addFolder,
-    renameFolder,
-    setFolderArchived,
-    deleteFolder,
   };
 }

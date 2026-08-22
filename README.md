@@ -86,7 +86,9 @@ the same [`oss-framework`](https://github.com/niclaslindstedt/oss-framework).
   with the hand and what is painted under it travels, drag it with the marquee
   and the window slides and leaves the ink behind. Corner grips adjust it
   afterwards, and a 300% magnifier floats beside the edge you are placing so you
-  can put it between two pixels rather than near them. Delete (or a tap with the
+  can put it between two pixels rather than near them. Ctrl/⌘+Z takes a
+  selection back the way it takes a mark back — the window you just cut, slid,
+  stretched or painted one stroke too far. Delete (or a tap with the
   rubber) clears what is inside; Ctrl/⌘+C, X and V copy, cut and paste it — and a
   paste also brings in marks from another tab, a screenshot from anywhere, or
   words, which open the caption box so you can set the typeface and size before
