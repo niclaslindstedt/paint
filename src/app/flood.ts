@@ -8,6 +8,14 @@
 // lands in the document is an ordinary vector stroke (`shape.kind === "region"`)
 // that scales, undoes, exports, and syncs like every other mark.
 //
+// There are two questions a point can be asked of a raster, and both end here.
+// "What area is this pixel part of" is the flood above; "where else is this
+// colour" is `matchAt`, which tests the whole buffer instead of walking out
+// from the seed and throws the speckle away before it traces (`despeckle`).
+// They share everything after the mask — the grow over the anti-aliased edge,
+// the tracing, the point budget — because what differs between them is only
+// which cells were marked.
+//
 // Everything here is pure and DOM-free — it takes an RGBA buffer and returns
 // points — so the whole pipeline is testable in node. The snapshot itself is
 // taken by `probe.ts`, which is the half that needs a canvas.
@@ -112,6 +120,49 @@ export function floodMask(
   return { width, height, data };
 }
 
+/** How few cells a matched run may hold before it is thrown away as speckle —
+ *  see `despeckle`. Six is under a thousandth of a snapshot's shorter side and
+ *  smaller than any mark a hand makes, so what it takes is noise. */
+export const DEFAULT_MIN_CELLS = 6;
+
+/** Every pixel in the buffer within `tolerance` of the colour at `seed`,
+ *  **connected to it or not**.
+ *
+ *  It is `floodMask`'s test without `floodMask`'s walk, and that one difference
+ *  makes it a different question about the page: the flood asks "what area is
+ *  this pixel part of", this asks "where else is this colour". The blob and the
+ *  twenty specks of it scattered across the page come back as one mask, which
+ *  is what choosing a photograph's sky — or the sheet showing between every
+ *  mark on it — actually means. `null` when the seed is off the buffer. */
+export function colorMask(
+  rgba: Uint8ClampedArray,
+  width: number,
+  height: number,
+  seed: Point,
+  tolerance = DEFAULT_TOLERANCE,
+): BinaryMask | null {
+  const sx = Math.floor(seed.x);
+  const sy = Math.floor(seed.y);
+  if (sx < 0 || sy < 0 || sx >= width || sy >= height) return null;
+
+  const data = new Uint8Array(width * height);
+  const base = (sy * width + sx) * 4;
+  const sr = rgba[base]!;
+  const sg = rgba[base + 1]!;
+  const sb = rgba[base + 2]!;
+  const sa = rgba[base + 3]!;
+  const limit = tolerance * tolerance;
+  for (let i = 0; i < data.length; i++) {
+    const at = i * 4;
+    const dr = rgba[at]! - sr;
+    const dg = rgba[at + 1]! - sg;
+    const db = rgba[at + 2]! - sb;
+    const da = rgba[at + 3]! - sa;
+    if ((dr * dr + dg * dg + db * db + da * da) / 4 <= limit) data[i] = 1;
+  }
+  return { width, height, data };
+}
+
 /** Grow a mask by `radius` cells (a square dilation — cheap, and the difference
  *  from a round one is invisible at one or two cells). */
 export function grow(mask: BinaryMask, radius: number): BinaryMask {
@@ -135,6 +186,60 @@ export function grow(mask: BinaryMask, radius: number): BinaryMask {
     src = out;
   }
   return { width, height, data: src };
+}
+
+/** Drop every filled run smaller than `minCells` cells — the runs counted
+ *  four-connected, the way the flood walks.
+ *
+ *  A colour match over a photograph is not the clean blob a bucket floods:
+ *  compression noise, a dithered sky and the speckle inside an anti-aliased
+ *  edge all match a colour here and there, and every surviving speck is a
+ *  closed loop of its own in the outline. A few hundred of them cost more to
+ *  carry than the area anybody was actually aiming at.
+ *
+ *  So the specks go before anything is traced, which is also the only moment
+ *  they can go cheaply: after the grow they are five cells across and look like
+ *  marks. */
+export function despeckle(mask: BinaryMask, minCells: number): BinaryMask {
+  if (minCells <= 1) return mask;
+  const { width, height, data } = mask;
+  const out = new Uint8Array(data);
+  // Which run each cell belongs to (0 = none yet), how big each run came out,
+  // and one queue reused by every walk. Labelling and then clearing in a second
+  // pass costs one pass more than clearing as it goes, and no run has to be
+  // held as a list of its cells to do it.
+  const label = new Int32Array(out.length);
+  const sizes: number[] = [];
+  const queue = new Int32Array(out.length);
+  for (let start = 0; start < out.length; start++) {
+    if (out[start] !== 1 || label[start] !== 0) continue;
+    const mark = sizes.length + 1;
+    let head = 0;
+    let tail = 0;
+    label[start] = mark;
+    queue[tail++] = start;
+    const reach = (next: number): void => {
+      if (out[next] === 1 && label[next] === 0) {
+        label[next] = mark;
+        queue[tail++] = next;
+      }
+    };
+    while (head < tail) {
+      const cell = queue[head++]!;
+      const x = cell % width;
+      const y = (cell - x) / width;
+      if (x > 0) reach(cell - 1);
+      if (x < width - 1) reach(cell + 1);
+      if (y > 0) reach(cell - width);
+      if (y < height - 1) reach(cell + width);
+    }
+    sizes.push(tail);
+  }
+  for (let i = 0; i < out.length; i++) {
+    const mark = label[i]!;
+    if (mark > 0 && sizes[mark - 1]! < minCells) out[i] = 0;
+  }
+  return { width, height, data: out };
 }
 
 /** Trace every boundary of a mask into closed loops, in *lattice* coordinates
@@ -288,6 +393,11 @@ export type FloodOptions = FloodSpace & {
   /** Give up rather than file an enormous stroke: outlines are simplified
    *  harder until they fit under this many points in total. */
   maxPoints?: number;
+  /** The smallest run of matched cells worth keeping — read by `matchAt`,
+   *  which is the one that can turn up hundreds of them (see `despeckle`).
+   *  Defaults to `DEFAULT_MIN_CELLS`; a flood has one run by construction and
+   *  never asks. */
+  minCells?: number;
 };
 
 /** The whole bucket pipeline: flood a snapshot, trace what was flooded, and
@@ -300,18 +410,53 @@ export function regionAt(
   seed: Point,
   options: FloodOptions = { scale: 1 },
 ): Point[][] | null {
-  const scale = options.scale;
   const flooded = floodMask(
     rgba,
     width,
     height,
-    { x: seed.x * scale, y: seed.y * scale },
+    { x: seed.x * options.scale, y: seed.y * options.scale },
     options.tolerance ?? DEFAULT_TOLERANCE,
   );
-  if (!flooded) return null;
+  return flooded ? outlineOf(flooded, options) : null;
+}
+
+/** Everywhere on the page a colour appears, as outlines: the whole buffer
+ *  matched against the colour under `seed`, despeckled, and traced the way a
+ *  flood is. `null` when the seed is off the buffer, or when nothing survived
+ *  the despeckling.
+ *
+ *  It is the other question a raster can be asked about a point — the flood
+ *  asks "what area is this pixel part of", this asks "where else is this
+ *  colour" — and the whole difference between them is `colorMask` in place of
+ *  `floodMask`. Everything after is shared. */
+export function matchAt(
+  rgba: Uint8ClampedArray,
+  width: number,
+  height: number,
+  seed: Point,
+  options: FloodOptions = { scale: 1 },
+): Point[][] | null {
+  const matched = colorMask(
+    rgba,
+    width,
+    height,
+    { x: seed.x * options.scale, y: seed.y * options.scale },
+    options.tolerance ?? DEFAULT_TOLERANCE,
+  );
+  if (!matched) return null;
+  const minCells = options.minCells ?? DEFAULT_MIN_CELLS;
+  return outlineOf(despeckle(matched, minCells), options);
+}
+
+/** The half every raster answer here ends with: grow the mask back over the
+ *  anti-aliased edge, trace what it covers, coarsen the outlines until they fit
+ *  the point budget, and hand them back in document coordinates. `null` when
+ *  what is left encloses nothing. */
+function outlineOf(mask: BinaryMask, options: FloodOptions): Point[][] | null {
+  const scale = options.scale;
   const growBy =
     options.growBy ?? Math.max(1, Math.round(DEFAULT_GROW_PX * scale));
-  const contours = traceContours(grow(flooded, growBy));
+  const contours = traceContours(grow(mask, growBy));
   if (contours.length === 0) return null;
 
   const maxPoints = options.maxPoints ?? 4000;
@@ -327,7 +472,7 @@ export function regionAt(
     epsilon *= 2;
   }
 
-  return simplified
+  const out = simplified
     .filter((loop) => loop.length >= 3)
     .map((loop) =>
       loop.map((p) => ({
@@ -338,6 +483,7 @@ export function regionAt(
         y: Math.round((p.y / scale) * 10) / 10,
       })),
     );
+  return out.length > 0 ? out : null;
 }
 
 function countPoints(contours: Point[][]): number {

@@ -2,8 +2,11 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  colorMask,
+  despeckle,
   floodMask,
   grow,
+  matchAt,
   regionAt,
   simplifyContour,
   traceContours,
@@ -249,5 +252,136 @@ describe("regionAt", () => {
       { scale: 1, maxPoints: 40 },
     )!;
     expect(contours.flat().length).toBeLessThanOrEqual(40);
+  });
+});
+
+describe("colorMask", () => {
+  // Two marks of the same ink with clear page between them, which is the case
+  // the flood and the match answer differently.
+  const twins = image(["..........", "..##..##..", "..##..##..", ".........."]);
+
+  it("takes every pixel of the colour, connected to the seed or not", () => {
+    const matched = colorMask(twins.pixels, twins.width, twins.height, {
+      x: 2,
+      y: 1,
+    })!;
+    expect(area(matched)).toBe(8);
+    // …where the flood from the same seed stops at the gap and takes four.
+    const flooded = floodMask(twins.pixels, twins.width, twins.height, {
+      x: 2,
+      y: 1,
+    })!;
+    expect(area(flooded)).toBe(4);
+  });
+
+  it("takes the page when the page is what was pressed", () => {
+    const matched = colorMask(twins.pixels, twins.width, twins.height, {
+      x: 0,
+      y: 0,
+    })!;
+    expect(area(matched)).toBe(40 - 8);
+  });
+
+  it("widens with the tolerance it is given", () => {
+    const shades = image(["..", ".."]);
+    // A near-white pixel: outside a tight tolerance, inside a loose one.
+    shades.pixels[4] = 230;
+    shades.pixels[5] = 230;
+    shades.pixels[6] = 230;
+    const tight = colorMask(shades.pixels, 2, 2, { x: 0, y: 0 }, 4)!;
+    expect(area(tight)).toBe(3);
+    const loose = colorMask(shades.pixels, 2, 2, { x: 0, y: 0 }, 40)!;
+    expect(area(loose)).toBe(4);
+  });
+
+  it("gives up on a seed off the buffer", () => {
+    expect(
+      colorMask(twins.pixels, twins.width, twins.height, { x: 99, y: 0 }),
+    ).toBeNull();
+  });
+});
+
+describe("despeckle", () => {
+  it("drops the runs under the bar and keeps the ones over it", () => {
+    const speckled = mask([
+      "####.#....",
+      "####......",
+      "####...#..",
+      "..........",
+    ]);
+    const cleaned = despeckle(speckled, 6);
+    expect(area(cleaned)).toBe(12);
+    // The block survives whole; both single cells go.
+    expect(cleaned.data[5]).toBe(0);
+    expect(cleaned.data[2 * 10 + 7]).toBe(0);
+    expect(cleaned.data[0]).toBe(1);
+  });
+
+  it("counts a run four-connected, so a diagonal chain is specks", () => {
+    const diagonal = mask(["#...", ".#..", "..#.", "...#"]);
+    expect(area(despeckle(diagonal, 2))).toBe(0);
+  });
+
+  it("hands the mask straight back when nothing can be too small", () => {
+    const one = mask(["#."]);
+    expect(despeckle(one, 1)).toEqual(one);
+  });
+});
+
+describe("matchAt", () => {
+  const twins = image(["..........", "..##..##..", "..##..##..", ".........."]);
+
+  it("outlines both places the colour appears, not just the one pressed", () => {
+    const contours = matchAt(
+      twins.pixels,
+      twins.width,
+      twins.height,
+      { x: 2, y: 1 },
+      { scale: 1, growBy: 0, epsilon: 0, minCells: 2 },
+    )!;
+    expect(contours).toHaveLength(2);
+    const xs = contours.flat().map((p) => p.x);
+    expect(Math.min(...xs)).toBe(2);
+    expect(Math.max(...xs)).toBe(8);
+  });
+
+  it("chooses the page with the marks left out of it as holes", () => {
+    // The press every tracing tool has to refuse — the bare sheet — is the one
+    // this answers usefully: the sheet's own outline, with a hole where each
+    // mark is. That is "the background, and not what is drawn on it".
+    const contours = matchAt(
+      twins.pixels,
+      twins.width,
+      twins.height,
+      { x: 0, y: 0 },
+      { scale: 1, growBy: 0, epsilon: 0, minCells: 2 },
+    )!;
+    expect(contours).toHaveLength(3);
+  });
+
+  it("throws the speckle away before it traces", () => {
+    // One stray pixel of the ink, the kind a photograph has thousands of. Left
+    // in, it is a closed loop of its own in the selection.
+    const noisy = image([
+      "..........",
+      "..###..#..",
+      "..###.....",
+      "..###.....",
+      "..........",
+    ]);
+    const contours = matchAt(
+      noisy.pixels,
+      noisy.width,
+      noisy.height,
+      { x: 2, y: 1 },
+      { scale: 1, growBy: 0, epsilon: 0 },
+    )!;
+    expect(contours).toHaveLength(1);
+  });
+
+  it("gives up on a press off the page", () => {
+    expect(
+      matchAt(twins.pixels, twins.width, twins.height, { x: 99, y: 99 }),
+    ).toBeNull();
   });
 });

@@ -520,6 +520,10 @@ export const en = {
     selectFeather: {
       hint: "How softly a Delete through the selection fades out — the edges and corners go gently instead of dead sharp.",
     },
+    tolerance: {
+      name: "Colour tolerance: {value}%",
+      hint: "How far a colour may drift from the one you pressed and still be chosen. Tight picks out one exact shade; wide takes in a whole sky.",
+    },
     sample: {
       name: "Sample: {value}",
       hint: "How much page one press reads. Wider averages a textured passage into the colour it looks like.",
@@ -801,7 +805,7 @@ export const en = {
     selection: {
       name: "Select",
       description:
-        "Cut a window in the page — with a box, an oval, a lasso, by tracing what is painted under the pointer, or by drawing it in with a nib. Press it again to choose which. Paint inside it and the mark is cut to it; drag it with the hand to carry what is painted there, or with the marquee to slide the window itself.",
+        "Cut a window in the page — with a box, an oval, a lasso, by tracing what is painted under the pointer, by picking out a colour wherever it appears, by filling in a gap the selection has gone round, or by drawing it in with a nib. Press it again to choose which. Paint inside it and the mark is cut to it; drag it with the hand to carry what is painted there, or with the marquee to slide the window itself.",
     },
     select: {
       name: "Box select",
@@ -820,6 +824,16 @@ export const en = {
       name: "Trace select",
       description:
         "Press an area and the selection follows the contours of what is drawn there, rather than a shape you drew over it.",
+    },
+    selectMatch: {
+      name: "Colour select",
+      description:
+        "Press a colour and everywhere else it appears on the page is chosen too — the tolerance dial says how far a shade may drift and still count. Where Trace select stops at the first edge, this one crosses the whole page, and it may be pressed on the bare paper: that chooses the background with your marks left out of it.",
+    },
+    selectGap: {
+      name: "Gap select",
+      description:
+        "Press a part of the page the selection doesn't reach and it fills with selection, out to the edges of what is already chosen — the way to fill in the middle of a shape you have only gone round. With nothing selected yet, one press chooses the whole page.",
     },
     selectDraw: {
       name: "Draw select",

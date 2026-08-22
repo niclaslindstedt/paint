@@ -79,7 +79,9 @@ the same [`oss-framework`](https://github.com/niclaslindstedt/oss-framework).
   single toolbar button and a single switch: press it again for the family, and
   for the toggle that fills them in.
 - **Cut a window in the page.** The selection tool is a box, an oval or a lasso
-  — or the contours of what is already painted — and what settles is an **area**
+  — or the contours of what is already painted, or one colour wherever it
+  appears, or the gap inside an outline you have only gone round — and what
+  settles is an **area**
   rather than a list of marks: paint in it and the mark is cut to it, drag it
   with the hand and what is painted under it travels, drag it with the marquee
   and the window slides and leaves the ink behind. Corner grips adjust it
@@ -355,13 +357,18 @@ npm run preview
   and pours a ramp of its own colours through it — press where the first colour
   starts, drag the way it should run, let go where the last one lands. Press the
   button again to choose which.
-- **Selection** — one button, five ways to pick marks out: a box (`V`), an
+- **Selection** — one button, seven ways to pick marks out: a box (`V`), an
   oval, a freehand lasso, a **trace** that follows the contours of whatever is
-  drawn under your finger rather than a shape you drew over it, and a
-  **selection pencil** that paints the selection in like a pencil line — every
-  stroke adds to it, its Erase mode (or a held `Ctrl`/`Cmd`) paints it away, and
-  its feather makes a Delete fade out softly. Press the button again to choose
-  which. With something selected, the side panel grows a blue, slowly glowing
+  drawn under your finger rather than a shape you drew over it, a **colour
+  select** that picks out one colour everywhere it appears on the page (with a
+  tolerance for how far a shade may drift, and a press on the bare paper
+  choosing the background with your marks left out of it), a **gap select** that
+  fills a part of the page the selection has gone round but not covered — the
+  forgotten middle of a traced ring, or, with nothing selected yet, the whole
+  page — and a **selection pencil** that paints the selection in like a pencil
+  line: every stroke adds to it, its Erase mode (or a held `Ctrl`/`Cmd`) paints
+  it away, and its feather makes a Delete fade out softly. Press the button
+  again to choose which. With something selected, the side panel grows a blue, slowly glowing
   **Contextual** block at its head, holding **Invert selection** — one press and
   the window is everything it wasn't. It goes when the selection does. Move what you caught by switching to the hand
   and dragging from inside the outline; copy, cut and delete with

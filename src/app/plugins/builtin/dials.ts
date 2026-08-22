@@ -451,6 +451,30 @@ export const SELECT_FEATHER: ToolDial = {
   hintKey: "dials.selectFeather.hint",
 };
 
+/** How far a colour may sit from the one pressed and still be chosen by the
+ *  colour match (see `select.ts`).
+ *
+ *  Every tool of this kind has to offer the number, because the same press
+ *  means two different things on two different pictures: on a flat drawing a
+ *  colour is one exact value and a tight tolerance picks it out cleanly, while
+ *  on a photograph "this blue" is ten thousand values and a tight tolerance
+ *  chooses a handful of freckles out of the sky.
+ *
+ *  A share of the whole distance between two colours rather than the raw 0–255
+ *  channel units the raster works in, so it reads as the percentage every other
+ *  fraction here does. Its rest is a tenth — a shade under the bucket's own
+ *  tolerance, which is the number that walks across an anti-aliased edge
+ *  without walking through the line. */
+export const MATCH_TOLERANCE: ToolDial = {
+  id: "tolerance",
+  nameKey: "dials.tolerance.name",
+  hintKey: "dials.tolerance.hint",
+  min: 0.01,
+  max: 0.6,
+  step: 0.01,
+  default: 0.1,
+};
+
 /** Which way the selection pencil's stroke works the window: painting selection
  *  in, or painting it away (see `select.ts`).
  *
