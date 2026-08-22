@@ -1,9 +1,7 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef } from "react";
 
 import {
-  classifyEdgeDrag,
-  inEdgeZone,
   isDoubleTap,
   isTap,
   LONG_PRESS_MS,
@@ -11,27 +9,24 @@ import {
 } from "./gestures.ts";
 import { strokeBounds } from "./bounds.ts";
 import type { CutAim } from "./cutAim.ts";
-import { paintFrame } from "./frame.ts";
 import type { EffectPreview } from "./render.ts";
-import { onImageDecoded } from "./images.ts";
-import type { MarkCache } from "./cache.ts";
-import { releaseOverview, type Overview } from "./overview.ts";
 import { cursorFor, usePointerRing } from "./PointerRing.tsx";
 import { pluginById } from "./plugins/registry.ts";
-import type { CanvasProbe, DraftStroke, ToolContext } from "./plugins/types.ts";
+import type { DraftStroke, ToolContext } from "./plugins/types.ts";
 import { DEFAULT_LEAD_DETAIL } from "./plugins/lead.ts";
 import { DEFAULT_WASH_DETAIL } from "./plugins/wash.ts";
-import { createProbe } from "./probe.ts";
 import {
   maskOf,
   regionHolds,
   splitRegion,
   type Selection,
 } from "./selection.ts";
-import { createTrail } from "./trail.ts";
 import type { Drawing, Point, Stroke } from "./types.ts";
+import { useCanvasPaint } from "./useCanvasPaint.ts";
+import { useToolContext } from "./useToolContext.ts";
 import { useCanvasView } from "./useCanvasView.ts";
-import { panBy, pinch, toDocumentPoint, type CanvasView } from "./viewport.ts";
+import { useEdgeSwipe } from "./useEdgeSwipe.ts";
+import { panBy, pinch, type CanvasView } from "./viewport.ts";
 
 // The canvas surface: one `<canvas>` element filling the screen, a view onto a
 // page that is larger than it, a pointer gesture in flight, and a frame
@@ -314,19 +309,6 @@ export function PaintCanvas({
   // A press that may still become a long one: the timer that decides, and where
   // it landed — a finger that wanders is not being held still.
   const hold = useRef<{ timer: number; from: Point } | null>(null);
-  // A touch that landed in a watched edge strip and has begun nothing yet: it
-  // may be an inward swipe — the sidebar's, or the layers panel's. `viewport`
-  // is where it landed on the screen (what the swipe is measured in), `point`
-  // where it landed on the element (what the gesture is replayed from when it
-  // turns out to be ours), and `open` what to run if the swipe fires: nothing
-  // for the drawer, which the framework opens itself.
-  const heldEdgePress = useRef<{
-    pointerId: number;
-    edge: MenuEdge;
-    viewport: Point;
-    point: Point;
-    open?: () => void;
-  } | null>(null);
   const pageRef = useRef(drawing);
   pageRef.current = drawing;
   // The frame the view asks for when a zoom settles. A holder because the view
@@ -360,204 +342,73 @@ export function PaintCanvas({
     repaint,
   });
 
-  // A bitmap on the page decodes asynchronously but paints synchronously, so a
-  // freshly-loaded image would otherwise sit invisible until something else
-  // forced a repaint. Bumping this counter is that something (see `images.ts`),
-  // and it travels into the cache's spec so a cached frame can't hide a picture
-  // that has only just arrived.
-  const [decodedAt, setDecodedAt] = useState(0);
-  useEffect(() => onImageDecoded(() => setDecodedAt((count) => count + 1)), []);
-
-  // Everything else a repaint reads. The paint runs from an animation frame,
-  // outside React's render, so it takes its inputs from here rather than from a
-  // closure that may be a frame out of date.
-  const inks = useRef({
-    drawing,
-    pageColor,
-    defaultInk,
-    showGrid,
-    showPixelGrid,
-    fullRender,
-    checker,
-    washDetail,
-    leadDetail,
-    preview,
-    decodedAt,
-    selection,
-    aiming,
-    adjusting,
-  });
-  inks.current = {
-    drawing,
-    pageColor,
-    defaultInk,
-    showGrid,
-    showPixelGrid,
-    fullRender,
-    checker,
-    washDetail,
-    leadDetail,
-    preview,
-    decodedAt,
-    selection,
-    aiming,
-    adjusting,
-  };
-  // The committed marks, as pixels (see `cache.ts`). Opened on the first paint
-  // and kept for the life of the canvas.
-  const cacheRef = useRef<MarkCache | null>(null);
-  // …and the whole page as pixels, for the frames of a zoom out (see
-  // `overview.ts`). Held here for the same reason the cache is, and dropped
-  // with the canvas: it is a page-sized bitmap, and nothing outside a frame has
-  // any use for it.
-  const overviewRef = useRef<Overview | null>(null);
-  useEffect(() => () => releaseOverview(overviewRef), []);
-  // …and what the last frame painted, which is what lets a frame of a gesture
-  // in flight repaint the patch it grew into rather than the whole mark (see
-  // `trail.ts`). Kept for the life of the canvas for the same reason.
-  const trailRef = useRef(createTrail());
-  // The repaint this frame has already scheduled, so a burst of pointer moves
-  // costs one paint rather than one each.
-  const pending = useRef<number | null>(null);
-
-  // The page as it is actually painted, for the tools that read it (the fills
-  // and the dropper). Made fresh for each press and kept for that gesture: the
-  // document can't change while a pointer is down, so one snapshot answers every
-  // question a drag asks — and a press that never reaches a tool that reads the
-  // page never takes one at all (see `probe.ts`).
-  const probe = useRef<CanvasProbe | null>(null);
-  const openProbe = useCallback((): CanvasProbe => {
-    probe.current ??= createProbe(pageRef.current, {
+  // What the screen shows and when it is redrawn (see `useCanvasPaint.ts`).
+  // The render inputs go in as one value; the gesture in flight goes in as the
+  // refs the pointer handlers below write, because a frame reads them when it
+  // runs rather than when it was asked for. What comes back is those inputs
+  // where a frame can reach them, and the one call that asks for a frame.
+  const { requestPaint } = useCanvasPaint({
+    canvasRef,
+    viewRef,
+    viewportRef,
+    view,
+    viewport,
+    zooming,
+    gesture: {
+      draft: draftRef,
+      moving: moveStart,
+      offset: moveBy,
+      placing: placingAt,
+    },
+    inks: {
+      drawing,
       pageColor,
       defaultInk,
-    });
-    return probe.current;
-  }, [pageColor, defaultInk]);
-
-  // Whether the pointer is held with Ctrl (or ⌘) right now — read off the
-  // events as they arrive, because a modifier is a property of the press rather
-  // than of anything React renders. The selection pencil reads it as its
-  // erase mode (see `ToolContext.modifier`).
-  const modifierHeld = useRef(false);
-
-  const context = useCallback(
-    (): ToolContext => ({
-      ...ink,
-      background: pageColor,
-      modifier: modifierHeld.current,
-      // Lazily: reading `probe` here would take a snapshot for every pencil
-      // move. A tool that wants one asks for it.
-      get probe() {
-        return openProbe();
-      },
-      // Through the ref, so the context a long gesture began with still answers
-      // with the window as it stands when the gesture finally asks.
-      get selection() {
-        return inks.current.selection?.region ?? null;
-      },
-    }),
-    [ink, pageColor, openProbe],
-  );
-
-  /** A pointer event's position on the element, in CSS pixels. */
-  const elementPoint = useCallback(
-    (e: { clientX: number; clientY: number }): Point => {
-      const rect = canvasRef.current?.getBoundingClientRect();
-      if (!rect) return { x: 0, y: 0 };
-      return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+      showGrid,
+      showPixelGrid,
+      fullRender,
+      checker,
+      washDetail,
+      leadDetail,
+      preview,
+      selection,
+      aiming,
+      adjusting,
     },
-    [],
-  );
-
-  /** An element point in document space, which is all the tools ever see. */
-  const toDoc = useCallback(
-    (at: Point): Point => {
-      const current = viewRef.current;
-      if (!current) return { x: 0, y: 0 };
-      return toDocumentPoint(current, at);
-    },
-    [viewRef],
-  );
-
-  /** …and the same, straight from a pointer event. */
-  const documentPoint = useCallback(
-    (e: { clientX: number; clientY: number }): Point => toDoc(elementPoint(e)),
-    [elementPoint, toDoc],
-  );
-
-  /** Paint one frame — everything it depends on, gathered from the refs above
-   *  and handed to `frame.ts`, which owns what a frame looks like. */
-  const paint = useCallback(() => {
-    const canvas = canvasRef.current;
-    const view = viewRef.current;
-    if (!canvas || !view) return;
-    const moving = moveStart.current;
-    paintFrame({
-      canvas,
-      view,
-      viewport: viewportRef.current,
-      ...inks.current,
-      selection: inks.current.selection,
-      aiming: inks.current.aiming ?? null,
-      zooming: zooming.current,
-      draft: draftRef.current,
-      moving: moving ? { ...moving, offset: moveBy.current } : null,
-      // The edge under the finger, whether the finger is dragging a marquee out
-      // here or holding a corner grip out there.
-      loupe: placingAt.current ?? inks.current.adjusting,
-      cache: cacheRef,
-      overview: overviewRef,
-      trail: trailRef.current,
-    });
-  }, [viewRef, viewportRef, zooming]);
-
-  /** Ask for a repaint on the next animation frame, at most one per frame.
-   *
-   *  Coalescing is the point: a pointer can report several times per frame, a
-   *  pinch moves the view and the draft together, and every one of those used
-   *  to be its own synchronous repaint. The screen only shows one. */
-  const requestPaint = useCallback(() => {
-    if (pending.current !== null) return;
-    pending.current = requestAnimationFrame(() => {
-      pending.current = null;
-      paint();
-    });
-  }, [paint]);
+  });
 
   repaint.current = requestPaint;
 
-  useEffect(
-    () => () => {
-      if (pending.current !== null) cancelAnimationFrame(pending.current);
-    },
-    [],
-  );
+  // Whose a touch at the screen edge is — the drawer's, the panel's, or ours
+  // (see `useEdgeSwipe.ts`). Nothing below begins a gesture for a press it is
+  // still holding.
+  const edgeSwipe = useEdgeSwipe({
+    menuSwipeEdge,
+    panelSwipeEdge,
+    onPanelSwipe,
+  });
 
-  // Repaint whenever the document, the view, the window or the page's colours
-  // change — and when a bitmap finishes decoding, which changes what the same
-  // document paints as without changing the document. The gesture in flight
-  // asks for its own frames as it moves; it never reaches React at all.
-  useEffect(() => {
-    requestPaint();
-  }, [
-    drawing,
-    view,
-    viewport,
-    pageColor,
-    defaultInk,
-    showGrid,
-    showPixelGrid,
-    fullRender,
-    checker,
-    washDetail,
-    leadDetail,
-    preview,
-    decodedAt,
-    selection,
-    aiming,
-    adjusting,
-    requestPaint,
-  ]);
+  // What a tool is handed when a press reaches it, and where on the page that
+  // press landed (see `useToolContext.ts`). The window and the modifier go in
+  // through refs, so a gesture that began before either moved still asks the
+  // live one.
+  const selectionRef = useRef(selection);
+  selectionRef.current = selection;
+  // Whether the pointer is held with Ctrl (or ⌘) right now — written by the
+  // handlers below as the events arrive, because a modifier is a property of
+  // the press rather than of anything React renders.
+  const modifierHeld = useRef(false);
+  const { context, openProbe, dropProbe, elementPoint, toDoc, documentPoint } =
+    useToolContext({
+      canvasRef,
+      viewRef,
+      pageRef,
+      selectionRef,
+      modifierHeld,
+      ink,
+      pageColor,
+      defaultInk,
+    });
 
   /** Abandon whatever stroke is in flight without committing it. */
   const abandon = useCallback(() => {
@@ -621,7 +472,7 @@ export function PaintCanvas({
     if (!plugin) return;
     // A new press reads a new page: whatever the last gesture drew is part of
     // what this one samples.
-    probe.current = null;
+    dropProbe();
 
     // The dropper. A press under a colour-sampling tool asks the tool what it
     // read off the page and hands that to the toolbar; nothing is drawn and
@@ -719,34 +570,6 @@ export function PaintCanvas({
     requestPaint();
   };
 
-  /** Which swipe, if any, a press landing at `x` (in viewport coordinates)
-   *  could still turn out to be. The sidebar is asked first: it is the
-   *  framework's gesture and it is already listening whatever we decide, so on
-   *  the one edge both could want, holding it for anything else would open two
-   *  things at once. */
-  const edgeWatching = (
-    x: number,
-  ): { edge: MenuEdge; open?: () => void } | undefined => {
-    const width = window.innerWidth;
-    if (menuSwipeEdge && inEdgeZone(x, width, menuSwipeEdge)) {
-      return { edge: menuSwipeEdge };
-    }
-    if (panelSwipeEdge && inEdgeZone(x, width, panelSwipeEdge)) {
-      return { edge: panelSwipeEdge, open: onPanelSwipe };
-    }
-    return undefined;
-  };
-
-  /** Forget a held edge press, whoever owned it. */
-  const dropHeld = (pointerId?: number) => {
-    if (
-      pointerId === undefined ||
-      heldEdgePress.current?.pointerId === pointerId
-    ) {
-      heldEdgePress.current = null;
-    }
-  };
-
   /** Whether a press here should offer the selection's menu.
    *
    *  Two ways it can: it landed on the selection (whatever tool is in hand — the
@@ -800,7 +623,7 @@ export function PaintCanvas({
       // press goes with them: two fingers are not the drawer's swipe either.
       endPan();
       dropMove();
-      dropHeld();
+      edgeSwipe.drop();
       dropHold();
       windowStart.current = null;
       lastTap.current = null;
@@ -815,21 +638,9 @@ export function PaintCanvas({
     if (pointers.current.size > 2) return;
 
     // A touch landing in a watched strip might be an inward swipe — the
-    // drawer's or the layers panel's — and neither may leave a mark. Hold the
-    // press instead of starting anything: `handleMove` releases it the moment
-    // it proves it is neither, and replays it from here. Touch only — a swipe
-    // is a touch gesture, so a mouse or a pen at the edge is never in doubt.
-    const watched =
-      e.pointerType === "touch" ? edgeWatching(e.clientX) : undefined;
-    if (watched) {
-      heldEdgePress.current = {
-        pointerId: e.pointerId,
-        viewport: { x: e.clientX, y: e.clientY },
-        point: at,
-        ...watched,
-      };
-      return;
-    }
+    // drawer's or the layers panel's — and neither may leave a mark. It is held
+    // instead, and begins nothing until it has proved which it is.
+    if (edgeSwipe.hold(e, at)) return;
 
     beginGesture(e.pointerId, at);
   };
@@ -882,25 +693,12 @@ export function PaintCanvas({
     }
 
     // A press held back at the screen edge: decide whose it is now that it has
-    // moved. A swipe that fired opens what it was watching and is dropped;
-    // anything else becomes the gesture it always was, replayed from where the
-    // finger first landed so no ink is lost to the wait, and then caught up to
+    // moved. A press that turns out to be ours is replayed from where the
+    // finger first landed, so no ink is lost to the wait, and then caught up to
     // here by the code below.
-    const held = heldEdgePress.current;
-    if (held && held.pointerId === e.pointerId) {
-      const verdict = classifyEdgeDrag(
-        e.clientX - held.viewport.x,
-        e.clientY - held.viewport.y,
-        held.edge,
-      );
-      if (verdict === "pending") return;
-      heldEdgePress.current = null;
-      if (verdict === "menu") {
-        held.open?.();
-        return;
-      }
-      beginGesture(e.pointerId, held.point);
-    }
+    const verdict = edgeSwipe.settle(e);
+    if (verdict === "waiting" || verdict === "opened") return;
+    if (verdict) beginGesture(e.pointerId, verdict);
 
     // A one-finger drag under the hand: pan by how far it has come from where
     // it landed. Once it has travelled past a finger's wobble it stops being a
@@ -972,14 +770,10 @@ export function PaintCanvas({
     }
 
     // A press still held at the edge when the finger lifts was never the
-    // drawer's — the swipe would have fired long before this. Start it now so
-    // the press lands as the tap it was, and let the rest of this handler end
-    // it in the same breath.
-    const held = heldEdgePress.current;
-    if (held && held.pointerId === e.pointerId) {
-      heldEdgePress.current = null;
-      beginGesture(e.pointerId, held.point);
-    }
+    // drawer's. Start it now so it lands as the tap it was, and let the rest of
+    // this handler end it in the same breath.
+    const landed = edgeSwipe.lift(e.pointerId);
+    if (landed) beginGesture(e.pointerId, landed);
 
     // A press that never wandered is a tap; two of them in quick succession fit
     // the page, then return to 1:1. Detected here rather than from `dblclick`
@@ -1061,7 +855,7 @@ export function PaintCanvas({
   const cancel = (e: React.PointerEvent<HTMLCanvasElement>) => {
     release(e);
     endPan(e.pointerId);
-    dropHeld(e.pointerId);
+    edgeSwipe.drop(e.pointerId);
     dropHold();
     // A cancelled drag puts the marks back where they were: nothing was moved,
     // because nothing reached the document until the finger lifted.

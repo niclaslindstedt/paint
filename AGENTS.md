@@ -121,6 +121,10 @@ The app owns the domain and the stores ("store stays in the app"):
   the effect draft from the selection when its dialog opens.
 - `src/app/PaintCanvas.tsx`, `CanvasScreen.tsx`, `Toolbar.tsx`,
   `SideMenuContent.tsx`, `SettingsModal.tsx` + `settings/` — the screens.
+- `src/app/useCanvasPaint.ts` / `useToolContext.ts` / `useEdgeSwipe.ts` — the
+  three jobs the canvas component is _not_: when the screen is redrawn, what a
+  tool is handed when a press reaches it, and whose a touch at the screen edge
+  is. `PaintCanvas` keeps only what a press means.
 - `src/output.ts` — the §19.4 central output module (semantic log helpers over
   the in-app log store).
 - `pwa-plugin.ts` — emits the service worker + version/precache manifests the

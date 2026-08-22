@@ -19,7 +19,6 @@ import {
   MenuIcon,
   Modal,
   PaletteIcon,
-  RefreshIcon,
   ScrollTextIcon,
   SlidersIcon,
   type IconProps,
@@ -27,7 +26,7 @@ import {
 import { type ThemeAppearance } from "@niclaslindstedt/oss-framework/theme";
 import { type PwaUpdate } from "@niclaslindstedt/oss-framework/pwa";
 
-import { SidePanelIcon, ToolboxIcon } from "./icons.tsx";
+import { GaugeIcon, SidePanelIcon, ToolboxIcon } from "./icons.tsx";
 import { useT } from "./i18n/index.ts";
 import { APP_LOOK } from "./look.ts";
 import {
@@ -106,7 +105,7 @@ const TABS: TabDef[] = [
   {
     id: "performance",
     labelKey: "settings.tabs.performance",
-    icon: RefreshIcon,
+    icon: GaugeIcon,
   },
   { id: "developer", labelKey: "settings.tabs.developer", icon: CodeIcon },
   { id: "logs", labelKey: "settings.tabs.logs", icon: ScrollTextIcon },

@@ -857,10 +857,21 @@ gesture began rather than accumulated frame by frame, which is what makes it
 exact and reversible. Being DOM-free, a complete pinch can be driven in a node
 test.
 
-`PaintCanvas` owns only what the maths can't: the pointers, the repaint, and the
-gesture split (one pointer draws, two pinch, a second finger mid-stroke abandons
-the stroke). The view is screen state and deliberately never reaches the store —
-where you scrolled to is not part of the document.
+`PaintCanvas` owns only what the maths can't: the pointers and the gesture split
+(one pointer draws, two pinch, a second finger mid-stroke abandons the stroke).
+The view is screen state and deliberately never reaches the store — where you
+scrolled to is not part of the document.
+
+Three seams sit beside it, each a job that is not "what does this press mean":
+`useCanvasPaint.ts` owns **when the screen is redrawn** — the pixels kept between
+frames (the mark cache, the page overview, the gesture trail), the render inputs
+gathered where an animation frame can reach them, and the coalescing that turns a
+burst of pointer samples into one paint. `useToolContext.ts` owns **what a tool
+is handed** when a press reaches it, including the page snapshot the bucket and
+the dropper read, taken lazily and kept for the gesture. And `useEdgeSwipe.ts`
+owns **whose a touch at the screen edge is** — held, undecided, until it moves
+far enough to prove it is a panel's swipe or a mark, and replayed from where it
+landed when it turns out to be ours.
 
 The **nib outline** a mouse or a stylus wears (`PointerRing.tsx`) is deliberately
 not part of a frame. It is one absolutely-positioned element moved by
