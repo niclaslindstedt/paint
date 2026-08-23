@@ -250,36 +250,6 @@ jobs:
       packages: read
     env:
       TAG: ${{ needs.release.outputs.tag }}
-      # macOS SIGNING — optional, and the build is never left unsigned.
-      #
-      # Apple Silicon refuses to execute unsigned arm64 code and reports it to
-      # the user as "the app is damaged", so an unsigned arm64 download is not
-      # a download at all.
-      #
-      # **THE IDENTITY IS ONLY USABLE WITH A CERTIFICATE BESIDE IT.** The
-      # bundler can sign with a named identity only if it can find that
-      # identity in a keychain, which on an ephemeral runner means importing
-      # one from APPLE_CERTIFICATE — otherwise codesign answers `<name>: no
-      # identity found` and the whole build fails. A configured
-      # MAC_SIGN_IDENTITY with no certificate behind it is therefore WORSE than
-      # none, which is how v0.1.1's macOS download went missing a second time.
-      #
-      # So the name is passed only when a certificate is passed too. Everything
-      # else falls back to `-`, codesign's own name for an AD-HOC signature:
-      # the app runs natively and the user answers one Gatekeeper prompt.
-      # `${{ secrets.X }}` alone would not do — an unset secret expands to the
-      # EMPTY STRING, and the bundler branches on whether the variable is set
-      # rather than on whether it says anything, so an empty one reaches
-      # `codesign -s ""` and fails exactly as above.
-      #
-      #   nothing set          -> `-`, ad-hoc
-      #   identity, no cert    -> `-`, ad-hoc (the name cannot work alone)
-      #   identity + cert      -> signed for real
-      APPLE_SIGNING_IDENTITY: ${{ (secrets.MAC_CSC_LINK && secrets.MAC_SIGN_IDENTITY) || '-' }}
-      # The certificate itself, under the names the bundler reads. Both unset
-      # is the ordinary case and means the ad-hoc path above.
-      APPLE_CERTIFICATE: ${{ secrets.MAC_CSC_LINK }}
-      APPLE_CERTIFICATE_PASSWORD: ${{ secrets.MAC_CSC_KEY_PASSWORD }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -288,6 +258,11 @@ jobs:
         with:
           target: ${{ matrix.target }}
           npm-token: ${{ secrets.GITHUB_TOKEN }}
+          # Ad hoc unless MAC_SIGNING is `on` — see the action's signing step.
+          mac-signing: ${{ vars.MAC_SIGNING }}
+          mac-signing-identity: ${{ secrets.MAC_SIGN_IDENTITY }}
+          mac-certificate: ${{ secrets.MAC_CSC_LINK }}
+          mac-certificate-password: ${{ secrets.MAC_CSC_KEY_PASSWORD }}
 
       # Whatever this platform's bundler produced, BY EXTENSION — a step that
       # listed filenames would silently upload nothing the day a target changed

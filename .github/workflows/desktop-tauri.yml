@@ -124,15 +124,6 @@ jobs:
       contents: read
       # npm ci resolves @niclaslindstedt/oss-framework from GitHub Packages.
       packages: read
-    env:
-      # The identity name is only usable with a certificate beside it, and an
-      # unset secret expands to the empty string rather than to nothing — both
-      # of which reach codesign and fail the build. `-` is codesign's ad-hoc
-      # identity. See release.yml's `desktop` job for the whole argument; this
-      # job must match it or the check passes while a release fails.
-      APPLE_SIGNING_IDENTITY: ${{ (secrets.MAC_CSC_LINK && secrets.MAC_SIGN_IDENTITY) || '-' }}
-      APPLE_CERTIFICATE: ${{ secrets.MAC_CSC_LINK }}
-      APPLE_CERTIFICATE_PASSWORD: ${{ secrets.MAC_CSC_KEY_PASSWORD }}
     steps:
       - name: Skip unselected platform
         if: inputs.platform != 'all' && inputs.platform != matrix.target
@@ -145,6 +136,11 @@ jobs:
         with:
           target: ${{ matrix.target }}
           npm-token: ${{ secrets.GITHUB_TOKEN }}
+          # Ad hoc unless MAC_SIGNING is `on` — see the action's signing step.
+          mac-signing: ${{ vars.MAC_SIGNING }}
+          mac-signing-identity: ${{ secrets.MAC_SIGN_IDENTITY }}
+          mac-certificate: ${{ secrets.MAC_CSC_LINK }}
+          mac-certificate-password: ${{ secrets.MAC_CSC_KEY_PASSWORD }}
 
       - uses: actions/upload-artifact@v7
         if: inputs.platform == 'all' || inputs.platform == matrix.target
