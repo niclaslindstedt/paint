@@ -2,6 +2,7 @@
 import { describe, expect, it } from "vitest";
 
 import { ADJUST_KINDS, CURVE_CHANNELS } from "../src/app/adjust.ts";
+import { CUTOUT_BAND } from "../src/app/cutout.ts";
 import {
   BLUR_TAIL,
   choiceValue,
@@ -282,17 +283,18 @@ describe("effectReach", () => {
 });
 
 describe("aiming an effect at a tracing", () => {
-  const traced = [
+  const region = [
     [
       { x: 0, y: 0 },
       { x: 10, y: 0 },
       { x: 10, y: 10 },
     ],
   ];
+  const traced = { region };
 
   it("stamps the tracing on the effect that is aimed through one", () => {
     const aimed = withSubject(effectDescriptor("cutout")!.preset, traced);
-    expect(aimed.kind === "cutout" && aimed.subject).toBe(traced);
+    expect(aimed.kind === "cutout" && aimed.subject).toBe(region);
   });
 
   it("leaves an effect that takes no subject exactly as it was", () => {
@@ -306,6 +308,38 @@ describe("aiming an effect at a tracing", () => {
     // mean an unchanged draft, or the page repaints for nothing.
     const aimed = withSubject(effectDescriptor("cutout")!.preset, traced);
     expect(withSubject(aimed, traced)).toBe(aimed);
-    expect(withSubject(aimed, [...traced])).not.toBe(aimed);
+    expect(withSubject(aimed, { region: [...region] })).not.toBe(aimed);
+  });
+
+  it("takes the search width from the nib that painted the tracing", () => {
+    // The whole of what the pencil painted is where the border may be, so a
+    // painted outline sets the band rather than leaving it at the preset's
+    // twenty: reach for a finer pencil and the cut looks over less picture.
+    const aimed = withSubject(effectDescriptor("cutout")!.preset, {
+      region,
+      nib: 7,
+    });
+    expect(aimed.kind === "cutout" && aimed.nib).toBe(7);
+    expect(aimed.kind === "cutout" && aimed.band).toBe(7);
+    const finer = withSubject(aimed, { region: [...region], nib: 3 });
+    expect(finer.kind === "cutout" && finer.band).toBe(3);
+  });
+
+  it("leaves a band set by hand alone until the nib itself changes", () => {
+    // The dial is still worth having: widen the search and every further dab at
+    // that width keeps it, because only a *change* of nib re-sets it.
+    const aimed = withSubject(effectDescriptor("cutout")!.preset, {
+      region,
+      nib: 7,
+    });
+    const widened = { ...aimed, band: 24 } as typeof aimed;
+    const again = withSubject(widened, { region: [...region], nib: 7 });
+    expect(again.kind === "cutout" && again.band).toBe(24);
+  });
+
+  it("leaves the band alone for an outline nobody painted", () => {
+    const aimed = withSubject(effectDescriptor("cutout")!.preset, traced);
+    expect(aimed.kind === "cutout" && aimed.nib).toBe(0);
+    expect(aimed.kind === "cutout" && aimed.band).toBe(CUTOUT_BAND);
   });
 });

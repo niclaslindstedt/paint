@@ -501,12 +501,27 @@ describe("invertRegion", () => {
 describe("a selection's feather", () => {
   it("rides selectionOf when the window was cut with one", () => {
     const region = boxRegion({ x: 0, y: 0, width: 10, height: 10 });
-    expect(selectionOf(region, 6)?.feather).toBe(6);
+    expect(selectionOf(region, { feather: 6 })?.feather).toBe(6);
   });
 
   it("records nothing for the dial at rest, so a marquee's window is unchanged", () => {
     const region = boxRegion({ x: 0, y: 0, width: 10, height: 10 });
     expect(selectionOf(region)?.feather).toBeUndefined();
-    expect(selectionOf(region, 0)?.feather).toBeUndefined();
+    expect(selectionOf(region, { feather: 0 })?.feather).toBeUndefined();
+  });
+});
+
+describe("a selection's nib", () => {
+  it("rides selectionOf when the window was painted with one", () => {
+    // Half the pencil's width, which is what tells Delete background that this
+    // outline is the rim of a stripe rather than a line (see `Selection.nib`).
+    const region = boxRegion({ x: 0, y: 0, width: 10, height: 10 });
+    expect(selectionOf(region, { nib: 5 })?.nib).toBe(5);
+  });
+
+  it("records nothing for a window nobody painted", () => {
+    const region = boxRegion({ x: 0, y: 0, width: 10, height: 10 });
+    expect(selectionOf(region)?.nib).toBeUndefined();
+    expect(selectionOf(region, { nib: 0 })?.nib).toBeUndefined();
   });
 });

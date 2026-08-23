@@ -66,8 +66,24 @@ export type Effect =
        *  document pixels. The tracing is a *prior*, strongest on the line and
        *  falling away outward, and this is where looking stops altogether — so
        *  it is both the reach and the promise: nothing outside the band can be
-       *  taken or given back (see `cutout.ts`). */
+       *  taken or given back (see `cutout.ts`).
+       *
+       *  A **painted** tracing sets it: the search width is the pencil's own
+       *  width, so it opens at `nib` below and follows the pencil whenever that
+       *  is resized. It can still be widened by hand from there, and never
+       *  narrowed past the swath — searching less of what the hand painted than
+       *  the hand painted is not a thing to offer (see `withSubject`). */
       band: number;
+      /** Half the width of the nib the tracing was painted with, in document
+       *  pixels, or 0 for a tracing that was not painted — the selection's own
+       *  `nib`, stamped alongside the subject.
+       *
+       *  What it buys is that the cut knows a painted outline is a *stripe*:
+       *  the band moves inward onto the line the nib's centre walked, and every
+       *  place across the stripe is priced alike, because a hand that aims with
+       *  the nib's rim and a hand that aims with its centre leave the same
+       *  outline behind (see `CutoutOptions.nib`). */
+      nib: number;
       /** Softness of the cut edge, in document pixels. */
       feather: number;
       /** 0–1: how little colour difference still counts as the border. */
@@ -406,6 +422,7 @@ export const EFFECTS: readonly EffectDescriptor[] = [
       kind: "cutout",
       subject: [],
       band: CUTOUT_BAND,
+      nib: 0,
       feather: 1,
       tolerance: 0.5,
       smoothness: 0.35,
@@ -682,18 +699,43 @@ export const PAGE_EFFECTS: readonly EffectDescriptor[] = EFFECTS.filter(
   (effect) => effect.listedOnPage,
 );
 
+/** A tracing an aimed effect can be pointed at: the outlines, and — when a nib
+ *  painted them — how wide that nib was. It is exactly what a `Selection`
+ *  carries, narrowed to the two fields an effect has any use for. */
+export type Tracing = {
+  region: readonly (readonly Point[])[];
+  /** Half the nib's width in document pixels, or absent for an outline that was
+   *  chosen rather than painted. */
+  nib?: number;
+};
+
 /** Give an effect the traced subject it is aimed through. A no-op for every
  *  effect that does not take one, so the dialog can stamp the selection on
  *  whatever it opens without knowing which effect wants it — and a no-op for
  *  the *same* tracing handed in twice, so a screen that re-aims an open effect
  *  as the outline is drawn (see `useEffecting`) hands the mark cache the draft
- *  it already has rather than a copy of it. */
-export function withSubject(
-  effect: Effect,
-  subject: readonly (readonly Point[])[],
-): Effect {
-  if (effect.kind !== "cutout" || effect.subject === subject) return effect;
-  return { ...effect, subject };
+ *  it already has rather than a copy of it.
+ *
+ *  A tracing that arrives with a **new nib** also sets the search width to it:
+ *  the whole of what the pencil painted is where the border may be, so that is
+ *  what the cut opens searching. Only a *change* of nib does it, which is what
+ *  leaves the dial worth having — widen the search by hand and it stays widened
+ *  through every further dab at that width, and picking up a finer pencil is
+ *  how you say "narrower than that" (which is the dial a hand can see while it
+ *  draws). Capped at the dial's own ceiling so the two never disagree. */
+export function withSubject(effect: Effect, tracing: Tracing): Effect {
+  if (effect.kind !== "cutout") return effect;
+  const nib = Math.min(Math.max(0, tracing.nib ?? 0), CUTOUT_BAND_MAX);
+  if (effect.subject === tracing.region && effect.nib === nib) return effect;
+  // Rounded, because the dial is whole pixels and a slider reading one number
+  // while the cut used another would be the dishonest half of both. The solve
+  // still searches the exact swath: it takes the wider of the two (see
+  // `CutoutOptions.nib`), so a nib rounded *down* loses none of itself.
+  const band =
+    nib > 0 && nib !== effect.nib
+      ? Math.max(Math.round(nib), CUTOUT_BAND_MIN)
+      : effect.band;
+  return { ...effect, subject: tracing.region, nib, band };
 }
 
 /** Whether this draft has what it needs to land: a traced subject for the

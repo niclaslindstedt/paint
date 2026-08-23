@@ -86,6 +86,11 @@ function solve(
   // the bake — which is already true of every pixel on a zoomed-out screen.
   const result = cutout(image.data, region.width, region.height, subject, {
     band: Math.max(4, Math.round(effect.band * scale)),
+    // The nib is a document width like the band and travels the same way. It
+    // is not floored the way the band is: zero means "this outline was not
+    // painted", and a nib rounded up to four on a zoomed-out preview would
+    // push the search off a line nobody drew.
+    nib: Math.round(effect.nib * scale),
     feather: effect.feather * scale,
     tolerance: effect.tolerance,
     smoothness: effect.smoothness,

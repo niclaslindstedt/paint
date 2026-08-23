@@ -176,11 +176,16 @@ connect a storage backend yourself.
   hands over the selection pencil, and painting roughly over the subject is
   enough — the cut finds the subject's exact edge near the outline. Everything
   well inside the tracing is kept, everything well outside goes, and the strip
-  between is searched for the strongest continuous colour border, with the
-  tracing itself counting as evidence: most likely on the line, less likely the
-  further out, and nothing looked at past the search width. While tracing, the
-  page shows what the cut is about to do — the subject washed red, the searched
-  band yellow. Search width (1–50 px), feather, colour tolerance and smoothness
+  between is searched for the strongest continuous colour border. A tracing
+  painted with the selection pencil sets that strip: the cut searches exactly
+  the stripe the nib covered, every part of it counting equally, so the pencil's
+  width is the search width and a finer pencil is a tighter search; the middle,
+  filled in or coloured over, is settled and never looked at. An outline traced
+  rather than painted counts as evidence instead: most likely on the line, less
+  likely the further out, and nothing looked at past the search width. While
+  tracing, the page shows what the cut is about to do — the subject washed red,
+  the searched band yellow, which lands exactly under a painted stripe. Search
+  width (1–50 px), feather, colour tolerance and smoothness
   are set in the effect's dialog, the page behind previews the cut, and it bakes
   the layer like every effect: applied once, undo puts the marks back, and it
   runs entirely on the device.
