@@ -29,6 +29,27 @@ make icons         # regenerate the PWA icons + og image from the app mark
 make check-seo     # build, then assert the §11.3 SEO/PWA shape of dist/
 ```
 
+The **desktop shell** (`tauri/`) has a toolchain of its own — Rust — so the
+targets above deliberately stop at its edge and these reach it instead. They
+need a Rust toolchain plus the platform's webview development libraries; see
+[`tauri/README.md`](tauri/README.md).
+
+```sh
+make tauri                # bundle the site into the shell and run the desktop app
+make tauri-fast           # the same, without rebuilding the site
+make tauri-bundle         # just the site, into tauri/webroot/
+make tauri-test           # its decision layer (cargo test -p paint-shell — no GUI libs)
+make tauri-lint           # clippy at zero warnings, both crates
+make tauri-fmt            # rustfmt in place (tauri-fmt-check verifies)
+make tauri-package        # this machine's installers
+make tauri-package-debug  # …debug profile: minutes faster, much bigger
+make tauri-clean          # cargo clean
+```
+
+The two packaging targets forward `ARGS` to `tauri build`
+(`make tauri-package ARGS="--target aarch64-apple-darwin"`), and each target has
+an `npm run tauri:*` twin — the Makefile only ever delegates.
+
 The `@niclaslindstedt/oss-framework` dependency comes from the **GitHub
 Packages** npm registry (see `.npmrc`). GitHub Packages requires auth even for
 public packages, so local installs need a `read:packages` token in `~/.npmrc`
@@ -134,6 +155,25 @@ The app owns the domain and the stores ("store stays in the app"):
 - `pwa-plugin.ts` — emits the service worker + version/precache manifests the
   framework's `usePwaUpdate` consumes.
 
+### The desktop shell wraps this app — it does not extend it
+
+`tauri/` is a **thin** [Tauri](https://tauri.app) wrapper: a window, the built
+site served from a private `paint://` scheme, and nothing else. **The page is
+never told it is inside it** — no initialization script, no injected global, no
+Tauri command, and a permission list holding only Tauri's own minimum. That is
+why running there needed no change to this app, and it is the property to keep:
+a feature that exists only in the desktop build is a second product.
+
+It is two Rust crates, and the split is the design: `tauri/shell/` holds every
+decision and depends on no GUI toolkit (so `make tauri-test` runs on a bare
+runner), `tauri/src-tauri/` holds every effect and cannot be built without one.
+A test that would need the second crate is a decision sitting in the wrong one.
+
+One seam reaches back into this tree, and it is `VITE_SHELL_BUILD`: the shell's
+site build passes it, which switches off the service-worker half of `appPwa`
+and — through `__SHELL_BUILD__` — the in-app update prompt. A desktop build has
+no deploy to notice; a new version arrives as a new binary.
+
 Dependency direction: screens → stores → framework. Nothing imports from the
 framework's internals — only its published subpaths.
 
@@ -172,14 +212,15 @@ changelog payload, and the cloud-setup prompt are all behind `import()` already.
 
 ## Where new code goes
 
-| Change type | Goes in                                                                      |
-| ----------- | ---------------------------------------------------------------------------- |
-| New tool    | `src/app/plugins/builtin/` + one `registerPlugin` call + two catalog strings |
-| New feature | `src/app/...`                                                                |
-| Tests       | `tests/...`                                                                  |
-| Docs update | `docs/...`                                                                   |
-| Examples    | `examples/...`                                                               |
-| LLM prompt  | `prompts/<name>/<major>_<minor>_<patch>.md` (see `prompts/README.md`)        |
+| Change type   | Goes in                                                                      |
+| ------------- | ---------------------------------------------------------------------------- |
+| New tool      | `src/app/plugins/builtin/` + one `registerPlugin` call + two catalog strings |
+| New feature   | `src/app/...`                                                                |
+| Tests         | `tests/...`                                                                  |
+| Docs update   | `docs/...`                                                                   |
+| Examples      | `examples/...`                                                               |
+| LLM prompt    | `prompts/<name>/<major>_<minor>_<patch>.md` (see `prompts/README.md`)        |
+| Desktop shell | `tauri/shell/` if it is a decision, `tauri/src-tauri/` if it is an effect    |
 
 ## Test conventions
 
@@ -209,6 +250,7 @@ changelog payload, and the cloud-setup prompt are all behind `import()` already.
 | the tool set or the plugin interface | `docs/features/plugins.md`, `docs/architecture.md`, `tests/plugins_test.ts`, `README.md`                  |
 | sync backends / encryption           | `docs/features/cloud-sync.md`, `docs/configuration.md`                                                    |
 | the settings surface                 | `docs/getting-started.md`                                                                                 |
+| the desktop shell                    | `tauri/README.md`, `docs/features/desktop-app.md`, `tauri/shell/tests/`                                   |
 | user-visible features                | a `.changes/unreleased/` changeset fragment + `docs/features/*.md` (the in-app "What's new" renders both) |
 
 ## Changelog and feature docs
@@ -244,9 +286,18 @@ the fuller reference under `docs/` proper rather than in `docs/features/`.
 - The service-worker contract (cache id, `sw.js`, `version.json`,
   `precache-manifest.json`) is shared between `src/app/pwa.ts` and
   `pwa-plugin.ts`; change them together.
-- `public/icons/*`, `public/og.png`, and `public/favicon.ico` are generated —
-  edit `scripts/generate-icons.mjs` (and the hand-written `public/icons/icon.svg`
-  to match) and rerun `make icons`.
+- `public/icons/*`, `public/og.png`, `public/favicon.ico`, and the desktop
+  shell's `tauri/src-tauri/icons/*` are generated — edit
+  `scripts/generate-icons.mjs` (and the hand-written `public/icons/icon.svg` to
+  match) and rerun `make icons`. One script, because the dock icon, the home
+  screen tile and the favicon are one mark rather than three that resemble each
+  other; the desktop set is re-rendered rather than copied because Tauri refuses
+  a paletted PNG at compile time and a Windows resource compiler refuses a
+  PNG-only `.ico`.
+- The desktop shell's packaging is one composite action,
+  `.github/actions/package-desktop`, used by both `desktop-tauri.yml` (the
+  dispatch-only check) and `release.yml` (the downloads) — so the release build
+  and the trial build can never drift apart.
 - A stroke's `tool` field is a plugin id and is **persisted**. Renaming a plugin
   id orphans every stroke drawn with it — don't, or ship a migration step.
 

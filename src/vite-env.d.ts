@@ -17,6 +17,11 @@ declare const __BUILD_LABEL__: string;
 declare const __BUILD_COMMIT__: string;
 declare const __BUILD_NUMBER__: string;
 
+// Whether this build is the one bundled inside the desktop shell (tauri/).
+// True only when `tauri/scripts/bundle-web.mjs` built it: no service worker was
+// emitted, so there is no update lifecycle for the app to drive.
+declare const __SHELL_BUILD__: boolean;
+
 // Build-time env the app reads through `import.meta.env`. All optional — the
 // app builds and runs with none of them set. See `docs/configuration.md`.
 interface ImportMetaEnv {

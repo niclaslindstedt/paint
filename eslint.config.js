@@ -7,14 +7,27 @@ import globals from "globals";
 export default [
   {
     // Build output and dependencies are out of scope for the linter.
-    ignores: ["dist/**", "node_modules/**", "coverage/**"],
+    ignores: [
+      "dist/**",
+      "node_modules/**",
+      "coverage/**",
+      // The desktop shell's own trees: Rust build output, and the site copied
+      // in from `dist/` (both gitignored — see tauri/README.md).
+      "tauri/target/**",
+      "tauri/webroot/**",
+      "tauri/node_modules/**",
+    ],
   },
   js.configs.recommended,
   {
     // Node tooling scripts (icon generation, SEO checks) and agent-skill
     // helpers. These run under Node, so expose its globals rather than the
     // browser's.
-    files: ["scripts/**/*.mjs", ".agent/skills/**/*.mjs"],
+    files: [
+      "scripts/**/*.mjs",
+      "tauri/scripts/**/*.mjs",
+      ".agent/skills/**/*.mjs",
+    ],
     languageOptions: {
       sourceType: "module",
       ecmaVersion: 2022,

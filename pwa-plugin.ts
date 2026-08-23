@@ -36,6 +36,18 @@ type AppPwaOptions = {
   // navigations before their own worker installs, serving the root shell in
   // place of the sibling app).
   ignorePaths?: string[];
+  // Whether to emit the service worker and the two manifests it reads.
+  //
+  // Off for the DESKTOP SHELL's build (`tauri/scripts/bundle-web.mjs`), which
+  // is the one build with no deployment behind it: a new version arrives there
+  // as a new binary, so a worker would precache a copy of files already on
+  // local disk and then serve the page from ITS copy — which is how a shell
+  // whose binary shipped a new site goes on showing the old one.
+  //
+  // Only this half is optional. The `<head>` the plugin writes — the title from
+  // `brand.ts`, the icons, the theme colour — is the app's identity rather than
+  // its update lifecycle, and the shell wants all of it.
+  serviceWorker?: boolean;
 };
 
 // Public assets we never want in the precache: source maps are dead weight
@@ -234,6 +246,7 @@ export function appPwa({
   base,
   version,
   ignorePaths = [],
+  serviceWorker = true,
 }: AppPwaOptions): Plugin {
   const cacheId = cacheIdForBase(base);
   let config: ResolvedConfig;
@@ -326,6 +339,12 @@ export function appPwa({
     // After the bundle is built, collect every emitted asset plus the public
     // assets and emit the worker + the two manifests the hook reads.
     generateBundle(_options, bundle) {
+      // …unless this build has no update lifecycle to drive (see
+      // `serviceWorker` above). The manifest goes with it: it exists so an
+      // *installed* PWA resolves its identity offline, and a desktop bundle is
+      // never installed from a browser.
+      if (!serviceWorker) return;
+
       const assets: Record<string, number> = {};
 
       const add = (urlPath: string, bytes: number) => {
