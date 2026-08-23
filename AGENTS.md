@@ -16,6 +16,15 @@ Run `oss-spec validate .` (or the standalone
 to verify conformance. When in doubt about a layout, naming, or workflow
 decision, consult the relevant section of `OSS_SPEC.md`.
 
+**One deliberate deviation**, shared with the sibling `game` repo: §10.3
+prescribes _two_ chained release workflows — a `version-bump` that pushes a `v*`
+tag and a `release` that triggers on it. This repo has one. A maintainer
+dispatches **release** and that single run computes the version, writes the
+changelog, commits, tags, publishes, and deploys. The split existed only so the
+tag push could fire a second workflow, which cost a `RELEASE_TOKEN` PAT to do at
+all and a force-retag to point the tag at a release commit created after it. One
+run needs neither. Don't reintroduce `version-bump.yml`.
+
 ## Build and test commands
 
 ```sh
