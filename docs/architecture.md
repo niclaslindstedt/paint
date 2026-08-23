@@ -901,7 +901,11 @@ not part of a frame. It is one absolutely-positioned element moved by
 costing the canvas a full repaint per sample — a mouse reports as fast as a
 stylus, and the drawing has not changed. Its diameter is the tool's width through
 the view transform (so it says how much _page_ the nib covers at any zoom), and
-whether it appears at all is `usesSize` on the descriptor.
+whether it appears at all is `usesSize` on the descriptor. The same element
+carries the **+** or **−** of an add or subtract selection mode where one is in
+force — a mode that changes what every drag means has to be visible on the thing
+doing the dragging — which is why it follows the pointer for a tool with no
+width at all.
 
 One pointer draws **unless the active plugin declares `navigates`**, in which
 case it pans and a double-tap fits the page — or, with something selected and
@@ -1180,12 +1184,28 @@ pencil all be selections without the canvas, the store or the renderer learning
 a shape (see `selection.ts`). The context is there for the two that _work the
 window over_ rather than replacing it, both marked `combinesSelection`: the
 pencil answers with the selection as it stands (`ToolContext.selection`) and the
-stroke's capsule painted in — or, under its erase mode, the mode chip or a held
-Ctrl (`ToolContext.modifier`), painted away — and the gap filler answers with
-that same selection plus the unselected pocket its press landed in, flooded out
-to the window's own edges and no further than the sheet (`ToolContext.page`,
-which exists for that one question). Both are combined on a throwaway bitmap and
+stroke's capsule painted in — or, under the Subtract mode
+(`ToolContext.selectMode`), painted away — and the gap filler answers with that
+same selection plus the unselected pocket its press landed in, flooded out to
+the window's own edges and no further than the sheet (`ToolContext.page`, which
+exists for that one question), or, under Subtract, with the chosen blob its
+press landed on taken back out. Both are combined on a throwaway bitmap and
 traced back to contours (`regionMask.ts`).
+
+**What a gesture's answer is _worth_ is a mode, and it sits outside the tools.**
+Replace / Add / Subtract (`selectMode.ts`) is one setting for the whole family:
+the five tools that simply choose an area answer exactly as they always did, and
+the screen puts what they chose together with the window that is already up —
+union or difference, on the same throwaway bitmap, because contours are read
+even-odd and two overlapping outlines concatenated would turn their overlap into
+a hole (`mergeRegion`). Only the two that combine for themselves read the mode
+off the context, for the reason above: their answer _is_ the finished window, so
+the canvas reports `replace` for them and never combines it twice. It is session
+state and undoable like the window itself (`useSelectMode.ts`), asked for with
+Shift and Alt on a keyboard and with a long press on the selection button
+anywhere else — and shown, wherever it is in force, on the pointer
+(`PointerRing.tsx`), on the tool's own button, and on a strip at the foot of the
+canvas (`SelectionModeBar.tsx`).
 
 `group` is the flag that changes how a tool is _offered_ rather than how it
 behaves. The eleven shapes each stay their own plugin — their own painter, their

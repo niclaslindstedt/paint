@@ -12,8 +12,10 @@
 // this is a seam of its own rather than an object literal in a handler:
 //
 //   - **the ink** — the colour, width and dials the toolbar is set to. A value.
-//   - **the modifier** — whether Ctrl (or ⌘) is down *right now*, read off the
-//     events as they arrive rather than off anything React rendered.
+//   - **the selection mode** — whether a selection gesture is to replace the
+//     window, add to it or cut into it. A value, like the ink: the keyboard's
+//     half of it is watched a level up (see `useSelectMode.ts`), so a press
+//     reads what was already resolved rather than the raw keys.
 //   - **the window** — read through a ref, so the context a long gesture began
 //     with still answers with the selection as it stands when the gesture
 //     finally asks. The page's own size comes off the same ref, for the same
@@ -38,7 +40,6 @@ export function useToolContext({
   viewRef,
   pageRef,
   selectionRef,
-  modifierHeld,
   ink,
   pageColor,
   defaultInk,
@@ -49,10 +50,6 @@ export function useToolContext({
   pageRef: { current: Drawing };
   /** The window currently cut in the page, likewise. */
   selectionRef: { current: Selection | null };
-  /** Whether Ctrl (or ⌘) is down right now — owned by whoever handles the
-   *  pointer events, because a modifier is a property of the press rather than
-   *  of anything React renders. */
-  modifierHeld: { current: boolean };
   ink: Omit<ToolContext, "background" | "probe">;
   pageColor: string;
   defaultInk: string;
@@ -73,7 +70,6 @@ export function useToolContext({
     (): ToolContext => ({
       ...ink,
       background: pageColor,
-      modifier: modifierHeld.current,
       // Both lazily, for the reasons at the top of this file.
       get probe() {
         return openProbe();
@@ -90,7 +86,7 @@ export function useToolContext({
         return { width: sheet.width, height: sheet.height };
       },
     }),
-    [ink, pageColor, openProbe, selectionRef, modifierHeld, pageRef],
+    [ink, pageColor, openProbe, selectionRef, pageRef],
   );
 
   /** A pointer event's position on the element, in CSS pixels. */

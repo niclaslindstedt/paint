@@ -40,24 +40,32 @@
 //                chosen. The bucket's gesture aimed at the *window* rather than
 //                at the picture: it is what fills in the middle of a shape you
 //                have only gone round. With nothing selected it chooses the
-//                whole page, an unmarked sheet being one gap.
+//                whole page, an unmarked sheet being one gap — and under the
+//                Subtract mode it runs the other way, taking the chosen area
+//                you press back out of the window.
 //   - **pencil** paint the selection the way a pencil paints ink: the stroke's
 //                capsule *is* selected, every stroke adds to what is already
-//                chosen, and its erase mode (the mode chip, or Ctrl held)
-//                paints selection away instead. The one member with a real nib,
-//                which is why it alone has a width and a rack.
+//                chosen, and under the family's Subtract mode it paints
+//                selection away instead. The one member with a real nib, which
+//                is why it alone has a width and a rack.
 //
 // The last two *combine* with the selection rather than replacing it
 // (`PaintPlugin.combinesSelection`), which is also what tells the canvas that a
 // press inside the window is another go with the tool rather than a drag of the
-// window itself.
+// window itself — and what keeps the canvas from combining their answer a
+// second time under an add or subtract mode (see `selectMode.ts`): a tool that
+// has already worked the window over hands back the finished window.
+//
+// The other five never learn the mode at all. They answer with the area their
+// gesture chose, and *what that is worth* — the window replaced, added to, or
+// cut into — is decided once, over contours, after the gesture has finished.
 //
 // What you can then do with the marks is the screen's business (see
 // `selection.ts` and `CanvasScreen.tsx`): move them with the hand, and copy, cut
 // or delete them from the keyboard or the menu a right-click or a long press
 // opens.
 
-import { combineRegion, fillGap } from "../../regionMask.ts";
+import { clearGap, combineRegion, fillGap } from "../../regionMask.ts";
 import { regionHolds } from "../../selection.ts";
 import type { Point } from "../../types.ts";
 import { isMeaningfulDrag, normalizeBox, polygonCorners } from "../ink.ts";
@@ -475,10 +483,22 @@ export const selectMatchBehaviour: ToolBehaviour = {
 
 // --- The gap filler ----------------------------------------------------------
 
-/** The selection with the unselected pocket under `p` filled in, or `null` when
- *  there is no page to flood (a caller that offered none). */
+/** The selection with the unselected pocket under `p` filled in — or, under the
+ *  Subtract mode, with the chosen area under `p` taken back out of it. `null`
+ *  when there is no page to flood (a caller that offered none).
+ *
+ *  The one member of the family whose *gesture* changes with the mode rather
+ *  than its answer being combined afterwards, and it changes because there is
+ *  nothing to combine: this tool's press names an area of the window rather
+ *  than an area of the page, so "the pocket, added" and "the blob, removed" are
+ *  the same press asked about the two things a point can be (see
+ *  `clearGap`). */
 function gapAt(p: Point, ctx: ToolContext): Point[][] | null {
-  return ctx.page ? fillGap(ctx.selection ?? [], ctx.page, p) : null;
+  if (!ctx.page) return null;
+  const region = ctx.selection ?? [];
+  return ctx.selectMode === "subtract"
+    ? clearGap(region, ctx.page, p)
+    : fillGap(region, ctx.page, p);
 }
 
 /** The gap filler: press a part of the page the selection doesn't reach and it
@@ -500,20 +520,30 @@ function gapAt(p: Point, ctx: ToolContext): Point[][] | null {
  *  (`PaintPlugin.combinesSelection`): what it hands back is the selection plus
  *  the pocket, so a press inside the window is another fill rather than a drag
  *  of it. A press that lands somewhere already chosen has no pocket under it
- *  and leaves the selection exactly as it was. */
+ *  and leaves the selection exactly as it was.
+ *
+ *  Under the family's **Subtract** mode it runs backwards — press a chosen area
+ *  and it is taken back out of the window, the whole connected blob of it (see
+ *  `clearGap`). That is the only reading of "take away" this gesture has: it
+ *  chooses by pointing at the window rather than by drawing over the page, so
+ *  there is no area of its own for the canvas to subtract afterwards. */
 export const selectGapBehaviour: ToolBehaviour = {
   start: (p, ctx) => chrome({ kind: "region", contours: gapAt(p, ctx) ?? [] }),
   move: (draft, p, ctx) => {
     // Re-aimed under the drag, like the bucket — but only once the pointer has
     // left what the press already chose. Answering costs a page of cells
     // filled and flooded, and inside its own answer the answer cannot change.
-    if (
-      draft.shape.kind === "region" &&
-      draft.shape.contours.length > 0 &&
-      regionHolds(draft.shape.contours, p)
-    ) {
-      return draft;
-    }
+    // Taking away is the other way round — what the press answered is what is
+    // *no longer* chosen — so there the drag re-aims until it leaves what is
+    // still selected.
+    const answered =
+      draft.shape.kind === "region" && draft.shape.contours.length > 0
+        ? draft.shape.contours
+        : null;
+    const inside = answered !== null && regionHolds(answered, p);
+    const settled =
+      answered !== null && (ctx.selectMode === "subtract" ? !inside : inside);
+    if (settled) return draft;
     const contours = gapAt(p, ctx);
     return contours ? { ...draft, shape: { kind: "region", contours } } : draft;
   },
@@ -529,16 +559,24 @@ export const selectGapBehaviour: ToolBehaviour = {
 const DRAW_STEP = 1.5;
 
 /** The value `mode` rides the dials at when a stroke paints selection *away*.
- *  On the dial it is the second chip (see `SELECT_MODE` in `dials.ts`); on a
- *  draft it is stamped at `start`, so the verb a gesture began with is the verb
- *  it lands with whatever the keyboard does mid-drag. */
+ *  It is stamped on the draft at `start` from the selection mode in force then
+ *  (see `selectMode.ts`), so the verb a gesture began with is the verb it lands
+ *  with whatever the keyboard does mid-drag — and so the band drawn under the
+ *  finger is the one being painted. */
 export const SELECT_ERASE_MODE = 1;
 
-/** Whether a gesture of the pencil is erasing selection: the mode chip, flipped
- *  by a held Ctrl/⌘ — the same drag, the other verb. */
+/** Whether a gesture of the pencil is painting selection *away*: the family's
+ *  own Subtract mode, held from the keyboard (Alt) or set from the selection
+ *  button, and nothing of this tool's own.
+ *
+ *  Replace means Add here, and that is not a special case. Every other member
+ *  answers with an area for the canvas to put together with the window; this
+ *  one *is* the putting-together — its whole point is that a second stroke is
+ *  more of the same selection rather than a new one — so "replace what is
+ *  chosen" has no gesture to attach to. Add and Subtract are the two things a
+ *  nib can do to a window, and they are exactly the two it does. */
 function drawErases(ctx: ToolContext): boolean {
-  const chip = (ctx.dials.mode ?? 0) === SELECT_ERASE_MODE;
-  return ctx.modifier ? !chip : chip;
+  return ctx.selectMode === "subtract";
 }
 
 /** What a pencil gesture has painted so far, drawn as a smoky band the width of
@@ -589,7 +627,7 @@ function paintDrawBand(
  *  The draft is an ordinary `path` at the toolbar's width — the same shape a
  *  pencil line records — and the answer is that path's capsule **combined with
  *  the selection as it stands** (see `regionMask.ts`): painted in, or, under
- *  the erase mode, painted away. That is what `combinesSelection` on the
+ *  the Subtract mode, painted away. That is what `combinesSelection` on the
  *  descriptor declares, and it is the whole difference from the lasso: a lasso
  *  drawn twice is two selections, a pencil stroked twice is one selection with
  *  more in it — which is what lets an area be *built*, dab by dab, the way the
@@ -601,7 +639,7 @@ function paintDrawBand(
  *  other gesture that chose nothing.
  *
  *  The verb is decided at `start` and stamped on the draft's dials (`mode`), so
- *  a Ctrl released mid-drag doesn't turn a half-made erase into an add. */
+ *  an Alt released mid-drag doesn't turn a half-made erase into an add. */
 export const selectDrawBehaviour: ToolBehaviour = {
   start: (p, ctx) => ({
     tool: "",

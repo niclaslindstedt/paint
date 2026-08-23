@@ -441,6 +441,31 @@ export const en = {
     undo: "Undo",
     redo: "Redo",
   },
+  // What a selection gesture does to the window already up — the family-wide
+  // Replace / Add / Subtract (see `selectMode.ts`). The words are about the
+  // *window* rather than about the marks in it, because that is what a
+  // selection is here.
+  selectMode: {
+    title: "What the next selection does",
+    hint: "Every selection tool can build on the window you already have instead of starting a new one.",
+    replace: "Replace",
+    replaceHint: "Start again: what you choose becomes the whole selection.",
+    add: "Add",
+    addHint: "Keep what is selected and add what you choose to it.",
+    subtract: "Subtract",
+    subtractHint: "Keep what is selected and cut what you choose out of it.",
+    // The desktop half of the same question, said once in the dialog.
+    keys: "On a keyboard: hold Shift to add, Alt to subtract, for one gesture.",
+    // The ✕ on the dialog. Not "Cancel": the mode you picked stays picked, and
+    // the strip at the foot of the canvas is what is left of the dialog.
+    dismiss: "Put these away",
+    dismissShort: "Put away",
+    // The strip itself (see `SelectionModeBar.tsx`).
+    sticky: "Tap to change",
+    holding: "While you hold the key",
+    change: "Change what the next selection does",
+    clear: "Back to replacing",
+  },
   // The tool dials — the sliders behind Advanced in the size panel. One entry
   // per dial the shipped tools declare (see `plugins/builtin/dials.ts`); the
   // unit lives in the label because it is part of the sentence.
@@ -510,12 +535,6 @@ export const en = {
     feather: {
       name: "Feather: {value} mm",
       hint: "Fades the fill's edge out instead of stopping it.",
-    },
-    mode: {
-      name: "Mode",
-      hint: "Add paints selection in; Erase paints it away. Holding Ctrl (⌘ on a Mac) flips it for one stroke.",
-      add: "Add",
-      erase: "Erase",
     },
     selectFeather: {
       hint: "How softly a Delete through the selection fades out — the edges and corners go gently instead of dead sharp.",

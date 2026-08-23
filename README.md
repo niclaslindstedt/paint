@@ -368,9 +368,12 @@ npm run preview
   fills a part of the page the selection has gone round but not covered — the
   forgotten middle of a traced ring, or, with nothing selected yet, the whole
   page — and a **selection pencil** that paints the selection in like a pencil
-  line: every stroke adds to it, its Erase mode (or a held `Ctrl`/`Cmd`) paints
-  it away, and its feather makes a Delete fade out softly. Press the button
-  again to choose which. With something selected, the side panel grows a blue, slowly glowing
+  line: every stroke adds to it, and its feather makes a Delete fade out softly.
+  Press the button again to choose which. **Hold** the button instead and every
+  one of the seven can _build on_ the window you already have rather than
+  starting a new one — Add keeps what is selected and takes in what you choose
+  next, Subtract cuts it back out — which is `Shift` and `Alt` on a keyboard,
+  drawn as a **+** or **−** beside the pointer while it is in force. With something selected, the side panel grows a blue, slowly glowing
   **Contextual** block at its head, holding **Invert selection** — one press and
   the window is everything it wasn't. It goes when the selection does. Move what you caught by switching to the hand
   and dragging from inside the outline; copy, cut and delete with

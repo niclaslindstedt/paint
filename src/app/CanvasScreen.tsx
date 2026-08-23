@@ -38,6 +38,9 @@ import {
 } from "./effects.ts";
 import { DrawingTitle } from "./DrawingTitle.tsx";
 import { EffectBar } from "./EffectBar.tsx";
+import { SelectionModeBar } from "./SelectionModeBar.tsx";
+import { applySelectMode, type SelectMode } from "./selectMode.ts";
+import { useSelectMode } from "./useSelectMode.ts";
 import type { MenuEdge } from "./gestures.ts";
 import { HeaderIconButton } from "./HeaderIconButton.tsx";
 import {
@@ -126,6 +129,15 @@ const EffectModal = lazy(() =>
 const MergeLayersModal = lazy(() =>
   import("./MergeLayersModal.tsx").then((m) => ({
     default: m.MergeLayersModal,
+  })),
+);
+
+// …and for the selection mode chooser, which is a long press away and which a
+// desktop hand may never open at all: the keys say the same thing (see
+// `selectMode.ts`).
+const SelectionModeModal = lazy(() =>
+  import("./SelectionModeModal.tsx").then((m) => ({
+    default: m.SelectionModeModal,
   })),
 );
 
@@ -393,6 +405,12 @@ export function CanvasScreen({
    *  `Selection.nib`). */
   const selectNib =
     activePlugin?.selects && !activePlugin.sizeless ? size / 2 : null;
+  // What a selection gesture is to do with the window already up — replacing
+  // it, adding to it, or cutting into it (see `useSelectMode.ts`). In force
+  // only while a selection tool is in hand: it is a mode for a *family*, not
+  // for the app, and the keys it watches are Shift and Alt, which mean plenty
+  // of other things under a pencil.
+  const selectMode = useSelectMode(Boolean(activePlugin?.selects));
   // …and the same two reads for the inks a tool carries of its own: the panel
   // wants every swatch it declares, the canvas only the ones re-coloured, which
   // is what a poured mark records (see `plugins/swatches.ts`).
@@ -1032,6 +1050,11 @@ export function CanvasScreen({
               dials: inkDials,
               colors: inkColors,
               filled: settings.filled,
+              // Read by the one tool that works the window over itself — the
+              // selection pencil, which paints selection in or, under Subtract,
+              // paints it away. Every other selection tool is combined with the
+              // window after the fact, below.
+              selectMode: selectMode.mode,
             }}
             defaultInk={ink}
             showGrid={settings.showGrid}
@@ -1072,25 +1095,34 @@ export function CanvasScreen({
             // about to decide: the subject red, the band it searches yellow
             // (see `cutAim.ts`).
             aiming={aiming}
-            onSelectRegion={(region: Point[][] | null) =>
+            onSelectRegion={(region: Point[][] | null, mode: SelectMode) => {
+              // What the gesture chose, worth what the mode it began in says it
+              // is worth: the window replaced, added to, or cut into (see
+              // `selectMode.ts`). A tool that had already worked the window over
+              // itself reports `replace` and lands exactly as it always did.
+              const kept = mode !== "replace";
               setSelection(
-                selectionOf(region, {
-                  feather: inkDials.feather,
+                selectionOf(applySelectMode(selection?.region, region, mode), {
+                  // A window built out of two gestures keeps what the last one
+                  // that had an opinion said: a marquee added to a painted
+                  // selection must not throw away the feather it was cut with.
+                  feather: inkDials.feather ?? (kept ? selection?.feather : 0),
                   // The nib the window was painted with, or — for a tool that
                   // works the selection over without a nib of its own, which is
                   // the gap filler — whatever painted it before. Filling the
                   // middle of a traced outline says nothing about where its
                   // border is and must not be read as a fresh tracing: the
                   // stripe the pencil painted is still the only place the cut
-                  // has been told to look.
+                  // has been told to look. Adding and subtracting keep it for
+                  // the same reason.
                   nib:
                     selectNib ??
-                    (activePlugin?.combinesSelection
+                    (activePlugin?.combinesSelection || kept
                       ? selection?.nib
                       : undefined),
                 }),
-              )
-            }
+              );
+            }}
             // …the marquee's drag from inside it, which slides the window and
             // leaves the ink where it is. Screen state, so it lands as it
             // moves — and the feather the window was cut with travels.
@@ -1323,6 +1355,23 @@ export function CanvasScreen({
               );
             })()}
 
+          {/* …and the selection mode, likewise: set from the chooser, still in
+            force, and out of the way (see `SelectionModeBar`). It stands aside
+            for the effect strip rather than stacking under it — the two live in
+            the same corner, and aiming a cut is the job you are in the middle
+            of. It is hidden while the chooser itself is open, which is the same
+            card said twice. */}
+          {selectMode.mode !== "replace" &&
+            !effecting?.minimized &&
+            !selectMode.open && (
+              <SelectionModeBar
+                mode={selectMode.mode}
+                held={selectMode.held}
+                onOpen={() => selectMode.setOpen(true)}
+                onClear={() => selectMode.setSticky("replace")}
+              />
+            )}
+
           {/* The zoom readout, floating over the canvas rather than sitting in
             the header — six icon buttons up there left a phone's title field
             too narrow to read. It counts *device* pixels — 100% is one document
@@ -1423,6 +1472,11 @@ export function CanvasScreen({
         }
         filled={settings.filled}
         onFilledChange={(filled) => update("filled", filled)}
+        // What a selection gesture would do to the window, and the way to
+        // change it on a device with no Alt key: hold the button (see
+        // `SelectionModeModal.tsx`).
+        selectMode={selectMode.mode}
+        onOpenSelectMode={() => selectMode.setOpen(true)}
         // The history, driven straight off the store the keyboard shortcuts
         // drive: the toolbar shows it, it doesn't keep it.
         canUndo={store.canUndo}
@@ -1571,6 +1625,25 @@ export function CanvasScreen({
               store.mergeLayers(sources, target);
               setMerging(false);
             }}
+          />
+        </Suspense>
+      )}
+
+      {/* What the next selection is for — opened by holding a selection tool's
+          button, and dismissed rather than cancelled: the mode it leaves behind
+          is the point of it, and the strip over the canvas is what is left of
+          the dialog (see `SelectionModeModal`). Only while a selection tool is
+          actually in hand, so switching tools with it open puts it away rather
+          than leaving a dialog about a family you are no longer using. */}
+      {selectMode.open && activePlugin?.selects && (
+        <Suspense fallback={null}>
+          <SelectionModeModal
+            mode={selectMode.sticky}
+            onPick={(mode) => {
+              selectMode.setSticky(mode);
+              selectMode.setOpen(false);
+            }}
+            onClose={() => selectMode.setOpen(false)}
           />
         </Suspense>
       )}

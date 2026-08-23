@@ -149,7 +149,6 @@ import {
   RUB,
   SAMPLE,
   SELECT_FEATHER,
-  SELECT_MODE,
   SOFT,
   STRENGTH,
   WATER,
@@ -1153,7 +1152,7 @@ export function registerBuiltinPlugins(): void {
     id: SELECT_DRAW_TOOL_ID,
     group: SELECT_GROUP_ID,
     selects: true,
-    // Each stroke works the selection over — adds to it, or under its erase
+    // Each stroke works the selection over — adds to it, or under the Subtract
     // mode takes from it — rather than replacing it, and a press inside the
     // window begins another stroke instead of sliding it (see `select.ts`).
     combinesSelection: true,
@@ -1167,9 +1166,13 @@ export function registerBuiltinPlugins(): void {
     // Its width shows as a circle, for the eraser's reason: its press leaves a
     // selection, not ink, and the nib is round — the number is the nib.
     sizePreview: "circle",
-    // The verb chip (with Ctrl/⌘ flipping it for a drag), and how softly a
-    // Delete through the window it cuts fades out (see `useSelection.ts`).
-    dials: [SELECT_MODE, SELECT_FEATHER],
+    // One dial, and it is not the verb: whether a stroke paints selection in or
+    // paints it away is the family's own Add/Subtract mode now, set from the
+    // selection button and held from the keyboard, so the pencil has no chip of
+    // its own to disagree with it (see `selectMode.ts`). What is left is how
+    // softly a Delete through the window it cuts fades out (see
+    // `useSelection.ts`).
+    dials: [SELECT_FEATHER],
     behaviour: selectDrawBehaviour,
   });
 

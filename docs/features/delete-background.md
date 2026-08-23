@@ -39,8 +39,8 @@ picture offers no edge at all the cut simply follows you.
 1. **Trace the subject** with any selection tool. The selection pencil is made
    for it — run it around the subject's edge so the stripe it paints straddles
    the border, then fill the middle in (Gap fill does it in one press), and use
-   its Erase mode to take back what you overshot (see
-   [`selection.md`](selection.md)). Colouring the whole subject in works too;
+   the Subtract mode — hold Alt, or hold the selection button and pick it — to
+   take back what you overshot (see [`selection.md`](selection.md)). Colouring the whole subject in works too;
    what matters is that the pencil covers the border, because the stripe it
    leaves is where the cut looks. A lasso around the subject works just as well.
    Two loops are two subjects; a loop traced inside another cuts a hole.

@@ -10,7 +10,7 @@ import {
 import { strokeBounds } from "./bounds.ts";
 import type { CutAim } from "./cutAim.ts";
 import type { EffectPreview } from "./render.ts";
-import { cursorFor, usePointerRing } from "./PointerRing.tsx";
+import { cursorFor, usePointerRing, type PointerMark } from "./PointerRing.tsx";
 import { pluginById } from "./plugins/registry.ts";
 import type { DraftStroke, ToolContext } from "./plugins/types.ts";
 import { DEFAULT_LEAD_DETAIL } from "./plugins/lead.ts";
@@ -21,6 +21,7 @@ import {
   splitRegion,
   type Selection,
 } from "./selection.ts";
+import type { SelectMode } from "./selectMode.ts";
 import type { Drawing, Point, Stroke } from "./types.ts";
 import { useCanvasPaint } from "./useCanvasPaint.ts";
 import { useToolContext } from "./useToolContext.ts";
@@ -53,6 +54,8 @@ import { panBy, pinch, type CanvasView } from "./viewport.ts";
 //                              `entersText`, or drags a marquee, under `selects`
 //   …inside a selection        the mark is cut to it: a selection is a window in
 //                              the page, and what you draw lands inside it
+//   shift / alt + a marquee    adds the area to the window, or cuts it out of
+//                              it, instead of replacing it (see `selectMode.ts`)
 //   …on a selection, with the  moves what is *painted* inside the window, cutting
 //   hand                       every mark its outline crosses in two
 //   …on a selection, with the  slides the window itself and leaves the ink where
@@ -105,8 +108,15 @@ type Props = {
    *  Closed contours whatever the gesture was: a box marquee sends its four
    *  corners, a lasso the loop it drew, the tracing tool the outline of what is
    *  painted under it. The marks inside them are the screen's to work out (see
-   *  `selection.ts`); nothing reaches the document. */
-  onSelectRegion?: (contours: Point[][] | null) => void;
+   *  `selection.ts`); nothing reaches the document.
+   *
+   *  `mode` is what those contours are **worth**: the window replaced, added
+   *  to, or cut into (see `selectMode.ts`). It is the mode the gesture *began*
+   *  in — a Shift let go of halfway through a drag does not turn an add into a
+   *  replace — and it is always `"replace"` for a tool that worked the window
+   *  over itself (`combinesSelection`), whose answer is the finished window and
+   *  must not be combined with it twice. */
+  onSelectRegion?: (contours: Point[][] | null, mode: SelectMode) => void;
   /** The window currently cut in the page, or `null` for none. The canvas draws
    *  its outline, cuts every mark made inside it to it, and reads a press on it
    *  as being about the selection rather than about the page. */
@@ -212,6 +222,16 @@ type Props = {
   onPanelSwipe?: () => void;
   ariaLabel: string;
 };
+
+/** The mark the pointer wears for a selection mode, or `null` for none: no
+ *  selection tool in hand, or the Replace mode every other press means. */
+function selectMark(
+  selects: boolean | undefined,
+  mode: SelectMode | undefined,
+): PointerMark | null {
+  if (!selects || !mode || mode === "replace") return null;
+  return mode;
+}
 
 export function PaintCanvas({
   drawing,
@@ -397,26 +417,27 @@ export function PaintCanvas({
   });
 
   // What a tool is handed when a press reaches it, and where on the page that
-  // press landed (see `useToolContext.ts`). The window and the modifier go in
-  // through refs, so a gesture that began before either moved still asks the
-  // live one.
+  // press landed (see `useToolContext.ts`). The window goes in through a ref, so
+  // a gesture that began before it moved still asks the live one.
   const selectionRef = useRef(selection);
   selectionRef.current = selection;
-  // Whether the pointer is held with Ctrl (or ⌘) right now — written by the
-  // handlers below as the events arrive, because a modifier is a property of
-  // the press rather than of anything React renders.
-  const modifierHeld = useRef(false);
   const { context, openProbe, dropProbe, elementPoint, toDoc, documentPoint } =
     useToolContext({
       canvasRef,
       viewRef,
       pageRef,
       selectionRef,
-      modifierHeld,
       ink,
       pageColor,
       defaultInk,
     });
+
+  // What the selection gesture in flight is to do with the window already up,
+  // read once when it began (see `selectMode.ts`). Held rather than asked for
+  // again at the end, so a Shift released mid-drag lands the gesture it started:
+  // the same rule the pencil's own verb follows, and the same one every editor
+  // with these keys has.
+  const gestureMode = useRef<SelectMode>("replace");
 
   /** Abandon whatever stroke is in flight without committing it. */
   const abandon = useCallback(() => {
@@ -542,9 +563,16 @@ export function PaintCanvas({
     // selection pencil, though: a tool whose strokes *combine* with the window
     // has every reason to press inside it — that is how more of it is painted —
     // so its press begins a stroke and the window is slid by its siblings.
+    //
+    // …and not under a mode either, for the same reason turned up a notch: a
+    // gesture that adds to the window or cuts into it is *about* the window,
+    // and the area you want to take back out of a selection is almost always
+    // inside the one you have (see `selectMode.ts`). Sliding is what the
+    // gesture means when it means nothing else.
     if (
       plugin.selects &&
       !plugin.combinesSelection &&
+      (ink.selectMode ?? "replace") === "replace" &&
       selection &&
       regionHolds(selection.region, toDoc(at))
     ) {
@@ -580,6 +608,14 @@ export function PaintCanvas({
     // The marquee being dragged out is placed under the magnifier, from the
     // first sample: the corner you are aiming at is the one under your finger.
     if (plugin.selects) placingAt.current = toDoc(at);
+    // …and what it will be worth when it lands, decided now. A tool that works
+    // the window over itself has already been handed the mode through its
+    // context and hands back the finished window, so nothing is combined with
+    // it a second time (see `selectMode.ts`).
+    gestureMode.current =
+      plugin.selects && !plugin.combinesSelection
+        ? (ink.selectMode ?? "replace")
+        : "replace";
     requestPaint();
   };
 
@@ -598,7 +634,6 @@ export function PaintCanvas({
 
   const handleDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
     e.currentTarget.setPointerCapture(e.pointerId);
-    modifierHeld.current = e.ctrlKey || e.metaKey;
     const at = elementPoint(e);
     pointers.current.set(e.pointerId, at);
     dropHold();
@@ -660,7 +695,6 @@ export function PaintCanvas({
 
   const handleMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
     if (!pointers.current.has(e.pointerId)) return;
-    modifierHeld.current = e.ctrlKey || e.metaKey;
     const at = elementPoint(e);
     pointers.current.set(e.pointerId, at);
     // A press that has wandered from where it landed is not being held still,
@@ -847,6 +881,7 @@ export function PaintCanvas({
           committed
             ? (plugin.behaviour.selection?.(committed, context()) ?? null)
             : null,
+          gestureMode.current,
         );
         requestPaint();
         return;
@@ -906,6 +941,10 @@ export function PaintCanvas({
     plugin: pluginById(tool),
     size: ink.size,
     scale: view?.scale ?? 1,
+    // …and, beside it, what a press would do to the window already up. Only
+    // under a tool that chooses marks: every other press replaces nothing and
+    // wears no mark (see `selectMode.ts`).
+    mark: selectMark(pluginById(tool)?.selects, ink.selectMode),
     disabled: placing,
   });
 

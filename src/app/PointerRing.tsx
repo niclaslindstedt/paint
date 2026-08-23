@@ -46,15 +46,41 @@ import type { PaintPlugin } from "./plugins/types.ts";
 // marching ants use. The dot in the middle is the crosshair's one job kept: at a
 // wide setting the ring's edge is nowhere near where the mark will land, and a
 // hairline cursor with no centre is one you aim by guessing.
+//
+// **And what a selection gesture would do with the window already up.** Add and
+// Subtract change what the *same* drag means (see `selectMode.ts`), and a mode
+// you cannot see is a mode you find out about by losing a selection you spent a
+// minute building — so the pointer carries a little **+** or **−** beside it
+// while one is in force, which is where every editor with this gesture puts it
+// and where the hand is already looking. It rides on the same element as the
+// ring and is offered under the same rule: to a mouse and a pen, never to a
+// finger, which has the strip at the foot of the canvas instead (see
+// `SelectionModeBar.tsx`). A tool with no width shows it beside the crosshair —
+// so the mark travels with the pointer even where there is no circle to hang it
+// off.
 
 /** The smallest ring worth drawing, in CSS pixels. Below this the outline is
  *  smaller than the pointer itself and says less than the crosshair it would
  *  replace, so the crosshair stays. */
 const MIN_RING = 7;
 
-/** What the canvas needs from the ring: whether it is showing (which is also
- *  what hides the crosshair), the two calls its pointer handlers make, and the
- *  element itself to render. */
+/** How far from the pointer the mode mark sits when there is no ring to clear —
+ *  a crosshair's own arm, in CSS pixels, so the two do not overlap. */
+const MARK_OFFSET = 9;
+
+/** …and the most a ring may push it out. A nib two hundred pixels wide would
+ *  otherwise carry the mark off the edge of the screen, where it says nothing
+ *  about a pointer nobody can see it beside. */
+const MARK_REACH = 22;
+
+/** What a press would do to the selection already up, as the pointer wears it:
+ *  the family's Add and Subtract modes, and nothing for the Replace every other
+ *  press means (see `selectMode.ts`). */
+export type PointerMark = "add" | "subtract";
+
+/** What the canvas needs from the ring: whether the outline is showing (which
+ *  is also what hides the crosshair), the two calls its pointer handlers make,
+ *  and the element itself to render. */
 export type PointerRing = {
   shown: boolean;
   /** Put the ring under this pointer — or take it away, for a touch. */
@@ -101,6 +127,7 @@ export function usePointerRing({
   plugin,
   size,
   scale,
+  mark = null,
   disabled = false,
 }: {
   /** The element the ring floats over, and the one the pointer is measured
@@ -112,6 +139,10 @@ export function usePointerRing({
   size: number;
   /** Device-independent pixels per document pixel: the view's zoom. */
   scale: number;
+  /** What a selection press would do to the window already up, or `null` when
+   *  it would simply replace it — which is every other press this app makes,
+   *  and wears no mark. */
+  mark?: PointerMark | null;
   /** Suppressed while the canvas is doing something a nib has no part in —
    *  settling a dropped picture. */
   disabled?: boolean;
@@ -119,6 +150,10 @@ export function usePointerRing({
   const ref = useRef<HTMLDivElement | null>(null);
   const diameter = size * scale;
   const shown = !disabled && usesSize(plugin) && diameter >= MIN_RING;
+  const marked = !disabled && mark !== null;
+  // The element carries the ring, the mode mark, or both — and follows the
+  // pointer for any of them. A marquee has no width and still has a mode.
+  const following = shown || marked;
 
   const hide = useCallback(() => {
     const ring = ref.current;
@@ -129,7 +164,7 @@ export function usePointerRing({
     (e: { pointerType: string; clientX: number; clientY: number }) => {
       const ring = ref.current;
       if (!ring) return;
-      if (!shown || e.pointerType === "touch") {
+      if (!following || e.pointerType === "touch") {
         ring.style.display = "none";
         return;
       }
@@ -140,37 +175,81 @@ export function usePointerRing({
         e.clientY - rect.top
       }px)`;
     },
-    [shown, hostRef],
+    [following, hostRef],
   );
 
   // A ring that has stopped belonging — the tool changed under it, the zoom
   // shrank it past the floor, a picture landed to be placed — goes away at once
   // rather than waiting for the pointer to move and take it away.
   useEffect(() => {
-    if (!shown) hide();
-  }, [shown, hide]);
+    if (!following) hide();
+  }, [following, hide]);
+
+  // How far out the mark sits: clear of the ring where there is one, clear of
+  // the crosshair where there isn't, and never further than a pointer's own
+  // neighbourhood.
+  const markAt = Math.min(
+    Math.max(shown ? diameter / 2 + 3 : MARK_OFFSET, MARK_OFFSET),
+    MARK_REACH,
+  );
 
   return {
     shown,
     move,
     hide,
     node: (
+      // The host sits *on* the pointer and carries nothing of its own, so
+      // everything hung off it is placed against the point being aimed at. It
+      // is hidden until a pointer moves over the canvas and proves it is a fine
+      // one; the transform is the position, which is why nothing else uses it.
       <div
         ref={ref}
         aria-hidden="true"
-        // Hidden until a pointer moves over the canvas and proves it is a fine
-        // one. The negative margins are what centre it on the pointer without
-        // spending the transform, which is carrying the position.
-        style={{
-          display: "none",
-          width: `${diameter}px`,
-          height: `${diameter}px`,
-          marginLeft: `${-diameter / 2}px`,
-          marginTop: `${-diameter / 2}px`,
-        }}
-        className="pointer-events-none absolute top-0 left-0 rounded-full border border-white/85 shadow-[0_0_0_1px_rgba(0,0,0,0.55),inset_0_0_0_1px_rgba(0,0,0,0.55)]"
+        style={{ display: "none" }}
+        className="pointer-events-none absolute top-0 left-0"
       >
-        <span className="absolute top-1/2 left-1/2 h-px w-px -translate-x-1/2 -translate-y-1/2 bg-white/85 shadow-[0_0_0_1px_rgba(0,0,0,0.55)]" />
+        {shown && (
+          // The negative margins are what centre the circle on the pointer
+          // without spending the transform the host is carrying.
+          <div
+            style={{
+              width: `${diameter}px`,
+              height: `${diameter}px`,
+              marginLeft: `${-diameter / 2}px`,
+              marginTop: `${-diameter / 2}px`,
+            }}
+            className="absolute top-0 left-0 rounded-full border border-white/85 shadow-[0_0_0_1px_rgba(0,0,0,0.55),inset_0_0_0_1px_rgba(0,0,0,0.55)]"
+          >
+            <span className="absolute top-1/2 left-1/2 h-px w-px -translate-x-1/2 -translate-y-1/2 bg-white/85 shadow-[0_0_0_1px_rgba(0,0,0,0.55)]" />
+          </div>
+        )}
+        {marked && (
+          // The mark, drawn twice like the ants and the ring: a heavy dark
+          // stroke with a light one laid over it, so a plus reads on a black
+          // photograph and on a white sheet without knowing which it is on.
+          <svg
+            viewBox="0 0 12 12"
+            width="12"
+            height="12"
+            className="absolute top-0 left-0"
+            style={{ marginLeft: `${markAt}px`, marginTop: `${markAt}px` }}
+          >
+            <path
+              d={mark === "add" ? "M6 2.5v7M2.5 6h7" : "M2.5 6h7"}
+              stroke="rgba(17,24,39,0.9)"
+              strokeWidth={3.5}
+              strokeLinecap="round"
+              fill="none"
+            />
+            <path
+              d={mark === "add" ? "M6 2.5v7M2.5 6h7" : "M2.5 6h7"}
+              stroke="rgba(255,255,255,0.95)"
+              strokeWidth={1.75}
+              strokeLinecap="round"
+              fill="none"
+            />
+          </svg>
+        )}
       </div>
     ),
   };

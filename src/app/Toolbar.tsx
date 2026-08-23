@@ -7,6 +7,7 @@ import {
   UndoIcon,
 } from "@niclaslindstedt/oss-framework/components";
 
+import { LONG_PRESS_MS } from "./gestures.ts";
 import { MoreToolsIcon } from "./icons.tsx";
 import { useT } from "./i18n/index.ts";
 import { fieldHasKeyboard } from "./keys.ts";
@@ -21,6 +22,7 @@ import {
 import type { ToolOptionValue } from "./plugins/options.ts";
 import type { PaintPlugin } from "./plugins/types.ts";
 import type { PresetSettings, ToolPreset } from "./presets.ts";
+import type { SelectMode } from "./selectMode.ts";
 import {
   groupMemberFor,
   sizesFor,
@@ -168,6 +170,15 @@ type Props = {
   dialsTuned: boolean;
   filled: boolean;
   onFilledChange: (filled: boolean) => void;
+  /** What a selection gesture would do to the window already up (see
+   *  `selectMode.ts`). The button of the tool in hand wears it, so a mode that
+   *  changes what every drag means is visible in the place the drag starts. */
+  selectMode: SelectMode;
+  /** …and the way to change it on a device with no Alt key: **hold** a
+   *  selection tool's button. A press picks the tool and a second press opens
+   *  the family behind it, so the hold is the third thing that button can mean
+   *  — and it is the only one of the three that is free on every one of them. */
+  onOpenSelectMode: () => void;
   /** The document's history, as the pair of buttons that end the row. The
    *  toolbar drives the same store the keyboard shortcuts do — it holds no
    *  history of its own. */
@@ -213,6 +224,8 @@ export function Toolbar({
   dialsTuned,
   filled,
   onFilledChange,
+  selectMode,
+  onOpenSelectMode,
   canUndo,
   canRedo,
   onUndo,
@@ -242,6 +255,21 @@ export function Toolbar({
     | { kind: "settings" }
     | null
   >(null);
+  // The hold on a tool button: what opens the selection mode chooser where
+  // there is no key to hold instead (see `SelectionModeModal.tsx`). One timer,
+  // because one button is pressed at a time — and a flag beside it, because the
+  // press that opened the chooser must not also go on to be the click that
+  // picks the tool or opens the family behind it.
+  const holdTimer = useRef<number | null>(null);
+  const heldOpen = useRef(false);
+  const dropHold = () => {
+    if (holdTimer.current !== null) {
+      window.clearTimeout(holdTimer.current);
+      holdTimer.current = null;
+    }
+  };
+  useEffect(() => dropHold, []);
+
   const toolAnchor = useRef<HTMLButtonElement | null>(null);
   const colorAnchor = useRef<HTMLButtonElement | null>(null);
   // The size button and the cog are the same slot — only one of them is ever
@@ -337,12 +365,49 @@ export function Toolbar({
           // nothing.
           const second = opensPanel(entry, shown);
           const opensOwn = second && isActive;
+          // …and a third, for the tools that choose marks: holding the button
+          // asks what a gesture with it is *for* — replacing the window, adding
+          // to it, or cutting into it. Read off `selects`, so no tool is named
+          // here and a later selection tool joins the gesture by declaring it.
+          const holds = Boolean(shown.selects);
+          // The mode itself, worn by the button of the tool in hand. Only there:
+          // a mode only applies to the tool a press would actually run, and a
+          // row of six marquee buttons all wearing a "+" would say it six times.
+          const mark = holds && isActive && selectMode !== "replace";
           return (
             <button
               key={entry.id}
               type="button"
               ref={opensOwn ? toolAnchor : undefined}
+              onPointerDown={() => {
+                // Every press clears the flag, not just a holdable one: a hold
+                // on the marquee followed by a tap on the pencil must not have
+                // the pencil's tap swallowed as the end of that hold.
+                heldOpen.current = false;
+                dropHold();
+                if (!holds) return;
+                holdTimer.current = window.setTimeout(() => {
+                  holdTimer.current = null;
+                  heldOpen.current = true;
+                  // The chooser is about the tool being held, so the hold picks
+                  // it up as well — holding a marquee you were not using and
+                  // being handed a mode for a tool still in your other hand
+                  // would be the one reading nobody means.
+                  if (shown.id !== tool) onToolChange(shown.id);
+                  setPanel(null);
+                  onOpenSelectMode();
+                }, LONG_PRESS_MS);
+              }}
+              onPointerUp={dropHold}
+              onPointerLeave={dropHold}
+              onPointerCancel={dropHold}
               onClick={() => {
+                // The click that ends a hold is that hold's, not a press of its
+                // own: the chooser is already open over it.
+                if (heldOpen.current) {
+                  heldOpen.current = false;
+                  return;
+                }
                 setPanel(opensOwn ? { kind: "tool", entry: entry.id } : null);
                 if (shown.id !== tool) onToolChange(shown.id);
               }}
@@ -358,7 +423,9 @@ export function Toolbar({
                   ? `${name} (${shown.shortcut.toUpperCase()})`
                   : name
               }
-              aria-label={name}
+              aria-label={
+                mark ? `${name} — ${t(`selectMode.${selectMode}`)}` : name
+              }
               className={`relative inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded border ${
                 isActive
                   ? "border-accent bg-accent/15 text-accent"
@@ -378,6 +445,19 @@ export function Toolbar({
                   aria-hidden="true"
                   className="absolute right-[3px] bottom-[3px] h-[5px] w-[5px] bg-current opacity-45 [clip-path:polygon(100%_0,100%_100%,0_100%)]"
                 />
+              )}
+              {/* …and the mode this tool is in, in the opposite corner from the
+                  fold so the two never sit on each other. The same **+** and
+                  **−** the pointer carries and the strip at the foot of the
+                  canvas wears, which is the whole of why it is a glyph rather
+                  than a word: three places saying one thing. */}
+              {mark && (
+                <span
+                  aria-hidden="true"
+                  className="absolute top-0 right-[2px] text-[11px] leading-[11px] font-bold"
+                >
+                  {selectMode === "add" ? "+" : "−"}
+                </span>
               )}
             </button>
           );
