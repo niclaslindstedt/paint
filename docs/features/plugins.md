@@ -189,7 +189,15 @@ is, because with nothing selected its answer is all of it — `ToolContext.page`
 is there for that and nothing else.
 
 The pencil is also the one member with a real nib, so it alone skips the
-family's `sizeless` and carries a width, a mode chip and a feather dial.
+family's `sizeless` and carries a width and a feather dial.
+
+Whether a gesture _replaces_ the window, adds to it or cuts into it is not a
+tool's business at all: it is one mode for the family (`ToolContext.selectMode`,
+see [`selection.md`](selection.md)), and for the five tools that simply choose an
+area the screen combines what they chose with the window afterwards. Only these
+two read the mode, because only they answer with a finished window: the pencil
+paints selection in or, under Subtract, away, and the gap filler fills a pocket
+in or takes a chosen blob back out.
 
 The two that read the page are the interesting ones. Neither has a shape of its
 own at all: both ask the probe the paint bucket asks — a rasterised snapshot of

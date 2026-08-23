@@ -390,6 +390,23 @@ export const sv: Catalog = {
     undo: "Ångra",
     redo: "Gör om",
   },
+  selectMode: {
+    title: "Vad nästa markering gör",
+    hint: "Alla markeringsverktyg kan bygga vidare på markeringen du redan har i stället för att börja om.",
+    replace: "Ersätt",
+    replaceHint: "Börja om: det du väljer blir hela markeringen.",
+    add: "Lägg till",
+    addHint: "Behåll markeringen och lägg till det du väljer.",
+    subtract: "Ta bort",
+    subtractHint: "Behåll markeringen och klipp bort det du väljer ur den.",
+    keys: "Med tangentbord: håll Skift för att lägga till, Alt för att ta bort, under ett drag.",
+    dismiss: "Lägg undan dessa",
+    dismissShort: "Lägg undan",
+    sticky: "Tryck för att ändra",
+    holding: "Så länge du håller tangenten",
+    change: "Ändra vad nästa markering gör",
+    clear: "Tillbaka till att ersätta",
+  },
   dials: {
     advanced: "Avancerat",
     reset: "Återställ",
@@ -456,12 +473,6 @@ export const sv: Catalog = {
     feather: {
       name: "Mjuk kant: {value} mm",
       hint: "Tonar ut fyllningens kant i stället för att tvärt avsluta den.",
-    },
-    mode: {
-      name: "Läge",
-      hint: "Lägg till målar in markering; Radera målar bort den. Håll Ctrl (⌘ på Mac) för att växla under ett drag.",
-      add: "Lägg till",
-      erase: "Radera",
     },
     selectFeather: {
       hint: "Hur mjukt en radering genom markeringen tonas ut — kanter och hörn försvinner gradvis i stället för tvärt.",

@@ -34,6 +34,7 @@ import type { ReactNode } from "react";
 
 import type { GroundProfile } from "../ground.ts";
 import type { Rect } from "../geometry.ts";
+import type { SelectMode } from "../selectMode.ts";
 import type { Point, Stroke } from "../types.ts";
 import type { TKey } from "../i18n/index.ts";
 import type { SizeGauge } from "./gauge.ts";
@@ -351,12 +352,18 @@ export type ToolContext = {
    *  — which it cannot know the size of otherwise. Absent means the tool has no
    *  page to flood and chooses nothing. */
   page?: { width: number; height: number } | null;
-  /** Whether the press is held with the modifier key (Ctrl, or ⌘ on a Mac).
-   *  Absent means no. A tool may read it as its alternate mode — the selection
-   *  pencil flips between painting selection in and painting it away — the way
-   *  every desktop paint program hangs a second verb off the same drag. Touch
-   *  has no modifier; a tool that offers one must offer it as a setting too. */
-  modifier?: boolean;
+  /** What this gesture is to do with the window already up — replace it, add
+   *  to it, or take its area out of it (see `selectMode.ts`). Absent means
+   *  `"replace"`, which is what a caller with no mode to give (a test, a
+   *  preview) should mean.
+   *
+   *  Read by one audience, like the selection above: a selection tool that
+   *  *works the window over* itself rather than handing back an area for the
+   *  canvas to combine — the selection pencil, whose stroke either paints
+   *  selection in or paints it away. Every other selection tool answers with
+   *  the area it chose and never reads this: combining is done once, over
+   *  contours, where the gesture has finished (`applySelectMode`). */
+  selectMode?: SelectMode;
 };
 
 /** Where a stroke is landing: how finely it is being rasterised, and what it is
@@ -487,8 +494,8 @@ export type ToolBehaviour = {
    *  needs more than the draft: the selection pencil reads the selection as it
    *  stands off it (`ToolContext.selection`) to answer with that selection
    *  worked over rather than replaced. Optional, and absent means "no selection
-   *  up, no modifier held" — which is what a caller with no context to give (a
-   *  test, a preview) should mean.
+   *  up, replacing" — which is what a caller with no context to give (a test, a
+   *  preview) should mean.
    *
    *  `null` for a gesture that chose nothing — a press that never moved, a trace
    *  that found no area — which is what clears the selection. */

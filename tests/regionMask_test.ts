@@ -2,6 +2,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  clearGap,
   combineRegion,
   fillGap,
   fillRegion,
@@ -184,6 +185,37 @@ describe("combineRegion", () => {
         true,
       ),
     ).toBeNull();
+  });
+});
+
+describe("clearGap", () => {
+  const page = { width: 200, height: 140 };
+  /** Two chosen squares with bare page between them — what a couple of
+   *  gestures in Add mode, or one colour match, leaves you with. */
+  const two = [square(10, 10, 40, 40), square(100, 10, 40, 40)];
+
+  it("takes out the whole blob under the press and leaves the rest", () => {
+    const left = clearGap(two, page, { x: 30, y: 30 })!;
+    expect(regionHolds(left, { x: 30, y: 30 })).toBe(false);
+    expect(regionHolds(left, { x: 120, y: 30 })).toBe(true);
+  });
+
+  it("hands the selection back untouched from a press where nothing is chosen", () => {
+    // The mirror of `fillGap`'s press inside the window: there is nothing under
+    // it to take away, and retracing the window through the mask would move
+    // every corner of it by a fraction for nothing.
+    expect(clearGap(two, page, { x: 75, y: 30 })).toEqual(two);
+  });
+
+  it("answers nothing when the press clears the last of the window", () => {
+    expect(
+      clearGap([square(10, 10, 40, 40)], page, { x: 30, y: 30 }),
+    ).toBeNull();
+  });
+
+  it("answers nothing for a press off the page, or with nothing selected", () => {
+    expect(clearGap(two, page, { x: -5, y: 30 })).toBeNull();
+    expect(clearGap([], page, { x: 30, y: 30 })).toBeNull();
   });
 });
 

@@ -1397,6 +1397,56 @@ describe("select behaviour", () => {
     expect(selectGapBehaviour.selection!(draft)).toBeNull();
   });
 
+  it("runs backwards under Subtract: the chosen blob you press is taken out", () => {
+    // The one member whose *gesture* the mode changes rather than its answer
+    // (see `selectMode.ts`): two chosen squares, a press on one of them, and
+    // what is left is the other.
+    const two = [
+      [
+        { x: 10, y: 10 },
+        { x: 50, y: 10 },
+        { x: 50, y: 50 },
+        { x: 10, y: 50 },
+      ],
+      [
+        { x: 100, y: 10 },
+        { x: 140, y: 10 },
+        { x: 140, y: 50 },
+        { x: 100, y: 50 },
+      ],
+    ];
+    const sheet: ToolContext = {
+      ...ctx,
+      selection: two,
+      page: { width: 200, height: 140 },
+      selectMode: "subtract",
+    };
+    const draft = selectGapBehaviour.start({ x: 30, y: 30 }, sheet)!;
+    const chosen = selectGapBehaviour.selection!(draft, sheet)!;
+    expect(regionHolds(chosen, { x: 30, y: 30 })).toBe(false);
+    expect(regionHolds(chosen, { x: 120, y: 30 })).toBe(true);
+  });
+
+  it("leaves the window alone when a Subtract press lands where nothing is chosen", () => {
+    const one = [
+      [
+        { x: 10, y: 10 },
+        { x: 50, y: 10 },
+        { x: 50, y: 50 },
+        { x: 10, y: 50 },
+      ],
+    ];
+    const sheet: ToolContext = {
+      ...ctx,
+      selection: one,
+      page: { width: 200, height: 140 },
+      selectMode: "subtract",
+    };
+    const draft = selectGapBehaviour.start({ x: 150, y: 100 }, sheet)!;
+    const chosen = selectGapBehaviour.selection!(draft, sheet)!;
+    expect(regionHolds(chosen, { x: 30, y: 30 })).toBe(true);
+  });
+
   it("still begins a gesture where there is nothing to trace, so a press can clear the selection", () => {
     // No probe at all — a headless caller, or a browser that refused the
     // pixels. The bucket refuses the press outright; this one must not, or

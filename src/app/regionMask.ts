@@ -11,14 +11,18 @@
 // is ordinary vector geometry that zooms, undoes and syncs like everything
 // else.
 //
-// Two callers, both in the selection family (`select.ts`). The selection pencil
-// paints selection the way a pencil paints ink: each stroke is stamped into a
-// mask the current selection was first filled into, adding or taking away, and
-// the mask's outline is the new selection. The gap filler floods the mask's
-// *empty* cells instead of stamping them, so a press in a pocket the selection
-// encloses fills that pocket in (`fillGap`). The pieces are exported separately
-// — fill a region in, stamp a path, flood what is empty, trace the result —
-// because they are the same pieces any later raster-to-region job needs.
+// Three callers, all in the selection family. The selection pencil paints
+// selection the way a pencil paints ink: each stroke is stamped into a mask the
+// current selection was first filled into, adding or taking away, and the
+// mask's outline is the new selection (`select.ts`). The gap filler floods the
+// mask's *empty* cells instead of stamping them, so a press in a pocket the
+// selection encloses fills that pocket in (`fillGap`). And the add and subtract
+// modes put two whole selections together the same way — the second filled into
+// the first as a stencil rather than stroked into it (`mergeRegion`, driven
+// from `selectMode.ts`), which is what lets any gesture in the family build on
+// what the last one chose. The pieces are exported separately — fill a region
+// in, stamp a path, flood what is empty, trace the result — because they are
+// the same pieces any later raster-to-region job needs.
 //
 // Everything here is pure and DOM-free, like `flood.ts` under it: buffers in,
 // points out, the whole pipeline testable in node.
@@ -292,6 +296,87 @@ export function fillGap(
   );
 }
 
+/** Flood the **filled** cells of a mask from the cell (`sx`, `sy`) and clear
+ *  them. `false` when that cell was empty already — there is nothing chosen
+ *  there to take away.
+ *
+ *  `floodEmpty`'s mirror, cell for cell, and four-connected for its reason: the
+ *  two are the same walk asked about the two things a cell can be, so a pocket
+ *  the gap filler would fill is exactly the area this one takes back out. */
+function floodFilled(mask: BinaryMask, sx: number, sy: number): boolean {
+  const { width, height, data } = mask;
+  if (sx < 0 || sy < 0 || sx >= width || sy >= height) return false;
+  if (data[sy * width + sx] === 0) return false;
+  const stack: number[] = [sx, sy];
+  while (stack.length > 0) {
+    const y = stack.pop()!;
+    const x = stack.pop()!;
+    const row = y * width;
+    if (data[row + x] === 0) continue;
+
+    let left = x;
+    while (left > 0 && data[row + left - 1] === 1) left--;
+    let right = x;
+    while (right < width - 1 && data[row + right + 1] === 1) right++;
+    for (let i = left; i <= right; i++) data[row + i] = 0;
+
+    for (const ny of [y - 1, y + 1]) {
+      if (ny < 0 || ny >= height) continue;
+      const nrow = ny * width;
+      let run = false;
+      for (let i = left; i <= right; i++) {
+        const filled = data[nrow + i] === 1;
+        if (filled && !run) stack.push(i, ny);
+        run = filled;
+      }
+    }
+  }
+  return true;
+}
+
+/** The selection with the **chosen area under `seed` taken out of it** — the
+ *  gap filler run backwards, which is what its press means under the Subtract
+ *  mode (see `selectMode.ts`).
+ *
+ *  `fillGap` answers "and the inside"; this answers "not that bit", and the two
+ *  are one walk over the same mask asked about opposite cells. It takes the
+ *  whole connected blob rather than a shape you have to draw round it: an area
+ *  that came in with a colour match, the middle you filled in a moment ago and
+ *  have changed your mind about, one leaf of twenty.
+ *
+ *  A press where nothing is chosen has no blob under it and hands the selection
+ *  straight back unchanged, the way a press inside the selection does for
+ *  `fillGap`; a press off the page, or one that clears the last of the window,
+ *  answers `null`, which is the "chose nothing" the whole family speaks in. */
+export function clearGap(
+  region: readonly (readonly Point[])[],
+  page: { width: number; height: number },
+  seed: Point,
+): Point[][] | null {
+  if (
+    region.length === 0 ||
+    seed.x < 0 ||
+    seed.y < 0 ||
+    seed.x >= page.width ||
+    seed.y >= page.height
+  ) {
+    return null;
+  }
+  const made = maskFor(
+    { x: 0, y: 0, width: page.width, height: page.height },
+    0,
+  );
+  if (!made) return null;
+  const { mask, frame } = made;
+  fillRegion(mask, frame, region);
+  const sx = Math.floor((seed.x - frame.x) * frame.scale);
+  const sy = Math.floor((seed.y - frame.y) * frame.scale);
+  if (!floodFilled(mask, sx, sy)) {
+    return region.map((loop) => loop.map((p) => ({ ...p })));
+  }
+  return maskRegion(mask, frame);
+}
+
 /** The box around a run of contours and a path together, or `null` when both
  *  are empty. */
 function boundsOf(
@@ -331,5 +416,68 @@ export function combineRegion(
   const { mask, frame } = made;
   fillRegion(mask, frame, region);
   stampPath(mask, frame, points, radius, erase ? 0 : 1);
+  return maskRegion(mask, frame);
+}
+
+/** The box around two runs of contours, or `null` when both are empty. */
+function regionBounds(
+  ...regions: readonly (readonly (readonly Point[])[])[]
+): { x: number; y: number; width: number; height: number } | null {
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+  for (const region of regions) {
+    for (const loop of region) {
+      for (const p of loop) {
+        minX = Math.min(minX, p.x);
+        minY = Math.min(minY, p.y);
+        maxX = Math.max(maxX, p.x);
+        maxY = Math.max(maxY, p.y);
+      }
+    }
+  }
+  if (minX > maxX) return null;
+  return { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
+}
+
+/** Two selections put together: `base` with `other` **added** to it, or with
+ *  `other` **taken out** of it — handed back as contours, or `null` when what
+ *  is left encloses nothing.
+ *
+ *  It is `combineRegion`'s arithmetic with a region where the stroked path was,
+ *  and it exists for the same reason: contours are read even-odd, so two
+ *  overlapping outlines concatenated turn their overlap into a hole rather than
+ *  into one area (see the head of this file). So both are filled into one mask
+ *  — the second as a stencil written over the first — and the answer is traced
+ *  back out.
+ *
+ *  Taking away is bounded by `base` alone: nothing outside what is already
+ *  chosen can be subtracted from it, so the mask need be no bigger than the
+ *  selection however far the gesture that cut it wandered off the page. */
+export function mergeRegion(
+  base: readonly (readonly Point[])[],
+  other: readonly (readonly Point[])[],
+  subtract: boolean,
+): Point[][] | null {
+  const box = subtract ? regionBounds(base) : regionBounds(base, other);
+  if (!box) return null;
+  // A cell of slack all round, so an area that runs to the edge of its own box
+  // is traced as an outline rather than as a run of cells with no border to
+  // walk (see `traceContours`).
+  const made = maskFor(box, 2);
+  if (!made) return null;
+  const { mask, frame } = made;
+  fillRegion(mask, frame, base);
+  const stencil: BinaryMask = {
+    width: mask.width,
+    height: mask.height,
+    data: new Uint8Array(mask.width * mask.height),
+  };
+  fillRegion(stencil, frame, other);
+  const value = subtract ? 0 : 1;
+  for (let i = 0; i < mask.data.length; i++) {
+    if (stencil.data[i] === 1) mask.data[i] = value;
+  }
   return maskRegion(mask, frame);
 }

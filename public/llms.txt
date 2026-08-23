@@ -59,9 +59,11 @@ connect a storage backend yourself.
   painted, pick one colour out everywhere it appears (with a tolerance dial, and
   a press on the bare paper choosing the background with the marks left out of
   it), fill in a gap the selection has gone round but not covered, or paint the
-  selection in with a pencil-like nib that adds with every stroke, erases with a
-  mode flip or a held Ctrl, and feathers what a Delete takes out — seven
-  gestures behind one button, pressed a second time to choose.
+  selection in with a pencil-like nib that adds with every stroke and feathers
+  what a Delete takes out — seven gestures behind one button, pressed a second
+  time to choose. Any of them can add to the window already up or cut into it
+  instead of replacing it: hold Shift or Alt for one gesture, or hold the
+  selection button to set the mode on a device with no keyboard.
   Invert the window from the side panel's Contextual block, which is there only
   while a selection is.
   What settles is an area, not a list of marks: paint in it and the mark is cut

@@ -19,6 +19,10 @@ import type { Point } from "../src/app/types.ts";
 // stroke's capsule combined with the selection as it stands, which is why the
 // context (and its `selection`) appears in these tests where the marquees'
 // never need one.
+//
+// It is also the one member that reads the family's selection mode itself
+// rather than having it applied to its answer (see `selectMode.ts`), which is
+// why `selectMode` appears here and in no other tool's tests.
 
 const ctx = (over: Partial<ToolContext> = {}): ToolContext => ({
   color: null,
@@ -87,7 +91,7 @@ describe("selectDrawBehaviour", () => {
     expect(regionHolds(both, { x: 20, y: 25 })).toBe(false);
   });
 
-  it("erases from the selection under its erase mode", () => {
+  it("erases from the selection under the family's Subtract mode", () => {
     const base = drawn(
       [
         { x: 0, y: 20 },
@@ -100,14 +104,14 @@ describe("selectDrawBehaviour", () => {
         { x: 30, y: 5 },
         { x: 30, y: 35 },
       ],
-      ctx({ size: 12, dials: { mode: SELECT_ERASE_MODE }, selection: base }),
+      ctx({ size: 12, selectMode: "subtract", selection: base }),
     )!;
     expect(regionHolds(bitten, { x: 5, y: 20 })).toBe(true);
     expect(regionHolds(bitten, { x: 55, y: 20 })).toBe(true);
     expect(regionHolds(bitten, { x: 30, y: 20 })).toBe(false);
   });
 
-  it("reads a held modifier as the other verb — Ctrl flips whichever chip is down", () => {
+  it("adds under every other mode — a nib has no third thing to do to a window", () => {
     const base = drawn(
       [
         { x: 0, y: 20 },
@@ -115,32 +119,22 @@ describe("selectDrawBehaviour", () => {
       ],
       ctx({ size: 20 }),
     )!;
-    // Chip on Add, Ctrl held: the stroke erases.
-    const bitten = drawn(
-      [
-        { x: 30, y: 5 },
-        { x: 30, y: 35 },
-      ],
-      ctx({ size: 12, modifier: true, selection: base }),
-    )!;
-    expect(regionHolds(bitten, { x: 30, y: 20 })).toBe(false);
-    // Chip on Erase, Ctrl held: the stroke adds again.
-    const added = drawn(
-      [
-        { x: 100, y: 20 },
-        { x: 120, y: 20 },
-      ],
-      ctx({
-        size: 12,
-        modifier: true,
-        dials: { mode: SELECT_ERASE_MODE },
-        selection: base,
-      }),
-    )!;
-    expect(regionHolds(added, { x: 110, y: 20 })).toBe(true);
+    // Replace is Add here: the tool that builds the window has no gesture for
+    // throwing it away (see `drawErases`).
+    for (const mode of ["replace", "add"] as const) {
+      const added = drawn(
+        [
+          { x: 100, y: 20 },
+          { x: 120, y: 20 },
+        ],
+        ctx({ size: 12, selectMode: mode, selection: base }),
+      )!;
+      expect(regionHolds(added, { x: 110, y: 20 })).toBe(true);
+      expect(regionHolds(added, { x: 30, y: 20 })).toBe(true);
+    }
   });
 
-  it("stamps the verb on the draft at the press, so releasing Ctrl mid-drag changes nothing", () => {
+  it("stamps the verb on the draft at the press, so releasing Alt mid-drag changes nothing", () => {
     const base = drawn(
       [
         { x: 0, y: 20 },
@@ -148,10 +142,10 @@ describe("selectDrawBehaviour", () => {
       ],
       ctx({ size: 20 }),
     )!;
-    // The press is held with Ctrl…
+    // The press is made in Subtract…
     let draft = selectDrawBehaviour.start(
       { x: 30, y: 5 },
-      ctx({ size: 12, modifier: true, selection: base }),
+      ctx({ size: 12, selectMode: "subtract", selection: base }),
     )!;
     expect(draft.dials?.mode).toBe(SELECT_ERASE_MODE);
     // …and the key comes up before the lift. The gesture stays an erase: the
@@ -173,7 +167,7 @@ describe("selectDrawBehaviour", () => {
           { x: 30, y: 30 },
           { x: 30, y: 30.5 },
         ],
-        ctx({ size: 60, dials: { mode: SELECT_ERASE_MODE }, selection: base }),
+        ctx({ size: 60, selectMode: "subtract", selection: base }),
       ),
     ).toBeNull();
   });

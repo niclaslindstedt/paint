@@ -62,19 +62,19 @@ pick one:
   subject, and the middle is still a hole — one press here says "and the
   inside". With nothing selected yet, one press chooses the whole page, an
   unmarked sheet being one big gap. A press somewhere already chosen leaves the
-  selection exactly as it was.
+  selection exactly as it was. Set to **Subtract** (see below) it runs the other
+  way: press a chosen area and the whole of it is taken back out, which is how
+  you drop one leaf of the twenty a colour select brought in.
 
 - **Draw select** — paint the selection the way a pencil paints a line.
   Everything the nib covers is selected, a tap leaves a dab, and — unlike its
   siblings — **every stroke adds** to what is already chosen, so an awkward
   shape (the subject of a photograph, say) is built up stroke by stroke rather
-  than caught in one gesture. It is the one selection tool with a real nib, so
-  it alone has a width, and two settings of its own under the size button:
+  than caught in one gesture. Set to **Subtract** (see below) the same stroke
+  paints selection _away_, which is how a corner that came in with the rest is
+  rubbed back out. It is the one selection tool with a real nib, so it alone has
+  a width, and one setting of its own under the size button:
 
-  - **Mode** — _Add_ paints selection in, _Erase_ paints it away. On a desktop,
-    holding **Ctrl** (**⌘** on a Mac) flips whichever is set for the length of
-    one stroke — the verb is decided at the press, so releasing the key
-    mid-drag changes nothing. On touch, the chip is the switch.
   - **Feather** — how softly a Delete through the window fades out; see below.
 
   Its width does one more thing, in one place: **Delete background** searches
@@ -85,6 +85,45 @@ pick one:
 Whichever you use, what settles is that outline — a lasso stays a lasso — and a
 traced area's holes stay holes: they are outside the window exactly as they are
 outside the paint.
+
+## Building one up: Add and Subtract
+
+A gesture normally **replaces** the window: what you just chose is the whole
+selection, and whatever was chosen before it is gone. That is one of three
+things a second gesture can mean, and it is the least useful of them. The
+subject of a photograph is a lasso loop, _plus_ the ear the loop missed,
+_minus_ the sky that came in with the shoulder.
+
+So the family has a mode, and it is one mode for all seven tools:
+
+- **Replace** — start again. Where the app opens.
+- **Add** — keep what is selected and add what you choose to it.
+- **Subtract** — keep what is selected and cut what you choose out of it.
+
+Two ways to ask for it, because a laptop and a phone do not agree:
+
+- **On a keyboard**, hold **Shift** to add or **Alt** to subtract, for the
+  length of one gesture — the same keys Photoshop uses. The mode is decided at
+  the press, so letting the key go mid-drag lands the gesture you started, and
+  the pointer carries a small **+** or **−** while a key is down so you can
+  check before you commit to the drag.
+- **Anywhere**, **hold the selection button down** in the toolbar and pick one.
+  That mode then stays until you put it back — the tool's button wears the same
+  **+** or **−**, and a strip at the foot of the canvas says which mode you are
+  in, takes you back to the chooser, and puts it back to Replace with its ✕. The
+  chooser itself can be put away without cancelling anything: the mode is the
+  point of it, and the page is what you now have to use it on.
+
+Anything can be combined with anything, because every one of these tools answers
+in the same currency: draw a box, add a traced shape to it, take a lasso loop out
+of that. Mixed selections keep their shape — the result is the outline of what
+you built, holes and all — and each gesture is one step you can take back.
+
+Two smaller things follow from it. With a mode in force, dragging **inside** the
+window no longer slides it (that is what Replace is for): the area you want to
+take out of a selection is nearly always inside the one you have. And a gesture
+that chooses nothing — a stray tap — leaves an added-to selection alone instead
+of clearing it, so a slip does not cost the minute you spent building it.
 
 ## Adjusting
 
