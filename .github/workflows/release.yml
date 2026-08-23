@@ -1,33 +1,36 @@
 name: release
 
-# Triggered by the `v*` tag that version-bump.yml pushes (§10.3): that
-# workflow decides the version, this one turns the tag into a release.
+# Manual-only, and the ONLY thing a maintainer has to trigger. This one
+# dispatch derives the semver bump from the changeset fragments in
+# `.changes/unreleased/`, bumps `package.json`, collates those fragments into a
+# dated CHANGELOG section, commits `chore(release): vX.Y.Z` to main, tags it,
+# publishes a GitHub Release with the desktop downloads attached, and chains
+# into pages.yml so the new tag is served at `/` without waiting for the next
+# push.
 #
-# What it does, in order: derive the version from the tag, collate the
-# `.changes/unreleased/` fragments into a dated CHANGELOG section, bump
-# package.json, commit `chore(release): vX.Y.Z` to main, force-retag the tag
-# onto that commit (the only force-push this project permits — the tag has to
-# name the commit that carries the changelog), build, publish a GitHub Release,
-# then chain into pages.yml so the new tag is served at `/` without waiting for
-# the next push.
+# It used to be two workflows: `version-bump` computed the version and pushed a
+# `v*` tag, and this one triggered on that tag. That split cost a PAT
+# (`RELEASE_TOKEN`) purely so the tag push would fire a second workflow, and it
+# cost a force-retag — the tag had to be moved onto the release commit that did
+# not exist yet when the tag was created. Doing both halves in one run removes
+# both: the tag is created on the release commit, once, and never moved.
 #
-# The release is created as a DRAFT and published at the very end, once every
-# desktop download is attached to it — see the `publish` job for why that
-# ordering is the point rather than a formality.
-#
-# It can also be dispatched by hand with an explicit tag, for re-running a
-# release whose first attempt failed partway.
+# `bump` defaults to `auto` — the fragment-derived bump. Set it to an explicit
+# patch/minor/major only to override that derivation.
 
 on:
-  push:
-    tags:
-      - "v*"
   workflow_dispatch:
     inputs:
-      tag:
-        description: "Existing v* tag to (re-)release."
+      bump:
+        description: "Semver bump. 'auto' derives it from the .changes/unreleased/ fragments (breaking → major, Added/Changed/Removed/Deprecated → minor, Fixed/Security → patch). Pick patch/minor/major to override."
         required: true
-        type: string
+        type: choice
+        default: auto
+        options:
+          - auto
+          - patch
+          - minor
+          - major
 
 permissions:
   contents: write
@@ -39,14 +42,20 @@ permissions:
 jobs:
   release:
     runs-on: ubuntu-latest
+    # A release is cut from main and nowhere else — the release commit is
+    # pushed to main below, so dispatching from a branch would tag one thing
+    # and push another.
+    if: github.ref == 'refs/heads/main'
     outputs:
-      version: ${{ steps.version.outputs.version }}
-      tag: ${{ steps.version.outputs.tag }}
+      version: ${{ steps.bump.outputs.version }}
+      tag: ${{ steps.bump.outputs.tag }}
     steps:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
           # main is pushed to below, so the checkout needs a token that can.
+          # GITHUB_TOKEN suffices now that nothing downstream is triggered by
+          # the tag push; RELEASE_TOKEN is still honoured for a protected main.
           token: ${{ secrets.RELEASE_TOKEN || secrets.GITHUB_TOKEN }}
 
       - uses: actions/setup-node@v7
@@ -59,30 +68,68 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Resolve the released version
-        id: version
-        env:
-          DISPATCH_TAG: ${{ inputs.tag }}
+      # `npm ci` rewriting the lockfile means the release commit would carry a
+      # dependency change nobody reviewed. Catch it before anything is tagged.
+      - name: Verify clean working tree
         run: |
-          TAG="${DISPATCH_TAG:-${GITHUB_REF#refs/tags/}}"
-          case "$TAG" in
-            v[0-9]*) ;;
-            *) echo "::error::'$TAG' is not a v* release tag"; exit 1 ;;
-          esac
-          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
-          echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
-          echo "Releasing $TAG"
+          if ! git diff --quiet || ! git diff --quiet --cached; then
+            echo "::error::working tree is not clean — refusing to release"
+            git status --short
+            exit 1
+          fi
 
-      # The tag names a commit; the release commit is built on top of main so
-      # the changelog lands on the branch people read.
-      - name: Check out main
-        run: git checkout main
+      # Resolve the effective bump. `auto` (the default) derives it from the
+      # changeset fragments' front-matter so the release needs no human
+      # judgement; an explicit patch/minor/major from the dispatch form
+      # overrides that derivation. Either way an empty `.changes/unreleased/`
+      # fails the `auto` path — there is nothing to release.
+      - name: Resolve the bump
+        id: resolve
+        env:
+          REQUESTED: ${{ inputs.bump }}
+        run: |
+          if [ -z "$REQUESTED" ] || [ "$REQUESTED" = "auto" ]; then
+            BUMP=$(node scripts/release/compute-bump.mjs)
+            echo "Auto-derived bump from fragments: $BUMP"
+          else
+            BUMP="$REQUESTED"
+            echo "Using requested bump override: $BUMP"
+          fi
+          echo "bump=$BUMP" >> "$GITHUB_OUTPUT"
+
+      # The current version comes from the highest released tag rather than
+      # package.json: a release that failed after tagging but before its commit
+      # landed leaves package.json behind, and computing from it would hand the
+      # next run a version that is already taken.
+      - name: Compute the next version
+        id: bump
+        env:
+          BUMP: ${{ steps.resolve.outputs.bump }}
+        run: |
+          LATEST_TAG=$(git tag --list 'v*' --sort=-v:refname | head -n1)
+          CURRENT="${LATEST_TAG#v}"
+          CURRENT="${CURRENT:-$(node -p "require('./package.json').version")}"
+          IFS=. read -r MAJOR MINOR PATCH <<<"$CURRENT"
+          case "$BUMP" in
+            major) MAJOR=$((MAJOR + 1)); MINOR=0; PATCH=0 ;;
+            minor) MINOR=$((MINOR + 1)); PATCH=0 ;;
+            patch) PATCH=$((PATCH + 1)) ;;
+            *) echo "::error::unknown bump '$BUMP'"; exit 1 ;;
+          esac
+          VERSION="${MAJOR}.${MINOR}.${PATCH}"
+          if git rev-parse -q --verify "refs/tags/v${VERSION}" >/dev/null; then
+            echo "::error::tag v${VERSION} already exists"
+            exit 1
+          fi
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "tag=v${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "Releasing ${LATEST_TAG:-nothing} + $BUMP -> v${VERSION}"
 
       - name: Set the package version
-        run: npm version "${{ steps.version.outputs.version }}" --no-git-tag-version --allow-same-version
+        run: npm version "${{ steps.bump.outputs.version }}" --no-git-tag-version --allow-same-version
 
       - name: Collate changelog
-        run: node scripts/release/collate-changelog.mjs "${{ steps.version.outputs.version }}"
+        run: node scripts/release/collate-changelog.mjs "${{ steps.bump.outputs.version }}"
 
       # The notes are the changelog section, plus a standing footer about the
       # desktop downloads. The macOS half of that footer is not decoration: the
@@ -91,7 +138,7 @@ jobs:
       # launch — and a user with no answer to that prompt has no app.
       - name: Extract release-notes body
         run: |
-          node scripts/release/extract-section.mjs "${{ steps.version.outputs.version }}" > .release-notes.md
+          node scripts/release/extract-section.mjs "${{ steps.bump.outputs.version }}" > .release-notes.md
           cat >> .release-notes.md <<'NOTES'
 
           ---
@@ -128,25 +175,21 @@ jobs:
           VITE_DROPBOX_APP_FOLDER: ${{ vars.VITE_DROPBOX_APP_FOLDER }}
           VITE_GDRIVE_APP_FOLDER: ${{ vars.VITE_GDRIVE_APP_FOLDER }}
 
-      - name: Commit the release and re-point the tag
+      # The tag is created HERE, on the release commit — not one commit
+      # earlier by a separate workflow that this one then had to force-move it
+      # away from. There is no force-push in this pipeline any more.
+      - name: Commit the release and tag it
         env:
-          TAG: ${{ steps.version.outputs.tag }}
-          VERSION: ${{ steps.version.outputs.version }}
+          TAG: ${{ steps.bump.outputs.tag }}
+          VERSION: ${{ steps.bump.outputs.version }}
         run: |
           git config user.name  'github-actions[bot]'
           git config user.email 'github-actions[bot]@users.noreply.github.com'
-          if git diff --quiet -- package.json package-lock.json CHANGELOG.md .changes/unreleased; then
-            echo "Nothing to commit — re-running a release whose commit already landed."
-          else
-            git add package.json package-lock.json CHANGELOG.md .changes/unreleased
-            git commit -m "chore(release): v${VERSION}"
-            git push origin HEAD:main
-          fi
-          # Re-point the tag at the release commit. This is the one force-push
-          # the project allows: the tag must name the commit carrying the
-          # changelog, and version-bump.yml created it one commit earlier.
-          git tag -f -a "$TAG" -m "Release ${TAG}"
-          git push -f origin "$TAG"
+          git add package.json package-lock.json CHANGELOG.md .changes/unreleased
+          git commit -m "chore(release): v${VERSION}"
+          git tag -a "$TAG" -m "Release ${TAG}"
+          git push origin HEAD:main
+          git push origin "$TAG"
 
       # A DRAFT, and the `publish` job at the bottom is what makes it public —
       # once every platform's installers are attached to it. Published here
@@ -160,13 +203,15 @@ jobs:
       # Idempotent on purpose: the tag is already pushed by the step above, so a
       # bare `gh release create` that fails (or a re-run after one did) would
       # leave a tagged version with no release at all. Creating-or-updating
-      # makes the recovery a re-dispatch — and the edit deliberately does NOT
-      # pass `--draft`, so re-running against a release that is already public
+      # makes the recovery GitHub's own "re-run failed jobs", which replays this
+      # job against the version already in `steps.bump.outputs` rather than
+      # cutting a second one — and the edit deliberately does NOT pass
+      # `--draft`, so re-running against a release that is already public
       # refreshes its notes instead of retracting it.
       - name: Create GitHub Release (draft)
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAG: ${{ steps.version.outputs.tag }}
+          TAG: ${{ steps.bump.outputs.tag }}
         run: |
           if gh release view "$TAG" >/dev/null 2>&1; then
             echo "Release $TAG already exists — updating its notes."
@@ -181,9 +226,9 @@ jobs:
   # Linux.
   #
   # It checks out the TAG rather than main, so what ships is exactly what was
-  # released — the `release` job re-points the tag onto the commit carrying the
-  # changelog and the bumped `package.json`, and `tauri.conf.json` reads its
-  # version straight out of that file.
+  # released — the tag names the release commit, which carries the changelog and
+  # the bumped `package.json`, and `tauri.conf.json` reads its version straight
+  # out of that file.
   desktop:
     needs: release
     name: desktop (${{ matrix.target }})
