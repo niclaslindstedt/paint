@@ -154,12 +154,26 @@ unsigned arm64 code and reports it to the user as "the app is damaged", so the
 default is an ad-hoc signature and the user answers one Gatekeeper prompt. Set
 the `MAC_SIGN_IDENTITY` repository secret and the same job signs for real.
 
-The ad-hoc default is spelled `APPLE_SIGNING_IDENTITY: ${{ secrets.MAC_SIGN_IDENTITY || '-' }}`,
-and **the `|| '-'` is load-bearing rather than defensive.** An unset secret
-expands to the EMPTY STRING, not to nothing, and the bundler branches on
-whether the variable is set rather than on whether it says anything — so an
-empty one reaches `codesign --force -s ""` and fails the whole build with `no
-identity found`, which is exactly how v0.1.1's macOS download went missing. `-`
-is codesign's own name for an ad-hoc signature. Leaving the variable out
-entirely is not the fix either: that skips signing altogether, which is the
-unsigned arm64 build this paragraph opens by ruling out.
+Signing for real needs **both** secrets — `MAC_SIGN_IDENTITY` (the identity's
+name) and `MAC_CSC_LINK` / `MAC_CSC_KEY_PASSWORD` (the certificate itself,
+base64). The name alone cannot work: the bundler signs with a named identity
+only if it can find that identity in a keychain, and an ephemeral CI runner has
+no keychain until a certificate is imported into one. So a configured
+`MAC_SIGN_IDENTITY` with no certificate behind it is **worse than none** —
+codesign answers `<name>: no identity found` and fails the whole build.
+
+The workflow therefore passes the name only when a certificate comes with it,
+and otherwise falls back to `-`, codesign's own name for an ad-hoc signature:
+
+```yaml
+APPLE_SIGNING_IDENTITY: ${{ (secrets.MAC_CSC_LINK && secrets.MAC_SIGN_IDENTITY) || '-' }}
+```
+
+**None of that expression is defensive padding**, and v0.1.1 lost its macOS
+download twice proving it — once to a bare `${{ secrets.MAC_SIGN_IDENTITY }}`
+(an unset secret expands to the EMPTY STRING rather than to nothing, and the
+bundler branches on whether the variable is _set_, not on whether it says
+anything, so `codesign -s ""` ran and failed), and once to an identity name
+configured without a certificate. Leaving the variable out entirely is not the
+fix either: that skips signing altogether, which is the unsigned arm64 build
+this paragraph opens by ruling out.
