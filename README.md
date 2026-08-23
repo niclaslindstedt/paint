@@ -228,6 +228,19 @@ the same [`oss-framework`](https://github.com/niclaslindstedt/oss-framework).
   archive — every target lights up as you lift the row. On a desktop it's a
   right-click menu and a mouse drag instead.
 
+## Download
+
+Paint runs in any browser at
+[paint.niclaslindstedt.se](https://paint.niclaslindstedt.se), installs from
+there as a PWA, and is also a **desktop app** for Windows, macOS and Linux —
+every [release](https://github.com/niclaslindstedt/paint/releases) carries a
+`.exe`, a `.dmg`, an `.AppImage` and a `.deb`. The app inside all of them is the
+same app; the desktop build simply has the whole thing bundled inside it, so it
+works with no network at all. See
+[the desktop app](docs/features/desktop-app.md).
+
+The rest of this file is about building it yourself.
+
 ## Prerequisites
 
 - [Node.js](https://nodejs.org/) 24+ (see `.nvmrc`)
@@ -294,6 +307,17 @@ npm run preview
 | `make icons`     | Regenerate the PWA icons, favicon, and OG image   |
 | `make check-seo` | Build, then assert the SEO / PWA shape of `dist/` |
 | `make bump`      | Print the semver bump the next release will take  |
+
+The desktop shell (`tauri/`) has a toolchain of its own — a Rust one — so
+`make test` and `make lint` deliberately stop at its edge and these reach it
+instead. See [`tauri/README.md`](tauri/README.md).
+
+| Command              | What it does                                                  |
+| -------------------- | ------------------------------------------------------------- |
+| `make tauri`         | Bundle the site into the shell and run the desktop app        |
+| `make tauri-test`    | Its decision layer (needs no GUI libraries)                   |
+| `make tauri-lint`    | clippy at zero warnings, both crates                          |
+| `make tauri-package` | This machine's installers, into `tauri/target/release/bundle` |
 
 ### In the app
 
@@ -445,6 +469,7 @@ connect, an update that won't apply — are in
 - [Configuration](docs/configuration.md) — build-time environment variables.
 - [Architecture](docs/architecture.md) — how the pieces fit, and why vector.
 - [Troubleshooting](docs/troubleshooting.md)
+- [The desktop app](tauri/README.md) — the thin Tauri shell, and how it ships.
 - [Feature docs](docs/features) — the read-more halves of the changelog
   bullets, also rendered inside the app's "What's new" dialog.
 

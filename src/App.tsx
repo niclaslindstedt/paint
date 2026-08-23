@@ -286,10 +286,14 @@ export function App() {
   // (built by `pwa-plugin.ts`). In a deployed install this raises the prompt
   // when a freshly-deployed build reaches the `waiting` state; in dev
   // (`enabled: false`) it stays idle and registers nothing.
+  //
+  // …and in the desktop shell (`tauri/`) it stays idle too: that build ships no
+  // worker, because a new version arrives there as a new binary rather than as
+  // a deploy. A prompt with nothing behind it is worse than no prompt.
   const pwa = usePwaUpdate({
     base: import.meta.env.BASE_URL,
     cacheId: cacheIdForBase(import.meta.env.BASE_URL),
-    enabled: !import.meta.env.DEV,
+    enabled: !import.meta.env.DEV && !__SHELL_BUILD__,
   });
 
   // The drawer's open-swipe: an inward drag from the edge the menu lives on,

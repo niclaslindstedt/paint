@@ -17,7 +17,13 @@
     "fmt": "prettier --write .",
     "fmt:check": "prettier --check .",
     "icons": "node scripts/generate-icons.mjs",
-    "check:seo": "node scripts/check-seo.mjs"
+    "check:seo": "node scripts/check-seo.mjs",
+    "tauri": "npm --prefix tauri run start",
+    "tauri:bundle": "npm --prefix tauri run bundle",
+    "tauri:test": "npm --prefix tauri run test",
+    "tauri:lint": "npm --prefix tauri run lint",
+    "tauri:fmt": "npm --prefix tauri run fmt",
+    "tauri:package": "npm --prefix tauri run package"
   },
   "dependencies": {
     "@fontsource/inter": "^5.2.5",

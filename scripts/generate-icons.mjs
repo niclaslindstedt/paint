@@ -71,6 +71,46 @@ function encodeIco(pngs) {
   return Buffer.concat([header, dir, ...pngs.map((p) => p.data)]);
 }
 
+// The other .ico, and it exists because a resource compiler is not a browser.
+//
+// `encodeIco` above packs PNG-compressed entries, which every current browser
+// and Windows itself read happily. The Windows RESOURCE COMPILER does not:
+// `tauri-build` embeds `icons/icon.ico` into the executable through `llvm-rc`
+// (or `rc.exe`), and those parse the classic DIB entry rather than a PNG one —
+// so the desktop shell's icon is packed the old way instead.
+//
+// A DIB entry is a `BITMAPINFOHEADER` whose height is DOUBLED, because the
+// format still describes two stacked bitmaps: the bottom-up BGRA colour one,
+// and a 1-bit AND mask. The mask is all zeroes (every pixel opaque as far as
+// it is concerned) and the alpha channel does the real work, which is what
+// every 32-bit icon since Windows XP does. Its rows are still padded to four
+// bytes, and a parser that reads the header will read them.
+function dibEntry(size, rgba) {
+  const header = Buffer.alloc(40);
+  header.writeUInt32LE(40, 0); // biSize
+  header.writeInt32LE(size, 4); // biWidth
+  header.writeInt32LE(size * 2, 8); // biHeight — colour + mask
+  header.writeUInt16LE(1, 12); // biPlanes
+  header.writeUInt16LE(32, 14); // biBitCount
+
+  const pixels = Buffer.alloc(size * size * 4);
+  for (let y = 0; y < size; y++) {
+    // Bottom-up: the last row of the image is the first row of the DIB.
+    const from = (size - 1 - y) * size * 4;
+    for (let x = 0; x < size; x++) {
+      const at = from + x * 4;
+      const to = (y * size + x) * 4;
+      pixels[to] = rgba[at + 2]; // B
+      pixels[to + 1] = rgba[at + 1]; // G
+      pixels[to + 2] = rgba[at]; // R
+      pixels[to + 3] = rgba[at + 3]; // A
+    }
+  }
+
+  const maskStride = Math.ceil(size / 32) * 4;
+  return Buffer.concat([header, pixels, Buffer.alloc(maskStride * size)]);
+}
+
 function encodePng(width, height, rgba) {
   const raw = Buffer.alloc((width * 4 + 1) * height);
   for (let y = 0; y < height; y++) {
@@ -223,7 +263,8 @@ function inStroke(x, y) {
 
 // Render size×size RGBA. `pad` insets the mark (maskable icons need a safe
 // zone); `radius` rounds the background corners (0 = square, for maskable).
-function renderIcon(size, { pad = 0.12, radius = 0.2 } = {}) {
+// Returns the raw buffer: the .ico entries below need pixels rather than a PNG.
+function renderIconRgba(size, { pad = 0.12, radius = 0.2 } = {}) {
   const rgba = Buffer.alloc(size * size * 4);
   const r = radius * size;
   for (let py = 0; py < size; py++) {
@@ -255,7 +296,13 @@ function renderIcon(size, { pad = 0.12, radius = 0.2 } = {}) {
       rgba[i + 3] = Math.round(bgAlpha * 255);
     }
   }
-  return encodePng(size, size, rgba);
+  return rgba;
+}
+
+/** The same mark, encoded as a PNG — what every icon file but the Windows
+ *  `.ico` below is. */
+function renderIcon(size, options) {
+  return encodePng(size, size, renderIconRgba(size, options));
 }
 
 // The 1200×630 Open Graph card: the mark on the left, accent bars suggesting
@@ -338,6 +385,52 @@ writeFileSync(
     })),
   ),
 );
+// The DESKTOP SHELL's icons (tauri/src-tauri/icons/), from the same geometry
+// and the same ink as everything above — so the app in the dock, the tile on
+// the home screen and the favicon in the tab are one mark rather than three
+// that resemble each other.
+//
+// Two things make this a separate set rather than a reference to `public/`:
+//
+//   - **Tauri refuses a paletted PNG at COMPILE time**, inside
+//     `generate_context!`, with `icon … is not RGBA`. These are RGBA (colour
+//     type 6, see `encodePng`), so that is satisfied by construction here —
+//     but it is why the sizes are re-rendered rather than symlinked to
+//     whichever file happened to be the right shape.
+//   - **`tauri-build` refuses a MISSING `icon.ico` outright** on a Windows
+//     target ("required for generating a Windows Resource file"), and it must
+//     be the DIB flavour a resource compiler can read — see `encodeIcoDib`.
+//
+// `radius: 0` throughout: every desktop draws its own mask over an app icon
+// (macOS its squircle, Windows its square), so a tile that rounded its own
+// corners first would sit inside a second rounding.
+const tauriIconsDir = join(root, "tauri", "src-tauri", "icons");
+mkdirSync(tauriIconsDir, { recursive: true });
+const TAURI_SIZES = [32, 128, 256, 512];
+for (const size of TAURI_SIZES) {
+  writeFileSync(
+    join(tauriIconsDir, `${size}x${size}.png`),
+    renderIcon(size, { pad: 0.12, radius: 0 }),
+  );
+}
+// Windows' own ladder: 16 and 32 are the ones actually drawn (the title bar,
+// the taskbar, Explorer's small views), 48 is the shell's medium icon, and 256
+// is what a large-icon view scales from. The three small ones are bitmaps and
+// 256 is a PNG, which is the layout every Windows icon has worn since Vista —
+// a 256 bitmap would be a quarter-megabyte of uncompressed BGRA in a file the
+// repository carries, for the one size the format was extended to compress.
+writeFileSync(
+  join(tauriIconsDir, "icon.ico"),
+  encodeIco([
+    ...[16, 32, 48].map((size) => ({
+      size,
+      data: dibEntry(size, renderIconRgba(size, { pad: 0.08, radius: 0 })),
+    })),
+    { size: 256, data: renderIcon(256, { pad: 0.08, radius: 0 }) },
+  ]),
+);
+
 console.log(
-  "icons: wrote pwa-192/512/512-maskable, apple-touch-180, og.png, favicon.ico",
+  "icons: wrote pwa-192/512/512-maskable, apple-touch-180, og.png, favicon.ico, " +
+    `and ${TAURI_SIZES.length} desktop icons + icon.ico`,
 );

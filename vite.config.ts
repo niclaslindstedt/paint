@@ -144,6 +144,19 @@ const ignorePaths = (process.env.VITE_PWA_IGNORE_PATHS ?? "")
   .map((p) => p.trim())
   .filter(Boolean);
 
+// A build for the DESKTOP SHELL (tauri/), set by `tauri/scripts/bundle-web.mjs`.
+//
+// It changes exactly one thing, and it is about the medium rather than the
+// audience: the service worker is left out (`serviceWorker: false` below —
+// everything else `appPwa` writes into the `<head>` still applies). A desktop
+// build has no deployment to discover an update from — a new version arrives
+// as a new binary — so a worker here would precache a copy of files already on
+// local disk and then serve the page from ITS copy, which is how a shell whose
+// binary shipped a new site goes on showing the old one. `__SHELL_BUILD__`
+// carries the same fact into the app, where it switches off the update prompt
+// that has nothing left to prompt about (see `src/App.tsx`).
+const shellBuild = process.env.VITE_SHELL_BUILD === "on";
+
 // Build identity for the Developer tab's "Build" grid. The commit hash is the
 // deploying SHA in CI, falling back to the local working tree's HEAD so a
 // `make build` still stamps a real hash; "unknown" only if git isn't reachable.
@@ -199,6 +212,7 @@ export default defineConfig({
     __BUILD_LABEL__: JSON.stringify(buildLabel),
     __BUILD_COMMIT__: JSON.stringify(commit),
     __BUILD_NUMBER__: JSON.stringify(buildNumber),
+    __SHELL_BUILD__: JSON.stringify(shellBuild),
   },
   // `appPwa` only applies on build, so dev keeps registering no worker (the app
   // passes `enabled: !import.meta.env.DEV` to `usePwaUpdate`).
@@ -212,7 +226,7 @@ export default defineConfig({
   plugins: [
     preact(),
     tailwindcss(),
-    appPwa({ base, version, ignorePaths }),
+    appPwa({ base, version, ignorePaths, serviceWorker: !shellBuild }),
     emitPrivacyAlias(),
   ],
 });

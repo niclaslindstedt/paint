@@ -11,6 +11,10 @@ name: release
 # then chain into pages.yml so the new tag is served at `/` without waiting for
 # the next push.
 #
+# The release is created as a DRAFT and published at the very end, once every
+# desktop download is attached to it — see the `publish` job for why that
+# ordering is the point rather than a formality.
+#
 # It can also be dispatched by hand with an explicit tag, for re-running a
 # release whose first attempt failed partway.
 
@@ -80,8 +84,36 @@ jobs:
       - name: Collate changelog
         run: node scripts/release/collate-changelog.mjs "${{ steps.version.outputs.version }}"
 
+      # The notes are the changelog section, plus a standing footer about the
+      # desktop downloads. The macOS half of that footer is not decoration: the
+      # `.dmg` is signed ad hoc rather than notarized unless a signing identity
+      # is configured (see the `desktop` job), so Gatekeeper refuses the first
+      # launch — and a user with no answer to that prompt has no app.
       - name: Extract release-notes body
-        run: node scripts/release/extract-section.mjs "${{ steps.version.outputs.version }}" > .release-notes.md
+        run: |
+          node scripts/release/extract-section.mjs "${{ steps.version.outputs.version }}" > .release-notes.md
+          cat >> .release-notes.md <<'NOTES'
+
+          ---
+
+          ### Downloads
+
+          Paint runs in any browser at
+          [paint.niclaslindstedt.se](https://paint.niclaslindstedt.se) — these
+          are the same app as a desktop install, with the drawing bundled inside
+          it so it works with no network at all.
+
+          | | |
+          | --- | --- |
+          | **Windows** | the `.exe` installer |
+          | **macOS** | the `.dmg` |
+          | **Linux** | the `.AppImage` to run anywhere, or the `.deb` |
+
+          **macOS:** the app is signed but not notarized, so the first launch is
+          refused. Open **System Settings → Privacy & Security**, scroll to the
+          message about Paint and choose **Open Anyway**. macOS remembers after
+          that.
+          NOTES
 
       - name: Sanity build
         run: npm run build
@@ -116,17 +148,129 @@ jobs:
           git tag -f -a "$TAG" -m "Release ${TAG}"
           git push -f origin "$TAG"
 
-      - name: Create GitHub Release
+      # A DRAFT, and the `publish` job at the bottom is what makes it public —
+      # once every platform's installers are attached to it. Published here
+      # instead, the release would be visible the moment the tag exists, which
+      # is many minutes before three desktop runners finish and regardless of
+      # whether they succeed at all: a Windows packaging failure
+      # (`fail-fast: false`, so the other two carry on) would leave a public
+      # release whose Windows download simply is not there, and the people who
+      # find it are the ones who came to download the app.
+      #
+      # Idempotent on purpose: the tag is already pushed by the step above, so a
+      # bare `gh release create` that fails (or a re-run after one did) would
+      # leave a tagged version with no release at all. Creating-or-updating
+      # makes the recovery a re-dispatch — and the edit deliberately does NOT
+      # pass `--draft`, so re-running against a release that is already public
+      # refreshes its notes instead of retracting it.
+      - name: Create GitHub Release (draft)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Release $TAG already exists — updating its notes."
+            gh release edit "$TAG" --title "$TAG" --notes-file .release-notes.md
+          else
+            gh release create "$TAG" --draft --title "$TAG" --notes-file .release-notes.md
+          fi
+
+  # THE DOWNLOADS. One runner per platform, because each packages the app for
+  # its own OS and an installer has to be built where the app was: an `.msi`
+  # and `.exe` on Windows, a `.dmg` on macOS, a `.deb` and an `.AppImage` on
+  # Linux.
+  #
+  # It checks out the TAG rather than main, so what ships is exactly what was
+  # released — the `release` job re-points the tag onto the commit carrying the
+  # changelog and the bumped `package.json`, and `tauri.conf.json` reads its
+  # version straight out of that file.
+  desktop:
+    needs: release
+    name: desktop (${{ matrix.target }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            target: windows
+          - os: macos-latest
+            target: macos
+          - os: ubuntu-latest
+            target: linux
+    runs-on: ${{ matrix.os }}
+    permissions:
+      # contents: write — the installers are uploaded onto the GitHub Release.
+      contents: write
+      # npm ci resolves @niclaslindstedt/oss-framework from GitHub Packages.
+      packages: read
+    env:
+      TAG: ${{ needs.release.outputs.tag }}
+      # macOS SIGNING — optional, but the build is never left unsigned.
+      #
+      # Apple Silicon refuses to execute unsigned arm64 code and reports it to
+      # the user as "the app is damaged", so an unsigned arm64 download is not
+      # a download at all. Tauri therefore signs AD HOC when this is empty: the
+      # app runs natively and the user answers one Gatekeeper prompt. Set the
+      # secret and the same job signs for real.
+      APPLE_SIGNING_IDENTITY: ${{ secrets.MAC_SIGN_IDENTITY }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.release.outputs.tag }}
+      - uses: ./.github/actions/package-desktop
+        with:
+          target: ${{ matrix.target }}
+          npm-token: ${{ secrets.GITHUB_TOKEN }}
+
+      # Whatever this platform's bundler produced, BY EXTENSION — a step that
+      # listed filenames would silently upload nothing the day a target changed
+      # its suffix, and `if-no-files-found` has no equivalent here.
+      - name: Attach to the release
+        shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release create "${{ steps.version.outputs.tag }}" \
-            --title "${{ steps.version.outputs.tag }}" \
-            --notes-file .release-notes.md
+          shopt -s nullglob globstar
+          assets=(tauri/target/release/bundle/**/*.{dmg,deb,AppImage,exe,msi})
+          if [ ${#assets[@]} -eq 0 ]; then
+            echo "::error::${{ matrix.target }} produced no distributable files"
+            ls -R tauri/target/release/bundle || true
+            exit 1
+          fi
+          printf 'uploading %s\n' "${assets[@]}"
+          gh release upload "$TAG" "${assets[@]}" --clobber
+
+  # THE RELEASE BECOMES VISIBLE HERE, and nowhere else: `needs: desktop` means
+  # every platform in the matrix has packaged AND uploaded before anybody can
+  # see the release page. If one target fails, the draft stays a draft — a
+  # release missing a download is a bug report from every user on that
+  # platform, and the fix (re-dispatch, or upload the installer by hand) is
+  # much cheaper while nobody has seen it yet.
+  publish:
+    needs: [release, desktop]
+    runs-on: ubuntu-latest
+    permissions:
+      # contents: write — this is the flag flip on the release itself.
+      contents: write
+    steps:
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ needs.release.outputs.tag }}
+        run: |
+          gh release edit "$TAG" --draft=false --latest
+          gh release view "$TAG" --json assets \
+            --jq '.assets[] | "published asset: \(.name)"'
 
   deploy:
     # Chain straight into pages.yml so the new tag is served at `/` immediately
     # — without this, deployment would wait for the next push to main.
+    #
+    # Deliberately `needs: release` and not `needs: publish`: the app IS the
+    # website (§11.2), it is built from the tag that already exists, and holding
+    # the web deploy hostage to a desktop packaging failure would take the
+    # browser version down over a download nobody has yet.
     needs: release
     uses: ./.github/workflows/pages.yml
     with:
