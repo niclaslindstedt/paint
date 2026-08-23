@@ -312,12 +312,21 @@ The desktop shell (`tauri/`) has a toolchain of its own — a Rust one — so
 `make test` and `make lint` deliberately stop at its edge and these reach it
 instead. See [`tauri/README.md`](tauri/README.md).
 
-| Command              | What it does                                                  |
-| -------------------- | ------------------------------------------------------------- |
-| `make tauri`         | Bundle the site into the shell and run the desktop app        |
-| `make tauri-test`    | Its decision layer (needs no GUI libraries)                   |
-| `make tauri-lint`    | clippy at zero warnings, both crates                          |
-| `make tauri-package` | This machine's installers, into `tauri/target/release/bundle` |
+| Command                    | What it does                                                    |
+| -------------------------- | --------------------------------------------------------------- |
+| `make tauri`               | Bundle the site into the shell and run the desktop app          |
+| `make tauri-fast`          | The same, skipping the site build (quick Rust iteration)        |
+| `make tauri-bundle`        | Just the site, into `tauri/webroot/`                            |
+| `make tauri-test`          | Its decision layer (needs no GUI libraries)                     |
+| `make tauri-lint`          | clippy at zero warnings, both crates                            |
+| `make tauri-fmt`           | rustfmt in place (`tauri-fmt-check` to verify)                  |
+| `make tauri-package`       | This machine's installers, into `tauri/target/release/bundle`   |
+| `make tauri-package-debug` | The same, debug profile — minutes faster, for "does it package" |
+| `make tauri-clean`         | `cargo clean` (the target directory reaches gigabytes)          |
+
+Both packaging targets forward `ARGS` to `tauri build`, e.g.
+`make tauri-package ARGS="--target aarch64-apple-darwin"`. Every target has an
+`npm run tauri:*` twin if you'd rather not go through make.
 
 ### In the app
 

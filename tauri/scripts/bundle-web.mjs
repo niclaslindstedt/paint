@@ -30,6 +30,7 @@ import {
   readdirSync,
   rmSync,
   statSync,
+  writeFileSync,
 } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -72,6 +73,14 @@ if (!existsSync(join(DIST_DIR, "index.html"))) {
 rmSync(OUT_DIR, { recursive: true, force: true });
 mkdirSync(OUT_DIR, { recursive: true });
 cpSync(DIST_DIR, OUT_DIR, { recursive: true });
+
+// …and put the tracked `.gitkeep` back, because the wholesale replacement above
+// takes it with everything else. The directory is committed (empty) for one
+// reason: `tauri.conf.json` declares `../webroot` as a bundle resource, so a
+// fresh checkout that has not bundled yet must still have somewhere for it to
+// point — otherwise `cargo build` and `make tauri-lint` fail before compiling a
+// line. Without this line every bundle leaves the file staged for deletion.
+writeFileSync(join(OUT_DIR, ".gitkeep"), "");
 
 // A worker in here would be a bug rather than dead weight: it would precache
 // files that are already on local disk and then serve the page from ITS copy,

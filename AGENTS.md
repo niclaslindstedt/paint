@@ -35,12 +35,20 @@ need a Rust toolchain plus the platform's webview development libraries; see
 [`tauri/README.md`](tauri/README.md).
 
 ```sh
-make tauri          # bundle the site into the shell and run the desktop app
-make tauri-test     # its decision layer (cargo test -p paint-shell — no GUI libs)
-make tauri-lint     # clippy at zero warnings, both crates
-make tauri-fmt      # rustfmt in place
-make tauri-package  # this machine's installers
+make tauri                # bundle the site into the shell and run the desktop app
+make tauri-fast           # the same, without rebuilding the site
+make tauri-bundle         # just the site, into tauri/webroot/
+make tauri-test           # its decision layer (cargo test -p paint-shell — no GUI libs)
+make tauri-lint           # clippy at zero warnings, both crates
+make tauri-fmt            # rustfmt in place (tauri-fmt-check verifies)
+make tauri-package        # this machine's installers
+make tauri-package-debug  # …debug profile: minutes faster, much bigger
+make tauri-clean          # cargo clean
 ```
+
+The two packaging targets forward `ARGS` to `tauri build`
+(`make tauri-package ARGS="--target aarch64-apple-darwin"`), and each target has
+an `npm run tauri:*` twin — the Makefile only ever delegates.
 
 The `@niclaslindstedt/oss-framework` dependency comes from the **GitHub
 Packages** npm registry (see `.npmrc`). GitHub Packages requires auth even for

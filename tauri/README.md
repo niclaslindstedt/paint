@@ -92,16 +92,17 @@ npm run tauri     # from the repo root
 make tauri        # the same thing
 ```
 
-`npm run start:fast` (in here) skips the site build and re-copies whatever
+The first run compiles the Rust world and takes a few minutes; every one after
+it is seconds. `make tauri-fast` skips the site build and re-copies whatever
 `dist/` already holds — much quicker while iterating on the Rust, and wrong the
 moment you have touched the app.
 
 ### Checking it
 
 ```sh
-make tauri-test    # the decision layer — needs no GUI libraries
-make tauri-lint    # clippy at zero warnings, BOTH crates (needs the libraries)
-make tauri-fmt     # rustfmt in place
+make tauri-test        # the decision layer — needs no GUI libraries
+make tauri-lint        # clippy at zero warnings, BOTH crates (needs the libraries)
+make tauri-fmt         # rustfmt in place (tauri-fmt-check verifies)
 ```
 
 **Neither is on the root suite's path**: `make test` and `make lint` stop at
@@ -131,9 +132,20 @@ The version comes from the root `package.json` (`tauri.conf.json` names that
 file rather than repeating the number), and the release job checks out the tag,
 so what ships is exactly what was released.
 
-`make tauri-package` builds this machine's installers locally, and
-`.github/workflows/desktop-tauri.yml` can be dispatched to build all three
-without cutting a release.
+```sh
+make tauri-package        # this machine's installers
+make tauri-package-debug  # …debug profile: minutes faster, much bigger bundles
+make tauri-package ARGS="--target aarch64-apple-darwin"
+make tauri-clean          # cargo clean — the target directory reaches gigabytes
+```
+
+`make tauri-package-debug` is the one to reach for when the question is "does
+this still package on my machine" rather than "is this shippable": the release
+profile is `lto = true` and `codegen-units = 1`, which is minutes of linking for
+a build nobody is going to install.
+
+`.github/workflows/desktop-tauri.yml` can also be dispatched to build all three
+platforms without cutting a release.
 
 **macOS is never signed with nothing** — Apple Silicon refuses to execute
 unsigned arm64 code and reports it to the user as "the app is damaged", so the

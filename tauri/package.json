@@ -16,7 +16,8 @@
     "fmt": "cargo fmt --all",
     "fmt:check": "cargo fmt --all -- --check",
     "package": "npm run bundle && tauri build",
-    "package:debug": "npm run bundle && tauri build --debug"
+    "package:debug": "npm run bundle && tauri build --debug",
+    "clean": "cargo clean"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2"

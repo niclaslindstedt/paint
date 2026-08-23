@@ -1,4 +1,4 @@
-.PHONY: build test lint fmt fmt-check actionlint release clean docs website website-dev install icons check-seo changelog bump tauri tauri-bundle tauri-test tauri-lint tauri-fmt tauri-package
+.PHONY: build test lint fmt fmt-check actionlint release clean docs website website-dev install icons check-seo changelog bump tauri tauri-fast tauri-bundle tauri-install tauri-test tauri-lint tauri-fmt tauri-fmt-check tauri-package tauri-package-debug tauri-clean
 
 build:
 	npm run build
@@ -41,13 +41,30 @@ actionlint:
 # surprise at release time. Needs a Rust toolchain (https://rustup.rs) plus the
 # platform's webview development libraries — see tauri/README.md.
 
-# Build the site into tauri/webroot/, compile the shell, and run it.
+# --- running it ---
+
+# Build the site into tauri/webroot/, compile the shell, and run it. This is
+# the one to reach for; the first run compiles the Rust world and takes a few
+# minutes, every one after it is seconds.
 tauri:
 	npm run tauri
+
+# The same, but WITHOUT rebuilding the site — it re-copies whatever dist/
+# already holds. Much quicker while iterating on the Rust, and wrong the moment
+# you have touched the app, so reach for plain `make tauri` when in doubt.
+tauri-fast:
+	npm run tauri:fast
 
 # The site, bundled into the shell, without launching anything.
 tauri-bundle:
 	npm run tauri:bundle
+
+# The shell's own npm tooling (the Tauri CLI). `make tauri` needs none of it —
+# only packaging does, and the packaging targets run this for you.
+tauri-install:
+	npm run tauri:install
+
+# --- checking it ---
 
 # The decision layer. Needs no GUI libraries at all — that is the whole reason
 # tauri/shell/ is a separate crate from tauri/src-tauri/.
@@ -61,10 +78,30 @@ tauri-lint:
 tauri-fmt:
 	npm run tauri:fmt
 
-# The installers for THIS machine's platform, into tauri/target/release/bundle.
-# The release workflow runs the same command on one runner per platform.
+tauri-fmt-check:
+	npm run tauri:fmt:check
+
+# --- packaging it ---
+
+# The installers for THIS machine's platform, into tauri/target/release/bundle
+# — a .exe on Windows, a .dmg on macOS, a .deb and an .AppImage on Linux. The
+# release workflow runs exactly this on one runner per platform.
+#
+# Pass anything `tauri build` takes through ARGS, e.g. cross-compiling on a Mac:
+#   make tauri-package ARGS="--target aarch64-apple-darwin"
 tauri-package:
-	npm run tauri:package
+	npm run tauri:package -- $(ARGS)
+
+# The same, built with the debug profile. Minutes faster than the release one
+# (no LTO, no stripping) and the bundles are much bigger — for answering "does
+# this still package on my machine" without waiting for a shipping build.
+tauri-package-debug:
+	npm run tauri:package:debug -- $(ARGS)
+
+# `cargo clean` — the Rust target directory is gigabytes once it has built a
+# release. The bundled webroot is left alone; every build replaces it wholesale.
+tauri-clean:
+	npm run tauri:clean
 
 docs:
 	@echo "see docs/"

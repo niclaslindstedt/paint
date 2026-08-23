@@ -25,7 +25,10 @@ name: desktop-tauri
 # `make tauri-test` and `make tauri-lint` run only when somebody remembers.
 
 on:
+  # `branches: [main]` on the push half, matching ci.yml: without it a PR branch
+  # runs both halves on every push and pays for the same checks twice.
   push:
+    branches: [main]
     paths:
       - "tauri/**"
       - "scripts/generate-icons.mjs"
