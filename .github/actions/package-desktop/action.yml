@@ -15,6 +15,22 @@ inputs:
       @niclaslindstedt/oss-framework from the GitHub Packages registry, which
       requires auth even for a public package.
     required: true
+  mac-signing:
+    description: >
+      `on` to sign the macOS build with a real certificate. ANYTHING ELSE —
+      including unset — signs it ad hoc, which is the default and needs no
+      secrets. Deliberately an opt-in switch rather than "sign if the secrets
+      look present": see the step below for what that cost.
+    default: ""
+  mac-signing-identity:
+    description: The certificate's identity name. Only read when mac-signing is `on`.
+    default: ""
+  mac-certificate:
+    description: The signing certificate, base64 .p12. Only read when mac-signing is `on`.
+    default: ""
+  mac-certificate-password:
+    description: Its password. Only read when mac-signing is `on`.
+    default: ""
 
 runs:
   using: composite
@@ -40,6 +56,57 @@ runs:
         sudo apt-get update
         sudo apt-get install -y libwebkit2gtk-4.1-dev libgtk-3-dev \
           libayatana-appindicator3-dev librsvg2-dev patchelf xdg-utils
+
+    # macOS SIGNING, and the reason it is a STEP rather than an `env:` block.
+    #
+    # Apple Silicon refuses to execute unsigned arm64 code and reports it as
+    # "the app is damaged", so a macOS build is never left unsigned. `-` is
+    # codesign's own name for an AD-HOC signature: the app runs natively, needs
+    # no secrets, and the user answers one Gatekeeper prompt. That is the
+    # default, and it is what the release notes promise.
+    #
+    # The certificate variables must be genuinely ABSENT for that path, not
+    # empty — `tauri_bundler::bundle::macos::sign::keychain` reads them with
+    # `var_os`, which answers `Some("")` for a variable that is set to nothing
+    # and takes the import branch anyway. An `env:` key with an expression
+    # ALWAYS sets its variable, so there is no expression that can leave one
+    # out; only a step writing to $GITHUB_ENV can. Hence this.
+    #
+    # And the switch is an explicit `on` rather than "sign if the secrets look
+    # present", because half-configured signing has now broken this release
+    # twice: once on an identity with no certificate behind it (`<name>: no
+    # identity found`) and once on a certificate that would not import
+    # (`SecKeychainItemImport: One or more parameters ... were not valid`).
+    # Both failed the WHOLE build, where ad hoc would have shipped. Turning
+    # real signing on is therefore a deliberate act, taken when there is a
+    # certificate known to work — set the `MAC_SIGNING` repository variable to
+    # `on` alongside the three secrets.
+    - name: macOS signing
+      if: inputs.target == 'macos'
+      shell: bash
+      env:
+        MAC_SIGNING: ${{ inputs.mac-signing }}
+        IDENTITY: ${{ inputs.mac-signing-identity }}
+        CERT: ${{ inputs.mac-certificate }}
+        CERT_PASSWORD: ${{ inputs.mac-certificate-password }}
+      run: |
+        set -euo pipefail
+        if [ "$MAC_SIGNING" = "on" ] && [ -n "$CERT" ] && [ -n "$IDENTITY" ]; then
+          echo "Signing with the configured certificate."
+          {
+            echo "APPLE_SIGNING_IDENTITY=$IDENTITY"
+            echo "APPLE_CERTIFICATE<<__PAINT_CERT__"
+            echo "$CERT"
+            echo "__PAINT_CERT__"
+            echo "APPLE_CERTIFICATE_PASSWORD=$CERT_PASSWORD"
+          } >> "$GITHUB_ENV"
+        else
+          if [ "$MAC_SIGNING" = "on" ]; then
+            echo "::warning::MAC_SIGNING is 'on' but the identity or certificate is missing — signing ad hoc instead."
+          fi
+          echo "Signing ad hoc — the download is unsigned-but-runnable and Gatekeeper asks once."
+          echo "APPLE_SIGNING_IDENTITY=-" >> "$GITHUB_ENV"
+        fi
 
     # The site build lives in the root project; the shell only carries its
     # output. `tauri/` is deliberately not a workspace member — it has its own

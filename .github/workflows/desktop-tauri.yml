@@ -124,10 +124,6 @@ jobs:
       contents: read
       # npm ci resolves @niclaslindstedt/oss-framework from GitHub Packages.
       packages: read
-    env:
-      # An absent secret means the ad-hoc signature `tauri build` falls back to,
-      # which is the minimum an arm64 app needs to run at all — see release.yml.
-      APPLE_SIGNING_IDENTITY: ${{ secrets.MAC_SIGN_IDENTITY }}
     steps:
       - name: Skip unselected platform
         if: inputs.platform != 'all' && inputs.platform != matrix.target
@@ -140,6 +136,11 @@ jobs:
         with:
           target: ${{ matrix.target }}
           npm-token: ${{ secrets.GITHUB_TOKEN }}
+          # Ad hoc unless MAC_SIGNING is `on` — see the action's signing step.
+          mac-signing: ${{ vars.MAC_SIGNING }}
+          mac-signing-identity: ${{ secrets.MAC_SIGN_IDENTITY }}
+          mac-certificate: ${{ secrets.MAC_CSC_LINK }}
+          mac-certificate-password: ${{ secrets.MAC_CSC_KEY_PASSWORD }}
 
       - uses: actions/upload-artifact@v7
         if: inputs.platform == 'all' || inputs.platform == matrix.target

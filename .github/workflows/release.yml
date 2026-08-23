@@ -250,14 +250,6 @@ jobs:
       packages: read
     env:
       TAG: ${{ needs.release.outputs.tag }}
-      # macOS SIGNING — optional, but the build is never left unsigned.
-      #
-      # Apple Silicon refuses to execute unsigned arm64 code and reports it to
-      # the user as "the app is damaged", so an unsigned arm64 download is not
-      # a download at all. Tauri therefore signs AD HOC when this is empty: the
-      # app runs natively and the user answers one Gatekeeper prompt. Set the
-      # secret and the same job signs for real.
-      APPLE_SIGNING_IDENTITY: ${{ secrets.MAC_SIGN_IDENTITY }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -266,6 +258,11 @@ jobs:
         with:
           target: ${{ matrix.target }}
           npm-token: ${{ secrets.GITHUB_TOKEN }}
+          # Ad hoc unless MAC_SIGNING is `on` — see the action's signing step.
+          mac-signing: ${{ vars.MAC_SIGNING }}
+          mac-signing-identity: ${{ secrets.MAC_SIGN_IDENTITY }}
+          mac-certificate: ${{ secrets.MAC_CSC_LINK }}
+          mac-certificate-password: ${{ secrets.MAC_CSC_KEY_PASSWORD }}
 
       # Whatever this platform's bundler produced, BY EXTENSION — a step that
       # listed filenames would silently upload nothing the day a target changed
