@@ -250,14 +250,23 @@ jobs:
       packages: read
     env:
       TAG: ${{ needs.release.outputs.tag }}
-      # macOS SIGNING — optional, but the build is never left unsigned.
+      # macOS SIGNING — optional, and the build is never left unsigned.
       #
       # Apple Silicon refuses to execute unsigned arm64 code and reports it to
       # the user as "the app is damaged", so an unsigned arm64 download is not
-      # a download at all. Tauri therefore signs AD HOC when this is empty: the
-      # app runs natively and the user answers one Gatekeeper prompt. Set the
-      # secret and the same job signs for real.
-      APPLE_SIGNING_IDENTITY: ${{ secrets.MAC_SIGN_IDENTITY }}
+      # a download at all.
+      #
+      # **`|| '-'` IS LOAD-BEARING.** An unset secret expands to the EMPTY
+      # STRING, not to nothing — and the bundler branches on whether the
+      # variable is set, not on whether it says anything: an empty one reaches
+      # `codesign --force -s ""`, which fails the whole build with `no identity
+      # found` (tauri-macos-sign's `Keychain::sign` passes the string straight
+      # through). `-` is codesign's own name for an AD-HOC signature, which is
+      # what an unsigned-but-runnable arm64 build actually needs: the app runs
+      # natively and the user answers one Gatekeeper prompt.
+      #
+      # Set MAC_SIGN_IDENTITY and the same job signs for real instead.
+      APPLE_SIGNING_IDENTITY: ${{ secrets.MAC_SIGN_IDENTITY || '-' }}
     steps:
       - uses: actions/checkout@v7
         with:

@@ -122,11 +122,13 @@ to set.
 
 ## Releasing
 
-**Nothing to do.** `.github/workflows/release.yml` packages this shell on one
-runner per platform for every `v*` tag and attaches the installers to the
-GitHub Release — a `.exe` on Windows, a `.dmg` on macOS, an `.AppImage` and a
-`.deb` on Linux. The release is created as a draft and only published once all
-three have uploaded, so a release page never appears with a download missing.
+**Nothing to do.** Dispatching `.github/workflows/release.yml` packages this
+shell on one runner per platform and attaches the installers to the GitHub
+Release — a `.exe` on Windows, a `.dmg` on macOS, an `.AppImage` and a `.deb` on
+Linux. The release is created as a draft and only published once all three have
+uploaded, so a release page never appears with a download missing. (That is not
+hypothetical: v0.1.1's macOS runner failed and the draft correctly stayed a
+draft — see the signing note at the foot of this section.)
 
 The version comes from the root `package.json` (`tauri.conf.json` names that
 file rather than repeating the number), and the release job checks out the tag,
@@ -151,3 +153,13 @@ platforms without cutting a release.
 unsigned arm64 code and reports it to the user as "the app is damaged", so the
 default is an ad-hoc signature and the user answers one Gatekeeper prompt. Set
 the `MAC_SIGN_IDENTITY` repository secret and the same job signs for real.
+
+The ad-hoc default is spelled `APPLE_SIGNING_IDENTITY: ${{ secrets.MAC_SIGN_IDENTITY || '-' }}`,
+and **the `|| '-'` is load-bearing rather than defensive.** An unset secret
+expands to the EMPTY STRING, not to nothing, and the bundler branches on
+whether the variable is set rather than on whether it says anything — so an
+empty one reaches `codesign --force -s ""` and fails the whole build with `no
+identity found`, which is exactly how v0.1.1's macOS download went missing. `-`
+is codesign's own name for an ad-hoc signature. Leaving the variable out
+entirely is not the fix either: that skips signing altogether, which is the
+unsigned arm64 build this paragraph opens by ruling out.
