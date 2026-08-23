@@ -1,6 +1,6 @@
 {
   "name": "paint",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "description": "A local-first paint PWA built on @niclaslindstedt/oss-framework — a simple canvas for sketching concepts, with pluggable tools you switch on in settings, themes, namespaces, and optional cloud sync.",
   "license": "PolyForm-Noncommercial-1.0.0",
