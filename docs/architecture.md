@@ -1207,6 +1207,31 @@ anywhere else — and shown, wherever it is in force, on the pointer
 (`PointerRing.tsx`), on the tool's own button, and on a strip at the foot of the
 canvas (`SelectionModeBar.tsx`).
 
+**Two things happen to a window after the gesture that cut it, and both are
+pure arithmetic over contours with a thin screen on top.**
+
+`selectGap.ts` asks whether the shape was only gone _round_. A pocket is a
+contour at odd nesting depth — the even-odd rule's own definition of what is
+left out — so finding one is a nesting walk and no pixels, and filling one is
+_dropping that contour_ rather than re-flooding the window the way **Gap
+select** does (`fillGap`), which is what lets the offer be taken without moving
+the border a hair. Offered only when the pockets are worth a third of what the
+outline is around, so a ring asks and a traced face with two eyes in it does
+not; the card floats in the roomiest part of the pocket itself
+(`GapOffer.tsx`), and is drawn only while the window on screen is still the one
+the pockets were found in, which is the whole of its lifetime.
+
+`selectHandles.ts` decides where a window is grabbable. A rectangle's frame is
+its shape, so the box marquee keeps the four corner grips it has always had
+(`isRectangular`); anything else gets grips **on its own outline** — at each
+sharp turn and at an even spacing along the rest — and dragging one bends the
+line with a raised-cosine falloff over one grip spacing, the tone curve's
+handle applied to a contour (`reshapeRegion`). The bend moves points and never
+adds or drops one, so a grip's `(loop, index)` address is good for a whole
+drag; the spacing is passed in from the screen in document pixels converted
+from a constant on the glass, so an outline wears about as many grips at any
+zoom (`SelectionOutlineGrips.tsx`).
+
 `group` is the flag that changes how a tool is _offered_ rather than how it
 behaves. The eleven shapes each stay their own plugin — their own painter, their
 own remembered width, their own persisted id, so nothing already drawn is

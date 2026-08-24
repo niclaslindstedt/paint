@@ -68,8 +68,13 @@ connect a storage backend yourself.
   while a selection is.
   What settles is an area, not a list of marks: paint in it and the mark is cut
   to it, drag it with the hand to carry what is painted under it, drag it with
-  the marquee to slide the window itself, and pull its corner grips to adjust it
-  under a 300% magnifier. Selections are on the undo timeline beside the marks,
+  the marquee to slide the window itself, and pull its grips to adjust it under
+  a 300% magnifier — corner grips on a rectangle, and on anything else grips
+  sitting on the outline itself, at its sharp corners and evenly between them,
+  each one bending the line around it the way a tone curve's handle bends the
+  curve. A gesture that leaves a shape gone only round — a painted ring, a
+  traced ring, a lasso doubled back — offers to fill its middle in with a card
+  floating in the gap. Selections are on the undo timeline beside the marks,
   so Ctrl/Cmd+Z takes back the window you just cut, slid, stretched or painted
   one stroke too far, and redo puts it back. Delete (or a tap with the rubber) clears what is
   inside; copy, cut and paste work from the keyboard, a right-click or a long

@@ -432,6 +432,11 @@ export const en = {
     selectionActions: "Selection",
     selectionFrame: "Selection",
     adjustSelection: "Adjust the selection",
+    // The grips on a window that is not a rectangle — one per sharp corner and
+    // one every so often along the line between them (see `selectHandles.ts`).
+    // "Reshape" rather than "Adjust": the frame's corners stretch the whole
+    // window, and these bend the line they sit on.
+    reshapeSelection: "Reshape the selection",
     eraseSelection: "Erase the selection",
     copy: "Copy",
     cut: "Cut",
@@ -440,6 +445,14 @@ export const en = {
     zoomPercent: "{percent}%",
     undo: "Undo",
     redo: "Redo",
+  },
+  // The card that floats in the middle of a shape you only went *round* (see
+  // `GapOffer.tsx`). Short, because it is standing on the picture: the pocket
+  // it is talking about is the one underneath it.
+  gapOffer: {
+    ask: "Fill the middle?",
+    fill: "Fill",
+    dismiss: "Leave it",
   },
   // What a selection gesture does to the window already up — the family-wide
   // Replace / Add / Subtract (see `selectMode.ts`). The words are about the
