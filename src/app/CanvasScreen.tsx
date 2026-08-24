@@ -78,7 +78,14 @@ import {
   selectionBox,
   selectionOf,
   translateStrokes,
+  type SelectionRegion,
 } from "./selection.ts";
+import {
+  fillSelectionGaps,
+  gapsWorthOffering,
+  type SelectionGap,
+} from "./selectGap.ts";
+import { GapOffer } from "./GapOffer.tsx";
 import { SelectionFrame } from "./SelectionFrame.tsx";
 import { TextEntry } from "./TextEntry.tsx";
 import { Toolbar } from "./Toolbar.tsx";
@@ -357,6 +364,19 @@ export function CanvasScreen({
   // Bumped when the page changes shape under the view, so the canvas can fit the
   // sheet again — see `PaintCanvas`'s `refitToken`.
   const [refitToken, setRefitToken] = useState(0);
+  /** The pockets a settled window went round, and the outline they were found
+   *  on — what the card floating in the biggest of them offers to fill in (see
+   *  `selectGap.ts` and `GapOffer.tsx`).
+   *
+   *  It is held **against that exact outline object** rather than as a flag,
+   *  which is the whole of its lifetime: the card is drawn only while the
+   *  window on the screen is still the one the pockets were found in, so
+   *  anything else at all — another gesture, a nudge of a grip, an undo, a hand
+   *  drag — takes the offer away without a line of code to do it. */
+  const [gapOffer, setGapOffer] = useState<{
+    region: SelectionRegion;
+    gaps: SelectionGap[];
+  } | null>(null);
   const surfaceRef = useRef<HTMLDivElement>(null);
   const drawing = store.activeDrawing;
 
@@ -1101,8 +1121,9 @@ export function CanvasScreen({
               // `selectMode.ts`). A tool that had already worked the window over
               // itself reports `replace` and lands exactly as it always did.
               const kept = mode !== "replace";
+              const chosen = applySelectMode(selection?.region, region, mode);
               setSelection(
-                selectionOf(applySelectMode(selection?.region, region, mode), {
+                selectionOf(chosen, {
                   // A window built out of two gestures keeps what the last one
                   // that had an opinion said: a marquee added to a painted
                   // selection must not throw away the feather it was cut with.
@@ -1121,6 +1142,16 @@ export function CanvasScreen({
                       ? selection?.nib
                       : undefined),
                 }),
+              );
+              // …and, if what settled is a shape that was only gone *round*,
+              // the offer to fill its middle in. Asked here rather than by the
+              // gesture because it is a question about the **window**, not
+              // about the tool: a lasso doubled back on itself, a trace round a
+              // ring and a painted circle all leave the same pocket, and none
+              // of them has to know this exists (see `selectGap.ts`).
+              const gaps = chosen ? gapsWorthOffering(chosen) : [];
+              setGapOffer(
+                chosen && gaps.length > 0 ? { region: chosen, gaps } : null,
               );
             }}
             // …the marquee's drag from inside it, which slides the window and
@@ -1179,6 +1210,39 @@ export function CanvasScreen({
               onPlacing={setAdjusting}
             />
           )}
+
+          {/* "And the middle?" — floating in the pocket a shape you only went
+            round has left, for as long as that outline is the one on the
+            screen (see `GapOffer.tsx`). Away while the hand is carrying the
+            window: a card anchored to a page point the window has visibly left
+            is a card pointing at nothing. */}
+          {selection &&
+            view &&
+            gapOffer &&
+            gapOffer.region === selection.region &&
+            !carrying &&
+            !placement &&
+            !typing &&
+            !crop.box && (
+              <GapOffer
+                view={view}
+                at={gapOffer.gaps[0]!.at}
+                onFill={() => {
+                  // Dropping the pocket's contour *is* the fill (see
+                  // `fillSelectionGaps`), so the outline comes through
+                  // unmoved — and the window keeps the feather and the nib it
+                  // was cut with, exactly as a grip drag does.
+                  setSelection(
+                    selectionOf(
+                      fillSelectionGaps(gapOffer.region, gapOffer.gaps),
+                      { feather: selection.feather, nib: selection.nib },
+                    ),
+                  );
+                  setGapOffer(null);
+                }}
+                onDismiss={() => setGapOffer(null)}
+              />
+            )}
 
           {/* The dropped image, floating over the page until it is kept. */}
           {placement && view && (

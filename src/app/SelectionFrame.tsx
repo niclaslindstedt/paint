@@ -4,7 +4,9 @@ import { useRef } from "react";
 import { boxFromCorners, type Box } from "./bounds.ts";
 import { useT } from "./i18n/index.ts";
 import { CORNERS, type Corner } from "./placement.ts";
+import { isRectangular } from "./selectHandles.ts";
 import { scaleRegion, type Selection } from "./selection.ts";
+import { SelectionOutlineGrips } from "./SelectionOutlineGrips.tsx";
 import type { Point } from "./types.ts";
 import { toDocumentPoint, toScreenPoint, type CanvasView } from "./viewport.ts";
 
@@ -23,6 +25,17 @@ import { toDocumentPoint, toScreenPoint, type CanvasView } from "./viewport.ts";
 // than it does there, because everything inside a selection is still the
 // canvas's: painting in it, dragging its contents with the hand, sliding the
 // window with the marquee. Only the twelve pixels of each grip are ours.
+//
+// **Four corners is the right answer for a rectangle and the wrong one for
+// everything else.** A box marquee's frame *is* its shape, so its corners are
+// grips on the thing you drew. A lasso's frame is not: the grips float in space
+// beside the shape, the line you actually drew has nothing on it you can grab,
+// and the one edit they offer is "stretch the whole thing". So a window that is
+// not an upright rectangle gets its grips **on its own outline** instead — at
+// its sharp corners and evenly along everything between — and dragging one
+// bends the line around it the way a tone curve's handle bends the curve (see
+// `selectHandles.ts` and `SelectionOutlineGrips.tsx`). This file decides which
+// of the two a window gets and owns the layer both are positioned in.
 //
 // The outline itself is not drawn here. It is painted on the canvas with the
 // same marching ants the gesture was dragged with (see `frame.ts`), so what you
@@ -128,6 +141,10 @@ export function SelectionFrame({
     onPlacing(null);
   };
 
+  // Which grips this window wears. A rectangle's frame is its shape, so its
+  // corners are grips on what you drew; anything else is adjusted on its line.
+  const upright = isRectangular(selection.region);
+
   const topLeft = toScreenPoint(view, {
     x: selection.box.x + (offset?.x ?? 0),
     y: selection.box.y + (offset?.y ?? 0),
@@ -144,30 +161,41 @@ export function SelectionFrame({
       ref={layerRef}
       className="pointer-events-none absolute inset-0 overflow-hidden"
     >
-      <div
-        role="group"
-        aria-label={t("canvas.selectionFrame")}
-        className="absolute"
-        style={{
-          left: `${frame.left}px`,
-          top: `${frame.top}px`,
-          width: `${frame.width}px`,
-          height: `${frame.height}px`,
-        }}
-      >
-        {CORNERS.map((corner) => (
-          <button
-            key={corner}
-            type="button"
-            aria-label={t("canvas.adjustSelection")}
-            style={{ cursor: CURSORS[corner] }}
-            className={`absolute h-3.5 w-3.5 cursor-pointer touch-none rounded-sm border-2 border-accent bg-surface ${offset ? "" : "pointer-events-auto"} ${OFFSETS[corner]}`}
-            onPointerDown={(e) => startDrag(e, corner)}
-            onPointerMove={continueDrag}
-            onPointerUp={endDrag}
-            onPointerCancel={endDrag}
+      <div role="group" aria-label={t("canvas.selectionFrame")}>
+        {upright ? (
+          <div
+            className="absolute"
+            style={{
+              left: `${frame.left}px`,
+              top: `${frame.top}px`,
+              width: `${frame.width}px`,
+              height: `${frame.height}px`,
+            }}
+          >
+            {CORNERS.map((corner) => (
+              <button
+                key={corner}
+                type="button"
+                aria-label={t("canvas.adjustSelection")}
+                style={{ cursor: CURSORS[corner] }}
+                className={`absolute h-3.5 w-3.5 cursor-pointer touch-none rounded-sm border-2 border-accent bg-surface ${offset ? "" : "pointer-events-auto"} ${OFFSETS[corner]}`}
+                onPointerDown={(e) => startDrag(e, corner)}
+                onPointerMove={continueDrag}
+                onPointerUp={endDrag}
+                onPointerCancel={endDrag}
+              />
+            ))}
+          </div>
+        ) : (
+          <SelectionOutlineGrips
+            view={view}
+            selection={selection}
+            onChange={onChange}
+            offset={offset}
+            onPlacing={onPlacing}
+            documentPoint={documentPoint}
           />
-        ))}
+        )}
       </div>
     </div>
   );

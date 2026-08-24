@@ -381,6 +381,7 @@ export const sv: Catalog = {
     selectionActions: "Markering",
     selectionFrame: "Markering",
     adjustSelection: "Justera markeringen",
+    reshapeSelection: "Forma om markeringen",
     eraseSelection: "Radera markeringen",
     copy: "Kopiera",
     cut: "Klipp ut",
@@ -389,6 +390,11 @@ export const sv: Catalog = {
     zoomPercent: "{percent} %",
     undo: "Ångra",
     redo: "Gör om",
+  },
+  gapOffer: {
+    ask: "Fyll mitten?",
+    fill: "Fyll",
+    dismiss: "Låt vara",
   },
   selectMode: {
     title: "Vad nästa markering gör",

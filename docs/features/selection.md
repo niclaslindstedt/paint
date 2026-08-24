@@ -127,13 +127,54 @@ of clearing it, so a slip does not cost the minute you spent building it.
 
 ## Adjusting
 
-The four corner grips stretch the window, shape and all: a lasso pulled by a
-corner is still that lasso, carried along proportionally. Dragging **inside** it
-with the marquee still in your hand slides the whole window somewhere else and
-leaves what is painted under it alone.
+**A rectangle wears grips on its corners.** Drag one and the window stretches,
+the corner opposite staying pinned.
+
+**Everything else wears them on its own line.** A lasso loop, a traced shape, a
+painted window — anything that is not an upright rectangle gets a grip at each
+of its sharp corners and one every so often along the line between them, sitting
+on the outline rather than floating in a box around it. Corners are drawn square
+and the ones the spacing put there round, so you can tell a landmark of the shape
+from a place to grab.
+
+Drag one and the line **bends** around it: the grip goes where your finger is,
+the line either side of it follows by less and less, and by the next grip along
+nothing has moved at all. It is the tone curve's handle, on a shape (see
+[`effects.md`](effects.md)) — pull a lasso's edge out and you get a lobe rather
+than a spike, and the rest of the outline you drew stays exactly where you drew
+it. The holes in a traced shape are left alone while you work its border.
+
+The grips are spaced by what they look like on screen rather than by the page, so
+an outline wears about as many of them however far you are zoomed in — and zoom
+in before adjusting if you want finer control, because the bend reaches as far as
+the grips are apart.
+
+Dragging **inside** the window with the marquee still in your hand slides the
+whole window somewhere else and leaves what is painted under it alone.
 
 Each is one step you can take back, and a whole drag is one step rather than one
 per twitch of your finger — see below.
+
+## "Fill the middle?"
+
+Draw a circle with the **Draw select** pencil and what you get is a ring: the
+stripe the nib painted is chosen, and the disc inside it is not, because nothing
+painted it. The same happens when a trace follows a ring and when a lasso doubles
+back on itself. It is the commonest surprise the selection tools hold, and the
+answer to it — **Gap select** — is a tool you have to already know about.
+
+So the app asks. When a gesture settles and leaves a pocket big enough to have
+been the point of it, a small card floats **in that pocket**: _Fill the middle?_
+Press **Fill** and the middle joins the window. Press ✕, or simply carry on, and
+it goes — no timer, no second asking, and nothing changed.
+
+It is an offer rather than a rule because "round the outside" is a real answer
+too: a frame, a halo, a ring to rub out. And it keeps quiet about the holes that
+are not the point — a traced face with two eyes in it is a shape with holes, not
+a shape you went round.
+
+Filling this way keeps the outline you drew to the last decimal — the pocket's
+own outline is simply dropped — so the border is not nudged by having asked.
 
 ## Inverting
 
