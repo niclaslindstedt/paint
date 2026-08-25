@@ -150,7 +150,7 @@ wrong way.
 The page also has a **material**, picked beside the page size and the page
 colour under **Canvas type** in the New image dialog (a canvas preset can put one
 there for you): a solid digital sheet, one
-of four papers, or primed cotton duck. It is not a texture laid over the drawing
+of six papers, or primed cotton duck. It is not a texture laid over the drawing
 — the sheet's grain is painted under the marks, and on a sheet that drinks, a wet
 tool mixes with what it is painted over instead of covering it. Watercolour is
 the tool to try it with. Like the size and the colour, it is fixed once the page

@@ -92,7 +92,7 @@ export type GroundDescriptor = {
   /** How far up the grain dial this stock opens, as the multiple of its own
    *  weight a page made on it gets by default (see `Ground.texture`).
    *
-   *  Not 1 for all six, because "the sheet as it is sold" is not what each of
+   *  Not 1 for all of them, because "the sheet as it is sold" is not what each of
    *  them is *reached for*. A hot-pressed sheet is bought to be smooth, so
    *  opening it with every last bit of its (already faint) tooth showing sells
    *  it as a lesser rough; a rough sheet is bought for exactly the opposite
@@ -117,14 +117,17 @@ export function defaultGrain(id: string | undefined): number {
  *  It is a **short** shelf on purpose. The choice is made once, in the dialog
  *  that makes the drawing, and a page you can't change your mind about later is
  *  a page whose options have to be readable in one glance — so the list is the
- *  stocks an artist actually reaches for and nothing else. Watercolour paper is
- *  sold in exactly three surfaces — hot-pressed, cold-pressed and rough — and
- *  the difference between them is the difference between three quite different
- *  paintings; cartridge is what a sketchbook is; cotton duck is what a
- *  stretched canvas is made of, and it is primed, which is why it is *less*
- *  thirsty than any of the papers rather than more.
+ *  stocks an artist actually reaches for and nothing else. The rule for what
+ *  earns a place is **the toolbox**: every medium the app ships should have a
+ *  sheet it was made for. Watercolour paper is sold in exactly three surfaces —
+ *  hot-pressed, cold-pressed and rough — and the difference between them is the
+ *  difference between three quite different paintings; cartridge is what a
+ *  sketchbook is; bristol is the sized board marker ink and a fineliner stay
+ *  crisp on; pastel paper is the deep tooth that holds what chalk and crayon
+ *  shed; cotton duck is what a stretched canvas is made of, and it is primed,
+ *  which is why it is *less* thirsty than any of the papers rather than more.
  *
- *  The order is **use**, not roughness. Sorting six sheets smoothest-to-coarsest
+ *  The order is **use**, not roughness. Sorting the sheets smoothest-to-coarsest
  *  is a physical property nobody chooses by, and it buried the two sheets almost
  *  every real page is made on in the middle of the shelf. So:
  *
@@ -140,7 +143,12 @@ export function defaultGrain(id: string | undefined): number {
  *      brush leaves across its peaks.
  *   5. **Hot-pressed** — a specialist's sheet: botanical work, pen and wash,
  *      anything where a hard line matters more than granulation.
- *   6. **Cotton duck** — a real surface, and a painter's rather than a
+ *   6. **Bristol** — the illustrator's board: plate-smooth and heavily sized,
+ *      so marker and fineliner ink sits on its face instead of feathering
+ *      into it. The sheet comics and clean line work are made on.
+ *   7. **Pastel** — the sheet sold for the dust media: a deep, even tooth
+ *      whose whole job is to catch and hold what chalk and crayon shed.
+ *   8. **Cotton duck** — a real surface, and a painter's rather than a
  *      draughtsman's; it is the one anybody reaching for it comes looking for
  *      by name.
  *
@@ -215,6 +223,43 @@ export const GROUNDS: readonly GroundDescriptor[] = [
     // …and opened below it, for the mirror-image reason: this sheet is bought to
     // be smooth, so it starts as a hint of tooth rather than a fine rough.
     grainDefault: 0.7,
+  },
+  {
+    id: "bristol",
+    family: "paper",
+    nameKey: "grounds.bristol.name",
+    hintKey: "grounds.bristol.hint",
+    // Bristol board, plate finish: pressed harder than hot-pressed and sized
+    // far more heavily, which is the whole point of it — marker ink and a
+    // fineliner sit crisp on its face where every sketching paper lets them
+    // creep. The least thirsty sheet here, glass excepted.
+    profile: {
+      absorbency: 0.22,
+      tooth: mm(0.12),
+      bite: 0.08,
+      pattern: "tooth",
+    },
+    // Bought to be the smoothest paper there is, so it opens with even less of
+    // its (already faint) tooth showing than hot-pressed does.
+    grainDefault: 0.6,
+  },
+  {
+    id: "pastel",
+    family: "paper",
+    nameKey: "grounds.pastel.name",
+    hintKey: "grounds.pastel.hint",
+    // Pastel paper: a deep, even tooth whose job is to catch and hold the dust
+    // the dry media shed — chalk and crayon bite into it where they would slide
+    // off a smoother sheet. Lightly sized, so a wash still takes.
+    profile: {
+      absorbency: 0.55,
+      tooth: mm(0.6),
+      bite: 0.55,
+      pattern: "tooth",
+    },
+    // Opened a shade above its own weight for rough's reason: the tooth is what
+    // this sheet is bought for, and it should be visible in the swatch.
+    grainDefault: 1.1,
   },
   {
     id: "cotton",

@@ -87,8 +87,6 @@ export const en = {
     pageColorLabel: "Page colour",
     pageColorTransparent: "Transparent",
     canvasTypeLabel: "Canvas type",
-    canvasTypeHint:
-      "Picked once, here — the sheet travels with the image and can't be changed afterwards. On a sheet that drinks, a wet tool mixes with what it is over instead of covering it, whatever the page is.",
     grainLabel: "Grain: {value}%",
     chooseImage: "Choose an image or a paint file…",
     chooseImageHint:
@@ -725,8 +723,9 @@ export const en = {
   },
   // The sheets a drawing can be laid on (see `ground.ts`). Named the way a
   // paper merchant names them — these are stocks you can buy, not adjectives —
-  // and the hint says what the sheet *does*, because that is the thing you are
-  // actually choosing between.
+  // and the hint says what the sheet is *for*, because "which of my tools does
+  // this suit" is the question anyone at the shelf is actually asking. The
+  // swatch already shows what the sheet looks like.
   // What each page colour is called. Printed under the swatch row in the
   // new-image dialog, because a row of round swatches shows the colours and
   // says nothing about which one you have got hold of.
@@ -741,27 +740,35 @@ export const en = {
   grounds: {
     solid: {
       name: "Solid colour",
-      hint: "A sealed digital page: no grain, and paint sits on top of what it covers.",
+      hint: "Good for: digital art, flat colour, sharp lines and fills.",
     },
     hot: {
       name: "Hot-pressed",
-      hint: "Watercolour paper rolled smooth. It drinks like paper with almost nothing for pigment to settle into.",
+      hint: "Good for: detailed watercolour, pen and wash, botanical work.",
     },
     cold: {
       name: "Cold-pressed",
-      hint: "The sheet most watercolour is painted on. Enough tooth to mottle, not so much that a line breaks up.",
+      hint: "Good for: watercolour, gouache, mixed media.",
     },
     rough: {
       name: "Rough",
-      hint: "Dried unpressed. Washes pool in the valleys and a dry brush skips across the peaks.",
+      hint: "Good for: expressive watercolour, dry brush, granulating washes.",
     },
     cartridge: {
       name: "Cartridge",
-      hint: "Sketchbook paper. A fine grain, and sized enough that ink stays where you put it.",
+      hint: "Good for: pencil sketches, ink drawing, everyday sketchbook work.",
+    },
+    bristol: {
+      name: "Bristol",
+      hint: "Good for: markers, fineliners, comics and clean line art.",
+    },
+    pastel: {
+      name: "Pastel",
+      hint: "Good for: chalk, crayon, soft shading.",
     },
     cotton: {
       name: "Cotton duck",
-      hint: "Primed canvas: a coarse weave that shows through everything, and a ground that holds paint on its face.",
+      hint: "Good for: oils and acrylics, bold brushwork, airbrush.",
     },
   },
   tools: {
