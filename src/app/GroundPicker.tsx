@@ -13,7 +13,6 @@ import {
   tileCanvas,
   tileRatio,
 } from "./tiles.ts";
-import { mm } from "./units.ts";
 import type { Drawing, Ground } from "./types.ts";
 
 // Picking the sheet a drawing is on — the shelf itself, and the swatch one cell
@@ -28,74 +27,45 @@ import type { Drawing, Ground } from "./types.ts";
 // drew them never saw. Size and surface are the two answers a page is built
 // from; colour, which is only ever a backdrop, stays editable.
 //
-// **The stocks are shown rather than listed**, the same call the size shelf
-// makes: a swatch of the sheet with a wash laid across an ink line on it answers
-// "what is rough for?" in a way no sentence does, because the answer is a
-// picture. Each swatch is painted by the renderer, through the same painters the
-// page uses, so it is the sheet rather than an illustration of one.
+// **The stocks are shown rather than told**: each swatch is a bare patch of the
+// sheet itself, magnified to where its grain is a texture you can read rather
+// than a tint — what the paper actually looks like, with nothing drawn on it.
+// It used to carry a sample ink line and a wash, and they earned their keep
+// badly: at swatch size every sheet's marks looked like every other sheet's,
+// and the paper itself — the thing being chosen — was invisible under them.
+// What a stock is *for* is a sentence now (the hint under the shelf), and what
+// it *is* is the picture. Each swatch is still painted by the renderer, through
+// the same ground painter the page uses, so it is the sheet rather than an
+// illustration of one.
 
 /** How big a swatch is on screen, in CSS pixels. Sized so the whole shelf fits
- *  one row of the new-drawing dialog: a stock you have to scroll to compare is
- *  a stock nobody compares. */
+ *  two short rows of the new-drawing dialog: a stock you have to scroll to
+ *  compare is a stock nobody compares. */
 const SWATCH = { width: 68, height: 48 };
 
-/** …and the page it is a picture of, in document pixels. Large enough that a
- *  real brush width and a real paper grain both have room to be themselves at
- *  the scale the swatch is drawn at. */
-const SAMPLE = { width: 420, height: 300 };
+/** How far the sheet is magnified in the swatch: 300%, the zoom a page's own
+ *  grain reads clearly at. The swatch shows the patch of paper that would fill
+ *  it at that zoom — a close look at the surface, not a page seen from across
+ *  the room. */
+const MAGNIFY = 3;
 
-/** The marks on every swatch: a line of ink, and a wash laid across it.
- *
- *  Deliberately those two and in that order, because between them they show
- *  everything the sheet does — the grain under the wash, how far the water ran
- *  past the brush, whether the pigment mottled, and whether the ink line under
- *  it bled out into the water or sat there untouched. On the solid sheet the
- *  wash simply covers the line; on rough paper the line dissolves into it. */
-function sampleMarks(ink: string, wash: string) {
-  return [
-    {
-      id: "ink",
-      tool: "pencil",
-      color: ink,
-      size: mm(0.5),
-      shape: {
-        kind: "path" as const,
-        points: [
-          { x: 120, y: 40 },
-          { x: 150, y: 150 },
-          { x: 140, y: 260 },
-        ],
-      },
-    },
-    {
-      id: "wash",
-      tool: "watercolor",
-      color: wash,
-      size: mm(5),
-      shape: {
-        kind: "path" as const,
-        points: [
-          { x: 40, y: 110 },
-          { x: 160, y: 150 },
-          { x: 290, y: 130 },
-          { x: 380, y: 175 },
-        ],
-      },
-    },
-  ];
-}
+/** …and the patch of page the swatch is a picture of, in document pixels. */
+const SAMPLE = {
+  width: SWATCH.width / MAGNIFY,
+  height: SWATCH.height / MAGNIFY,
+};
 
 /** Swatches already painted, keyed by everything that decides their pixels —
  *  stock, grain, page colour, theme, and the device's pixel ratio.
  *
- *  A swatch is not cheap: the wash on it goes through the real watercolour
- *  engine, and six of them painted in one effect flush held the new-image
- *  dialog's thread for the better part of a second. Painted pixels never go
- *  stale — the same key is the same picture — so they are kept for the life of
- *  the tab, and reopening the dialog blits six bitmaps instead of running six
- *  simulations. Capped because a drag of the grain slider mints a shelf's worth
- *  of entries per step; the oldest go first, and repainting an evicted swatch
- *  costs what it always cost. */
+ *  A swatch is only a patch of ground now, but the first one on a fresh page
+ *  still builds the grain tiles it is painted from, and a shelf painted in one
+ *  effect flush is a shelf that stutters. Painted pixels never go stale — the
+ *  same key is the same picture — so they are kept for the life of the tab, and
+ *  reopening the dialog blits bitmaps instead of painting. Capped because a
+ *  drag of the grain slider mints a shelf's worth of entries per step; the
+ *  oldest go first, and repainting an evicted swatch costs what it always
+ *  cost. */
 const painted = new TileCache(60);
 
 /** Everything a swatch's pixels are a function of, folded into its cache key.
@@ -126,38 +96,40 @@ function paintSwatch(
   const made = tileCanvas(SWATCH.width, SWATCH.height, dpr);
   if (!made) return null;
   const { canvas, ctx } = made;
-  const ink = defaultInk(dark);
   const ground: Ground | undefined = stock
     ? { stock, ...(texture === 1 ? {} : { texture }) }
     : undefined;
+  // A page with nothing on it: the swatch is the sheet, not a drawing.
   const drawing: Drawing = {
     id: "swatch",
     name: "",
     width: SAMPLE.width,
     height: SAMPLE.height,
-    strokes: sampleMarks(ink, dark ? "#7dd3fc" : "#2563eb"),
+    strokes: [],
     ...(ground ? { ground } : {}),
   };
   const scale = canvas.width / SAMPLE.width;
   ctx.setTransform(scale, 0, 0, scale, 0, 0);
-  // The whole page, through the app's own renderer: same painters, same
-  // grain, same mixing. A swatch that drew its own idea of paper would be
-  // free to be wrong about it.
-  renderDrawing(ctx, drawing, null, { pageColor, defaultInk: ink });
+  // The bare page, through the app's own renderer at the magnifying zoom: same
+  // ground painter, same grain tiles, so what the swatch shows is exactly what
+  // the page looks like zoomed to the same place. A swatch that drew its own
+  // idea of paper would be free to be wrong about it.
+  renderDrawing(ctx, drawing, null, {
+    pageColor,
+    defaultInk: defaultInk(dark),
+  });
   return canvas;
 }
 
 /** Paint the shelf a fresh dialog opens on, before anyone opens it.
  *
- *  The first swatch ever painted costs two orders of magnitude more than every
- *  one after — the painters are compiled and the grain tiles built on that
- *  first run, and the *pixels* were never the bill: the same six swatches cost
- *  ~120 ms cold and ~1 ms warm, at any resolution, which is why the answer to
- *  a slow shelf is warming it rather than shrinking it. Called at idle from the
- *  app with the page a fresh dialog will actually show — no colour, grain at 1
- *  — so the bill is paid where nobody is waiting, one swatch per frame through
- *  the same queue, and the dialog's own shelf is six blits. Calling it warm
- *  costs six map lookups. */
+ *  The first swatch painted on a fresh page costs the most — the grain tiles
+ *  are built on that first run — and a whole shelf painted in one flush is a
+ *  dialog that stutters as it opens. Called at idle from the app with the page
+ *  a fresh dialog will actually show — no colour, grain at 1 — so the bill is
+ *  paid where nobody is waiting, one swatch per frame through the same queue,
+ *  and the dialog's own shelf is a row of blits. Calling it warm costs a map
+ *  lookup per stock. */
 export function warmSwatches(pageColor: string, dark: boolean): void {
   if (typeof document === "undefined" || typeof window === "undefined") return;
   const dpr = tileRatio();
@@ -215,10 +187,13 @@ export function GroundSwatch({
     <canvas
       ref={ref}
       // The page's own colour behind the canvas, so a swatch still in the queue
-      // reads as a blank page rather than a hole in the shelf.
+      // reads as a blank page rather than a hole in the shelf. It fills its
+      // cell up to its own size, so a narrow phone shrinks the swatch a hair
+      // instead of overflowing the grid.
       style={{
-        width: SWATCH.width,
-        height: SWATCH.height,
+        width: "100%",
+        maxWidth: SWATCH.width,
+        aspectRatio: `${SWATCH.width} / ${SWATCH.height}`,
         backgroundColor: pageColor,
       }}
       className="block rounded-sm"
@@ -228,7 +203,7 @@ export function GroundSwatch({
 
 /** Every stock this build ships, as a shelf of swatches to choose from.
  *
- *  One flat row rather than a family control and a shelf under it: the whole
+ *  One flat grid rather than a family control and a shelf under it: the whole
  *  catalog is short enough to compare in a glance (see `GROUNDS`), and a
  *  comparison is what the choice is. */
 export function GroundPicker({
@@ -259,10 +234,11 @@ export function GroundPicker({
   return (
     <div className="flex flex-col gap-2">
       {/* A grid rather than a wrapping row, so every cell is the same width
-          whatever its stock is called and the shelf reads as one row of pages
-          instead of a ragged line of buttons. */}
+          whatever its stock is called and the shelf reads as even rows of
+          pages instead of a ragged line of buttons. Four to a row: eight
+          stocks make two full rows on every screen. */}
       <div
-        className="grid grid-cols-3 gap-2 sm:grid-cols-6"
+        className="grid grid-cols-4 gap-2"
         role="radiogroup"
         aria-label={label}
       >

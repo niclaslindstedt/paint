@@ -581,8 +581,9 @@ mark on it as something the hand that drew them never saw. `Ground.texture` (the
 grain weight) is still read at every paint and still travels in the file, so a
 page written with one keeps it; nothing in the app writes one today.
 
-The catalog is deliberately short — six stocks, comparable in one glance,
-because the shelf is read once under a Create button. Stocks that have been
+The catalog is deliberately short — eight stocks, comparable in a glance,
+because the shelf is read once under a Create button, and every one of them is
+there because some medium in the toolbox was made for it. Stocks that have been
 retired from it are aliased to the survivor nearest them in absorbency
 (`RETIRED_GROUNDS`) rather than dropped: a stock id is persisted, so a page made
 on one this build no longer offers has to keep painting on a sheet rather than

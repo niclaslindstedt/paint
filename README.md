@@ -145,10 +145,13 @@ the same [`oss-framework`](https://github.com/niclaslindstedt/oss-framework).
 
 - **Paper, canvas, or a plain sheet.** The page has a material as well as a
   colour, and **New image** asks for all three at once — size, page colour, and
-  canvas type: a solid digital sheet, one of four papers (cartridge,
-  cold-pressed, rough, hot-pressed) or primed cotton duck, in the order they get
-  used rather than by how coarse they are, each stock drawn on the colour you
-  picked so you compare them as the page they will be, with a grain slider that
+  canvas type: a solid digital sheet, one of six papers (cartridge,
+  cold-pressed, rough, hot-pressed, bristol, pastel) or primed cotton duck, in
+  the order they get used rather than by how coarse they are — every medium in
+  the toolbox has a sheet it was made for. Each stock is drawn as the bare
+  sheet at 300%, on the colour you picked, so you compare the papers
+  themselves, with a line under the shelf saying what the picked one is good
+  for and a grain slider that
   repaints the whole shelf as you drag it and opens where that sheet is reached
   for — rough with its tooth up, hot-pressed with barely any. The colour opens on
   **no colour** — a chequer, and a PNG or SVG of that image downloads with

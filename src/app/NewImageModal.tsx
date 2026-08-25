@@ -823,9 +823,6 @@ export function NewImageModal({
                   />
                 </label>
               )}
-              <p className="text-xs text-muted">
-                {t("newImage.canvasTypeHint")}
-              </p>
             </div>
           )}
         </div>

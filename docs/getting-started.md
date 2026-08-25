@@ -297,14 +297,15 @@ land on nothing, and a PNG or an SVG of the image downloads with nothing behind
 it. Pick one of the six sheets instead and it travels with the image; whichever
 is in hand is **named under the row**, because two of the light sheets are a
 hair apart and at swatch size the difference between them is only readable as a
-name. The canvas type is a solid digital sheet, one of four papers, or primed
-canvas, drawn as swatches — each a real page with a wash laid across an ink line
-on it, painted on the colour you just picked, so a black page is compared as a
-black page — with a **Grain** slider under them for how strongly that sheet's
-tooth shows. The slider opens where each stock is reached for rather than at one
-number for all of them: rough starts with its tooth up where you can see it,
-hot-pressed with barely any, since that is what each sheet is bought to be. None
-of it
+name. The canvas type is a solid digital sheet, one of six papers, or primed
+canvas, drawn as swatches — each the bare sheet itself, magnified to 300% so
+its grain reads as the texture it is, painted on the colour you just picked, so
+a black page is compared as a black page — with a line under the shelf saying
+what the picked sheet is good for, and a **Grain** slider for how strongly that
+sheet's tooth shows. The slider opens where each stock is reached for rather
+than at one number for all of them: rough starts with its tooth up where you
+can see it, hot-pressed with barely any, since that is what each sheet is
+bought to be. None of it
 changes afterwards: a wet mark is painted _into_ the sheet it was made on, so all
 of it is part of building the page rather than settings to find later.
 [More](features/surface.md).

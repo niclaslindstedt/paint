@@ -44,7 +44,7 @@ default and the app theme from then on.
 
 It is asked there because it is part of what the page **is**, alongside its size
 and its sheet, and because the stock swatches beside it are painted on it: pick
-a black page and you are comparing the six surfaces as that black page rather
+a black page and you are comparing the eight surfaces as that black page rather
 than as a stranger's white one. Like the size, it is fixed once the page exists.
 
 ## …or no colour at all

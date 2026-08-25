@@ -82,8 +82,6 @@ export const sv: Catalog = {
     pageColorLabel: "Sidfärg",
     pageColorTransparent: "Genomskinlig",
     canvasTypeLabel: "Typ av rityta",
-    canvasTypeHint:
-      "Väljs en gång, här — arket följer med bilden och kan inte ändras efteråt. På ett ark som suger blandar sig ett vått verktyg med det det ligger över i stället för att täcka det, oavsett vad sidan är.",
     grainLabel: "Struktur: {value}%",
     chooseImage: "Välj en bild eller en paint-fil…",
     chooseImageHint:
@@ -641,27 +639,35 @@ export const sv: Catalog = {
   grounds: {
     solid: {
       name: "Enfärgad",
-      hint: "En förseglad digital sida: ingen struktur, och färgen lägger sig ovanpå det den täcker.",
+      hint: "Bra för: digitalt måleri, platta färgfält, skarpa linjer och fyllningar.",
     },
     hot: {
       name: "Satinerat",
-      hint: "Akvarellpapper valsat slätt. Det suger som papper men har nästan inget för pigmentet att lägga sig i.",
+      hint: "Bra för: detaljerad akvarell, penna och lavering, botaniska motiv.",
     },
     cold: {
       name: "Grovkornigt",
-      hint: "Arket som de flesta akvareller målas på. Tillräckligt med struktur för att granulera, inte så mycket att en linje bryts upp.",
+      hint: "Bra för: akvarell, gouache, blandteknik.",
     },
     rough: {
       name: "Grovt",
-      hint: "Torkat utan pressning. Laveringar samlas i dalarna och en torr pensel hoppar över topparna.",
+      hint: "Bra för: uttrycksfull akvarell, torr pensel, granulerande laveringar.",
     },
     cartridge: {
       name: "Ritpapper",
-      hint: "Skissblockets papper. Fin struktur, och limmat nog att bläcket stannar där du satte det.",
+      hint: "Bra för: blyertsskisser, bläckteckning, vardagligt skissande.",
+    },
+    bristol: {
+      name: "Bristol",
+      hint: "Bra för: tuschpennor, fineliners, serier och rena linjer.",
+    },
+    pastel: {
+      name: "Pastell",
+      hint: "Bra för: krita, vaxkrita, mjuka skuggningar.",
     },
     cotton: {
       name: "Bomullsduk",
-      hint: "Grundad duk: en grov väv som syns genom allt, och en grund som håller färgen på ytan.",
+      hint: "Bra för: olja och akryl, djärva penseldrag, airbrush.",
     },
   },
   tools: {

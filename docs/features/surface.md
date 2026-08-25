@@ -2,7 +2,7 @@
 
 A page has a colour and it has a **material**, and until now this app only had
 the colour. The New image dialog's **Canvas type** asks what the page is made
-of: a solid digital sheet, one of four papers, or primed cotton duck. The choice
+of: a solid digital sheet, one of six papers, or primed cotton duck. The choice
 belongs to the drawing — it travels with it and syncs with it — and it is made
 in the same breath as the page size and the page colour, because all three are
 the same kind of answer.
@@ -14,17 +14,24 @@ painting onto rough paper would therefore repaint every mark on it as something
 you never actually made, so the sheet is fixed once the page exists — like its
 size and its colour. To work on a different stock, start an image on one.
 
-The shelf is short on purpose. Six sheets fit in a row you can compare at a
-glance, and they are the ones an artist reaches for and nothing else: the three
-surfaces watercolour paper is actually sold in, the sketchbook sheet, canvas, and
-the plain page.
+The shelf is short on purpose. Eight sheets fit in two rows you can compare at
+a glance, and the rule for what earns a place is the **toolbox**: every medium
+the app ships has a sheet it was made for, and no sheet is there for any other
+reason. The three surfaces watercolour paper is actually sold in, the
+sketchbook sheet, bristol board for the markers and fineliners, pastel paper
+for the dust media, canvas for the paintbrush, and the plain page.
+
+Each swatch on the shelf is the sheet itself, magnified to 300% so its grain
+reads as the texture it is — a close look at the bare paper, with nothing drawn
+on it — and the line under the shelf says what the picked sheet is good for.
 
 They are laid out **in the order they get used**, not smoothest to roughest: the
 plain sheet, then cartridge (every sketchbook there has ever been), cold-pressed
 (what "watercolour paper" means unless someone says otherwise), rough,
-hot-pressed, and cotton duck. Coarseness is a property nobody picks a sheet by,
-and sorting on it buried the two sheets most pages are actually made on in the
-middle of the row.
+hot-pressed, bristol (plate-smooth and heavily sized, so marker ink stays crisp
+on its face), pastel (the deep tooth that holds what chalk and crayon shed), and
+cotton duck. Coarseness is a property nobody picks a sheet by, and sorting on it
+buried the two sheets most pages are actually made on in the middle of the row.
 
 It matters because the sheet is not a backdrop. **Watercolour on paper is a
 different mark from watercolour on glass**, and so is a marker on rough. So the
@@ -43,10 +50,10 @@ thing, and neither slides under the other.
 **Grain**, the slider under the shelf in New image, turns how much of it shows up
 or down — the whole shelf repaints as you drag, so you watch the tooth come up
 rather than taking a number on trust. It **opens where the stock you picked is
-reached for**, not at one number for all six: rough starts a shade above its own
-weight because the tooth is the whole reason to buy that sheet, hot-pressed a
-good deal below it because being smooth is, and cotton duck just under, since at
-full weight the weave reads as sackcloth. Picking a different stock re-answers
+reached for**, not at one number for all of them: rough and pastel start a shade
+above their own weight because the tooth is the whole reason to buy those
+sheets, hot-pressed and bristol a good deal below it because being smooth is,
+and cotton duck just under, since at full weight the weave reads as sackcloth. Picking a different stock re-answers
 it; the slider then moves it from there. It is the one thing about a sheet that
 changes what you see and never how the sheet behaves, and because the grain is
 painted as part of the page, it shows where the page has a colour and not on a

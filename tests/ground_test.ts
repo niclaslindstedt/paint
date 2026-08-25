@@ -89,9 +89,12 @@ describe("the catalog", () => {
   // The shelf is picked from once, in the dialog that makes the drawing, so it
   // has to be comparable at a glance rather than read through. Past this many
   // it stops being a choice and starts being a catalogue — the same call the
-  // page-size shelf makes about four named sizes.
-  it("stays short enough to compare in one row", () => {
-    expect(GROUNDS.length).toBeLessThanOrEqual(6);
+  // page-size shelf makes about four named sizes. Eight is two even rows of
+  // the picker's grid, and it is the count the toolbox asks for: every medium
+  // the app ships has a sheet it was made for, and no sheet is on the shelf
+  // for any other reason.
+  it("stays short enough to compare in a glance", () => {
+    expect(GROUNDS.length).toBeLessThanOrEqual(8);
   });
 
   it("names every stock in the catalog, in both halves of the row", () => {
@@ -132,6 +135,8 @@ describe("the catalog", () => {
       "cold",
       "rough",
       "hot",
+      "bristol",
+      "pastel",
       "cotton",
     ]);
   });
@@ -141,7 +146,9 @@ describe("the catalog", () => {
   // weight sells one as a lesser rough and the other as a fine one.
   it("opens the grain dial where each stock is bought for", () => {
     expect(defaultGrain("rough")).toBeGreaterThan(1);
+    expect(defaultGrain("pastel")).toBeGreaterThan(1);
     expect(defaultGrain("hot")).toBeLessThan(1);
+    expect(defaultGrain("bristol")).toBeLessThan(1);
     expect(defaultGrain("cotton")).toBeLessThan(1);
     // The workhorses are the sheet as it is sold, which is also what a page
     // that says nothing about its grain is on.
@@ -162,6 +169,24 @@ describe("the catalog", () => {
     const thirstiest = (family: "paper" | "canvas") =>
       Math.max(...groundsInFamily(family).map((g) => g.profile.absorbency));
     expect(thirstiest("canvas")).toBeLessThan(thirstiest("paper"));
+  });
+
+  // The shelf exists for the toolbox: bristol is the sized board marker ink
+  // stays crisp on, and pastel paper is the tooth the dust media were made
+  // for. Each has to actually be that, or it is just another name.
+  it("keeps marker ink crisp on bristol and lets it creep on sketch paper", () => {
+    const marker = pluginById("marker")?.wetness ?? 0;
+    expect(stains(marker, stock("bristol").profile)).toBe(false);
+    expect(stains(marker, stock("cartridge").profile)).toBe(true);
+  });
+
+  it("gives the dust media a sheet with more bite than the sketchbook's", () => {
+    expect(stock("pastel").profile.bite).toBeGreaterThan(
+      stock("cartridge").profile.bite,
+    );
+    expect(stock("pastel").profile.bite).toBeGreaterThan(
+      stock("hot").profile.bite,
+    );
   });
 });
 
