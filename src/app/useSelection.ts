@@ -19,8 +19,9 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { keyboardIsClaimed } from "@niclaslindstedt/oss-framework/hooks";
+
 import { writeStrokes } from "./clipboard.ts";
-import { fieldHasKeyboard } from "./keys.ts";
 import { eraseRegionStroke } from "./plugins/builtin/eraseRegion.ts";
 import { pluginById } from "./plugins/registry.ts";
 import type { DraftStroke } from "./plugins/types.ts";
@@ -203,7 +204,7 @@ export function useSelection(
   // holds, putting the window away, and taking the whole sheet.
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (fieldHasKeyboard(e.target)) return;
+      if (keyboardIsClaimed(e.target)) return;
       const held = e.metaKey || e.ctrlKey;
       if (!held && (e.key === "Delete" || e.key === "Backspace")) {
         if (!selection) return;

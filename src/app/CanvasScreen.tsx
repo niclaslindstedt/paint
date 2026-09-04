@@ -1,11 +1,14 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { keyboardIsClaimed } from "@niclaslindstedt/oss-framework/hooks";
+
 import { Suspense, lazy } from "react";
 
 import {
   ContextMenu,
   CopyIcon,
+  IconButton,
   ImageUpIcon,
   MenuIcon,
   StarIcon,
@@ -16,6 +19,7 @@ import {
   firstFileOfType,
   useFileDrop,
 } from "@niclaslindstedt/oss-framework/hooks";
+import type { MenuButtonSide } from "@niclaslindstedt/oss-framework/sidebar";
 
 import {
   checkerColors,
@@ -41,8 +45,6 @@ import { EffectBar } from "./EffectBar.tsx";
 import { SelectionModeBar } from "./SelectionModeBar.tsx";
 import { applySelectMode, type SelectMode } from "./selectMode.ts";
 import { useSelectMode } from "./useSelectMode.ts";
-import type { MenuEdge } from "./gestures.ts";
-import { HeaderIconButton } from "./HeaderIconButton.tsx";
 import {
   InvertSelectionIcon,
   PasteIcon,
@@ -53,7 +55,6 @@ import { useT } from "./i18n/index.ts";
 import { activeLayer, layerDisplayName } from "./layers.ts";
 import { ImagePlacement } from "./ImagePlacement.tsx";
 import { importImageFile, type ImportedImage } from "./images.ts";
-import { fieldHasKeyboard } from "./keys.ts";
 import { SaveButton, type LayerSaveControl } from "./SaveButton.tsx";
 import { SidePanel } from "./SidePanel.tsx";
 import { PaintCanvas } from "./PaintCanvas.tsx";
@@ -243,7 +244,7 @@ type Props = {
   darkCanvas: boolean;
   /** The screen edge the sidebar's open-swipe is armed on, if any. Passed
    *  through to the canvas, which must not draw that swipe. */
-  menuSwipeEdge?: MenuEdge | null;
+  menuSwipeEdge?: MenuButtonSide | null;
   /** Show or hide the drawings menu — the header's hamburger. It sits here, at
    *  the head of the drawing, rather than floating over the canvas: the one
    *  button that says "the list of drawings" belongs beside the name of the one
@@ -826,21 +827,21 @@ export function CanvasScreen({
   // works here and the menu's Paste has to ask.
   //
   // A field or a dialog that is open owns them: ⌘C in the caption box copies the
-  // words, and pasting into it pastes into it (see `keys.ts`).
+  // words, and pasting into it pastes into it (see `keyboardIsClaimed`).
   useEffect(() => {
     const onCopy = (e: ClipboardEvent) => {
-      if (fieldHasKeyboard(e.target)) return;
+      if (keyboardIsClaimed(e.target)) return;
       if (!copySelection(e.clipboardData)) return;
       e.preventDefault();
     };
     const onCut = (e: ClipboardEvent) => {
-      if (fieldHasKeyboard(e.target)) return;
+      if (keyboardIsClaimed(e.target)) return;
       if (!copySelection(e.clipboardData)) return;
       e.preventDefault();
       eraseSelection();
     };
     const onPaste = (e: ClipboardEvent) => {
-      if (fieldHasKeyboard(e.target)) return;
+      if (keyboardIsClaimed(e.target)) return;
       const data = e.clipboardData;
       if (!data) return;
       e.preventDefault();
@@ -967,13 +968,13 @@ export function CanvasScreen({
             where every app that has a list behind it puts one — and it replaces
             the button that used to float over the canvas, which spent a corner
             of the page on a control the header had room for. */}
-        <HeaderIconButton
+        <IconButton
           label={menuOpen ? t("menu.close") : t("menu.open")}
           pressed={menuOpen}
           onClick={onToggleMenu}
         >
           <MenuIcon className="h-[18px] w-[18px]" />
-        </HeaderIconButton>
+        </IconButton>
 
         {/* The name is edited in place — a drawing is named by typing over its
             title, not through a dialog. It reads as the page's heading until
@@ -986,13 +987,13 @@ export function CanvasScreen({
         <div className="flex items-center gap-2">
           {/* The star — where favouriting is discovered, and what puts the
               drawing in the side menu's Favorites section. */}
-          <HeaderIconButton
+          <IconButton
             label={drawing.favorite ? t("menu.unfavorite") : t("menu.favorite")}
             pressed={Boolean(drawing.favorite)}
             onClick={() => store.toggleFavorite(drawing.id)}
           >
             <StarIcon className="h-[18px] w-[18px]" filled={drawing.favorite} />
-          </HeaderIconButton>
+          </IconButton>
           {/* The disk — the layers' save. Gone entirely without a backend
               that can take one, rather than dimmed: on the on-device
               sketchbook there is nowhere to file layers to, and a permanently
@@ -1032,13 +1033,13 @@ export function CanvasScreen({
               opening a floating one on a narrow — and it shows pressed
               whenever the panel is showing, so it never claims to open
               something that is already open. */}
-          <HeaderIconButton
+          <IconButton
             label={t("layers.open")}
             pressed={panelShowing}
             onClick={togglePanel}
           >
             <SidePanelIcon className="h-[18px] w-[18px]" />
-          </HeaderIconButton>
+          </IconButton>
           {/* No bin either. Throwing a drawing away is an action on the
               document, so it sits at the head of the right-hand panel's Image
               section with resize and flip (see `SidePanel.tsx`). The header

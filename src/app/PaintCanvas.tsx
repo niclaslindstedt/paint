@@ -5,8 +5,9 @@ import {
   isDoubleTap,
   isTap,
   LONG_PRESS_MS,
-  type MenuEdge,
-} from "./gestures.ts";
+} from "@niclaslindstedt/oss-framework/hooks";
+import type { MenuButtonSide } from "@niclaslindstedt/oss-framework/sidebar";
+
 import { strokeBounds } from "./bounds.ts";
 import type { CutAim } from "./cutAim.ts";
 import type { EffectPreview } from "./render.ts";
@@ -212,13 +213,14 @@ type Props = {
   /** The screen edge the sidebar's open-swipe is currently armed on, or `null`
    *  when nothing is watching an edge (a docked sidebar, a pointer that can't
    *  fire the gesture, a drawer that is already open). A touch that lands in
-   *  that strip is held rather than drawn — see `gestures.ts`. */
-  menuSwipeEdge?: MenuEdge | null;
+   *  that strip is held rather than drawn — see the framework's
+   *  `sidebar/edgeSwipe.ts`. */
+  menuSwipeEdge?: MenuButtonSide | null;
   /** The screen edge an inward swipe opens the layers panel from, or `null`
    *  when it isn't armed. Held and measured exactly like the sidebar's swipe —
    *  the difference is only whose it is: the framework opens the drawer itself,
    *  where this one is fired back through `onPanelSwipe`. */
-  panelSwipeEdge?: MenuEdge | null;
+  panelSwipeEdge?: MenuButtonSide | null;
   onPanelSwipe?: () => void;
   ariaLabel: string;
 };

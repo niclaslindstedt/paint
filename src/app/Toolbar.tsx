@@ -2,15 +2,18 @@
 import { useEffect, useRef, useState } from "react";
 
 import {
+  keyboardIsClaimed,
+  LONG_PRESS_MS,
+} from "@niclaslindstedt/oss-framework/hooks";
+
+import {
   CogIcon,
   RedoIcon,
   UndoIcon,
 } from "@niclaslindstedt/oss-framework/components";
 
-import { LONG_PRESS_MS } from "./gestures.ts";
 import { MoreToolsIcon } from "./icons.tsx";
 import { useT } from "./i18n/index.ts";
-import { fieldHasKeyboard } from "./keys.ts";
 import { toolControl, usesInk } from "./plugins/controls.ts";
 import { toolPresets } from "./plugins/presets.ts";
 import {
@@ -302,7 +305,7 @@ export function Toolbar({
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.metaKey || e.ctrlKey || e.altKey) return;
-      if (fieldHasKeyboard(e.target)) return;
+      if (keyboardIsClaimed(e.target)) return;
       // Every offered tool, not every button: a shape inside the shapes group
       // still answers to its own letter without having a button of its own.
       const offered = enabledPlugins(settings.enabledPlugins);

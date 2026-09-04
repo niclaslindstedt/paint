@@ -88,7 +88,7 @@ type Props = {
    *  of them (see `panelSections.ts`). */
   settings: AppSettings;
   /** Move a section within that order — what a dropped drag resolves to. It is
-   *  handed the whole order it is a permutation of, for the reason `order.ts`
+   *  handed the whole order it is a permutation of, for the reason the framework's `order` module
    *  gives. */
   onMoveSection: (order: readonly string[], from: number, to: number) => void;
   /** What can be done to the thing the screen is holding *right now* — the

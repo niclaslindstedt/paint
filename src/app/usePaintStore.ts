@@ -17,6 +17,7 @@ import {
   CLEAR,
   type PageWindow,
   type Rung,
+  type Stepped,
   type Timeline,
 } from "./history.ts";
 import {
@@ -262,7 +263,7 @@ export function usePaintStore(
    *  version counter stands still, so taking back a marquee doesn't wake the
    *  sync engine to push a document that hasn't changed a byte. */
   const step = useCallback(
-    (take: typeof undone) => {
+    (take: (t: Timeline, present: Rung) => Stepped<Rung> | null) => {
       const at = take(timeline.current, rungOf(stateRef.current));
       if (!at) return;
       timeline.current = at.timeline;

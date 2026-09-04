@@ -5,6 +5,7 @@ import {
   CopyIcon,
   DownloadIcon,
   FloatingPanel,
+  IconButton,
   type FloatingPlacement,
 } from "@niclaslindstedt/oss-framework/components";
 import { downloadBlob } from "@niclaslindstedt/oss-framework/files";
@@ -16,7 +17,6 @@ import {
   type DownloadFormat,
   type ExportOptions,
 } from "./export.ts";
-import { HeaderIconButton } from "./HeaderIconButton.tsx";
 import { FileFormatIcon } from "./icons.tsx";
 import { useT } from "./i18n/index.ts";
 import { log } from "./log.ts";
@@ -113,14 +113,14 @@ export function DownloadMenu({ drawing, options, formats }: Props) {
 
   return (
     <>
-      <HeaderIconButton
+      <IconButton
         label={t("canvas.download")}
-        buttonRef={anchor}
+        ref={anchor}
         expanded={open}
         onClick={() => setOpen((v) => !v)}
       >
         <DownloadIcon className="h-[18px] w-[18px]" />
-      </HeaderIconButton>
+      </IconButton>
 
       <FloatingPanel
         open={open}

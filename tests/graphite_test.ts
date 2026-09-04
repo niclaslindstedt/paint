@@ -20,7 +20,7 @@ import {
   graphiteInk,
   paintGraphite,
 } from "../src/app/plugins/graphite.ts";
-import { hexToHsv } from "../src/app/color.ts";
+import { hexToHsv } from "@niclaslindstedt/oss-framework/color";
 import type { Point } from "../src/app/types.ts";
 import { createFakeContext, type FakeContext } from "./support/fakeCanvas.ts";
 

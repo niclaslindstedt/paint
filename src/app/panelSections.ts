@@ -25,7 +25,7 @@ import {
   type EffectGroup,
 } from "./effects.ts";
 import type { TKey } from "./i18n/index.ts";
-import { orderById } from "./order.ts";
+import { applyOrder } from "@niclaslindstedt/oss-framework/order";
 
 /** One switchable thing inside a section — a page action, an effect, one of the
  *  controls on a layer row.
@@ -251,7 +251,7 @@ export const PANEL_SECTIONS: readonly PanelSection[] = [
  *  switches and reorders. Switched-off sections are in it too: that page is
  *  where they are switched back on. */
 export function orderedSections(order: readonly string[]): PanelSection[] {
-  return orderById(PANEL_SECTIONS, order);
+  return applyOrder(PANEL_SECTIONS, order);
 }
 
 /** The ids nothing can switch off — see {@link PanelSection.fixed}. Built from

@@ -212,6 +212,36 @@ plus the storage, encryption, glyphs, namespaces, i18n, and PWA subpaths.
 Inspect `node_modules/@niclaslindstedt/oss-framework/dist/**` (the `.d.ts` files
 list every export) and prefer an existing primitive over a hand-rolled one.
 
+Several things this app used to own are now there, and are worth knowing by name
+because a reader of old commits will still find them here:
+
+| Was                               | Now                                                                       |
+| --------------------------------- | ------------------------------------------------------------------------- |
+| `color.ts`, `ColorPicker`'s mixer | the `color` module — `hexToHsv` / `hsvToHex` / `withAlpha` / `ColorMixer` |
+| the stacks in `history.ts`        | the `history` module, generic in what a rung holds                        |
+| `order.ts`                        | the `order` module — `applyOrder`, `moveInOrder`                          |
+| `keys.ts`                         | `keyboardIsClaimed` (`/hooks`)                                            |
+| `HeaderIconButton.tsx`            | `IconButton` (`/components`)                                              |
+| `useDialogDrag.ts`                | `useDialogDrag` (`/components`) — `Modal` applies the offset itself now   |
+| the tap half of `gestures.ts`     | `isTap` / `isDoubleTap` / `LONG_PRESS_MS` (`/hooks`)                      |
+| the edge-swipe half               | `inEdgeZone` / `classifyEdgeDrag` (`/sidebar`) — shared, not mirrored     |
+| the read half of `clipboard.ts`   | `readClipboard` / `readDataTransfer` (`/hooks`)                           |
+
+Two of those are worth a second look. **`history.ts` still exists**, and what is
+left in it is the reason it existed: a rung carries the document _and_ the
+selection window, because a window is something you did and something you did
+that cannot be taken back is a trap. The framework's stacks are generic in the
+rung precisely so that stays ours. **`clipboard.ts` still exists** for the same
+shape of reason: the framework does the reading, and the _ranking_ — marks this
+app wrote, then a picture, then words — is a question about drawing.
+
+**The webfont loaders are opt-in.** Since framework 3.0.0 the `@fontsource/*`
+imports live behind their own entry, so `src/main.tsx` imports
+`@niclaslindstedt/oss-framework/theme/fontsource` for its side effect. Drop that
+line and the appearance picker still offers Inter, Source Serif and OpenDyslexic
+— and picking one silently paints the fallback stack, with nothing failing
+anywhere.
+
 ### Keep boot small
 
 There is no server and no prerender, so everything on the entry path is

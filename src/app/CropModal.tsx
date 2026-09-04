@@ -7,6 +7,7 @@ import {
   LABELED_FIELD_CLASS,
   SelectPicker,
 } from "@niclaslindstedt/oss-framework/components";
+import { useDialogDrag } from "@niclaslindstedt/oss-framework/components";
 
 import {
   CROP_RATIO_ORDER,
@@ -16,7 +17,6 @@ import {
 } from "./crop.ts";
 import type { CanvasSize } from "./canvasSize.ts";
 import { useT, type TKey } from "./i18n/index.ts";
-import { useDialogDrag } from "./useDialogDrag.ts";
 
 // The one question the rectangle can't answer for itself.
 //

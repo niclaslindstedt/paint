@@ -22,7 +22,7 @@
 // family, and it is what the toolbar renders, what Settings → Tools lists, and
 // what the user's order is a permutation of.
 
-import { orderById } from "../order.ts";
+import { applyOrder } from "@niclaslindstedt/oss-framework/order";
 import type { PaintPlugin, ToolGroup } from "./types.ts";
 
 const registry = new Map<string, PaintPlugin>();
@@ -124,7 +124,7 @@ export function registeredEntries(): ToolbarEntry[] {
 /** Reorder `entries` by the ids in `order`, in place — so a tool this build
  *  added after that order was written lands where its maker put it rather than
  *  at the end of a list that had never heard of it, and reordering the toolbar
- *  never has to be redone after an update. The rule itself is `order.ts`'s,
+ *  never has to be redone after an update. The rule itself is the framework's `order` module's,
  *  because a canvas preset's kit and the right-hand panel's sections are stored
  *  the same way and go stale the same way.
  *
@@ -134,7 +134,7 @@ export function orderEntries(
   entries: readonly ToolbarEntry[],
   order: readonly string[],
 ): ToolbarEntry[] {
-  return orderById(entries, order);
+  return applyOrder(entries, order);
 }
 
 /** Whether an entry is offered, given the ids the user has switched on. */
