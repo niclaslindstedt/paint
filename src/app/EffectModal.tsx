@@ -10,6 +10,7 @@ import {
   ToggleRow,
 } from "@niclaslindstedt/oss-framework/components";
 import { useMediaQuery } from "@niclaslindstedt/oss-framework/hooks";
+import { useDialogDrag } from "@niclaslindstedt/oss-framework/components";
 
 import {
   autoLevels,
@@ -43,7 +44,6 @@ import { useT, type TKey } from "./i18n/index.ts";
 import { LevelsBar } from "./LevelsBar.tsx";
 import type { RenderOptions } from "./render.ts";
 import type { Drawing, Point } from "./types.ts";
-import { useDialogDrag } from "./useDialogDrag.ts";
 
 // One effect's options — and the one press that lands it.
 //

@@ -1,94 +1,58 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-// What an undo steps back through.
+// What an undo steps back through — the half of it that is this app's.
+//
+// The two stacks themselves are the framework's (`history`): pure, immutable,
+// and generic in what a rung holds. What is generic there is exactly the part
+// that was never about drawing, and what is left here is the part that is:
+// **a rung holds two things, and the second one is not in the document.**
 //
 // A drawing is vector, so a step back is a *value* rather than a photograph of
-// the screen: the document as it was. All this module holds is the arithmetic of
-// the two stacks those values sit on — pure, so the whole of undo and redo can
-// be driven in a test with no store, no React and no DOM (see
-// `tests/history_test.ts`). The store keeps one `Timeline` in a ref and does as
-// it is told (see `usePaintStore.ts`).
-//
-// A rung holds **two** things, and that is the part worth arguing about: the
-// document, and the window a selection has cut in it. The window is not in the
-// document — it is never saved and never synced — but it is something you *did*,
-// and something you did that cannot be taken back is a trap. Painting a
-// selection is the case that proves it: the draw-select tool builds a window up
-// stroke by stroke, so a stroke that went where you didn't mean it to used to
-// cost you the whole selection to fix, because the only key that could have
-// helped reached past it to the marks underneath. So the two ride one timeline,
-// and ⌘/Ctrl+Z steps back through whichever of them last changed — the way it
-// does in every other program that has both.
+// the screen. But the window a selection has cut is not in that value — it is
+// never saved and never synced — and something you did that cannot be taken
+// back is a trap. Painting a selection is the case that proves it: the
+// draw-select tool builds a window up stroke by stroke, so a stroke that went
+// where you didn't mean it to used to cost you the whole selection to fix,
+// because the only key that could have helped reached past it to the marks
+// underneath. So the two ride one timeline, and ⌘/Ctrl+Z steps back through
+// whichever of them last changed — the way it does in every other program that
+// has both.
+
+import {
+  clearTimeline,
+  type Timeline as FrameworkTimeline,
+} from "@niclaslindstedt/oss-framework/history";
 
 import type { Selection } from "./selection.ts";
 import type { AppData } from "./types.ts";
+
+export {
+  committed,
+  undone,
+  redone,
+  type Stepped,
+} from "@niclaslindstedt/oss-framework/history";
 
 /** A window, and the page it was cut in.
  *
  *  The page id travels with it because the timeline outlives the page you are
  *  looking at: a window is only ever *shown* over the page it was cut in (see
- *  `windowOn`), so stepping back through an edit made on another drawing can
- *  never drop a stranger's outline onto this one — and stepping back onto that
- *  drawing brings its own window back with it. */
+ *  {@link windowOn}), so stepping back through an edit made on another drawing
+ *  can never drop a stranger's outline onto this one — and stepping back onto
+ *  that drawing brings its own window back with it. */
 export type PageWindow = { page: string; selection: Selection };
 
 /** One rung of the timeline: everything a step back has to put back. */
 export type Rung = { data: AppData; window: PageWindow | null };
 
-/** What is behind the present, and what stepping back has taken off it.
- *
- *  Immutable: every verb below answers with a new timeline rather than pushing
- *  and popping in place, which is what makes them testable as arithmetic. The
- *  rungs themselves are shared, not copied — a document is a value the edit
- *  before it already shares most of. */
-export type Timeline = { past: readonly Rung[]; future: readonly Rung[] };
+/** This app's timeline: the framework's stacks over this app's rung. */
+export type Timeline = FrameworkTimeline<Rung>;
 
 /** A timeline with nothing on it — a document that has just been loaded, or a
- *  sketchbook that has just been opened. Nothing to step back to, and nothing
- *  the last step took off. */
-export const CLEAR: Timeline = { past: [], future: [] };
+ *  sketchbook that has just been opened. */
+export const CLEAR: Timeline = clearTimeline<Rung>();
 
-/** Put `present` behind us, making room for whatever the caller is about to
- *  make the present instead.
- *
- *  A new rung forfeits the future, which is what every undo stack anyone has
- *  used does: step back three times, draw something else, and the three you
- *  stepped back through are gone rather than waiting to be redone into the
- *  middle of an edit they never followed. */
-export function committed(timeline: Timeline, present: Rung): Timeline {
-  return { past: [...timeline.past, present], future: [] };
-}
-
-/** Where a step lands: the timeline as it now stands, and the rung that should
- *  become the present. */
-export type Stepped = { timeline: Timeline; present: Rung };
-
-/** Step back, or `null` when there is nothing behind us. */
-export function undone(timeline: Timeline, present: Rung): Stepped | null {
-  const prev = timeline.past.at(-1);
-  if (!prev) return null;
-  return {
-    timeline: {
-      past: timeline.past.slice(0, -1),
-      future: [...timeline.future, present],
-    },
-    present: prev,
-  };
-}
-
-/** Step forward again, or `null` when nothing was stepped back through. */
-export function redone(timeline: Timeline, present: Rung): Stepped | null {
-  const next = timeline.future.at(-1);
-  if (!next) return null;
-  return {
-    timeline: {
-      past: [...timeline.past, present],
-      future: timeline.future.slice(0, -1),
-    },
-    present: next,
-  };
-}
-
-/** The window `page` actually has — the one cut in it, and never another page's.
+/** The window `page` actually has — the one cut in it, and never another
+ *  page's.
  *
  *  This is the whole of "a window is dropped when you open another drawing": it
  *  is not dropped at all, it simply isn't that page's. Opening the drawing it

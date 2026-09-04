@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 import { useEffect } from "react";
 
-import { HeaderIconButton } from "./HeaderIconButton.tsx";
+import { IconButton } from "@niclaslindstedt/oss-framework/components";
+import { keyboardIsClaimed } from "@niclaslindstedt/oss-framework/hooks";
+
 import { SaveIcon } from "./icons.tsx";
 import { useT } from "./i18n/index.ts";
-import { fieldHasKeyboard } from "./keys.ts";
 import type { InkContext } from "./render.ts";
 
 // The header's disk button, and ⌘/Ctrl+S behind it.
@@ -52,7 +53,7 @@ export function SaveButton({ layerSave, ink }: Props) {
     const handler = (e: KeyboardEvent) => {
       if (!(e.metaKey || e.ctrlKey) || e.key.toLowerCase() !== "s") return;
       e.preventDefault();
-      if (fieldHasKeyboard(e.target) || idle) return;
+      if (keyboardIsClaimed(e.target) || idle) return;
       save({ pageColor, defaultInk });
     };
     window.addEventListener("keydown", handler);
@@ -60,7 +61,7 @@ export function SaveButton({ layerSave, ink }: Props) {
   }, [save, pageColor, defaultInk, idle]);
 
   return (
-    <HeaderIconButton
+    <IconButton
       label={
         saving
           ? t("layerSave.saving")
@@ -72,6 +73,6 @@ export function SaveButton({ layerSave, ink }: Props) {
       onClick={() => layerSave.save(ink)}
     >
       <SaveIcon className="h-[18px] w-[18px]" />
-    </HeaderIconButton>
+    </IconButton>
   );
 }

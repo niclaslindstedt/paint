@@ -52,8 +52,8 @@ import {
   resolvePageColor,
 } from "./canvas.ts";
 import {
-  canLookAtClipboard,
   clipboardCanBeRead,
+  clipboardLookIsFree,
   pasteClipboardImage,
   peekClipboardImage,
 } from "./clipboard.ts";
@@ -345,7 +345,7 @@ export function NewImageModal({
       setClip({ kind: "hidden" });
       return;
     }
-    void canLookAtClipboard().then((free) => {
+    void clipboardLookIsFree().then((free) => {
       if (!live) return;
       if (!free) {
         setClip({ kind: "ask" });

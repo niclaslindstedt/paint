@@ -86,10 +86,11 @@
    • `loose` — a screen with room beside the card. It sits at the foot of the
      window (over the toolbar, which nothing in this dialog needs, rather than
      over the picture) and can be **dragged** anywhere from there by its title
-     row: no single resting place is right for every drawing. The offset is two
-     custom properties written by `useDialogDrag`, applied here as `translate`
-     rather than `transform` so it can never collide with the framework's own
-     swipe-to-close transform.
+     row: no single resting place is right for every drawing. The offset itself
+     is the framework's — `useDialogDrag` writes two custom properties and
+     `Modal` reads them into its `translate`, which is a different CSS property
+     from the `transform` its swipe-to-close owns — so nothing here has to
+     apply it.
    • `full` — a phone, where the card *is* the screen. There is no aside to step
      to, so it stops pretending: edge to edge, no rounding, no border, and the
      preview it owes you is a window inside it instead (see `EffectPeek`).
@@ -101,7 +102,6 @@
    rule below is cosmetic and no layout depends on one. */
 [role="dialog"]:has(> [data-previewing="loose"]) {
   align-self: end;
-  translate: var(--dialog-drag-x, 0px) var(--dialog-drag-y, 0px);
 }
 
 [role="dialog"]:has(> [data-previewing="full"]) {

@@ -10,14 +10,17 @@ import {
   tabShown,
   type ClipboardSource,
 } from "../src/app/clipboardSource.ts";
-import { classifyClipboard } from "../src/app/clipboard.ts";
+import type { ClipboardContent } from "@niclaslindstedt/oss-framework/hooks";
+
+import { rankClipboard } from "../src/app/clipboard.ts";
 import { encodeStrokes } from "../src/app/strokeClipboard.ts";
 import type { Stroke } from "../src/app/types.ts";
 
 // The clipboard tab in New drawing, and the ranking of what one look at the
 // clipboard turns up. Both are pure: the tab is a state machine with six states
-// and two transitions, and the ranking takes clipboard entries rather than a
-// clipboard, so neither needs a browser to pin.
+// and two transitions, and the ranking takes what a look *found* rather than a
+// clipboard (the look itself is the framework's), so neither needs a browser to
+// pin.
 
 const image = { src: "data:image/png;base64,AA", width: 640, height: 480 };
 
@@ -69,13 +72,15 @@ describe("the clipboard tab", () => {
   });
 });
 
-/** One clipboard entry, as `navigator.clipboard.read()` hands them over. */
-function entry(contents: Record<string, string>) {
-  return {
-    types: Object.keys(contents),
-    getType: (type: string) =>
-      Promise.resolve(new Blob([contents[type] ?? ""], { type })),
-  };
+/** What one look at the clipboard found, in the shape the framework's
+ *  `readClipboard` hands back: text flavours as text, everything else as a
+ *  blob with its type. */
+function found(contents: Record<string, string>): ClipboardContent[] {
+  return Object.entries(contents).map(([type, value]) =>
+    type === "text/plain"
+      ? { kind: "text", text: value }
+      : { kind: "blob", type, blob: new Blob([value], { type }) },
+  );
 }
 
 const stroke: Stroke = {
@@ -87,24 +92,21 @@ const stroke: Stroke = {
 
 describe("what one look at the clipboard turns up", () => {
   it("takes marks this app wrote over the words they are made of", async () => {
-    const found = await classifyClipboard([
-      entry({ "text/plain": encodeStrokes([stroke]) }),
-    ]);
-    expect(found?.kind).toBe("strokes");
+    const payload = await rankClipboard(
+      found({ "text/plain": encodeStrokes([stroke]) }),
+    );
+    expect(payload?.kind).toBe("strokes");
   });
 
   it("takes words when that is all there is", async () => {
-    const found = await classifyClipboard([entry({ "text/plain": "hello\n" })]);
-    expect(found).toEqual({ kind: "text", text: "hello" });
+    const payload = await rankClipboard(found({ "text/plain": "hello\n" }));
+    expect(payload).toEqual({ kind: "text", text: "hello" });
   });
 
   it("is nothing when the clipboard holds nothing it can use", async () => {
-    expect(await classifyClipboard([])).toBeNull();
-    expect(
-      await classifyClipboard([entry({ "text/plain": "  \n" })]),
-    ).toBeNull();
-    expect(
-      await classifyClipboard([entry({ "application/pdf": "%PDF" })]),
-    ).toBeNull();
+    expect(await rankClipboard([])).toBeNull();
+    expect(await rankClipboard(found({ "text/plain": "  \n" }))).toBeNull();
+    // A flavour the caller never asked to be handed the bytes for.
+    expect(await rankClipboard([])).toBeNull();
   });
 });

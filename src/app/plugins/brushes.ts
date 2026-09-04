@@ -37,7 +37,7 @@
 // it, and what makes the PNG export (always 1:1) exactly what the tool
 // intended.
 
-import { withAlpha } from "../color.ts";
+import { withAlpha } from "@niclaslindstedt/oss-framework/color";
 import type { Rect } from "../geometry.ts";
 import type { Point, Stroke } from "../types.ts";
 import { HAIRLINE, PIXEL, hashedRandom, resample } from "./grain.ts";

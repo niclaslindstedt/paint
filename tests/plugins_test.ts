@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 import { beforeEach, describe, expect, it } from "vitest";
 
-import { hexToHsv } from "../src/app/color.ts";
+import { hexToHsv } from "@niclaslindstedt/oss-framework/color";
 import { regionHolds } from "../src/app/selection.ts";
 import { dropperBehaviour } from "../src/app/plugins/builtin/dropper.ts";
 import { fillBehaviour } from "../src/app/plugins/builtin/fill.ts";

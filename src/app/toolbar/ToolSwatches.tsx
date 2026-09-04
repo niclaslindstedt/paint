@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 
 import { useT } from "../i18n/index.ts";
-import { sameColor } from "../color.ts";
+import { sameColor } from "@niclaslindstedt/oss-framework/color";
 import type { PaintPlugin, ToolSwatch } from "../plugins/types.ts";
 import { PALETTE } from "../useAppSettings.ts";
 

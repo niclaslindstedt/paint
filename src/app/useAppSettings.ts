@@ -21,7 +21,7 @@ import {
   type DownloadFormat,
   type ExportScope,
 } from "./export.ts";
-import { moveInOrder } from "./order.ts";
+import { moveInOrder } from "@niclaslindstedt/oss-framework/order";
 import {
   ids,
   optional,
@@ -96,7 +96,7 @@ export type AppSettings = {
    *  reorders and what a section dragged by its grip writes.
    *
    *  Empty until someone moves one, and then only as long as the ids it names,
-   *  exactly like `toolOrder` and for the same reason (see `order.ts`). */
+   *  exactly like `toolOrder` and for the same reason (see the framework's `order` module). */
   panelOrder: string[];
   /** The panel's sections switched off, by section id. Stored as the ones that
    *  are *off*, so a section a later release adds arrives in the panel rather
@@ -474,7 +474,7 @@ export function parseSettings(raw: string): AppSettings {
   // than kept (see `cleanCanvasPresets`). A *drawing* that pointed at it is
   // untouched: it keeps its size and falls back to the app-wide toolbar.
   // The panel's three lists are ids in exactly the same sense, and an id this
-  // build doesn't know is harmless in all three: `orderById` ignores one it
+  // build doesn't know is harmless in all three: `applyOrder` ignores one it
   // can't place, and a hidden id that names nothing hides nothing. So the shape
   // is checked and the contents are left alone.
   merged.panelOrder = ids(stored.panelOrder);

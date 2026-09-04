@@ -541,7 +541,8 @@ three apply live rather than through the Settings draft (`LIVE_SETTINGS`): the
 panel is the surface _behind_ the dialog, and a section you switch off should
 leave it as you press the switch.
 
-Reordering is `order.ts`, shared with the toolbar and with a canvas preset's kit.
+Reordering is the framework's `order` module, shared with the toolbar and
+with a canvas preset's kit.
 `orderById` lays the named ids out **in place** — a section the stored order has
 never heard of keeps the slot it was registered in rather than piling up at the
 end — which is what stops an arrangement going stale across an upgrade. The drag
@@ -912,7 +913,8 @@ One pointer draws **unless the active plugin declares `navigates`**, in which
 case it pans and a double-tap fits the page — or, with something selected and
 the press inside it, moves the marks instead of the window. That is a flag on the descriptor,
 not a tool id — see the plugin seam below. Taps are detected from the pointer
-stream (`gestures.ts`, pure and node-testable) rather than from `dblclick`: the
+stream (the framework's `hooks/tap.ts`, pure and node-testable) rather than
+from `dblclick`: the
 browser's event is synthesised inconsistently on touch and arrives only after
 both presses have already been handled, which under a drawing tool means two
 marks are on the page before it fires. Restricting the gesture to a tool that

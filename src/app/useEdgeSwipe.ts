@@ -23,7 +23,11 @@
 
 import { useCallback, useRef } from "react";
 
-import { classifyEdgeDrag, inEdgeZone, type MenuEdge } from "./gestures.ts";
+import {
+  classifyEdgeDrag,
+  inEdgeZone,
+  type MenuButtonSide,
+} from "@niclaslindstedt/oss-framework/sidebar";
 import type { Point } from "./types.ts";
 
 /** A press waiting to find out what it is. `viewport` is where it landed on the
@@ -33,7 +37,7 @@ import type { Point } from "./types.ts";
  *  framework opens itself. */
 type HeldEdgePress = {
   pointerId: number;
-  edge: MenuEdge;
+  edge: MenuButtonSide;
   viewport: Point;
   point: Point;
   open?: () => void;
@@ -52,9 +56,9 @@ export function useEdgeSwipe({
   onPanelSwipe,
 }: {
   /** The edge the sidebar's open-swipe is armed on, or `null`. */
-  menuSwipeEdge: MenuEdge | null;
+  menuSwipeEdge: MenuButtonSide | null;
   /** …and the layers panel's. */
-  panelSwipeEdge: MenuEdge | null;
+  panelSwipeEdge: MenuButtonSide | null;
   onPanelSwipe?: () => void;
 }) {
   const held = useRef<HeldEdgePress | null>(null);
@@ -65,7 +69,7 @@ export function useEdgeSwipe({
    *  the one edge both could want, holding it for anything else would open two
    *  things at once. */
   const watching = useCallback(
-    (x: number): { edge: MenuEdge; open?: () => void } | undefined => {
+    (x: number): { edge: MenuButtonSide; open?: () => void } | undefined => {
       const width = window.innerWidth;
       if (menuSwipeEdge && inEdgeZone(x, width, menuSwipeEdge)) {
         return { edge: menuSwipeEdge };

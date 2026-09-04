@@ -1,12 +1,18 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 
 import {
   CheckIcon,
   FloatingPanel,
 } from "@niclaslindstedt/oss-framework/components";
 
-import { hexToHsv, hsvToHex, sameColor, type Hsv } from "../color.ts";
+import {
+  ColorMixer,
+  hexToHsv,
+  hsvToHex,
+  sameColor,
+  type Hsv,
+} from "@niclaslindstedt/oss-framework/color";
 import { useT } from "../i18n/index.ts";
 import { PALETTE } from "../useAppSettings.ts";
 
@@ -24,11 +30,15 @@ import { PALETTE } from "../useAppSettings.ts";
 // the *ink* picker is a colour that erases nothing and belongs to nothing here.
 //
 // The panel is two halves. The top is the arsenal: the built-in palette, then
-// whatever the user has mixed, each one tap away. The bottom is the mixer,
-// folded away until asked for — a hue strip and a saturation/value field, the
-// arrangement where "the same colour but lighter" is a straight line. Mixing
-// changes the ink immediately; **Add** is what keeps it, and a kept colour joins
-// the arsenal for good.
+// whatever the user has mixed, each one tap away. The bottom is the framework's
+// `ColorMixer`, folded away until asked for. Mixing changes the ink
+// immediately; **Add** is what keeps it, and a kept colour joins the arsenal
+// for good.
+//
+// The mixer is handed — and hands back — an `Hsv` rather than a hex string,
+// which is the whole reason the panel holds one: a colour with no light in it
+// has no hue left to carry, so a hex round trip per pointer move would reset
+// the strip the moment the value handle reached the bottom of the field.
 
 type Props = {
   open: boolean;
@@ -131,22 +141,13 @@ export function ColorPicker({
 
         {mixing && (
           <div className="flex flex-col gap-2">
-            <SaturationField
-              hsv={hsv}
+            <ColorMixer
+              value={hsv}
               onChange={(next) => {
                 setHsv(next);
                 onPick(hsvToHex(next));
               }}
-              label={t("canvas.mixField")}
-            />
-            <HueSlider
-              hue={hsv.h}
-              onChange={(h) => {
-                const next = { ...hsv, h };
-                setHsv(next);
-                onPick(hsvToHex(next));
-              }}
-              label={t("canvas.mixHue")}
+              labels={{ field: t("canvas.mixField"), hue: t("canvas.mixHue") }}
             />
             <div className="flex items-center gap-2">
               <span
@@ -214,82 +215,5 @@ function Swatch({
         </button>
       )}
     </span>
-  );
-}
-
-/** The saturation / value field: white to the hue across, black down. */
-function SaturationField({
-  hsv,
-  onChange,
-  label,
-}: {
-  hsv: Hsv;
-  onChange: (next: Hsv) => void;
-  label: string;
-}) {
-  const ref = useRef<HTMLDivElement>(null);
-  const pick = (e: { clientX: number; clientY: number }) => {
-    const rect = ref.current?.getBoundingClientRect();
-    if (!rect) return;
-    const s = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-    const v =
-      1 - Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height));
-    onChange({ ...hsv, s, v });
-  };
-  return (
-    <div
-      ref={ref}
-      role="application"
-      aria-label={label}
-      onPointerDown={(e) => {
-        e.currentTarget.setPointerCapture(e.pointerId);
-        pick(e);
-      }}
-      onPointerMove={(e) => {
-        if (e.buttons !== 0) pick(e);
-      }}
-      className="relative h-28 w-full cursor-crosshair rounded border border-line touch-none"
-      style={{
-        backgroundColor: hsvToHex({ h: hsv.h, s: 1, v: 1 }),
-        backgroundImage:
-          "linear-gradient(to top, #000, rgba(0,0,0,0)), linear-gradient(to right, #fff, rgba(255,255,255,0))",
-      }}
-    >
-      <span
-        aria-hidden="true"
-        className="absolute h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white shadow-[0_0_0_1px_rgba(0,0,0,0.5)]"
-        style={{ left: `${hsv.s * 100}%`, top: `${(1 - hsv.v) * 100}%` }}
-      />
-    </div>
-  );
-}
-
-/** The hue strip. A range input rather than a hand-rolled track: it is a
- *  one-dimensional choice, and the native control brings the keyboard and the
- *  touch target with it. */
-function HueSlider({
-  hue,
-  onChange,
-  label,
-}: {
-  hue: number;
-  onChange: (hue: number) => void;
-  label: string;
-}) {
-  return (
-    <input
-      type="range"
-      min={0}
-      max={359}
-      step={1}
-      value={Math.round(hue)}
-      aria-label={label}
-      onChange={(e) => onChange(Number((e.target as HTMLInputElement).value))}
-      className="h-5 w-full cursor-pointer appearance-none rounded border border-line [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:w-2 [&::-moz-range-thumb]:cursor-pointer [&::-moz-range-thumb]:rounded-sm [&::-moz-range-thumb]:border [&::-moz-range-thumb]:border-black/40 [&::-moz-range-thumb]:bg-white [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-2 [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-sm [&::-webkit-slider-thumb]:border [&::-webkit-slider-thumb]:border-black/40 [&::-webkit-slider-thumb]:bg-white"
-      style={{
-        backgroundImage:
-          "linear-gradient(to right, #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff, #ff0000)",
-      }}
-    />
   );
 }

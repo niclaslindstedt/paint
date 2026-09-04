@@ -26,7 +26,8 @@
 
 import { useEffect, useState } from "react";
 
-import { fieldHasKeyboard } from "./keys.ts";
+import { keyboardIsClaimed } from "@niclaslindstedt/oss-framework/hooks";
+
 import { effectiveMode, heldMode, type SelectMode } from "./selectMode.ts";
 
 export type SelectModeControl = {
@@ -58,7 +59,7 @@ export function useSelectMode(enabled: boolean): SelectModeControl {
     const read = (e: KeyboardEvent) => {
       // A modifier held into a text field is that field's business — and a
       // Shift typed into a drawing's name must not put the canvas into Add.
-      if (fieldHasKeyboard(e.target)) return;
+      if (keyboardIsClaimed(e.target)) return;
       // A Shift that is part of a *shortcut* is not a mode: ⌘/Ctrl+Shift+Z is
       // redo, and the pointer flashing a "+" through it would be the app
       // answering a question nobody asked.

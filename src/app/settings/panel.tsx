@@ -69,7 +69,7 @@ export function PanelTab({
   setPanelSectionEnabled: (id: string, enabled: boolean) => void;
   setPanelItemEnabled: (id: string, enabled: boolean) => void;
   /** Move a row within the order — handed the whole order it is a permutation
-   *  of, for the reason `order.ts` gives. */
+   *  of, for the reason the framework's `order` module gives. */
   movePanelSection: (
     order: readonly string[],
     from: number,
