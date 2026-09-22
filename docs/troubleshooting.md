@@ -17,15 +17,14 @@ when you make it (**New image** → **Page colour**).
 
 ## A cloud backend isn't offered
 
-Dropbox and Google Drive only appear when the build carries their OAuth client
+Dropbox only appear when the build carries their OAuth client
 id (see [configuration](configuration.md)); a build without them offers only
 "This device" and, on Chromium, "Local folder". "Local folder" itself is hidden
 in browsers without the File System Access API — Firefox and Safari today.
 
 ## Sync says "session expired"
 
-OAuth tokens don't live forever, and the Google Drive token is per-session by
-design. Open the sync command centre (the glyph in the header) and use
+OAuth tokens don't live forever. Open the sync command centre (the glyph in the header) and use
 **Reconnect**. Your drawings are safe on the device meanwhile.
 
 ## Sync says there's a newer copy on the backend

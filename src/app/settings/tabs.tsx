@@ -44,7 +44,6 @@ import type { PaintStore } from "../usePaintStore.ts";
 import {
   DROPBOX_APP_KEY,
   FOLDER_BACKEND_AVAILABLE,
-  GOOGLE_CLIENT_ID,
   PROVIDER_NAMES,
   type SyncBackendId,
   type SyncEngine,
@@ -267,25 +266,15 @@ export function StorageTab({
           },
         ]
       : []),
-    ...(GOOGLE_CLIENT_ID
-      ? [
-          {
-            value: "gdrive" as const,
-            label: t("settings.storage.backendGdrive"),
-          },
-        ]
-      : []),
   ];
 
   const pickedFolder = picked === "folder";
   const pickedCloud =
-    picked === "dropbox" || picked === "gdrive" ? picked : null;
+    picked === "dropbox" ? picked : null;
   // Unconfigured backends are hidden above, so this only fires for a backend
   // persisted by an earlier build that had the key and this one doesn't — still
   // worth explaining rather than leaving the picker silently stuck.
-  const missingKey =
-    (pickedCloud === "dropbox" && !DROPBOX_APP_KEY) ||
-    (pickedCloud === "gdrive" && !GOOGLE_CLIENT_ID);
+  const missingKey = pickedCloud === "dropbox" && !DROPBOX_APP_KEY;
 
   const exportJson = () => {
     downloadText("paint.json", serializeDoc(store.data), MIME_JSON);
@@ -408,13 +397,7 @@ export function StorageTab({
               <Button
                 variant="primary"
                 disabled={connecting}
-                onClick={() =>
-                  runConnect(() =>
-                    pickedCloud === "dropbox"
-                      ? sync.connectDropbox()
-                      : sync.connectGdrive(),
-                  )
-                }
+                onClick={() => runConnect(() => sync.connectDropbox())}
               >
                 <span className="flex items-center gap-1.5">
                   {connecting && (

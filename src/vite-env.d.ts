@@ -30,9 +30,4 @@ interface ImportMetaEnv {
   readonly VITE_DROPBOX_APP_KEY?: string;
   // The Dropbox app-folder name (`Apps/<name>/`), when it isn't "Paint".
   readonly VITE_DROPBOX_APP_FOLDER?: string;
-  // Google OAuth client id (GIS token client). Unset hides the Google Drive
-  // storage backend. See `src/app/useSyncEngine.ts`.
-  readonly VITE_GOOGLE_CLIENT_ID?: string;
-  // The My Drive folder the document is filed under, when it isn't "Paint".
-  readonly VITE_GDRIVE_APP_FOLDER?: string;
 }

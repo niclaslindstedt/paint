@@ -2,7 +2,7 @@
 
 > A local-first sketchpad PWA: draw a concept on a canvas, switch extra tools on
 > when you need them, and keep every drawing on your device — with optional
-> Dropbox or Google Drive sync.
+> Dropbox sync.
 
 Paint is a small, installable web app for sketching the kind of diagram you draw
 to explain something: boxes, arrows, a circled bit, a scribble. Drawings are
@@ -257,7 +257,7 @@ connect a storage backend yourself.
   in `vectors.json` alongside, which is what makes reopening it lossless rather
   than a flatten. Open one from New image → Load, or by dropping it there.
 - Work offline: it is an installable PWA with a precaching service worker.
-- Optionally sync to a local folder, Dropbox, or Google Drive, with optional
+- Optionally sync to a local folder, Dropbox,, with optional
   end-to-end encryption of the synced file.
 - Press the header's disk button (or Ctrl/Cmd+S) to file the rendered layers out
   to that backend as browsable PNGs under `drawings/<name>-<tag>/`. Only that

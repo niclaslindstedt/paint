@@ -347,7 +347,7 @@ opens on a phone.
 - Drag an image file onto the canvas to add it to the drawing — or onto the
   drawings list to start a new drawing from it. [More](features/images.md).
 - Settings → **Storage** exports the whole document as **JSON**, and connects a
-  local folder, Dropbox, or Google Drive so your drawings follow you between
+  local folder, Dropbox, so your drawings follow you between
   devices — optionally encrypted end-to-end. [More](features/cloud-sync.md).
 
 ## Installing it

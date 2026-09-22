@@ -1053,7 +1053,7 @@ export const sv: Catalog = {
       backendThisDevice: "Den här enheten",
       backendFolder: "Lokal mapp",
       backendDropbox: "Dropbox",
-      backendGdrive: "Google Drive",
+      backendGdrive: "Dropbox",
       folderHint:
         "Välj en mapp på datorn; teckningsfilen skrivs rakt in i den.",
       folderChoose: "Välj en mapp…",
@@ -1066,7 +1066,7 @@ export const sv: Catalog = {
       missingKeyDropbox:
         "Det här bygget saknar Dropbox-appnyckel, så Dropbox kan inte anslutas. Se docs/configuration.md.",
       missingKeyGdrive:
-        "Det här bygget saknar Google-klient-id, så Google Drive kan inte anslutas. Se docs/configuration.md.",
+        "Det här bygget saknar Google-klient-id, så Dropbox kan inte anslutas. Se docs/configuration.md.",
       encryptionTitle: "Kryptering",
       encrypt: "Kryptera molnkopian",
       encryptHint:

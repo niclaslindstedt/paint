@@ -24,7 +24,7 @@ const PRIVACY_ROUTE = {
   title: "Privacy — Paint",
   description:
     "Paint privacy: local-first by default — no account, no cookies, no " +
-    "analytics, no tracking. Optional Dropbox / Google Drive sync only when " +
+    "analytics, no tracking. Optional Dropbox sync only when " +
     "you connect it.",
   ogType: "article",
 } as const;

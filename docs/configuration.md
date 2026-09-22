@@ -14,8 +14,6 @@ into a public bundle.
 | ------------------------- | -------------------------------------------------------------------------------------------- |
 | `VITE_DROPBOX_APP_KEY`    | Dropbox app key (PKCE public client). **Unset ⇒ Dropbox is hidden** from Settings → Storage. |
 | `VITE_DROPBOX_APP_FOLDER` | The app-folder name the document is filed under (`Apps/<name>/`). Defaults to `Paint`.       |
-| `VITE_GOOGLE_CLIENT_ID`   | Google OAuth client id (GIS token client). **Unset ⇒ Google Drive is hidden.**               |
-| `VITE_GDRIVE_APP_FOLDER`  | The My Drive folder the document is filed under. Defaults to `Paint`.                        |
 
 An unconfigured backend is hidden rather than shown broken, so a build with
 neither key simply offers "This device" and, on Chromium, "Local folder" (which
@@ -30,19 +28,14 @@ Add your deploy origin (and `http://localhost:5173` for local work) as a
 redirect URI. The app key goes in `VITE_DROPBOX_APP_KEY`; the folder name you
 gave the app goes in `VITE_DROPBOX_APP_FOLDER`.
 
-**Google Drive.** Create an OAuth client id (Web application) in the
-[Google Cloud console](https://console.cloud.google.com/apis/credentials), with
-your origins listed as authorized JavaScript origins. The app requests the
-narrow `drive.file` scope, so it can only see files it created itself.
-
 ### What lands on the backend
 
 Whichever backend is connected, its folder holds the document plus one file per
 dropped picture:
 
 ```
-Apps/Paint/            (Dropbox — "Paint" folder in My Drive on Google Drive,
-│                       or the folder you picked for the local-folder backend)
+Apps/Paint/            (Dropbox — or the folder you picked for the
+│                       local-folder backend)
 ├── paint-default.json                  the drawings, one file per namespace
 └── images/
     └── sequence-diagram-4k2a-1.png     one file per dropped picture
@@ -75,7 +68,6 @@ gitignored):
 
 ```
 VITE_DROPBOX_APP_KEY=abc123
-VITE_GOOGLE_CLIENT_ID=123-abc.apps.googleusercontent.com
 ```
 
 ## Where the data lives

@@ -46,7 +46,7 @@ do with it.
 
 **Out of scope**
 
-- Vulnerabilities in Dropbox, Google Drive, or the browser itself — report those
+- Vulnerabilities in Dropbox or the browser itself — report those
   to their vendors.
 - Issues in `@niclaslindstedt/oss-framework` — report those in
   [that repository](https://github.com/niclaslindstedt/oss-framework/security).

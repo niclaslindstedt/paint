@@ -3,7 +3,7 @@
 // and the `emit-privacy-alias` plugin in `vite.config.ts`), and linked from the
 // side menu's About dropdown. Paint is local-first — by default no backend, no
 // account, no analytics — but it also ships optional storage backends (a local
-// folder, Dropbox, Google Drive) that send drawings off the browser only when
+// folder, Dropbox) that send drawings off the browser only when
 // the user explicitly connects one, so this policy covers both cases. It is
 // English-only by design (a legal page, not chrome).
 import { type ReactNode } from "react";
@@ -43,7 +43,7 @@ export function PrivacyPage() {
             entirely in your browser. There is no backend of our own, no
             account, no cookies, and no analytics or tracking. By default your
             drawings are stored only on your device and never leave it. You may
-            optionally connect a cloud backend (Dropbox or Google Drive) to sync
+            optionally connect a cloud backend (Dropbox) to sync
             your drawings across your own devices — in that case, and only then,
             they are sent to that one provider at your explicit request. The
             project authors never receive your drawings in any configuration.
@@ -72,7 +72,7 @@ export function PrivacyPage() {
             </li>
             <li>
               Which storage backend you&apos;ve chosen, and — if you&apos;ve
-              connected Dropbox or Google Drive — the OAuth access and refresh
+              connected Dropbox — the OAuth access and refresh
               tokens for that provider. These tokens grant access only to the
               app&apos;s own folder, never your whole account, and never leave
               your device except to authenticate with that provider.
@@ -107,14 +107,13 @@ export function PrivacyPage() {
               without asking again.
             </li>
             <li>
-              <strong className="text-fg-bright">Dropbox</strong> /{" "}
-              <strong className="text-fg-bright">Google Drive</strong> — only
-              when you explicitly connect one, your drawings are stored in that
-              provider&apos;s cloud (in an app-scoped folder) so they sync
-              across your own devices. Connecting sends you to the
-              provider&apos;s own consent screen; the app requests access to its
-              own folder only. Your data is then also subject to that
-              provider&apos;s privacy policy. You can disconnect at any time.
+              <strong className="text-fg-bright">Dropbox</strong> — only when
+              you explicitly connect it, your drawings are stored in your
+              Dropbox (in an app-scoped folder) so they sync across your own
+              devices. Connecting sends you to Dropbox&apos;s own consent
+              screen; the app requests access to its own folder only. Your data
+              is then also subject to Dropbox&apos;s privacy policy. You can
+              disconnect at any time.
             </li>
           </ul>
           <p>
@@ -139,7 +138,7 @@ export function PrivacyPage() {
             app&apos;s own static files (HTML, JavaScript, CSS, fonts, and
             icons) from its origin, and once loaded it works fully offline as an
             installed PWA. The one exception is the cloud backends: if — and
-            only if — you connect Dropbox or Google Drive, the app talks to that
+            only if — you connect Dropbox, the app talks to that
             provider&apos;s API to read and write your drawings. No fonts,
             analytics scripts, error-reporting services, or advertising networks
             are ever loaded.

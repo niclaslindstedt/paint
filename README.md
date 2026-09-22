@@ -214,7 +214,7 @@ the same [`oss-framework`](https://github.com/niclaslindstedt/oss-framework).
   files when you press the disk button. See
   [`docs/features/file-format.md`](docs/features/file-format.md).
 - **Local-first.** No account, no server, works offline. Sync to a folder,
-  Dropbox, or Google Drive only if you ask for it — optionally encrypted. A
+  Dropbox, only if you ask for it — optionally encrypted. A
   picture you drop on the page is filed beside the document as a real image
   file, so what syncs stays small and stays browsable.
 - **A sheet of paper, whatever the room.** A page nobody has given a colour to
@@ -460,8 +460,8 @@ Both packaging targets forward `ARGS` to `tauri build`, e.g.
 ## Configuration
 
 Everything works with no configuration. Build-time environment variables switch
-the optional cloud backends on — `VITE_DROPBOX_APP_KEY`,
-`VITE_GOOGLE_CLIENT_ID`, and the folder-name overrides. See
+the optional cloud backend on — `VITE_DROPBOX_APP_KEY` and the folder-name
+override. See
 [`docs/configuration.md`](docs/configuration.md).
 
 ## Examples

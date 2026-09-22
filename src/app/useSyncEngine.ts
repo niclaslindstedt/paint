@@ -10,12 +10,10 @@ import {
   completeDropboxAuth,
   createDropboxAdapter,
   createFolderAdapter,
-  createGdriveAdapter,
   hasPendingDropboxAuth,
   isRetryableSaveError,
   localCacheKey,
   startDropboxAuth,
-  startGdriveAuth,
   withLocalCache,
   type StorageAdapter,
 } from "@niclaslindstedt/oss-framework/storage";
@@ -35,11 +33,10 @@ import {
   type CloudDocSummary,
 } from "./cloudSetup.ts";
 import { folderFileStore } from "./folderFileStore.ts";
-import { dropboxByteFileStore, gdriveByteFileStore } from "./imageFileStore.ts";
+import { dropboxByteFileStore } from "./imageFileStore.ts";
 import {
   dropboxImageStore,
   folderImageStore,
-  gdriveImageStore,
   withExternalImages,
 } from "./imageStore.ts";
 import { fileSettingsStore, type SettingsStore } from "./settingsStore.ts";
@@ -60,7 +57,7 @@ export { FOLDER_BACKEND_AVAILABLE } from "./useFolderBackend.ts";
 // (IndexedDB, written by `usePaintStore`) is always the working copy; when a
 // remote backend is connected the engine pushes the serialized document there
 // (debounced on the store's edit counter) and can pull the backend's copy back
-// down. Dropbox and Google Drive ride the framework's storage adapters; the
+// down. Dropbox ride the framework's storage adapters; the
 // optional at-rest encryption wraps the byte boundary with `withEncryption`, so
 // what lands in the cloud is an AES-GCM envelope.
 //
@@ -77,11 +74,13 @@ export { FOLDER_BACKEND_AVAILABLE } from "./useFolderBackend.ts";
 
 const syncLog = logStore.createLogger("sync");
 
-export type SyncBackendId = "local" | "folder" | "dropbox" | "gdrive";
+export type SyncBackendId = "local" | "folder" | "dropbox";
 
 const BACKEND_KEY = "paint:sync:backend";
 const DROPBOX_TOKENS_KEY = "paint:sync:dropbox";
-const GDRIVE_TOKEN_KEY = "paint:sync:gdrive";
+// Dropbox is gone as a backend. The key stays named so a token a device
+// may still hold is cleared rather than left sitting in storage.
+const RETIRED_GDRIVE_TOKEN_KEY = "paint:sync:gdrive";
 const ENCRYPTED_KEY = "paint:sync:encrypted";
 
 // Long enough that a burst of quick strokes settles into one push, short enough
@@ -92,8 +91,6 @@ const SAVE_DEBOUNCE_MS = 1500;
 // backend is hidden in Settings → Storage rather than offered as a dead option.
 export const DROPBOX_APP_KEY: string =
   (import.meta.env.VITE_DROPBOX_APP_KEY as string | undefined) ?? "";
-export const GOOGLE_CLIENT_ID: string =
-  (import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined) ?? "";
 
 // Dropbox fixes the app-folder name from the app's own configuration (an "App
 // folder"-scoped app lives under `Apps/<name>/`), so it isn't always "Paint".
@@ -101,12 +98,6 @@ export const GOOGLE_CLIENT_ID: string =
 // displayed file location point at the folder that actually exists.
 export const DROPBOX_APP_FOLDER: string =
   (import.meta.env.VITE_DROPBOX_APP_FOLDER as string | undefined)?.trim() ||
-  "Paint";
-
-// Google Drive's folder, unlike Dropbox's, is created by us — this is the
-// folder we make in the user's My Drive.
-export const GDRIVE_APP_FOLDER: string =
-  (import.meta.env.VITE_GDRIVE_APP_FOLDER as string | undefined)?.trim() ||
   "Paint";
 
 /** The mutable in-memory box the session passphrase lives in. Structurally
@@ -117,7 +108,6 @@ export type MutablePasswordRef = { current: string | null };
 export const PROVIDER_NAMES: Record<Exclude<SyncBackendId, "local">, string> = {
   folder: "Local folder",
   dropbox: "Dropbox",
-  gdrive: "Google Drive",
 };
 
 type DropboxTokens = { accessToken: string; refreshToken: string | null };
@@ -135,7 +125,7 @@ export type PendingCloudSetup = {
 
 function readBackend(): SyncBackendId {
   const raw = localStorage.getItem(BACKEND_KEY);
-  return raw === "dropbox" || raw === "gdrive" || raw === "folder"
+  return raw === "dropbox" || raw === "folder"
     ? raw
     : "local";
 }
@@ -169,7 +159,6 @@ export function cloudFileName(slug: string): string {
 function backendPath(backend: SyncBackendId, slug: string): string {
   const file = cloudFileName(slug);
   if (backend === "dropbox") return `Apps/${DROPBOX_APP_FOLDER}/${file}`;
-  if (backend === "gdrive") return `${GDRIVE_APP_FOLDER}/${file}`;
   return file;
 }
 
@@ -179,13 +168,6 @@ function backendWebUrl(backend: SyncBackendId, slug: string): string | null {
   if (backend === "dropbox") {
     return `https://www.dropbox.com/home/Apps/${encodeURIComponent(
       DROPBOX_APP_FOLDER,
-    )}`;
-  }
-  if (backend === "gdrive") {
-    // A filename search opens Drive straight onto the document without our
-    // having to resolve the folder id.
-    return `https://drive.google.com/drive/search?q=${encodeURIComponent(
-      cloudFileName(slug),
     )}`;
   }
   return null;
@@ -210,7 +192,6 @@ export type SyncEngine = {
    *  passphrase again) when it doesn't decrypt — the unlock gate surfaces it. */
   unlock: (password: string) => Promise<void>;
   connectDropbox: () => Promise<void>;
-  connectGdrive: () => Promise<void>;
   /** Pick a local folder (File System Access API) and switch to it. */
   connectFolder: () => Promise<void>;
   /** Re-confirm a revoked OS grant on the already-picked folder. */
@@ -242,9 +223,6 @@ export function useSyncEngine(
   const [backend, setBackendState] = useState<SyncBackendId>(readBackend);
   const [dropboxTokens, setDropboxTokens] = useState<DropboxTokens | null>(
     readDropboxTokens,
-  );
-  const [gdriveToken, setGdriveToken] = useState<string | null>(() =>
-    sessionStorage.getItem(GDRIVE_TOKEN_KEY),
   );
   const [encrypted, setEncryptedState] = useState<boolean>(
     () => localStorage.getItem(ENCRYPTED_KEY) === "1",
@@ -308,12 +286,11 @@ export function useSyncEngine(
   // A "remote" backend is anything that pushes the document through a
   // `StorageAdapter` (folder or cloud). "Cloud" is the OAuth subset.
   const isRemote = backend !== "local";
-  const isCloud = backend === "dropbox" || backend === "gdrive";
+  const isCloud = backend === "dropbox";
   const isFolder = backend === "folder";
   const connected =
     backend === "local" ||
     (backend === "dropbox" && dropboxTokens !== null) ||
-    (backend === "gdrive" && gdriveToken !== null) ||
     (backend === "folder" && folderHandle !== null);
 
   // Dropbox's credentials, including the refresh callback that persists a
@@ -362,26 +339,6 @@ export function useSyncEngine(
             () => setImageSweep(true),
           );
     }
-    if (backend === "gdrive" && gdriveToken) {
-      const cloud = createGdriveAdapter(gdriveToken, {
-        appFolderName: GDRIVE_APP_FOLDER,
-        fileName: cloudFileName(slug),
-        logger: logStore.createLogger("gdrive"),
-      });
-      const cached = withLocalCache(cloud, {
-        storage: localStorage,
-        key: localCacheKey("gdrive", slug),
-      });
-      return encrypted
-        ? withEncryption(cached, passwordRef, {
-            logger: logStore.createLogger("encrypt"),
-          })
-        : withExternalImages(
-            cached,
-            gdriveImageStore(gdriveToken, GDRIVE_APP_FOLDER),
-            () => setImageSweep(true),
-          );
-    }
     if (backend === "folder" && folderHandle) {
       // Unlike the cloud adapters there's no `withLocalCache` — the folder is
       // already local and never raises network errors.
@@ -406,7 +363,6 @@ export function useSyncEngine(
   }, [
     backend,
     dropboxAuth,
-    gdriveToken,
     folderHandle,
     encrypted,
     slug,
@@ -693,20 +649,6 @@ export function useSyncEngine(
     await startDropboxAuth(DROPBOX_APP_KEY); // redirects away
   }, []);
 
-  const connectGdrive = useCallback(async () => {
-    if (!GOOGLE_CLIENT_ID) return;
-    syncLog.info("gdrive: requesting consent…");
-    const token = await startGdriveAuth(
-      GOOGLE_CLIENT_ID,
-      logStore.createLogger("gdrive"),
-    );
-    sessionStorage.setItem(GDRIVE_TOKEN_KEY, token);
-    justConnected.current = true;
-    setGdriveToken(token);
-    setBackend("gdrive");
-    syncLog.info("gdrive: connected");
-  }, [setBackend]);
-
   // Pick a local folder and switch to it, once the grant is in hand.
   const connectFolder = useCallback(async () => {
     if (await folder.connect()) {
@@ -722,9 +664,8 @@ export function useSyncEngine(
 
   const disconnect = useCallback(() => {
     writeDropboxTokens(null);
-    sessionStorage.removeItem(GDRIVE_TOKEN_KEY);
+    sessionStorage.removeItem(RETIRED_GDRIVE_TOKEN_KEY);
     setDropboxTokens(null);
-    setGdriveToken(null);
     void clearDirectoryHandle();
     folder.clear();
     baseRevision.current = undefined;
@@ -752,14 +693,11 @@ export function useSyncEngine(
         dropbox: dropboxAuth
           ? { auth: dropboxAuth, appKey: DROPBOX_APP_KEY || undefined }
           : null,
-        gdrive: gdriveToken
-          ? { token: gdriveToken, appFolder: GDRIVE_APP_FOLDER }
-          : null,
         folder: folderHandle
           ? { handle: folderHandle, onPermissionLost: markFolderPermissionLost }
           : null,
       }),
-    [backend, dropboxAuth, gdriveToken, folderHandle, markFolderPermissionLost],
+    [backend, dropboxAuth, folderHandle, markFolderPermissionLost],
   );
 
   const layerSave = useLayerSave(
@@ -860,13 +798,12 @@ export function useSyncEngine(
   // Re-run the backend's consent flow — the command centre's "Reconnect".
   const reconnect = useCallback(async () => {
     if (backend === "dropbox") await connectDropbox();
-    else if (backend === "gdrive") await connectGdrive();
     else if (backend === "folder") {
       await reconnectFolder();
       return; // reconnectFolder clears the fault only on a granted re-confirm.
     }
     setFault("none");
-  }, [backend, connectDropbox, connectGdrive, reconnectFolder]);
+  }, [backend, connectDropbox, reconnectFolder]);
 
   const checkConnection =
     useCallback(async (): Promise<ConnectionProbeResult> => {
@@ -911,11 +848,6 @@ export function useSyncEngine(
         dropboxByteFileStore(dropboxAuth, DROPBOX_APP_KEY || undefined),
       );
     }
-    if (backend === "gdrive" && gdriveToken) {
-      return fileSettingsStore(
-        gdriveByteFileStore(gdriveToken, GDRIVE_APP_FOLDER),
-      );
-    }
     if (backend === "folder" && folderHandle) {
       return fileSettingsStore(
         folderFileStore(folderHandle, markFolderPermissionLost),
@@ -925,7 +857,6 @@ export function useSyncEngine(
   }, [
     backend,
     dropboxAuth,
-    gdriveToken,
     folderHandle,
     markFolderPermissionLost,
   ]);
@@ -947,7 +878,6 @@ export function useSyncEngine(
     resolveSetup,
     unlock,
     connectDropbox,
-    connectGdrive,
     connectFolder,
     reconnectFolder,
     folderReconnectNeeded,

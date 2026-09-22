@@ -46,7 +46,7 @@ survive even though the individual marks don't.
 
 ## Layers on your cloud backend
 
-When you sync to a local folder, Dropbox or Google Drive, the same manifest and
+When you sync to a local folder, Dropbox, the same manifest and
 the same layer PNGs are written there too — unpacked rather than zipped, one
 folder per drawing:
 

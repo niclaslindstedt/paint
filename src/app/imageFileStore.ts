@@ -3,7 +3,7 @@
 // text-only — its `read` does `res.text()` and its `write` sends the string as
 // the body — so it can round-trip a base64 string but not raw image bytes: a
 // JPEG pushed through it comes back mangled by UTF-8 decoding. This module talks
-// to the Dropbox and Google Drive content APIs directly to move *bytes*, so what
+// to the Dropbox content APIs directly to move *bytes*, so what
 // lands on the drive is a genuine `.jpg` / `.png` you can preview, not a base64
 // blob.
 //
@@ -163,9 +163,9 @@ export function dropboxByteFileStore(
   );
 }
 
-// --- Google Drive ------------------------------------------------------------
+// --- Dropbox ------------------------------------------------------------
 
-/** A binary Google Drive byte store inside the app folder. `list`/`remove` reuse
+/** A binary Dropbox byte store inside the app folder. `list`/`remove` reuse
  *  the framework's text store (folder resolution and all); `read`/`write` move
  *  bytes through the media-upload endpoint. `appFolderName` is the My Drive
  *  folder the app files everything under — the same one the document adapter is
@@ -282,7 +282,7 @@ export function gdriveByteFileStore(
   ): Promise<void> {
     const { dir, name } = split(path);
     const dirId = await resolveDir(dir, true);
-    if (!dirId) throw new Error(`Google Drive: cannot resolve ${dir}`);
+    if (!dirId) throw new Error(`Dropbox: cannot resolve ${dir}`);
     const existing = await searchOne(
       `name='${name}' and '${dirId}' in parents and trashed=false`,
     );
@@ -313,14 +313,14 @@ export function gdriveByteFileStore(
   async function driveError(op: string, res: Response): Promise<Error> {
     if (res.status === 401) {
       return new AuthError(
-        `Google Drive ${op} failed: 401 ${await readErrorBody(res)}`,
+        `Dropbox ${op} failed: 401 ${await readErrorBody(res)}`,
       );
     }
     if (res.status === 429 || res.status >= 500) {
-      return statusError("Google Drive", op, res);
+      return statusError("Dropbox", op, res);
     }
     return new Error(
-      `Google Drive ${op} failed: ${res.status} ${await readErrorBody(res)}`,
+      `Dropbox ${op} failed: ${res.status} ${await readErrorBody(res)}`,
     );
   }
 }

@@ -159,7 +159,7 @@ export function App() {
   // kit goes back to its defaults here (see `kit.ts`).
   const store = usePaintStore(ns.activeSlug, undefined, applyDefaults);
 
-  // The sync engine — pushes the document to a folder / Dropbox / Google Drive
+  // The sync engine — pushes the document to a folder / Dropbox
   // when connected. The passphrase for an encrypted cloud copy lives only in
   // this in-memory ref; the framework's encryption wrapper reads it fresh on
   // every operation and stores it nowhere.

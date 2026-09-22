@@ -82,7 +82,7 @@ checklists to drawing, and a sibling of the `notes` and `contacts` apps.
 
 The framework owns the UI kit and the generic mechanics: the `Sidebar` shell,
 modals, theme engine, namespaces, storage adapters (localStorage / folder /
-Dropbox / Google Drive), the AES-GCM encryption wrapper, the i18n runtime,
+Dropbox), the AES-GCM encryption wrapper, the i18n runtime,
 logging, and the PWA update state machine.
 
 ### The renderer is Preact

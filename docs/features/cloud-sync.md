@@ -13,7 +13,6 @@ Settings → Storage picks where the document is kept:
 | **This device**  | This browser's IndexedDB. The default; nothing leaves the browser.      |
 | **Local folder** | A folder you pick on this computer (Chromium's File System Access API). |
 | **Dropbox**      | A `paint-<namespace>.json` file in the app's Dropbox app folder.        |
-| **Google Drive** | The same file in a `Paint` folder in your My Drive.                     |
 
 A cloud backend only appears in the picker when the build carries its OAuth
 client id (see [configuration](../configuration.md)) — an unconfigured backend

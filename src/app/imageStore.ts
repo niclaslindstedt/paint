@@ -18,7 +18,7 @@
 // untouched. Only what travels through an adapter is split in two.
 //
 // The `data:` URL ⇄ bytes conversion is the framework's (`files`); the byte
-// transports are `imageFileStore.ts` (Dropbox / Google Drive) and
+// transports are `imageFileStore.ts` (Dropbox) and
 // `folderFileStore.ts` (the picked directory).
 //
 // Two safety rules make it robust against an untested network:
@@ -105,7 +105,7 @@ export function dropboxImageStore(
   return scopeToImages(dropboxByteFileStore(auth, appKey));
 }
 
-/** The Google Drive image store, in the app folder's `images/` tree. */
+/** The Dropbox image store, in the app folder's `images/` tree. */
 export function gdriveImageStore(
   token: string,
   appFolderName: string,

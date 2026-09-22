@@ -1160,7 +1160,7 @@ export const en = {
       backendThisDevice: "This device",
       backendFolder: "Local folder",
       backendDropbox: "Dropbox",
-      backendGdrive: "Google Drive",
+      backendGdrive: "Dropbox",
       folderHint:
         "Pick a folder on this computer; the drawing file is written straight into it.",
       folderChoose: "Choose a folder…",
@@ -1173,7 +1173,7 @@ export const en = {
       missingKeyDropbox:
         "This build has no Dropbox app key, so Dropbox can't be connected. See docs/configuration.md.",
       missingKeyGdrive:
-        "This build has no Google client id, so Google Drive can't be connected. See docs/configuration.md.",
+        "This build has no Google client id, so Dropbox can't be connected. See docs/configuration.md.",
       encryptionTitle: "Encryption",
       encrypt: "Encrypt the cloud copy",
       encryptHint:

@@ -20,7 +20,6 @@ import { canSaveLayers } from "./cloudSetup.ts";
 import { folderFileStore } from "./folderFileStore.ts";
 import {
   dropboxByteFileStore,
-  gdriveByteFileStore,
   type ByteFileStore,
 } from "./imageFileStore.ts";
 import { logStore } from "./log.ts";
@@ -35,7 +34,6 @@ const log = logStore.createLogger("layers");
  *  one — see below). */
 export type LayerBackend =
   | { kind: "dropbox"; auth: DropboxAuth; appKey: string | undefined }
-  | { kind: "gdrive"; token: string; appFolder: string }
   | {
       kind: "folder";
       handle: FileSystemDirectoryHandle;
@@ -66,9 +64,8 @@ export type LayerSave = {
 /** The live credentials the engine holds, in the shape this module can pick a
  *  backend out of. */
 export type LayerCredentials = {
-  backend: "local" | "folder" | "dropbox" | "gdrive";
+  backend: "local" | "folder" | "dropbox";
   dropbox: { auth: DropboxAuth; appKey: string | undefined } | null;
-  gdrive: { token: string; appFolder: string } | null;
   folder: {
     handle: FileSystemDirectoryHandle;
     onPermissionLost: () => void;
@@ -80,9 +77,6 @@ export type LayerCredentials = {
 export function layerBackendFor(creds: LayerCredentials): LayerBackend {
   if (creds.backend === "dropbox" && creds.dropbox) {
     return { kind: "dropbox", ...creds.dropbox };
-  }
-  if (creds.backend === "gdrive" && creds.gdrive) {
-    return { kind: "gdrive", ...creds.gdrive };
   }
   if (creds.backend === "folder" && creds.folder) {
     return { kind: "folder", ...creds.folder };
@@ -97,9 +91,6 @@ function transportFor(backend: LayerBackend): ByteFileStore | null {
   if (!backend) return null;
   if (backend.kind === "dropbox") {
     return dropboxByteFileStore(backend.auth, backend.appKey);
-  }
-  if (backend.kind === "gdrive") {
-    return gdriveByteFileStore(backend.token, backend.appFolder);
   }
   return folderFileStore(backend.handle, backend.onPermissionLost);
 }
