@@ -59,6 +59,16 @@ The two packaging targets forward `ARGS` to `tauri build`
 (`make tauri-package ARGS="--target aarch64-apple-darwin"`), and each target has
 an `npm run tauri:*` twin — the Makefile only ever delegates.
 
+The phone and tablet wrapper in `native/` has a **dependency tree of its own**
+— `make install` does not touch it, and neither does `npm ci` at the root:
+
+```sh
+make native-install    # npm --prefix native install
+make native-bundle     # build the web app into native/assets/webroot.zip
+make native-typecheck  # the wrapper's own tsc
+make native-prebuild   # inspect what the config plugin generates
+```
+
 The `@niclaslindstedt/oss-framework` dependency comes from the **GitHub
 Packages** npm registry (see `.npmrc`). GitHub Packages requires auth even for
 public packages, so local installs need a `read:packages` token in `~/.npmrc`
@@ -183,6 +193,21 @@ site build passes it, which switches off the service-worker half of `appPwa`
 and — through `__SHELL_BUILD__` — the in-app update prompt. A desktop build has
 no deploy to notice; a new version arrives as a new binary.
 
+### The phone wrapper offers a capability, and stops there
+
+`native/` is a thin Expo / React Native shell for the App Store and Google
+Play: the same built site in a `WebView`, served from a loopback origin. It is
+a **separate npm project** with its own lockfile and its own `tsc`.
+
+Unlike the desktop shell it does put one thing on `window` — an iCloud Drive
+provider — because App Store guideline 4.2 wants the app to do something the
+website cannot. The rule that keeps it thin is the desktop shell's rule, bent
+exactly that far: **`src/` asks whether a capability is present, never where
+it is running.** `src/app/icloudHost.ts` looks for the provider; a browser has
+none, and the backend is not offered. The wrapper moves opaque files; the
+document's name, the `images/` and `drawings/` layout and when a save is due
+stay in `src/app/useSyncEngine.ts`. See [`native/README.md`](native/README.md).
+
 Dependency direction: screens → stores → framework. Nothing imports from the
 framework's internals — only its published subpaths.
 
@@ -260,6 +285,7 @@ changelog payload, and the cloud-setup prompt are all behind `import()` already.
 | Examples      | `examples/...`                                                               |
 | LLM prompt    | `prompts/<name>/<major>_<minor>_<patch>.md` (see `prompts/README.md`)        |
 | Desktop shell | `tauri/shell/` if it is a decision, `tauri/src-tauri/` if it is an effect    |
+| Phone wrapper | `native/...` (a separate npm project — see above)                            |
 
 ## Test conventions
 
@@ -290,6 +316,7 @@ changelog payload, and the cloud-setup prompt are all behind `import()` already.
 | sync backends / encryption           | `docs/features/cloud-sync.md`, `docs/configuration.md`                                                    |
 | the settings surface                 | `docs/getting-started.md`                                                                                 |
 | the desktop shell                    | `tauri/README.md`, `docs/features/desktop-app.md`, `tauri/shell/tests/`                                   |
+| the phone wrapper                    | `native/README.md`, `native/RELEASING.md`                                                                 |
 | user-visible features                | a `.changes/unreleased/` changeset fragment + `docs/features/*.md` (the in-app "What's new" renders both) |
 
 ## Changelog and feature docs
@@ -325,8 +352,9 @@ the fuller reference under `docs/` proper rather than in `docs/features/`.
 - The service-worker contract (cache id, `sw.js`, `version.json`,
   `precache-manifest.json`) is shared between `src/app/pwa.ts` and
   `pwa-plugin.ts`; change them together.
-- `public/icons/*`, `public/og.png`, `public/favicon.ico`, and the desktop
-  shell's `tauri/src-tauri/icons/*` are generated — edit
+- `public/icons/*`, `public/og.png`, `public/favicon.ico`, the desktop
+  shell's `tauri/src-tauri/icons/*` and the phone wrapper's
+  `native/assets/*.png` are generated — edit
   `scripts/generate-icons.mjs` (and the hand-written `public/icons/icon.svg` to
   match) and rerun `make icons`. One script, because the dock icon, the home
   screen tile and the favicon are one mark rather than three that resemble each
@@ -337,6 +365,13 @@ the fuller reference under `docs/` proper rather than in `docs/features/`.
   `.github/actions/package-desktop`, used by both `desktop-tauri.yml` (the
   dispatch-only check) and `release.yml` (the downloads) — so the release build
   and the trial build can never drift apart.
+- The iCloud container id is pinned in `native/identifiers.js` (which the
+  config and its plugins read) and in `native/modules/icloud-store/` (index.ts
+  and its Swift twin), which must agree. Changing it after release strands
+  every synced copy in the old container.
+- The iCloud bridge's property and event names are a contract between
+  `native/src/icloudBridge.ts` and `src/app/icloudHost.ts`.
+  `tests/native_icloud_test.ts` pins them.
 - A stroke's `tool` field is a plugin id and is **persisted**. Renaming a plugin
   id orphans every stroke drawn with it — don't, or ship a migration step.
 

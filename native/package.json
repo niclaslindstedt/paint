@@ -1,0 +1,41 @@
+{
+  "name": "paint-native",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Thin native (Expo/React Native) wrapper around the paint PWA. Bundles the built web app on-device, serves it from a loopback origin in a WebView, and adds an iCloud Drive storage backend.",
+  "main": "index.ts",
+  "scripts": {
+    "bundle": "node scripts/bundle-web.mjs",
+    "bundle:zip": "node scripts/bundle-web.mjs --skip-build",
+    "start": "expo start",
+    "prebuild": "expo prebuild --clean",
+    "ios": "npm run bundle && expo run:ios",
+    "android": "npm run bundle && expo run:android",
+    "typecheck": "tsc --noEmit",
+    "doctor": "npx --yes expo-doctor",
+    "build:preview": "npm run bundle -- --profile preview && eas build --profile preview",
+    "build:testflight": "npm run bundle -- --profile testflight && eas build --profile testflight --platform all",
+    "build:production": "npm run bundle -- --profile production && eas build --profile production --platform all",
+    "submit": "eas submit --profile production"
+  },
+  "dependencies": {
+    "@dr.pogodin/react-native-static-server": "^0.27.0",
+    "expo": "~57.0.6",
+    "expo-asset": "~57.0.5",
+    "expo-build-properties": "~57.0.6",
+    "expo-constants": "~57.0.5",
+    "expo-file-system": "~57.0.1",
+    "expo-splash-screen": "~57.0.4",
+    "expo-status-bar": "~57.0.1",
+    "expo-system-ui": "~57.0.2",
+    "fflate": "^0.8.3",
+    "react": "19.2.3",
+    "react-native": "0.86.2",
+    "react-native-safe-area-context": "^5.6.2",
+    "react-native-webview": "13.16.1"
+  },
+  "devDependencies": {
+    "@types/react": "~19.2.2",
+    "typescript": "~6.0.3"
+  }
+}

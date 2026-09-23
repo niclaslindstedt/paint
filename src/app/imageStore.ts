@@ -65,11 +65,9 @@ import type {
 import { MEDIA_CONCURRENCY, mapLimit } from "./cloudRetry.ts";
 import { drawingSlug } from "./export.ts";
 import { folderFileStore } from "./folderFileStore.ts";
-import {
-  dropboxByteFileStore,
-  gdriveByteFileStore,
-  type ByteFileStore,
-} from "./imageFileStore.ts";
+import { dropboxByteFileStore, type ByteFileStore } from "./imageFileStore.ts";
+import type { ICloudHost } from "./icloudHost.ts";
+import { icloudByteFileStore } from "./icloudStore.ts";
 import { logStore } from "./log.ts";
 
 const log = logStore.createLogger("images");
@@ -105,12 +103,9 @@ export function dropboxImageStore(
   return scopeToImages(dropboxByteFileStore(auth, appKey));
 }
 
-/** The Dropbox image store, in the app folder's `images/` tree. */
-export function gdriveImageStore(
-  token: string,
-  appFolderName: string,
-): ImageStore {
-  return scopeToImages(gdriveByteFileStore(token, appFolderName));
+/** The iCloud Drive image store, in the container's `images/` tree. */
+export function icloudImageStore(host: ICloudHost): ImageStore {
+  return scopeToImages(icloudByteFileStore(host));
 }
 
 /** The local-folder image store, filing real image files to `images/…` inside

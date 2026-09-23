@@ -18,6 +18,8 @@ import type { DropboxAuth } from "@niclaslindstedt/oss-framework/storage";
 
 import { canSaveLayers } from "./cloudSetup.ts";
 import { folderFileStore } from "./folderFileStore.ts";
+import type { ICloudHost } from "./icloudHost.ts";
+import { icloudByteFileStore } from "./icloudStore.ts";
 import { dropboxByteFileStore, type ByteFileStore } from "./imageFileStore.ts";
 import { logStore } from "./log.ts";
 import type { InkContext } from "./render.ts";
@@ -36,6 +38,7 @@ export type LayerBackend =
       handle: FileSystemDirectoryHandle;
       onPermissionLost: () => void;
     }
+  | { kind: "icloud"; host: ICloudHost }
   | null;
 
 /** Everything about the engine's state that decides whether a save may run.
@@ -61,12 +64,14 @@ export type LayerSave = {
 /** The live credentials the engine holds, in the shape this module can pick a
  *  backend out of. */
 export type LayerCredentials = {
-  backend: "local" | "folder" | "dropbox";
+  backend: "local" | "folder" | "dropbox" | "icloud";
   dropbox: { auth: DropboxAuth; appKey: string | undefined } | null;
   folder: {
     handle: FileSystemDirectoryHandle;
     onPermissionLost: () => void;
   } | null;
+  /** The iCloud host, only when its container is reachable. */
+  icloud: ICloudHost | null;
 };
 
 /** Which backend to file layers through, given what is connected. Pure, so the
@@ -78,10 +83,13 @@ export function layerBackendFor(creds: LayerCredentials): LayerBackend {
   if (creds.backend === "folder" && creds.folder) {
     return { kind: "folder", ...creds.folder };
   }
+  if (creds.backend === "icloud" && creds.icloud) {
+    return { kind: "icloud", host: creds.icloud };
+  }
   return null;
 }
 
-/** Build the byte transport for a backend. The same three stores the dropped
+/** Build the byte transport for a backend. The same stores the dropped
  *  bitmaps ride (`imageStore.ts`), unscoped here — `layerStore.ts` narrows them
  *  to the `drawings/` tree at save time. */
 function transportFor(backend: LayerBackend): ByteFileStore | null {
@@ -89,6 +97,7 @@ function transportFor(backend: LayerBackend): ByteFileStore | null {
   if (backend.kind === "dropbox") {
     return dropboxByteFileStore(backend.auth, backend.appKey);
   }
+  if (backend.kind === "icloud") return icloudByteFileStore(backend.host);
   return folderFileStore(backend.handle, backend.onPermissionLost);
 }
 

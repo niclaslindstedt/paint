@@ -1,0 +1,110 @@
+name: native
+
+# Manual native app builds via EAS. Deliberately dispatch-only — never on push
+# or pull_request — because every run consumes EAS build credits and, when
+# submitting, store credentials. The job only QUEUES the build on Expo's
+# infrastructure and exits (`--no-wait`), so it costs almost no GitHub Actions
+# minutes; the actual compile runs on EAS and is watched at https://expo.dev.
+#
+# Requires these repository settings:
+#   EXPO_TOKEN       (secret)   an Expo access token — a robot token is the
+#                               right kind, from
+#                               https://expo.dev/accounts/<account>/settings/access-tokens
+#   EAS_PROJECT_ID   (secret)   the EAS project's id. `eas init` prints it but
+#                               cannot write it into a dynamic config, so
+#                               native/app.config.js reads it from here.
+#   APP_DISPLAY_NAME (secret)   the listing name, and the name under the icon
+#   APP_BUNDLE_ID    (secret)   iOS bundle identifier / Android package
+# The same names are set as EAS environment variables, because EAS evaluates
+# app.config.js again on its builder.
+#
+# Store submission additionally needs the App Store Connect / Play credentials
+# configured on the EAS project itself; see native/RELEASING.md.
+
+on:
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: Platform to build
+        type: choice
+        default: all
+        options: [all, ios, android]
+      profile:
+        description: EAS build profile (see native/eas.json)
+        type: choice
+        default: preview
+        options: [development, preview, testflight, production]
+      submit:
+        description: Submit to the stores after the build (production only)
+        type: boolean
+        default: false
+
+# One manual build at a time; a second dispatch waits rather than racing.
+concurrency:
+  group: native-build
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  # The root install resolves @niclaslindstedt/oss-framework from GitHub
+  # Packages, which needs a token even for public packages.
+  packages: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          registry-url: "https://npm.pkg.github.com"
+          scope: "@niclaslindstedt"
+
+      - name: Guard the submit input
+        if: inputs.submit && inputs.profile != 'production'
+        run: |
+          echo "::error::submit=true is only supported with the production profile."
+          exit 1
+
+      # The wrapper has no UI of its own — it serves this bundle, and a build
+      # uploaded without it launches to a blank screen. It has to be built
+      # BEFORE `eas build`, because the upload is what carries
+      # `native/assets/webroot.zip` to the EAS worker; `native/.easignore` is
+      # what keeps that artifact in the upload despite being gitignored.
+      - name: Install the web app's dependencies
+        run: npm ci
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install the wrapper's dependencies
+        working-directory: native
+        run: npm ci
+
+      - name: Bundle the web app into the wrapper
+        working-directory: native
+        run: npm run bundle -- --profile "${{ inputs.profile }}"
+
+      - name: Set up EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Queue the build on EAS
+        working-directory: native
+        env:
+          APP_DISPLAY_NAME: ${{ secrets.APP_DISPLAY_NAME }}
+          APP_BUNDLE_ID: ${{ secrets.APP_BUNDLE_ID }}
+          EAS_PROJECT_ID: ${{ secrets.EAS_PROJECT_ID }}
+          PLATFORM: ${{ inputs.platform }}
+          PROFILE: ${{ inputs.profile }}
+          SUBMIT: ${{ inputs.submit }}
+        run: |
+          args=(--platform "$PLATFORM" --profile "$PROFILE" --non-interactive --no-wait)
+          if [ "$SUBMIT" = "true" ]; then
+            args+=(--auto-submit)
+          fi
+          echo "Running: eas build ${args[*]}"
+          eas build "${args[@]}"

@@ -16,6 +16,12 @@ export default [
       "tauri/target/**",
       "tauri/webroot/**",
       "tauri/node_modules/**",
+      // The phone wrapper's dependencies and `expo prebuild` output — the
+      // latter regenerated from `native/app.config.js` and its plugins.
+      "native/node_modules/**",
+      "native/ios/**",
+      "native/android/**",
+      "native/.expo/**",
     ],
   },
   js.configs.recommended,
@@ -26,6 +32,9 @@ export default [
     files: [
       "scripts/**/*.mjs",
       "tauri/scripts/**/*.mjs",
+      // The phone wrapper's Node-side JavaScript: its Expo config, config
+      // plugins, Metro config and bundle script. None of it ships to a device.
+      "native/**/*.{js,mjs}",
       ".agent/skills/**/*.mjs",
     ],
     languageOptions: {
@@ -38,6 +47,11 @@ export default [
     files: [
       "src/**/*.{ts,tsx}",
       "tests/**/*.{ts,tsx}",
+      // The phone wrapper's app sources. Linted from here so there is one set
+      // of rules for the repo; `native/` has its own dependency tree and its
+      // own `tsc` (`npm --prefix native run typecheck`), which is what actually
+      // type-checks these against react-native and expo.
+      "native/**/*.{ts,tsx}",
       "vite.config.ts",
       "vitest.config.ts",
       "pwa-plugin.ts",

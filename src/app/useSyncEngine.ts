@@ -37,8 +37,11 @@ import { dropboxByteFileStore } from "./imageFileStore.ts";
 import {
   dropboxImageStore,
   folderImageStore,
+  icloudImageStore,
   withExternalImages,
 } from "./imageStore.ts";
+import { createICloudAdapter, icloudByteFileStore } from "./icloudStore.ts";
+import { useICloudBackend } from "./useICloudBackend.ts";
 import { fileSettingsStore, type SettingsStore } from "./settingsStore.ts";
 import { logStore } from "./log.ts";
 import { serializeDoc } from "./migrations.ts";
@@ -57,7 +60,11 @@ export { FOLDER_BACKEND_AVAILABLE } from "./useFolderBackend.ts";
 // (IndexedDB, written by `usePaintStore`) is always the working copy; when a
 // remote backend is connected the engine pushes the serialized document there
 // (debounced on the store's edit counter) and can pull the backend's copy back
-// down. Dropbox ride the framework's storage adapters; the
+// down. Dropbox and the folder ride the framework's storage adapters, and
+// iCloud Drive rides the folder's rails — it IS a folder, on a device that
+// happens to sync it — as a file-store adapter over a host capability (see
+// `icloudHost.ts` for why the app asks whether a host is present rather than
+// whether it is running natively); the
 // optional at-rest encryption wraps the byte boundary with `withEncryption`, so
 // what lands in the cloud is an AES-GCM envelope.
 //
@@ -74,11 +81,11 @@ export { FOLDER_BACKEND_AVAILABLE } from "./useFolderBackend.ts";
 
 const syncLog = logStore.createLogger("sync");
 
-export type SyncBackendId = "local" | "folder" | "dropbox";
+export type SyncBackendId = "local" | "folder" | "dropbox" | "icloud";
 
 const BACKEND_KEY = "paint:sync:backend";
 const DROPBOX_TOKENS_KEY = "paint:sync:dropbox";
-// Dropbox is gone as a backend. The key stays named so a token a device
+// Google Drive is gone as a backend. The key stays named so a token a device
 // may still hold is cleared rather than left sitting in storage.
 const RETIRED_GDRIVE_TOKEN_KEY = "paint:sync:gdrive";
 const ENCRYPTED_KEY = "paint:sync:encrypted";
@@ -100,6 +107,11 @@ export const DROPBOX_APP_FOLDER: string =
   (import.meta.env.VITE_DROPBOX_APP_FOLDER as string | undefined)?.trim() ||
   "Paint";
 
+// What the iCloud Drive container shows up as in the Files app. Not a build
+// knob: it is `NSUbiquitousContainerName` in the wrapper's config plugin, and
+// this is only the app's copy of it for the "File location" line.
+const ICLOUD_FOLDER = "Paint";
+
 /** The mutable in-memory box the session passphrase lives in. Structurally
  *  satisfies the framework's read-only `PasswordRef`, while the app's unlock
  *  and setup flows can write to it. */
@@ -108,6 +120,7 @@ export type MutablePasswordRef = { current: string | null };
 export const PROVIDER_NAMES: Record<Exclude<SyncBackendId, "local">, string> = {
   folder: "Local folder",
   dropbox: "Dropbox",
+  icloud: "iCloud Drive",
 };
 
 type DropboxTokens = { accessToken: string; refreshToken: string | null };
@@ -125,7 +138,9 @@ export type PendingCloudSetup = {
 
 function readBackend(): SyncBackendId {
   const raw = localStorage.getItem(BACKEND_KEY);
-  return raw === "dropbox" || raw === "folder" ? raw : "local";
+  return raw === "dropbox" || raw === "folder" || raw === "icloud"
+    ? raw
+    : "local";
 }
 
 function readDropboxTokens(): DropboxTokens | null {
@@ -157,6 +172,9 @@ export function cloudFileName(slug: string): string {
 function backendPath(backend: SyncBackendId, slug: string): string {
   const file = cloudFileName(slug);
   if (backend === "dropbox") return `Apps/${DROPBOX_APP_FOLDER}/${file}`;
+  // The Files-app folder the container is published under — see
+  // `native/plugins/with-icloud.js`, which is where that name is set.
+  if (backend === "icloud") return `iCloud Drive/${ICLOUD_FOLDER}/${file}`;
   return file;
 }
 
@@ -199,6 +217,16 @@ export type SyncEngine = {
   reconnectFolder: () => Promise<void>;
   folderReconnectNeeded: boolean;
   folderHandleLoaded: boolean;
+  /** Switch to iCloud Drive. No-op where no host offers it
+   *  ({@link SyncEngine.icloudAvailable} is false). */
+  connectICloud: () => Promise<void>;
+  /** True when a host offers an iCloud container — the App Store build. False
+   *  everywhere else, and what hides the backend from the picker. */
+  icloudAvailable: boolean;
+  /** True when a host is present but the device is not signed in to iCloud (or
+   *  iCloud Drive is off). The backend is offered and explains itself rather
+   *  than failing on the first save. */
+  icloudSignedOut: boolean;
   disconnect: () => void;
   // The inputs the framework `SyncStatus` / `SyncDetailsModal` render over.
   status: SaveStatus;
@@ -283,16 +311,27 @@ export function useSyncEngine(
   const folderHandleLoaded = folder.loaded;
   const folderReconnectNeeded = folder.reconnectNeeded;
   const markFolderPermissionLost = folder.markPermissionLost;
+  // The iCloud host and whether its container is usable. Both arrive from
+  // outside the bundle, so both are state — see `useICloudBackend`.
+  const icloud = useICloudBackend();
 
   // A "remote" backend is anything that pushes the document through a
   // `StorageAdapter` (folder or cloud). "Cloud" is the OAuth subset.
   const isRemote = backend !== "local";
   const isCloud = backend === "dropbox";
   const isFolder = backend === "folder";
+  // iCloud is neither: it needs no OAuth (so none of the `isCloud` connect and
+  // reconnect paths apply) and no picked handle (so none of `isFolder`'s
+  // permission machinery does either). It is a folder the device syncs, and
+  // the only question about it is whether the container can be reached.
+  const isICloud = backend === "icloud";
+  const icloudReady = icloud.host !== null && icloud.status === "ready";
+  const icloudHost = icloudReady ? icloud.host : null;
   const connected =
     backend === "local" ||
     (backend === "dropbox" && dropboxTokens !== null) ||
-    (backend === "folder" && folderHandle !== null);
+    (backend === "folder" && folderHandle !== null) ||
+    (backend === "icloud" && icloudReady);
 
   // Dropbox's credentials, including the refresh callback that persists a
   // rotated access token. Shared by the document adapter and the layer save —
@@ -360,11 +399,26 @@ export function useSyncEngine(
             () => setImageSweep(true),
           );
     }
+    if (backend === "icloud" && icloudHost) {
+      // The same whole-document adapter the folder backend gets, over the
+      // container instead of a picked directory. No `withLocalCache`: the
+      // container is on this device's own disk, and a file iCloud has not
+      // fetched yet is fetched by the read rather than failing it.
+      const container = createICloudAdapter(icloudHost, cloudFileName(slug));
+      return encrypted
+        ? withEncryption(container, passwordRef, {
+            logger: logStore.createLogger("encrypt"),
+          })
+        : withExternalImages(container, icloudImageStore(icloudHost), () =>
+            setImageSweep(true),
+          );
+    }
     return null;
   }, [
     backend,
     dropboxAuth,
     folderHandle,
+    icloudHost,
     encrypted,
     slug,
     passwordRef,
@@ -614,21 +668,25 @@ export function useSyncEngine(
     // the glyph must still flag it rather than reading "saved".
     isFolder && folderReconnectNeeded
       ? "auth-error"
-      : !isRemote || !connected
-        ? "saved"
-        : fault === "auth-error"
-          ? "auth-error"
-          : fault === "conflict"
-            ? "conflict"
-            : fault === "throttled"
-              ? "throttled"
-              : fault === "error"
-                ? "error"
-                : saveState === "saving"
-                  ? "saving"
-                  : dirty
-                    ? "idle"
-                    : "saved";
+      : // A host is there but the device is not signed in to iCloud. The glyph
+        // has to flag it rather than read "saved", and "Reconnect" re-probes.
+        isICloud && icloud.host !== null && icloud.status !== "ready"
+        ? "auth-error"
+        : !isRemote || !connected
+          ? "saved"
+          : fault === "auth-error"
+            ? "auth-error"
+            : fault === "conflict"
+              ? "conflict"
+              : fault === "throttled"
+                ? "throttled"
+                : fault === "error"
+                  ? "error"
+                  : saveState === "saving"
+                    ? "saving"
+                    : dirty
+                      ? "idle"
+                      : "saved";
 
   const setBackend = useCallback(
     (b: SyncBackendId) => {
@@ -658,6 +716,20 @@ export function useSyncEngine(
     }
   }, [folder, setBackend]);
 
+  // Switch to iCloud Drive. There is nothing to authorise — the container
+  // belongs to the app and the device is already signed in (or it is not, and
+  // the backend says so) — so this is the whole connect flow: mark the
+  // adoption fresh so the baseline read can raise the replace-or-adopt prompt
+  // when the container already holds drawings, and switch.
+  const connectICloud = useCallback(async () => {
+    if (!icloud.host) return;
+    const status = await icloud.refresh();
+    if (status === "unavailable") return;
+    justConnected.current = true;
+    setBackend("icloud");
+    syncLog.info(`icloud: connected (${status})`);
+  }, [icloud, setBackend]);
+
   // Re-confirm a revoked grant. Clears the fault only on a granted re-confirm.
   const reconnectFolder = useCallback(async () => {
     if (await folder.reconnect()) setFault("none");
@@ -670,6 +742,9 @@ export function useSyncEngine(
     void clearDirectoryHandle();
     folder.clear();
     baseRevision.current = undefined;
+    // Nothing to clear for iCloud: there is no token and no grant, and the
+    // container keeps whatever was filed in it — disconnecting stops writing
+    // to it, it does not empty it.
     setBackend("local");
     syncLog.info("backend: back to this device only");
   }, [setBackend, folder]);
@@ -697,8 +772,9 @@ export function useSyncEngine(
         folder: folderHandle
           ? { handle: folderHandle, onPermissionLost: markFolderPermissionLost }
           : null,
+        icloud: icloudHost,
       }),
-    [backend, dropboxAuth, folderHandle, markFolderPermissionLost],
+    [backend, dropboxAuth, folderHandle, markFolderPermissionLost, icloudHost],
   );
 
   const layerSave = useLayerSave(
@@ -802,9 +878,14 @@ export function useSyncEngine(
     else if (backend === "folder") {
       await reconnectFolder();
       return; // reconnectFolder clears the fault only on a granted re-confirm.
+    } else if (backend === "icloud") {
+      // Nothing to re-authorise — re-ask whether the container is reachable.
+      // The reader may have signed in to iCloud since the last answer, and the
+      // status flipping to `ready` is what clears the fault below.
+      if ((await icloud.refresh()) !== "ready") return;
     }
     setFault("none");
-  }, [backend, connectDropbox, reconnectFolder]);
+  }, [backend, connectDropbox, reconnectFolder, icloud]);
 
   const checkConnection =
     useCallback(async (): Promise<ConnectionProbeResult> => {
@@ -854,8 +935,17 @@ export function useSyncEngine(
         folderFileStore(folderHandle, markFolderPermissionLost),
       );
     }
+    if (backend === "icloud" && icloudHost) {
+      return fileSettingsStore(icloudByteFileStore(icloudHost));
+    }
     return null;
-  }, [backend, dropboxAuth, folderHandle, markFolderPermissionLost]);
+  }, [
+    backend,
+    dropboxAuth,
+    folderHandle,
+    markFolderPermissionLost,
+    icloudHost,
+  ]);
 
   // The folder's human-readable location: the picked directory's own name plus
   // the document file. Falls back to just the file name before the handle
@@ -878,25 +968,35 @@ export function useSyncEngine(
     reconnectFolder,
     folderReconnectNeeded,
     folderHandleLoaded,
+    connectICloud,
+    icloudAvailable: icloud.host !== null && icloud.status !== "unavailable",
+    icloudSignedOut: icloud.host !== null && icloud.status === "signed-out",
     disconnect,
     status,
     dirty,
     offline: fault === "offline",
     providerName,
-    backendKind: isCloud ? "cloud" : "folder",
+    // iCloud Drive is a cloud, whatever the transport underneath looks like —
+    // the command centre's glyph names what the reader thinks they picked.
+    backendKind: isCloud || isICloud ? "cloud" : "folder",
     location: {
-      path: isCloud
-        ? backendPath(backend, slug)
-        : isFolder
-          ? folderLocationPath
-          : docKey(slug),
+      path:
+        isCloud || isICloud
+          ? backendPath(backend, slug)
+          : isFolder
+            ? folderLocationPath
+            : docKey(slug),
+      // No "Open in" link for iCloud: the container is a folder in the Files
+      // app on the device, not a page a browser can be pointed at.
       url: isCloud && connected ? backendWebUrl(backend, slug) : null,
     },
     settingsStore,
     saveNow,
     reload,
     reconnect:
-      (isCloud && connected) || (isFolder && folderReconnectNeeded)
+      (isCloud && connected) ||
+      (isFolder && folderReconnectNeeded) ||
+      (isICloud && icloud.host !== null && icloud.status !== "ready")
         ? reconnect
         : null,
     checkConnection,

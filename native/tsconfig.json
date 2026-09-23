@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  // NOT `extends: "expo/tsconfig.base"`, and that is deliberate.
+  //
+  // `native/` is outside the root install with a dependency tree of its own,
+  // so a plain `npm ci` at the repo root does NOT install `expo` here — which
+  // is exactly what CI does. One root test imports a module from this tree
+  // (tests/native_icloud_test.ts, over `src/icloudBridge.ts`), and Vite
+  // resolves the NEAREST tsconfig to every file it touches and fails hard when
+  // an `extends` cannot be resolved. Reaching into node_modules for the base
+  // therefore turns a fully-installed machine green and CI red, with an error
+  // that names neither cause.
+  //
+  // So Expo's base is inlined below, verbatim as of expo 57. Re-check it
+  // against `node_modules/expo/tsconfig.base.json` when expo is upgraded.
+  "compilerOptions": {
+    "allowJs": true,
+    "esModuleInterop": true,
+    "jsx": "react-jsx",
+    "lib": ["DOM", "ESNext"],
+    "module": "preserve",
+    "moduleDetection": "force",
+    "moduleResolution": "bundler",
+    "customConditions": ["react-native"],
+    "noEmit": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "target": "ESNext",
+    "strict": true,
+    "noUncheckedIndexedAccess": true
+  },
+  "include": ["index.ts", "App.tsx", "src/**/*.ts", "modules/**/*.ts"],
+  "exclude": ["node_modules", "android", "ios", "metro.config.js"]
+}

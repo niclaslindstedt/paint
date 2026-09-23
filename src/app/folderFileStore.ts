@@ -8,9 +8,9 @@
 //
 // It talks to the File System Access API directly (`getFileHandle`,
 // `createWritable`, `getFile`), so bytes round-trip verbatim — the same
-// {@link ByteFileStore} contract the Dropbox / Drive transports satisfy in
-// `imageFileStore.ts`, letting the image externaliser (`imageStore.ts`) drive
-// all three interchangeably. The local folder never touches the network, so
+// {@link ByteFileStore} contract the Dropbox transport (`imageFileStore.ts`)
+// and the iCloud one (`icloudStore.ts`) satisfy, letting the image
+// externaliser (`imageStore.ts`) drive all three interchangeably. The local folder never touches the network, so
 // there are no auth or rate-limit paths here; a revoked OS grant surfaces as a
 // `NotAllowedError` the caller turns into a "Reconnect folder" cue.
 

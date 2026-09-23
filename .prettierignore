@@ -11,3 +11,9 @@ OSS_SPEC.md
 # The desktop shell's build output and the site copied into it.
 tauri/target/
 tauri/webroot/
+# The phone wrapper's generated trees: `expo prebuild` output (regenerated from
+# native/app.config.js and its plugin) and the packed web build.
+native/ios/
+native/android/
+native/.expo/
+native/assets/

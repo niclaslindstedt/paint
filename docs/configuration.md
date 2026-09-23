@@ -35,7 +35,7 @@ dropped picture:
 
 ```
 Apps/Paint/            (Dropbox — or the folder you picked for the
-│                       local-folder backend)
+│                       local-folder backend, or Paint/ in iCloud Drive)
 ├── paint-default.json                  the drawings, one file per namespace
 └── images/
     └── sequence-diagram-4k2a-1.png     one file per dropped picture

@@ -1554,9 +1554,10 @@ are read back onto their strokes. The working copy on this device always keeps
 the bytes inline, so drawing, undo and export never see the seam.
 
 The byte transports are `imageFileStore.ts` (Dropbox content
-APIs, since the framework's `FileStore` is text-only and would mangle a JPEG)
-and `folderFileStore.ts` (the File System Access API), behind one `ByteFileStore`
-contract so all three backends are driven identically. Both ride `cloudRetry.ts`,
+APIs, since the framework's `FileStore` is text-only and would mangle a JPEG),
+`folderFileStore.ts` (the File System Access API) and `icloudStore.ts` (base64
+over the native shell's bridge), behind one `ByteFileStore` contract so all
+three backends are driven identically. The Dropbox one rides `cloudRetry.ts`,
 which keeps a handful of files in flight at a time and honours a provider's
 `Retry-After` — a throttled read must not look like a missing picture.
 

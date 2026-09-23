@@ -9,7 +9,7 @@
 //
 // It leans on the framework's proven text `FileStore` for the metadata-only
 // operations that never touch a body (`list`, `remove`) — reusing its Dropbox
-// token-refresh and Drive folder-resolution — and only re-implements the two
+// token-refresh — and only re-implements the two
 // operations that carry image bytes (`read`, `write`). The result is the small
 // {@link ByteFileStore} contract the externaliser (see `imageStore.ts`) drives,
 // and which `folderFileStore.ts` satisfies for the picked local directory.
@@ -22,14 +22,11 @@
 // *write* looks like a picture that no longer wants its file.
 
 import {
-  AuthError,
   RateLimitError,
   bearerAuthHeader,
   createDropboxFileStore,
-  createGdriveFileStore,
   dropboxApiArg,
   parseRetryAfterMs,
-  readErrorBody,
   refreshDropboxAccessToken,
   type DropboxAuth,
   type FileStore,
@@ -54,10 +51,6 @@ export type ByteFileStore = {
 
 const DROPBOX_UPLOAD = "https://content.dropboxapi.com/2/files/upload";
 const DROPBOX_DOWNLOAD = "https://content.dropboxapi.com/2/files/download";
-const DRIVE_FILES = "https://www.googleapis.com/drive/v3/files";
-const DRIVE_UPLOAD = "https://www.googleapis.com/upload/drive/v3/files";
-const FOLDER_MIME = "application/vnd.google-apps.folder";
-const PNG_MIME = "image/png";
 
 /** How long to wait out a throttle that arrives without a usable `Retry-After`.
  *  Matches the framework's own document-adapter fallback. */
@@ -141,7 +134,7 @@ export function dropboxByteFileStore(
       },
       // Dropbox stores the bytes verbatim and infers the type from the path's
       // extension, so the upload body is always octet-stream — the `mime` hint
-      // is unused here (it matters only for the Drive content type).
+      // is unused here.
       async write(path, bytes) {
         const res = await authed(DROPBOX_UPLOAD, (t) => ({
           method: "POST",
@@ -161,166 +154,4 @@ export function dropboxByteFileStore(
     },
     log,
   );
-}
-
-// --- Dropbox ------------------------------------------------------------
-
-/** A binary Dropbox byte store inside the app folder. `list`/`remove` reuse
- *  the framework's text store (folder resolution and all); `read`/`write` move
- *  bytes through the media-upload endpoint. `appFolderName` is the My Drive
- *  folder the app files everything under — the same one the document adapter is
- *  given, so the images land beside the document rather than in a folder of
- *  their own. */
-export function gdriveByteFileStore(
-  token: string,
-  appFolderName: string,
-): ByteFileStore {
-  const log = logStore.createLogger("gdrive");
-  const meta: FileStore = createGdriveFileStore(token, {
-    appFolderName,
-    logger: log,
-  });
-  const auth = () => bearerAuthHeader(token);
-  const dirIds = new Map<string, string>();
-
-  async function searchOne(query: string): Promise<string | null> {
-    const url = `${DRIVE_FILES}?q=${encodeURIComponent(query)}&spaces=drive&fields=files(id)`;
-    const res = await fetch(url, { headers: auth() });
-    if (!res.ok) throw await driveError("search", res);
-    const json = (await res.json()) as { files?: { id: string }[] };
-    return json.files?.[0]?.id ?? null;
-  }
-
-  async function createFolder(
-    name: string,
-    parentId: string | null,
-  ): Promise<string> {
-    const body: { name: string; mimeType: string; parents?: string[] } = {
-      name,
-      mimeType: FOLDER_MIME,
-    };
-    if (parentId) body.parents = [parentId];
-    const res = await fetch(`${DRIVE_FILES}?fields=id`, {
-      method: "POST",
-      headers: { ...auth(), "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
-    if (!res.ok) throw await driveError("folder", res);
-    return ((await res.json()) as { id: string }).id;
-  }
-
-  // Resolve (creating when asked) the id of a folder path under the app folder.
-  async function resolveDir(
-    relDir: string,
-    create: boolean,
-  ): Promise<string | null> {
-    const cached = dirIds.get(relDir);
-    if (cached) return cached;
-    let appId = await searchOne(
-      `name='${appFolderName}' and mimeType='${FOLDER_MIME}' and 'root' in parents and trashed=false`,
-    );
-    if (!appId) {
-      if (!create) return null;
-      appId = await createFolder(appFolderName, null);
-    }
-    let parentId = appId;
-    for (const seg of relDir.split("/").filter(Boolean)) {
-      let id = await searchOne(
-        `name='${seg}' and mimeType='${FOLDER_MIME}' and '${parentId}' in parents and trashed=false`,
-      );
-      if (!id) {
-        if (!create) return null;
-        id = await createFolder(seg, parentId);
-      }
-      parentId = id;
-    }
-    dirIds.set(relDir, parentId);
-    return parentId;
-  }
-
-  function split(path: string): { dir: string; name: string } {
-    const i = path.lastIndexOf("/");
-    return i === -1
-      ? { dir: "", name: path }
-      : { dir: path.slice(0, i), name: path.slice(i + 1) };
-  }
-
-  async function fileId(path: string): Promise<string | null> {
-    const { dir, name } = split(path);
-    const dirId = await resolveDir(dir, false);
-    if (!dirId) return null;
-    return searchOne(
-      `name='${name}' and '${dirId}' in parents and trashed=false`,
-    );
-  }
-
-  return retrying(
-    {
-      list: () => meta.list().then((e) => e.map((f) => f.path)),
-      remove: (path) => meta.remove(path),
-      read,
-      write,
-    },
-    log,
-  );
-
-  async function read(path: string): Promise<Uint8Array | null> {
-    const id = await fileId(path);
-    if (!id) return null;
-    const res = await fetch(`${DRIVE_FILES}/${id}?alt=media`, {
-      headers: auth(),
-    });
-    if (res.status === 404) return null;
-    if (!res.ok) throw await driveError("download", res);
-    return new Uint8Array(await res.arrayBuffer());
-  }
-
-  async function write(
-    path: string,
-    bytes: Uint8Array,
-    mime?: string,
-  ): Promise<void> {
-    const { dir, name } = split(path);
-    const dirId = await resolveDir(dir, true);
-    if (!dirId) throw new Error(`Dropbox: cannot resolve ${dir}`);
-    const existing = await searchOne(
-      `name='${name}' and '${dirId}' in parents and trashed=false`,
-    );
-    // Upload the raw bytes: PATCH an existing file's media, or create the file
-    // (metadata first, so it lands with the right name/parent) then its media.
-    const id = existing ?? (await createEmpty(dirId, name));
-    const res = await fetch(`${DRIVE_UPLOAD}/${id}?uploadType=media`, {
-      method: "PATCH",
-      headers: { ...auth(), "Content-Type": mime ?? PNG_MIME },
-      body: bytes as BodyInit,
-    });
-    if (!res.ok) throw await driveError("upload", res);
-  }
-
-  async function createEmpty(parentId: string, name: string): Promise<string> {
-    const res = await fetch(`${DRIVE_FILES}?fields=id`, {
-      method: "POST",
-      headers: { ...auth(), "Content-Type": "application/json" },
-      body: JSON.stringify({ name, parents: [parentId] }),
-    });
-    if (!res.ok) throw await driveError("create", res);
-    return ((await res.json()) as { id: string }).id;
-  }
-
-  // A 401 is the reconnect signal; a 429 / 5xx is worth waiting out (see
-  // `statusError`); anything else is a genuine failure, reported with the
-  // provider's own body so the log names the cause.
-  async function driveError(op: string, res: Response): Promise<Error> {
-    if (res.status === 401) {
-      return new AuthError(
-        `Dropbox ${op} failed: 401 ${await readErrorBody(res)}`,
-      );
-    }
-    if (res.status === 429 || res.status >= 500) {
-      return statusError("Dropbox", op, res);
-    }
-    return new Error(
-      `Dropbox ${op} failed: ${res.status} ${await readErrorBody(res)}`,
-    );
-  }
 }

@@ -17,9 +17,10 @@ when you make it (**New image** → **Page colour**).
 
 ## A cloud backend isn't offered
 
-Dropbox only appear when the build carries their OAuth client
-id (see [configuration](configuration.md)); a build without them offers only
-"This device" and, on Chromium, "Local folder". "Local folder" itself is hidden
+Dropbox only appears when the build carries its app key (see
+[configuration](configuration.md)); a build without it offers only "This
+device" and, on Chromium, "Local folder". iCloud Drive appears only in the App
+Store app. "Local folder" itself is hidden
 in browsers without the File System Access API — Firefox and Safari today.
 
 ## Sync says "session expired"

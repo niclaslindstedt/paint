@@ -214,7 +214,8 @@ the same [`oss-framework`](https://github.com/niclaslindstedt/oss-framework).
   files when you press the disk button. See
   [`docs/features/file-format.md`](docs/features/file-format.md).
 - **Local-first.** No account, no server, works offline. Sync to a folder,
-  Dropbox, only if you ask for it — optionally encrypted. A
+  Dropbox or — in the App Store app — iCloud Drive, only if you ask for it,
+  optionally encrypted. A
   picture you drop on the page is filed beside the document as a real image
   file, so what syncs stays small and stays browsable.
 - **A sheet of paper, whatever the room.** A page nobody has given a colour to

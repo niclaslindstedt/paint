@@ -1160,20 +1160,22 @@ export const en = {
       backendThisDevice: "This device",
       backendFolder: "Local folder",
       backendDropbox: "Dropbox",
-      backendGdrive: "Dropbox",
+      backendICloud: "iCloud Drive",
       folderHint:
         "Pick a folder on this computer; the drawing file is written straight into it.",
       folderChoose: "Choose a folder…",
       folderConnected: "Folder connected",
       folderReconnectNeeded: "Permission to that folder was withdrawn.",
       folderReconnect: "Reconnect",
+      icloudHint:
+        "Your drawings go to a Paint folder in your iCloud Drive, where the Files app can open them, and follow you to your other Apple devices.",
+      icloudSignedOut:
+        "This device isn't signed in to iCloud, or iCloud Drive is off. Turn it on in the Settings app, then try again.",
       connect: "Connect {name}",
       connected: "Connected to {name}",
       disconnect: "Disconnect",
       missingKeyDropbox:
         "This build has no Dropbox app key, so Dropbox can't be connected. See docs/configuration.md.",
-      missingKeyGdrive:
-        "This build has no Google client id, so Dropbox can't be connected. See docs/configuration.md.",
       encryptionTitle: "Encryption",
       encrypt: "Encrypt the cloud copy",
       encryptHint:

@@ -266,9 +266,20 @@ export function StorageTab({
           },
         ]
       : []),
+    // Offered only where a host provides an iCloud container — the App Store
+    // app. A browser has none, and there is nothing it could connect to.
+    ...(sync.icloudAvailable
+      ? [
+          {
+            value: "icloud" as const,
+            label: t("settings.storage.backendICloud"),
+          },
+        ]
+      : []),
   ];
 
   const pickedFolder = picked === "folder";
+  const pickedICloud = picked === "icloud";
   const pickedCloud = picked === "dropbox" ? picked : null;
   // Unconfigured backends are hidden above, so this only fires for a backend
   // persisted by an earlier build that had the key and this one doesn't — still
@@ -365,11 +376,58 @@ export function StorageTab({
           </div>
         )}
 
+        {pickedICloud && (
+          <div className="flex flex-col gap-2">
+            <p className="text-xs text-muted">
+              {t("settings.storage.icloudHint")}
+            </p>
+            {sync.backend === "icloud" && sync.connected ? (
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-sm text-success">
+                  {t("settings.storage.connected", {
+                    name: PROVIDER_NAMES.icloud,
+                  })}
+                </span>
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    sync.disconnect();
+                    setPicked("local");
+                  }}
+                >
+                  {t("settings.storage.disconnect")}
+                </Button>
+              </div>
+            ) : (
+              <>
+                {sync.icloudSignedOut && (
+                  <p className="text-xs text-warning">
+                    {t("settings.storage.icloudSignedOut")}
+                  </p>
+                )}
+                <Button
+                  variant="primary"
+                  className="self-start"
+                  disabled={connecting}
+                  onClick={() => runConnect(() => sync.connectICloud())}
+                >
+                  <span className="flex items-center gap-1.5">
+                    {connecting && (
+                      <SpinnerIcon className="h-4 w-4 animate-spin" />
+                    )}
+                    {t("settings.storage.connect", {
+                      name: PROVIDER_NAMES.icloud,
+                    })}
+                  </span>
+                </Button>
+              </>
+            )}
+          </div>
+        )}
+
         {pickedCloud && missingKey && (
           <p className="text-xs text-warning">
-            {pickedCloud === "dropbox"
-              ? t("settings.storage.missingKeyDropbox")
-              : t("settings.storage.missingKeyGdrive")}
+            {t("settings.storage.missingKeyDropbox")}
           </p>
         )}
 

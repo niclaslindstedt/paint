@@ -1053,20 +1053,22 @@ export const sv: Catalog = {
       backendThisDevice: "Den här enheten",
       backendFolder: "Lokal mapp",
       backendDropbox: "Dropbox",
-      backendGdrive: "Dropbox",
+      backendICloud: "iCloud Drive",
       folderHint:
         "Välj en mapp på datorn; teckningsfilen skrivs rakt in i den.",
       folderChoose: "Välj en mapp…",
       folderConnected: "Mapp ansluten",
       folderReconnectNeeded: "Behörigheten till mappen har dragits tillbaka.",
       folderReconnect: "Anslut igen",
+      icloudHint:
+        "Teckningarna hamnar i en Paint-mapp på din iCloud Drive, där appen Filer kan öppna dem, och följer med till dina andra Apple-enheter.",
+      icloudSignedOut:
+        "Enheten är inte inloggad på iCloud, eller så är iCloud Drive avstängt. Slå på det i appen Inställningar och försök igen.",
       connect: "Anslut {name}",
       connected: "Ansluten till {name}",
       disconnect: "Koppla från",
       missingKeyDropbox:
         "Det här bygget saknar Dropbox-appnyckel, så Dropbox kan inte anslutas. Se docs/configuration.md.",
-      missingKeyGdrive:
-        "Det här bygget saknar Google-klient-id, så Dropbox kan inte anslutas. Se docs/configuration.md.",
       encryptionTitle: "Kryptering",
       encrypt: "Kryptera molnkopian",
       encryptHint:

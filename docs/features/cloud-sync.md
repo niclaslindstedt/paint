@@ -8,15 +8,17 @@ _copy_ of that document being pushed somewhere you chose.
 
 Settings → Storage picks where the document is kept:
 
-| Backend          | What it is                                                              |
-| ---------------- | ----------------------------------------------------------------------- |
-| **This device**  | This browser's IndexedDB. The default; nothing leaves the browser.      |
-| **Local folder** | A folder you pick on this computer (Chromium's File System Access API). |
-| **Dropbox**      | A `paint-<namespace>.json` file in the app's Dropbox app folder.        |
+| Backend          | What it is                                                                    |
+| ---------------- | ----------------------------------------------------------------------------- |
+| **This device**  | This browser's IndexedDB. The default; nothing leaves the browser.            |
+| **Local folder** | A folder you pick on this computer (Chromium's File System Access API).       |
+| **Dropbox**      | A `paint-<namespace>.json` file in the app's Dropbox app folder.              |
+| **iCloud Drive** | The same file in a **Paint** folder in iCloud Drive — the App Store app only. |
 
-A cloud backend only appears in the picker when the build carries its OAuth
-client id (see [configuration](../configuration.md)) — an unconfigured backend
-is hidden rather than offered as a dead option.
+A backend only appears in the picker when it can be connected: Dropbox when the
+build carries its app key (see [configuration](../configuration.md)), iCloud
+Drive in the App Store app, where the native shell provides it. An unavailable
+backend is hidden rather than offered as a dead option.
 
 ## How saving works
 
