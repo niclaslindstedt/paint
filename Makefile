@@ -1,4 +1,4 @@
-.PHONY: build test lint fmt fmt-check actionlint release clean docs website website-dev install icons check-seo changelog bump tauri tauri-fast tauri-bundle tauri-install tauri-test tauri-lint tauri-fmt tauri-fmt-check tauri-package tauri-package-debug tauri-clean native-install native-bundle native-typecheck native-prebuild
+.PHONY: build test lint fmt fmt-check actionlint release clean docs website website-dev install icons check-seo changelog bump tauri tauri-fast tauri-bundle tauri-install tauri-test tauri-lint tauri-fmt tauri-fmt-check tauri-package tauri-package-debug tauri-clean native-install native-bundle native-typecheck native-prebuild store-preflight store-metadata
 
 build:
 	npm run build
@@ -156,3 +156,20 @@ native-typecheck:
 # the plugin produces.
 native-prebuild:
 	npm --prefix native run prebuild
+
+# ---------------------------------------------------------------------------
+# SHIPPING TO THE STORE (native/store/)
+# ---------------------------------------------------------------------------
+# One authored listing compiles into the files the upload tools read. The
+# RULES are committed; the WORDS are not — see native/store/README.md.
+
+# "Is this checkout wired up to ship?" — every gate between here and a
+# submission, what is missing and where to get it.
+store-preflight:
+	@node --experimental-strip-types --disable-warning=ExperimentalWarning \
+		scripts/store-preflight.mjs $(ARGS)
+
+# Compile the listing. `ARGS="--check"` validates without writing.
+store-metadata:
+	node --experimental-strip-types --disable-warning=ExperimentalWarning \
+		scripts/generate-store-metadata.mjs $(ARGS)
