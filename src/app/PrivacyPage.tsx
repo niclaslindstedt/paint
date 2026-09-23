@@ -13,7 +13,7 @@ import { ArrowLeftIcon } from "@niclaslindstedt/oss-framework/components";
 // Last meaningful change to the policy text below. Bump this whenever the
 // wording is edited — it renders verbatim at the top of the page and is the
 // only line readers have to look at to see how fresh the policy is.
-const LAST_UPDATED = "2026-08-13";
+const LAST_UPDATED = "2026-09-23";
 
 export function PrivacyPage() {
   return (
@@ -43,10 +43,11 @@ export function PrivacyPage() {
             entirely in your browser. There is no backend of our own, no
             account, no cookies, and no analytics or tracking. By default your
             drawings are stored only on your device and never leave it. You may
-            optionally connect a cloud backend (Dropbox) to sync your drawings
-            across your own devices — in that case, and only then, they are sent
-            to that one provider at your explicit request. The project authors
-            never receive your drawings in any configuration.
+            optionally connect a cloud backend (Dropbox, or iCloud Drive in the
+            App Store app) to sync your drawings across your own devices — in
+            that case, and only then, they are sent to that one provider at your
+            explicit request. The project authors never receive your drawings in
+            any configuration.
           </p>
         </Section>
 
@@ -115,6 +116,15 @@ export function PrivacyPage() {
               is then also subject to Dropbox&apos;s privacy policy. You can
               disconnect at any time.
             </li>
+            <li>
+              <strong className="text-fg-bright">iCloud Drive</strong> — in the
+              App Store app only, and only when you choose it: your drawings are
+              stored in the app&apos;s folder in your own iCloud Drive, which
+              you can open in the Files app, and Apple syncs them between your
+              devices signed in to the same Apple Account. Your data is then
+              also subject to Apple&apos;s privacy policy. You can disconnect at
+              any time; the files stay in your iCloud Drive.
+            </li>
           </ul>
           <p>
             Optionally, you can turn on{" "}
@@ -139,8 +149,10 @@ export function PrivacyPage() {
             icons) from its origin, and once loaded it works fully offline as an
             installed PWA. The one exception is the cloud backends: if — and
             only if — you connect Dropbox, the app talks to that provider&apos;s
-            API to read and write your drawings. No fonts, analytics scripts,
-            error-reporting services, or advertising networks are ever loaded.
+            API to read and write your drawings. iCloud Drive needs no request
+            from the app at all: it writes to a folder on the device, and the
+            system syncs it. No fonts, analytics scripts, error-reporting
+            services, or advertising networks are ever loaded.
           </p>
         </Section>
 
@@ -161,7 +173,7 @@ export function PrivacyPage() {
 
         <Section title="Server logs">
           <p>
-            The static bundle is served by{" "}
+            The website is served by{" "}
             <strong className="text-fg-bright">GitHub Pages</strong>. GitHub may
             collect standard request metadata (IP address, user agent, request
             path) for operating the service. This is covered by{" "}
@@ -171,7 +183,10 @@ export function PrivacyPage() {
             >
               GitHub&apos;s privacy statement
             </a>
-            . The project authors do not run an additional logging service.
+            . The app from the App Store or Google Play carries its own copy of
+            the site and serves it on the device, so opening it sends no such
+            request. The project authors do not run an additional logging
+            service.
           </p>
         </Section>
 
@@ -189,6 +204,16 @@ export function PrivacyPage() {
             page reflects the most recent edit. Should a future version add
             another optional feature that sends data anywhere, this policy will
             be updated to describe it before that feature ships enabled.
+          </p>
+          <p>
+            The store listings link to{" "}
+            <a
+              href="https://apps.agilator.se/paint/privacy/"
+              className="text-link hover:underline"
+            >
+              apps.agilator.se/paint/privacy
+            </a>
+            , which describes the same app and is kept in step with this page.
           </p>
         </Section>
 
