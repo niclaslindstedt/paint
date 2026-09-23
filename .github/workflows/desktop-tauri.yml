@@ -104,6 +104,11 @@ jobs:
         run: echo '<!doctype html><title>placeholder</title>' > webroot/index.html
       - name: clippy
         run: cargo clippy --workspace --all-targets -- -D warnings
+      # The effects crate's own tests — the loopback sign-in on a real socket —
+      # need the same libraries to link, so they run here rather than in the
+      # decision-layer job.
+      - name: effects tests
+        run: cargo test -p paint-tauri
 
   package:
     name: package (${{ matrix.target }})
@@ -142,6 +147,11 @@ jobs:
           npm-token: ${{ secrets.GITHUB_TOKEN }}
           display-name: ${{ secrets.APP_DISPLAY_NAME }}
           bundle-id: ${{ secrets.APP_BUNDLE_ID }}
+          # Without the key the packaged app has no Dropbox app to sign in
+          # to. The desktop signs in through the shell's loopback listener, so
+          # that Dropbox app must also allow http://127.0.0.1:53682/ … :53684/.
+          dropbox-app-key: ${{ vars.VITE_DROPBOX_APP_KEY }}
+          dropbox-app-folder: ${{ vars.VITE_DROPBOX_APP_FOLDER }}
 
       - uses: actions/upload-artifact@v7
         if: inputs.platform == 'all' || inputs.platform == matrix.target
