@@ -133,10 +133,14 @@ jobs:
 
       # The notes are the changelog section, plus a standing footer about the
       # desktop downloads. The macOS half of that footer is not decoration: the
-      # `.dmg` is signed ad hoc rather than notarized unless a signing identity
-      # is configured (see the `desktop` job), so Gatekeeper refuses the first
-      # launch — and a user with no answer to that prompt has no app.
+      # `.dmg` is signed ad hoc rather than notarized unless a certificate and
+      # a notarizing account are configured (see the `desktop` job), so
+      # Gatekeeper refuses the first launch — and a user with no answer to that
+      # prompt has no app. NOTARIZED is the same condition the signing turns
+      # on, so the footer says what the download actually is.
       - name: Extract release-notes body
+        env:
+          NOTARIZED: ${{ secrets.MAC_CSC_LINK != '' && secrets.APPLE_ID != '' }}
         run: |
           node scripts/release/extract-section.mjs "${{ steps.bump.outputs.version }}" > .release-notes.md
           cat >> .release-notes.md <<'NOTES'
@@ -155,12 +159,23 @@ jobs:
           | **Windows** | the `.exe` installer |
           | **macOS** | the `.dmg` |
           | **Linux** | the `.AppImage` to run anywhere, or the `.deb` |
+          NOTES
+
+          if [ "$NOTARIZED" = "true" ]; then
+            cat >> .release-notes.md <<'NOTES'
+
+          **macOS:** signed and notarized by Apple — it opens like any other
+          app.
+          NOTES
+          else
+            cat >> .release-notes.md <<'NOTES'
 
           **macOS:** the app is signed but not notarized, so the first launch is
           refused. Open **System Settings → Privacy & Security**, scroll to the
           message about Paint and choose **Open Anyway**. macOS remembers after
           that.
           NOTES
+          fi
 
       - name: Sanity build
         run: npm run build
@@ -248,14 +263,6 @@ jobs:
       packages: read
     env:
       TAG: ${{ needs.release.outputs.tag }}
-      # macOS SIGNING — optional, but the build is never left unsigned.
-      #
-      # Apple Silicon refuses to execute unsigned arm64 code and reports it to
-      # the user as "the app is damaged", so an unsigned arm64 download is not
-      # a download at all. Tauri therefore signs AD HOC when this is empty: the
-      # app runs natively and the user answers one Gatekeeper prompt. Set the
-      # secret and the same job signs for real.
-      APPLE_SIGNING_IDENTITY: ${{ secrets.MAC_SIGN_IDENTITY }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -272,6 +279,20 @@ jobs:
           # that Dropbox app must also allow http://127.0.0.1:53682/ … :53684/.
           dropbox-app-key: ${{ secrets.VITE_DROPBOX_APP_KEY }}
           dropbox-app-folder: ${{ secrets.VITE_DROPBOX_APP_FOLDER }}
+          # macOS SIGNING — optional, but the build is never left unsigned.
+          #
+          # Apple Silicon refuses to execute unsigned arm64 code and reports it
+          # to the user as "the app is damaged", so an unsigned arm64 download
+          # is not a download at all. With no certificate the app is signed AD
+          # HOC: it runs natively and the user answers one Gatekeeper prompt.
+          # With MAC_CSC_LINK the certificate is imported and the app signed
+          # with it, and with the APPLE_ID trio as well it is notarized.
+          apple-certificate: ${{ secrets.MAC_CSC_LINK }}
+          apple-certificate-password: ${{ secrets.MAC_CSC_KEY_PASSWORD }}
+          apple-signing-identity: ${{ secrets.MAC_SIGN_IDENTITY }}
+          apple-id: ${{ secrets.APPLE_ID }}
+          apple-password: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          apple-team-id: ${{ secrets.APPLE_TEAM_ID }}
 
       # Whatever this platform's bundler produced, BY EXTENSION — a step that
       # listed filenames would silently upload nothing the day a target changed

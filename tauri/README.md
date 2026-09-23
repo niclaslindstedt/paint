@@ -181,5 +181,32 @@ platforms without cutting a release.
 
 **macOS is never signed with nothing** — Apple Silicon refuses to execute
 unsigned arm64 code and reports it to the user as "the app is damaged", so the
-default is an ad-hoc signature and the user answers one Gatekeeper prompt. Set
-the `MAC_SIGN_IDENTITY` repository secret and the same job signs for real.
+default is an ad-hoc signature and the user answers one Gatekeeper prompt.
+
+### Signing and notarizing for macOS
+
+Both `release.yml` and `desktop-tauri.yml` package through
+`.github/actions/package-desktop`, which on macOS runs
+`.github/actions/apple-signing`: it imports a Developer ID certificate into a
+throwaway keychain and hands its identity to `tauri build`, which then signs
+with it and — given the Apple Account below — notarizes. Six repository
+secrets, all optional:
+
+| Secret                        | What it is                                                                                                                       |
+| ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `MAC_CSC_LINK`                | The **Developer ID Application** certificate with its private key, exported as `.p12` and base64-encoded (`base64 -i cert.p12`). |
+| `MAC_CSC_KEY_PASSWORD`        | The password the `.p12` was exported with.                                                                                       |
+| `MAC_SIGN_IDENTITY`           | Optional: the identity to sign as, e.g. `Developer ID Application: Name (TEAMID)`. Read out of the certificate when unset.       |
+| `APPLE_ID`                    | The Apple Account that notarizes.                                                                                                |
+| `APPLE_APP_SPECIFIC_PASSWORD` | An app-specific password for it (account.apple.com → Sign-In and Security).                                                      |
+| `APPLE_TEAM_ID`               | The Developer Program team ID (10 characters).                                                                                   |
+
+With **no certificate** the package is signed ad hoc and not notarized,
+whatever else is set — a signing identity with no certificate behind it is
+ignored rather than handed to `codesign`, so a fork with no secrets packages
+exactly as it always has. With the certificate but no `APPLE_ID` trio it is
+signed but not notarized. The release notes say which: they call the `.dmg`
+notarized only when `MAC_CSC_LINK` and `APPLE_ID` are both set.
+
+Dispatching `desktop-tauri.yml` for macOS signs and notarizes the same way, so a
+wrong certificate or password shows up there rather than after a tag.
