@@ -125,9 +125,7 @@ export type PendingCloudSetup = {
 
 function readBackend(): SyncBackendId {
   const raw = localStorage.getItem(BACKEND_KEY);
-  return raw === "dropbox" || raw === "folder"
-    ? raw
-    : "local";
+  return raw === "dropbox" || raw === "folder" ? raw : "local";
 }
 
 function readDropboxTokens(): DropboxTokens | null {
@@ -857,12 +855,7 @@ export function useSyncEngine(
       );
     }
     return null;
-  }, [
-    backend,
-    dropboxAuth,
-    folderHandle,
-    markFolderPermissionLost,
-  ]);
+  }, [backend, dropboxAuth, folderHandle, markFolderPermissionLost]);
 
   // The folder's human-readable location: the picked directory's own name plus
   // the document file. Falls back to just the file name before the handle

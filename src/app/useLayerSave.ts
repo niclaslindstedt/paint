@@ -18,10 +18,7 @@ import type { DropboxAuth } from "@niclaslindstedt/oss-framework/storage";
 
 import { canSaveLayers } from "./cloudSetup.ts";
 import { folderFileStore } from "./folderFileStore.ts";
-import {
-  dropboxByteFileStore,
-  type ByteFileStore,
-} from "./imageFileStore.ts";
+import { dropboxByteFileStore, type ByteFileStore } from "./imageFileStore.ts";
 import { logStore } from "./log.ts";
 import type { InkContext } from "./render.ts";
 import type { AppData } from "./types.ts";

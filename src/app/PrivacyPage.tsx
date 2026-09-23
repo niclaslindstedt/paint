@@ -43,10 +43,10 @@ export function PrivacyPage() {
             entirely in your browser. There is no backend of our own, no
             account, no cookies, and no analytics or tracking. By default your
             drawings are stored only on your device and never leave it. You may
-            optionally connect a cloud backend (Dropbox) to sync
-            your drawings across your own devices — in that case, and only then,
-            they are sent to that one provider at your explicit request. The
-            project authors never receive your drawings in any configuration.
+            optionally connect a cloud backend (Dropbox) to sync your drawings
+            across your own devices — in that case, and only then, they are sent
+            to that one provider at your explicit request. The project authors
+            never receive your drawings in any configuration.
           </p>
         </Section>
 
@@ -72,10 +72,10 @@ export function PrivacyPage() {
             </li>
             <li>
               Which storage backend you&apos;ve chosen, and — if you&apos;ve
-              connected Dropbox — the OAuth access and refresh
-              tokens for that provider. These tokens grant access only to the
-              app&apos;s own folder, never your whole account, and never leave
-              your device except to authenticate with that provider.
+              connected Dropbox — the OAuth access and refresh tokens for that
+              provider. These tokens grant access only to the app&apos;s own
+              folder, never your whole account, and never leave your device
+              except to authenticate with that provider.
             </li>
           </ul>
           <p>
@@ -138,10 +138,9 @@ export function PrivacyPage() {
             app&apos;s own static files (HTML, JavaScript, CSS, fonts, and
             icons) from its origin, and once loaded it works fully offline as an
             installed PWA. The one exception is the cloud backends: if — and
-            only if — you connect Dropbox, the app talks to that
-            provider&apos;s API to read and write your drawings. No fonts,
-            analytics scripts, error-reporting services, or advertising networks
-            are ever loaded.
+            only if — you connect Dropbox, the app talks to that provider&apos;s
+            API to read and write your drawings. No fonts, analytics scripts,
+            error-reporting services, or advertising networks are ever loaded.
           </p>
         </Section>
 

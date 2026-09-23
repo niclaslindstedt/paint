@@ -269,8 +269,7 @@ export function StorageTab({
   ];
 
   const pickedFolder = picked === "folder";
-  const pickedCloud =
-    picked === "dropbox" ? picked : null;
+  const pickedCloud = picked === "dropbox" ? picked : null;
   // Unconfigured backends are hidden above, so this only fires for a backend
   // persisted by an earlier build that had the key and this one doesn't — still
   // worth explaining rather than leaving the picker silently stuck.
