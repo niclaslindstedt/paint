@@ -15,6 +15,24 @@ inputs:
       @niclaslindstedt/oss-framework from the GitHub Packages registry, which
       requires auth even for a public package.
     required: true
+  display-name:
+    description: >
+      APP_DISPLAY_NAME — the listing name the package installs as. Empty keeps
+      the project's own name.
+    required: false
+    default: ""
+  bundle-id:
+    description: >
+      APP_BUNDLE_ID — the identifier the package installs under, and so where
+      the installed app keeps its data. Empty keeps the development one.
+    required: false
+    default: ""
+  release:
+    description: >
+      "true" for a package that ships: refuses to fall back to the
+      development identity.
+    required: false
+    default: "false"
 
 runs:
   using: composite
@@ -53,10 +71,20 @@ runs:
       shell: bash
       run: npm ci --prefix tauri
 
-    # `npm run package` is `bundle-web.mjs` (which builds the site with the
-    # service worker off) followed by `tauri build`. Going through the shell's
-    # own script rather than calling `tauri build` here is what keeps a release
-    # build identical to the one a maintainer makes locally.
+    # `npm run package` is `scripts/package.mjs`: `bundle-web.mjs` (which
+    # builds the site with the service worker off), then `tauri build` with the
+    # identity below merged over the committed config. Going through the
+    # shell's own script rather than calling `tauri build` here is what keeps a
+    # release build identical to the one a maintainer makes locally.
     - name: Package
       shell: bash
-      run: npm run package --prefix tauri
+      env:
+        APP_DISPLAY_NAME: ${{ inputs.display-name }}
+        APP_BUNDLE_ID: ${{ inputs.bundle-id }}
+        RELEASE: ${{ inputs.release }}
+      run: |
+        if [ "$RELEASE" = "true" ]; then
+          npm run package --prefix tauri -- --require-identity
+        else
+          npm run package --prefix tauri
+        fi

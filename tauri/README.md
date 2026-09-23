@@ -122,7 +122,27 @@ to set.
 
 ## Releasing
 
-**Nothing to do.** `.github/workflows/release.yml` packages this shell on one
+### The identity comes from the deployment
+
+`src-tauri/tauri.conf.json` commits the project's own name and a development
+identifier (`dev.local.paint`). What an installed copy is called and the
+identifier it installs under arrive at packaging time, as the phone app's do:
+
+| Secret             | Becomes                                     |
+| ------------------ | ------------------------------------------- |
+| `APP_DISPLAY_NAME` | `productName` — the app's installed name    |
+| `APP_BUNDLE_ID`    | `identifier` — and where the app keeps data |
+
+`scripts/package.mjs` merges them over the committed config with
+`tauri build --config`. Unset, a local package runs under the development
+identity; the release workflow passes `--require-identity` and refuses it.
+**The identifier is also where the data lives** — each desktop webview keys its
+storage by it — so changing it after a release strands every installed copy's
+drawings.
+
+### Nothing else to do
+
+`.github/workflows/release.yml` packages this shell on one
 runner per platform for every `v*` tag and attaches the installers to the
 GitHub Release — a `.exe` on Windows, a `.dmg` on macOS, an `.AppImage` and a
 `.deb` on Linux. The release is created as a draft and only published once all

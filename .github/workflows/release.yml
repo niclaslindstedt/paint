@@ -264,6 +264,9 @@ jobs:
         with:
           target: ${{ matrix.target }}
           npm-token: ${{ secrets.GITHUB_TOKEN }}
+          display-name: ${{ secrets.APP_DISPLAY_NAME }}
+          bundle-id: ${{ secrets.APP_BUNDLE_ID }}
+          release: "true"
 
       # Whatever this platform's bundler produced, BY EXTENSION — a step that
       # listed filenames would silently upload nothing the day a target changed

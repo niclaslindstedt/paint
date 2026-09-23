@@ -3,7 +3,7 @@
   "productName": "Paint",
   "mainBinaryName": "paint",
   "version": "../../package.json",
-  "identifier": "se.niclaslindstedt.paint",
+  "identifier": "dev.local.paint",
   "build": {
     "frontendDist": "./placeholder"
   },

@@ -140,6 +140,8 @@ jobs:
         with:
           target: ${{ matrix.target }}
           npm-token: ${{ secrets.GITHUB_TOKEN }}
+          display-name: ${{ secrets.APP_DISPLAY_NAME }}
+          bundle-id: ${{ secrets.APP_BUNDLE_ID }}
 
       - uses: actions/upload-artifact@v7
         if: inputs.platform == 'all' || inputs.platform == matrix.target
