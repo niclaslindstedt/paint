@@ -113,7 +113,7 @@ runs:
 
     # Imports the certificate and exports APPLE_SIGNING_IDENTITY for the
     # packaging step — or, with no certificate, warns and exports nothing,
-    # which leaves the bundler's ad-hoc signature.
+    # which leaves package.mjs signing the whole bundle ad hoc (`-`).
     - name: Apple signing
       if: inputs.target == 'macos'
       uses: ./.github/actions/apple-signing

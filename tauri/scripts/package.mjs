@@ -59,21 +59,40 @@ execFileSync(process.execPath, [join(APP_DIR, "scripts", "bundle-web.mjs")], {
   stdio: "inherit",
 });
 
+// NEVER A HALF-SIGNED MAC APP. With no identity the bundler leaves only the
+// linker's ad-hoc signature on the executable, and a bundle whose seal does not
+// cover its resources is what a downloaded copy on Apple Silicon reports as
+// "damaged" — with no "Open Anyway" to offer. An explicit ad-hoc identity ("-")
+// seals the whole bundle, so the user gets the ordinary Gatekeeper prompt. A
+// real identity arrives as APPLE_SIGNING_IDENTITY, which CI sets only once a
+// Developer ID certificate is in the keychain (.github/actions/apple-signing).
+const signingIdentity = process.env.APPLE_SIGNING_IDENTITY?.trim() || "-";
+
 const override = {
   ...(displayName ? { productName: displayName } : {}),
   ...(bundleId ? { identifier: bundleId } : {}),
+  ...(process.platform === "darwin"
+    ? { bundle: { macOS: { signingIdentity } } }
+    : {}),
 };
 const configArgs = [];
 if (Object.keys(override).length > 0) {
   const file = join(mkdtempSync(join(tmpdir(), "tauri-identity-")), "id.json");
   writeFileSync(file, JSON.stringify(override));
   configArgs.push("--config", file);
+}
+if (displayName || bundleId) {
   console.log(
     `• packaging as ${displayName || "(project name)"} — ` +
       `${bundleId || "(development identifier)"}`,
   );
 } else {
   console.log("• packaging under the development identity");
+}
+if (process.platform === "darwin") {
+  console.log(
+    `• signing as ${signingIdentity === "-" ? "ad hoc (-)" : signingIdentity}`,
+  );
 }
 
 execFileSync(

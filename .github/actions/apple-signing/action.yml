@@ -5,7 +5,7 @@ description: >
   Apple Silicon does not merely distrust unsigned arm64 code, it refuses to
   EXECUTE it, and reports that to the user as "the app is damaged" — the same
   wording macOS uses for a corrupted download. So the app is NEVER unsigned:
-  with no certificate configured the bundler signs ad hoc, which runs but costs
+  with no certificate configured package.mjs signs ad hoc, which runs but costs
   the user one Gatekeeper prompt. This action is what turns that fallback into
   a real signature, and it is a no-op with a warning when the certificate
   secret is empty — a fork with no Apple account packages exactly as before.
@@ -50,7 +50,7 @@ runs:
         set -euo pipefail
 
         # No certificate: say so and leave APPLE_SIGNING_IDENTITY unset, which
-        # is what makes the bundler sign ad hoc. An identity on its own is
+        # is what makes tauri/scripts/package.mjs sign ad hoc ("-"). An identity on its own is
         # deliberately NOT exported — nothing on a hosted runner holds its key.
         if [ -z "$CERTIFICATE" ]; then
           if [ -n "$EXPLICIT_IDENTITY" ]; then

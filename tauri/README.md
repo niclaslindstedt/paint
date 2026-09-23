@@ -182,6 +182,10 @@ platforms without cutting a release.
 **macOS is never signed with nothing** — Apple Silicon refuses to execute
 unsigned arm64 code and reports it to the user as "the app is damaged", so the
 default is an ad-hoc signature and the user answers one Gatekeeper prompt.
+`scripts/package.mjs` asks for it explicitly (`signingIdentity: "-"`) whenever
+no real identity is set: left to itself the bundler signs only the executable,
+not the bundle, and a downloaded copy with a seal that does not cover its
+resources is reported as "damaged" with no **Open Anyway** to offer.
 
 ### Signing and notarizing for macOS
 
