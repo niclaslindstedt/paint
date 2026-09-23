@@ -164,7 +164,10 @@ function backendPath(backend: SyncBackendId, slug: string): string {
 
 /** A web URL that opens the active backend's storage in a browser tab, or null
  *  when there's nothing to open (the on-device copy, a local folder). */
-function backendWebUrl(backend: SyncBackendId, slug: string): string | null {
+// `_slug` is kept in the signature though nothing reads it now: Drive, the one
+// backend that could open straight onto a namespace's file, is gone, and the
+// callers still describe the file they mean.
+function backendWebUrl(backend: SyncBackendId, _slug: string): string | null {
   if (backend === "dropbox") {
     return `https://www.dropbox.com/home/Apps/${encodeURIComponent(
       DROPBOX_APP_FOLDER,
