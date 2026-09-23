@@ -86,9 +86,9 @@ pub fn error_reply(message: &str) -> String {
     format!("{{\"error\":{}}}", json_string(message))
 }
 
-/// A JSON string literal. The replies carry three fields of plain text, which
-/// is not worth a serialisation dependency, but the query is whatever the
-/// provider sent, so it is escaped rather than trusted.
+/// A JSON string literal. The replies are three fields of plain text, spelled
+/// out here so their format reads at a glance beside the page's side of it; the
+/// query is whatever the provider sent, so it is escaped rather than trusted.
 fn json_string(value: &str) -> String {
     let mut out = String::with_capacity(value.len() + 2);
     out.push('"');
