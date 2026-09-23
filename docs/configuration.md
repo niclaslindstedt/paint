@@ -4,9 +4,11 @@ Paint runs with no configuration at all. Everything below is optional, and every
 value is read at **build time** through Vite's `import.meta.env`, so a
 configuration change means a rebuild (or a new deploy).
 
-None of these are secrets: the OAuth flows are PKCE public-client flows with no
-client secret, which is why they can live in repository variables and be baked
-into a public bundle.
+None of these are secret in substance: the OAuth flows are PKCE public-client
+flows with no client secret, which is why they can be baked into a public
+bundle. CI still reads them from repository **secrets** of the same names —
+every setting the workflows read is a secret, and the repository keeps no
+Actions variables, so there is one place to look for all of it.
 
 ## Cloud sync
 

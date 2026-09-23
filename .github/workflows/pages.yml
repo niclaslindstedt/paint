@@ -126,13 +126,13 @@ jobs:
           # pwa-plugin.ts `ignorePaths`.
           VITE_PWA_IGNORE_PATHS: /preview/,/branch/
           # Cloud-sync client identifiers. These are public (the OAuth
-          # flows are PKCE, no secret), so they're supplied as repository
-          # variables and injected at build time; unset -> the backend is
-          # hidden from the storage picker.
-          VITE_DROPBOX_APP_KEY: ${{ vars.VITE_DROPBOX_APP_KEY }}
+          # flows are PKCE, no secret), but like every setting here they're
+          # supplied as repository secrets and injected at build time; unset ->
+          # the backend is hidden from the storage picker.
+          VITE_DROPBOX_APP_KEY: ${{ secrets.VITE_DROPBOX_APP_KEY }}
           # App-folder names for the "Open in" link / stored documents; unset ->
           # both default to "Paint".
-          VITE_DROPBOX_APP_FOLDER: ${{ vars.VITE_DROPBOX_APP_FOLDER }}
+          VITE_DROPBOX_APP_FOLDER: ${{ secrets.VITE_DROPBOX_APP_FOLDER }}
 
       - name: Stash production dist
         if: steps.tag.outputs.has_release == 'true'
@@ -165,10 +165,10 @@ jobs:
           # string is falsy in a GitHub Actions expression and would fall
           # through to the paths even in the release case.
           VITE_PWA_IGNORE_PATHS: ${{ steps.tag.outputs.has_release == 'false' && '/preview/,/branch/' || '' }}
-          VITE_DROPBOX_APP_KEY: ${{ vars.VITE_DROPBOX_APP_KEY }}
+          VITE_DROPBOX_APP_KEY: ${{ secrets.VITE_DROPBOX_APP_KEY }}
           # App-folder names for the "Open in" link / stored documents; unset ->
           # both default to "Paint".
-          VITE_DROPBOX_APP_FOLDER: ${{ vars.VITE_DROPBOX_APP_FOLDER }}
+          VITE_DROPBOX_APP_FOLDER: ${{ secrets.VITE_DROPBOX_APP_FOLDER }}
 
       # ---- Optional /branch/ build + persist to orphan branch ----
       - name: Stash preview dist
@@ -192,10 +192,10 @@ jobs:
         run: npm run build
         env:
           VITE_BASE: /branch/
-          VITE_DROPBOX_APP_KEY: ${{ vars.VITE_DROPBOX_APP_KEY }}
+          VITE_DROPBOX_APP_KEY: ${{ secrets.VITE_DROPBOX_APP_KEY }}
           # App-folder names for the "Open in" link / stored documents; unset ->
           # both default to "Paint".
-          VITE_DROPBOX_APP_FOLDER: ${{ vars.VITE_DROPBOX_APP_FOLDER }}
+          VITE_DROPBOX_APP_FOLDER: ${{ secrets.VITE_DROPBOX_APP_FOLDER }}
 
       - name: Persist /branch/ build to orphan branch
         if: steps.dispatch.outputs.has_dispatch == 'true'
