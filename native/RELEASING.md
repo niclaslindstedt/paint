@@ -53,12 +53,12 @@ npx eas-cli credentials          # iOS signing + Android keystore
 For submission, fill in the placeholders in `eas.json` →
 `submit.production`:
 
-| Placeholder                 | Where it comes from                                                                                                                             |
-| --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| `APPLE_ID_EMAIL`            | The Apple Account the Developer Program membership is under.                                                                                    |
-| `APP_STORE_CONNECT_APP_ID`  | App Store Connect → the app → App Information → **Apple ID** (digits). Assigned when the app record is created, so the record must exist first. |
-| `APPLE_TEAM_ID`             | developer.apple.com → Membership details → **Team ID** (10 characters).                                                                         |
-| `play-service-account.json` | Play Console → Setup → API access → a service account key. Gitignored; upload it to EAS with `eas credentials` rather than committing it.       |
+| Field                       | Where it comes from                                                                                                                                                                                                                                        |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Apple ID (not committed)    | Asked for by `eas submit` when it signs in; never written into `eas.json`.                                                                                                                                                                                 |
+| `ascAppId`                  | App Store Connect → the app → App Information → **Apple ID** (digits). Add it under `submit.production.ios` once the app record exists; until then the key is absent, not a placeholder — `eas submit` rejects placeholder values before it does anything. |
+| `appleTeamId`               | developer.apple.com → Membership details → **Team ID** (10 characters). Added beside `ascAppId`.                                                                                                                                                           |
+| `play-service-account.json` | Play Console → Setup → API access → a service account key. Gitignored; upload it to EAS with `eas credentials` rather than committing it.                                                                                                                  |
 
 ### 4. iCloud capabilities
 
