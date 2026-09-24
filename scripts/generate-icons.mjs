@@ -157,14 +157,22 @@ function encodePng(width, height, rgba) {
 // disappearing into a single pale pixel at favicon size.
 const ROUND = 6;
 
+// A circle as a polygon, for the cut-outs below.
+function circle(cx, cy, r, steps = 24) {
+  return Array.from({ length: steps }, (_, i) => {
+    const a = (i / steps) * 2 * Math.PI;
+    return [cx + r * Math.cos(a), cy + r * Math.sin(a)];
+  });
+}
+
 const UPRIGHT = {
   fills: [
     // The barrel. It starts above the tile's box because the mark is turned
     // onto the diagonal, which is where the room is: upright it would be half
     // again too long, turned it fills the tile corner to corner.
     [
-      [38, 2],
-      [62, 2],
+      [38, 5],
+      [62, 5],
       [64, 50],
       [36, 50],
     ],
@@ -177,12 +185,34 @@ const UPRIGHT = {
       [67, 72],
       [33, 72],
     ],
-    // The nib, coming to a point. The taper is steep on purpose: turned 45°
-    // and seen at 16 px, a gentle one reads as another block of barrel.
+    // The nib: a fountain-pen nib rather than a cone — it swells to
+    // shoulders just past the seam, then tapers to a point, so its outline
+    // alone says "pen" where a plain triangle said "crayon". The taper is
+    // still steep: turned 45° and seen at 16 px, a gentle one reads as more
+    // barrel.
     [
       [38, 82],
       [62, 82],
-      [50, 114],
+      [64, 90],
+      [60, 100],
+      [53, 111],
+      [50, 117],
+      [47, 111],
+      [40, 100],
+      [36, 90],
+    ],
+  ],
+  // Cut out of the nib *after* the round-joined outline, so they keep their
+  // drawn size: the breather hole and the slit running from it through the
+  // point — the two details every fountain-pen nib has. They vanish at
+  // favicon size, where the nib's outline carries the shape on its own.
+  cuts: [
+    circle(50, 95, 3.4),
+    [
+      [49, 95],
+      [51, 95],
+      [51, 124],
+      [49, 124],
     ],
   ],
 };
@@ -198,8 +228,8 @@ const UPRIGHT = {
 // so the rotation alone leaves it hanging low and left). Applied once at
 // module load; everything downstream works in unit space.
 const COS45 = Math.SQRT1_2;
-const NUDGE_X = 1.4;
-const NUDGE_Y = -1.4;
+const NUDGE_X = 3.54;
+const NUDGE_Y = -3.54;
 const turn = (points) =>
   points.map(([x, y]) => {
     const dx = x - 50;
@@ -210,6 +240,7 @@ const turn = (points) =>
     ];
   });
 const FILLS = UPRIGHT.fills.map(turn);
+const CUTS = UPRIGHT.cuts.map(turn);
 
 const ROUND_HALF = ROUND / 2 / 100;
 
@@ -255,6 +286,7 @@ function inPolygon(polygon, px, py) {
 // Whether unit-space point (x, y) lands on the pen: inside a solid piece, or
 // within the round-join outline that softens its corners.
 function inStroke(x, y) {
+  if (CUTS.some((polygon) => inPolygon(polygon, x, y))) return false;
   return (
     FILLS.some((polygon) => inPolygon(polygon, x, y)) ||
     nearAny(FILLS, x, y, ROUND_HALF, true)
