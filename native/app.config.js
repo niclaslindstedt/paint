@@ -42,7 +42,11 @@ module.exports = () => ({
     userInterfaceStyle: "automatic",
     newArchEnabled: true,
     icon: "./assets/icon.png",
-    scheme: "paint",
+    // The URL scheme is the bundle id — reverse-DNS, as RFC 8252 §7.1 asks of
+    // a private-use scheme, so it is this listing's own and no other app can
+    // claim it. `se.agilator.paint` in production, `dev.local.paint` in a
+    // plain checkout; never committed.
+    scheme: BUNDLE_ID,
     backgroundColor: BRAND_BG,
     assetBundlePatterns: ["**/*"],
 
