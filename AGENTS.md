@@ -206,7 +206,11 @@ provider — because App Store guideline 4.2 wants the app to do something the
 website cannot. The rule that keeps it thin is the desktop shell's rule, bent
 exactly that far: **`src/` asks whether a capability is present, never where
 it is running.** `src/app/icloudHost.ts` looks for the provider; a browser has
-none, and the backend is not offered. The wrapper moves opaque files; the
+none, and the backend is not offered. The same holds for signing in to
+Dropbox: the wrapper installs an authentication-session provider at
+`window.__ossAuthSession` (the framework's name), the framework's
+`getAuthSessionHost()` finds it, and `connectDropboxAuthSession` signs in
+through a sheet over the app; a browser has none and keeps its redirect. The wrapper moves opaque files; the
 document's name, the `images/` and `drawings/` layout and when a save is due
 stay in `src/app/useSyncEngine.ts`. See [`native/README.md`](native/README.md).
 
@@ -374,6 +378,13 @@ the fuller reference under `docs/` proper rather than in `docs/features/`.
 - The iCloud bridge's property and event names are a contract between
   `native/src/icloudBridge.ts` and `src/app/icloudHost.ts`.
   `tests/native_icloud_test.ts` pins them.
+- The auth-session bridge's property and event names are the framework's
+  (`AUTH_SESSION_HOST_PROPERTY`, `AUTH_SESSION_HOST_EVENT`), spelled again in
+  `native/src/authSessionBridge.ts`; `tests/native_auth_session_test.ts` pins
+  them. Its redirect URI is `<scheme>://oauth`, and the scheme is the bundle
+  id (`native/identifiers.js`, from `APP_BUNDLE_ID`, never committed) — so
+  the Dropbox app must list `se.agilator.paint://oauth`, and changing the
+  bundle id breaks phone sign-in until the App Console follows.
 - A stroke's `tool` field is a plugin id and is **persisted**. Renaming a plugin
   id orphans every stroke drawn with it — don't, or ship a migration step.
 

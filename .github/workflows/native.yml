@@ -15,6 +15,8 @@ name: native
 #                               native/app.config.js reads it from here.
 #   APP_DISPLAY_NAME (secret)   the listing name, and the name under the icon
 #   APP_BUNDLE_ID    (secret)   iOS bundle identifier / Android package
+#   VITE_DROPBOX_APP_KEY / VITE_DROPBOX_APP_FOLDER (secrets, optional) — the
+#                               website's Dropbox app, baked into the bundle
 # The same names are set as EAS environment variables, because EAS evaluates
 # app.config.js again on its builder.
 #
@@ -85,6 +87,12 @@ jobs:
       - name: Bundle the web app into the wrapper
         working-directory: native
         run: npm run bundle -- --profile "${{ inputs.profile }}"
+        env:
+          # The same Dropbox app as the website's. Unset, the app offers no
+          # Dropbox; set, that app must list <bundle id>://oauth —
+          # se.agilator.paint://oauth — as a redirect URI (native/RELEASING.md).
+          VITE_DROPBOX_APP_KEY: ${{ secrets.VITE_DROPBOX_APP_KEY }}
+          VITE_DROPBOX_APP_FOLDER: ${{ secrets.VITE_DROPBOX_APP_FOLDER }}
 
       - name: Set up EAS
         uses: expo/expo-github-action@v8

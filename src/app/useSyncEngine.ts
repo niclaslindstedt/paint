@@ -8,10 +8,13 @@ import {
   backoffDelayMs,
   clearDirectoryHandle,
   completeDropboxAuth,
+  connectDropboxAuthSession,
   connectDropboxLoopback,
   createDropboxAdapter,
   createFolderAdapter,
+  getAuthSessionHost,
   hasPendingDropboxAuth,
+  isAuthCancelled,
   isDesktopShellOrigin,
   isRetryableSaveError,
   localCacheKey,
@@ -712,14 +715,32 @@ export function useSyncEngine(
 
   const connectDropbox = useCallback(async () => {
     if (!DROPBOX_APP_KEY) return;
-    // In the desktop app the redirect has nowhere to land (its origin is a
-    // private scheme), so the sign-in runs in the user's browser and the
-    // shell's loopback listener hands the result back — in place, no reload.
-    if (isDesktopShellOrigin()) {
-      syncLog.info("dropbox: signing in through the browser…");
+    // Two hosts cannot take the redirect back, and both finish the sign-in in
+    // one promise, in place, no reload:
+    //   • a host that OFFERS an authentication session (the phone app): the
+    //     consent page opens in a sheet over the app and the sheet hands the
+    //     redirect back — asked for as a capability, not a platform;
+    //   • the desktop app, whose origin is a private scheme: the sign-in runs
+    //     in the user's browser and the shell's loopback listener hands the
+    //     result back.
+    const authSession = getAuthSessionHost();
+    if (authSession || isDesktopShellOrigin()) {
+      syncLog.info(
+        authSession
+          ? "dropbox: signing in…"
+          : "dropbox: signing in through the browser…",
+      );
       try {
-        adoptDropbox(await connectDropboxLoopback(DROPBOX_APP_KEY));
+        adoptDropbox(
+          authSession
+            ? await connectDropboxAuthSession(DROPBOX_APP_KEY, authSession)
+            : await connectDropboxLoopback(DROPBOX_APP_KEY),
+        );
       } catch (err) {
+        if (isAuthCancelled(err)) {
+          syncLog.info("dropbox: sign-in cancelled");
+          return;
+        }
         syncLog.error(
           `dropbox: connect failed — ${err instanceof Error ? err.message : String(err)}`,
         );

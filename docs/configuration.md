@@ -27,7 +27,12 @@ needs no configuration — it uses the File System Access API).
 [dropbox.com/developers/apps](https://www.dropbox.com/developers/apps) with
 "App folder" access and the `files.content.read` / `files.content.write` scopes.
 Add your deploy origin (and `http://localhost:5173` for local work) as a
-redirect URI. The app key goes in `VITE_DROPBOX_APP_KEY`; the folder name you
+redirect URI, plus `http://127.0.0.1:53682/`, `:53683/` and `:53684/` for the
+desktop app and **`se.agilator.paint://oauth`** for the phone app — its URL
+scheme is the bundle id, and it signs in through an in-app authentication
+session (see
+[`../native/README.md`](../native/README.md#signing-in-to-dropbox)). The native
+build passes the same two secrets to the bundle it ships. The app key goes in `VITE_DROPBOX_APP_KEY`; the folder name you
 gave the app goes in `VITE_DROPBOX_APP_FOLDER`.
 
 ### What lands on the backend
