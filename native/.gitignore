@@ -6,7 +6,7 @@ dist/
 
 # The packed web build, produced by `npm run bundle` from the web app in
 # `../src`. Generated, never committed — but it MUST exist before a build or
-# the wrapper ships with no app inside it. `.easignore` is what keeps
+# the wrapper ships with no app inside it. The root `.easignore` is what keeps
 # it in the EAS upload; CI regenerates it (see .github/workflows/native.yml).
 assets/webroot.zip
 

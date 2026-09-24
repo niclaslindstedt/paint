@@ -73,7 +73,7 @@ jobs:
       # The wrapper has no UI of its own — it serves this bundle, and a build
       # uploaded without it launches to a blank screen. It has to be built
       # BEFORE `eas build`, because the upload is what carries
-      # `native/assets/webroot.zip` to the EAS worker; `native/.easignore` is
+      # `native/assets/webroot.zip` to the EAS worker; the root `.easignore` is
       # what keeps that artifact in the upload despite being gitignored.
       - name: Install the web app's dependencies
         run: npm ci

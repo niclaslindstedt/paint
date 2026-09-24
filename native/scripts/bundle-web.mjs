@@ -22,7 +22,7 @@
 // having the plumbing already correct is cheaper than retrofitting it.
 //
 // The zip is a build artifact (gitignored). Generate it before `eas build`;
-// `.easignore` is what keeps it in the EAS upload despite that.
+// the root `.easignore` is what keeps it in the EAS upload despite that.
 
 import { execFileSync } from "node:child_process";
 import {

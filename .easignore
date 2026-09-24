@@ -1,0 +1,54 @@
+# What `eas build` leaves out of the upload. EAS reads this file from the
+# REPOSITORY ROOT only — a native/.easignore is never consulted — and when it
+# exists it replaces every .gitignore in the tree. So the rules below are the
+# .gitignore files' own, with one deliberate difference:
+#
+#   native/assets/webroot.zip is NOT ignored. It is the packed web app — the
+#   paint app itself — built by `npm run bundle` (in CI by native.yml, which
+#   bakes the Dropbox key into it). It is gitignored as build output; left out
+#   of the upload, the EAS worker fails at "Unable to resolve module
+#   ../assets/webroot.zip".
+#
+# /native/ios/ and /native/android/ (expo prebuild output, regenerated on the
+# worker) keep their leading slash, so the hand-written
+# modules/icloud-store/ios still go up.
+#
+# Keep this in step with the .gitignore files when they change. Check with
+#   (cd native && npx eas-cli build:inspect -p ios -s archive -o <dir>)
+# that the archive holds native/assets/webroot.zip.
+
+# .gitignore
+.DS_Store
+*.log
+*.tmp
+.env
+.env.local
+.vscode/
+.idea/
+*.swp
+.coverage/
+coverage/
+node_modules/
+dist/
+*-sheet.png
+*-shot.png
+*-zoom.png
+tauri/target/
+tauri/webroot/*
+!tauri/webroot/.gitkeep
+tauri/src-tauri/gen/
+native/store/copy.mts
+native/store/store.config.json
+native/store/screenshots/
+native/fastlane/metadata/
+
+# native/.gitignore, re-anchored under native/ (rules the root file already
+# applies repo-wide are not repeated).
+native/**/.expo/
+/native/ios/
+/native/android/
+native/**/*.p8
+native/**/*.p12
+native/**/*.jks
+native/**/*.mobileprovision
+native/**/play-service-account.json
