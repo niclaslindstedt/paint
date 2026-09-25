@@ -6,6 +6,7 @@ import {
   type ThemeAppearance,
 } from "@niclaslindstedt/oss-framework/theme";
 import {
+  SIDEBAR_PANEL_WIDTH,
   Sidebar,
   useEdgeSwipeOpen,
   usePersistentMenuPosition,
@@ -321,6 +322,20 @@ export function App() {
   // Publish the docked sidebar's footprint as CSS variables so viewport-fixed
   // overlays (the `UpdateToast`) centre over the content band.
   useSidebarInset(pinned, position.side);
+  // …and widen that footprint by the safe-area inset on its side. In landscape
+  // on a notched phone the docked column pads itself clear of the notch (see
+  // "Landscape safe area" in `styles.css`), so it is wider than the framework's
+  // 16rem by exactly that inset — and an overlay centred on the content band
+  // has to start where the column really ends. Runs after the hook above, so
+  // it has the last word; a zero inset leaves the framework's value as it was.
+  useEffect(() => {
+    if (!pinned) return;
+    const side = position.side;
+    document.documentElement.style.setProperty(
+      `--app-content-${side}`,
+      `calc(${SIDEBAR_PANEL_WIDTH} + env(safe-area-inset-${side}, 0px))`,
+    );
+  }, [pinned, position.side]);
 
   // Carry the settings with the backend: a connected folder / Dropbox / Drive
   // holds them as `settings.json` beside the drawings, so the kit you set up
@@ -426,7 +441,13 @@ export function App() {
   );
 
   return (
-    <div className="flex h-[var(--app-height,100svh)] overflow-hidden bg-page-bg text-fg">
+    // `data-menu` says which screen edge the side menu holds while docked
+    // ("drawer" when it floats), so the landscape safe-area rules in
+    // `styles.css` can pad whichever of the menu and the page meets an edge.
+    <div
+      className="flex h-[var(--app-height,100svh)] overflow-hidden bg-page-bg text-fg"
+      data-menu={pinned ? position.side : "drawer"}
+    >
       <Sidebar
         pinned={pinned}
         open={drawerOpen}

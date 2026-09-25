@@ -963,7 +963,7 @@ export function CanvasScreen({
           installed app — `max()` falls back on the same 0.5rem that sits under
           the buttons, so the row reads centred there too rather than pinned to
           the top edge with all of its air below it. */}
-      <header className="flex shrink-0 items-center gap-2 border-b border-line bg-surface px-3 pb-2 pt-[max(0.5rem,env(safe-area-inset-top))]">
+      <header className="flex shrink-0 items-center gap-2 border-b border-line bg-surface pt-[max(0.5rem,env(safe-area-inset-top))] pr-[max(0.75rem,var(--edge-right,0px))] pb-2 pl-[max(0.75rem,var(--edge-left,0px))]">
         {/* The way to the drawings. It leads the header — left of the name,
             where every app that has a list behind it puts one — and it replaces
             the button that used to float over the canvas, which spent a corner
@@ -1451,7 +1451,7 @@ export function CanvasScreen({
             onClick={() => setFitToken((n) => n + 1)}
             aria-label={t("canvas.fitPage")}
             title={t("canvas.fitPage")}
-            className="absolute right-3 bottom-3 cursor-pointer rounded-full border border-line bg-surface/90 px-2.5 py-1 text-xs text-muted tabular-nums hover:text-fg-bright"
+            className="absolute right-[calc(0.75rem+var(--edge-right,0px))] bottom-3 cursor-pointer rounded-full border border-line bg-surface/90 px-2.5 py-1 text-xs text-muted tabular-nums hover:text-fg-bright"
           >
             {t("canvas.zoomPercent", {
               percent: String(

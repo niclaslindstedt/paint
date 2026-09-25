@@ -51,7 +51,7 @@ export function ArchiveScreen({
     store.data.drawings.filter((d) => d.archived).length;
 
   return (
-    <div className="mx-auto flex h-full w-full max-w-2xl flex-col px-4 pt-[calc(0.75rem+env(safe-area-inset-top))]">
+    <div className="mx-auto flex h-full w-full max-w-2xl flex-col pt-[calc(0.75rem+env(safe-area-inset-top))] pr-[max(1rem,var(--edge-right,0px))] pl-[max(1rem,var(--edge-left,0px))]">
       <header className="mb-2 flex items-center gap-3 border-b border-line px-1 pb-3">
         <ArchiveIcon className="h-5 w-5 shrink-0 text-muted" />
         <h1 className="min-w-0 flex-1 truncate text-lg font-bold tracking-wide text-fg-bright">

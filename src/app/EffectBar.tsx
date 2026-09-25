@@ -45,7 +45,7 @@ export function EffectBar({ name, note, onRestore, onCancel }: Props) {
     // The right edge is left clear of the zoom readout, which lives in that
     // corner of the canvas and is a way back to the whole page — worth more
     // than the width it costs here.
-    <div className="pointer-events-none absolute right-3 bottom-3 left-3 z-10 flex justify-start pr-14">
+    <div className="pointer-events-none absolute right-[calc(0.75rem+var(--edge-right,0px))] bottom-3 left-[calc(0.75rem+var(--edge-left,0px))] z-10 flex justify-start pr-14">
       <div className="pointer-events-auto flex max-w-full min-w-0 items-center gap-1 rounded-xl border border-accent/60 bg-surface/95 py-1 pr-1 pl-2.5 shadow-lg">
         <button
           type="button"

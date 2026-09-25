@@ -46,7 +46,7 @@ export function SelectionModeBar({ mode, held, onOpen, onClear }: Props) {
   return (
     // The same corner and the same clearance as the effect strip: away from the
     // zoom readout, which is the one other thing that floats over the page.
-    <div className="pointer-events-none absolute right-3 bottom-3 left-3 z-10 flex justify-start pr-14">
+    <div className="pointer-events-none absolute right-[calc(0.75rem+var(--edge-right,0px))] bottom-3 left-[calc(0.75rem+var(--edge-left,0px))] z-10 flex justify-start pr-14">
       <div className="pointer-events-auto flex max-w-full min-w-0 items-center gap-1 rounded-xl border border-accent/60 bg-surface/95 py-1 pr-1 pl-2.5 shadow-lg">
         <button
           type="button"

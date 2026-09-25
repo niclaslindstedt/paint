@@ -203,8 +203,8 @@ export function SidePanel({
       aria-label={t("layers.title")}
       className={
         docked
-          ? "relative flex w-56 shrink-0 flex-col overflow-y-auto overscroll-contain border-l border-line bg-surface"
-          : "absolute inset-y-0 right-0 z-20 flex w-56 max-w-[80%] flex-col overflow-y-auto overscroll-contain border-l border-line bg-surface shadow-2xl"
+          ? "relative flex w-[calc(14rem+var(--edge-right,0px))] shrink-0 flex-col overflow-y-auto overscroll-contain border-l border-line bg-surface pr-[var(--edge-right,0px)]"
+          : "absolute inset-y-0 right-0 z-20 flex w-[calc(14rem+var(--edge-right,0px))] max-w-[80%] flex-col pr-[var(--edge-right,0px)] overflow-y-auto overscroll-contain border-l border-line bg-surface shadow-2xl"
       }
     >
       {/* **Contextual** — the block above everything the user arranges: what

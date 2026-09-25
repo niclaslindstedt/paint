@@ -116,6 +116,9 @@
      to keep itself out from under the notch and the home indicator. */
   padding-top: env(safe-area-inset-top);
   padding-bottom: env(safe-area-inset-bottom);
+  /* …and the sides, for a phone turned on its side, where the notch is. */
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
 }
 
 /* …and the wrapper's own margin goes with it, or "edge to edge" is edge to edge
@@ -393,6 +396,49 @@ select,
       --app-height: 100vh;
     }
   }
+}
+
+/* ── Landscape safe area ─────────────────────────────────────────────────────
+   Paint rotates, and a notched phone on its side puts the notch (or the
+   Dynamic Island) and a rounded corner on the left or the right edge. The app
+   paints edge to edge (`viewport-fit=cover`), so whatever meets a side edge
+   keeps itself clear of it with `env(safe-area-inset-left/right)` — which is
+   0 everywhere else, so none of this costs a desktop or a portrait phone a
+   pixel.
+
+   Which part meets which edge depends on the side menu, which the shell
+   publishes as `data-menu` (see `App.tsx`): docked on the left or the right,
+   it holds that edge and the page holds the other; as a drawer it holds
+   nothing and the page holds both. The page's chrome reads the two edges it
+   owns as `--edge-left` / `--edge-right`, so a header, a toolbar or a corner
+   badge pads by the inset only where it actually meets the screen edge.
+
+   The menu itself grows by the inset rather than giving it up from its 16rem:
+   its surface runs to the edge, and the rows keep the width they were laid
+   out for. */
+main {
+  --edge-left: env(safe-area-inset-left, 0px);
+  --edge-right: env(safe-area-inset-right, 0px);
+}
+
+[data-menu="left"] > main {
+  --edge-left: 0px;
+}
+
+[data-menu="right"] > main {
+  --edge-right: 0px;
+}
+
+[data-menu="left"] > nav,
+[data-menu="drawer"] > .fixed:not(.justify-end) > nav {
+  width: calc(16rem + env(safe-area-inset-left, 0px));
+  padding-left: env(safe-area-inset-left, 0px);
+}
+
+[data-menu="right"] > nav,
+[data-menu="drawer"] > .fixed.justify-end > nav {
+  width: calc(16rem + env(safe-area-inset-right, 0px));
+  padding-right: env(safe-area-inset-right, 0px);
 }
 
 /* The size panel's gauge slider.

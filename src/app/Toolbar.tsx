@@ -335,7 +335,7 @@ export function Toolbar({
     // is the same thumb the system watches for a swipe up. Five pixels is what
     // it takes for the row to clear it.
     <div
-      className="flex items-stretch gap-1.5 border-t border-line bg-surface px-2 pt-2 pb-[15px]"
+      className="flex items-stretch gap-1.5 border-t border-line bg-surface pt-2 pr-[max(0.5rem,var(--edge-right,0px))] pb-[15px] pl-[max(0.5rem,var(--edge-left,0px))]"
       role="toolbar"
       aria-label={t("canvas.toolbar")}
     >

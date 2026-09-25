@@ -17,7 +17,7 @@ const LAST_UPDATED = "2026-09-23";
 
 export function PrivacyPage() {
   return (
-    <div className="h-full overflow-y-auto bg-page-bg px-4 pt-[calc(2.5rem+env(safe-area-inset-top))] pb-[calc(2.5rem+env(safe-area-inset-bottom))] text-fg">
+    <div className="h-full overflow-y-auto bg-page-bg pt-[calc(2.5rem+env(safe-area-inset-top))] pr-[max(1rem,env(safe-area-inset-right))] pl-[max(1rem,env(safe-area-inset-left))] pb-[calc(2.5rem+env(safe-area-inset-bottom))] text-fg">
       {/* `selectable`: the app selects no text by default (a drag is a gesture,
           not a highlight — see `styles.css`), but this is the one screen that
           really is a document, and a policy you can't quote or copy out is a
