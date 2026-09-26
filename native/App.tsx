@@ -48,6 +48,7 @@ import {
   AFTER_LOAD_SCRIPT,
   BEFORE_LOAD_SCRIPT,
   isReport,
+  statusBarStyleFor,
 } from "./src/injected";
 import {
   ICLOUD_SCRIPT,
@@ -109,7 +110,9 @@ export default function App() {
       ? { status: "ready", origin: REMOTE_URL }
       : { status: "starting" },
   );
-  const [background, setBackground] = useState(FALLBACK_BACKGROUND);
+  // The page's background as it last reported it; null until it has.
+  const [pageBackground, setPageBackground] = useState<string | null>(null);
+  const background = pageBackground ?? FALLBACK_BACKGROUND;
   const webViewRef = useRef<WebView>(null);
   const canGoBack = useRef(false);
   const serverRef = useRef<LocalServer | null>(null);
@@ -204,7 +207,7 @@ export default function App() {
       // safe-area bands match it instead of guessing.
       const reported = parsed.theme?.background;
       if (typeof reported === "string" && reported.trim() !== "") {
-        setBackground(reported.trim());
+        setPageBackground(reported.trim());
       }
     },
     [answer, signIn],
@@ -249,7 +252,7 @@ export default function App() {
     return (
       <SafeAreaProvider>
         <SafeAreaView style={styles.center}>
-          <StatusBar style="auto" />
+          <StatusBar style={statusBarStyleFor(FALLBACK_BACKGROUND)} />
           <Text style={styles.errorTitle}>Could not start Paint</Text>
           <Text style={styles.errorBody}>{server.error.message}</Text>
           <Pressable
@@ -273,11 +276,10 @@ export default function App() {
         style={[styles.fill, { backgroundColor: background }]}
         edges={FRAME_EDGES}
       >
-        {/* `auto` picks the bar style from the background behind it, which is
-            exactly the page's own theme once it has reported one — and that
-            background is the SafeAreaView above, which the page's theme
-            paints. */}
-        <StatusBar style="auto" />
+        {/* Styled from the page's reported background, never from the
+            phone's light or dark setting: the page's own colour is what sits
+            under the bar (see `statusBarStyleFor`). "auto" until it reports. */}
+        <StatusBar style={statusBarStyleFor(pageBackground)} />
         {origin ? (
           <WebView
             ref={webViewRef}

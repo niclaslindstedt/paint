@@ -117,6 +117,14 @@ export const AFTER_LOAD_SCRIPT = `(function () {
     observer.observe(document.documentElement, { attributes: true });
   } catch (e) {}
 
+  // Under "follow the device" the theme is a CSS media query, so the device
+  // switching between light and dark moves --page-bg without touching <html>.
+  try {
+    var media = window.matchMedia("(prefers-color-scheme: dark)");
+    if (media.addEventListener) media.addEventListener("change", schedule);
+    else if (media.addListener) media.addListener(schedule);
+  } catch (e) {}
+
   document.addEventListener("visibilitychange", function () {
     if (!document.hidden) schedule();
   });
@@ -140,4 +148,58 @@ export function isReport(value: unknown): value is {
     typeof message.theme === "object" &&
     message.theme !== null
   );
+}
+
+/** A status-bar content style `expo-status-bar` takes. */
+export type StatusBarStyle = "light" | "dark" | "auto";
+
+/**
+ * The status-bar style for a reported page background: light icons over a
+ * dark page, dark icons over a light one, from the colour's perceived
+ * luminance (Rec. 601 luma, as checklist and notes decide it).
+ *
+ * The page's background — not the phone's light or dark setting — is what
+ * sits under the bar: on iOS the WebView runs edge to edge, and on Android the
+ * band behind the bar is painted in the same colour. `"auto"` follows the
+ * phone's setting, so it drew dark icons over a dark theme whenever the phone
+ * was in light mode. It is kept only for "nothing to go on": no report yet, or
+ * a colour this cannot read (it takes hex and `rgb()`, which is what the theme
+ * engine writes).
+ */
+export function statusBarStyleFor(
+  background: string | null | undefined,
+): StatusBarStyle {
+  const rgb = background ? parseColour(background) : null;
+  if (!rgb) return "auto";
+  const luma = (0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2]) / 255;
+  return luma < 0.5 ? "light" : "dark";
+}
+
+/** `#rgb`, `#rgba`, `#rrggbb`, `#rrggbbaa` or `rgb()`/`rgba()` (comma or
+ *  space separated) to its red, green and blue channels, 0..255; null for
+ *  anything else. Alpha is ignored — the bar sits on the opaque page. */
+function parseColour(value: string): [number, number, number] | null {
+  const text = value.trim().toLowerCase();
+  const hex = /^#([0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})$/.exec(text);
+  if (hex) {
+    const short = hex[1] ?? "";
+    const digits =
+      short.length <= 4 ? short.replace(/./g, (d) => d + d) : short;
+    return [
+      parseInt(digits.slice(0, 2), 16),
+      parseInt(digits.slice(2, 4), 16),
+      parseInt(digits.slice(4, 6), 16),
+    ];
+  }
+  const rgb =
+    /^rgba?\(\s*([\d.]+)(?:\s*,\s*|\s+)([\d.]+)(?:\s*,\s*|\s+)([\d.]+)\s*(?:[,/][^)]*)?\)$/.exec(
+      text,
+    );
+  if (rgb) {
+    const channels = rgb.slice(1, 4).map(Number);
+    if (channels.every((n) => Number.isFinite(n) && n >= 0 && n <= 255)) {
+      return channels as [number, number, number];
+    }
+  }
+  return null;
 }

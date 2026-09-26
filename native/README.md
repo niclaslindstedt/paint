@@ -11,9 +11,12 @@ Thin is the design, not an aspiration. The wrapper:
   launch and serves it from a **loopback HTTP server** (`src/local-server.ts`);
 - points a `WebView` at that origin, and gets out of the way — on iOS the
   WebView runs edge to edge and the page pads itself with
-  `env(safe-area-inset-*)`, as the installed PWA does; on Android the status
-  bar and safe-area bands follow the page's own theme; off-origin links go to
-  the system browser, and Android's back button drives the WebView's history;
+  `env(safe-area-inset-*)`, as the installed PWA does; on Android the
+  safe-area bands are painted in the page's own background; on both, the
+  status bar's clock and icons are light or dark from the background the page
+  reports (`src/injected.ts`), never from the phone's appearance; off-origin
+  links go to the system browser, and Android's back button drives the
+  WebView's history;
 - answers the page when it asks to read or write a file in the app's iCloud
   container (`src/icloudBridge.ts` → `src/icloud.ts` →
   `modules/icloud-store`);
@@ -39,20 +42,20 @@ exactly as they are for a picked local folder.
 
 ## Layout
 
-| Path                       | What it is                                                                                                                         |
-| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| `App.tsx`                  | The whole app: a WebView, a spinner, and a failure screen.                                                                         |
-| `src/local-server.ts`      | Unpacks `assets/webroot.zip` and serves it on a **fixed** loopback port.                                                           |
-| `src/injected.ts`          | One of the three injected scripts: reports the page's theme, kills the service worker.                                             |
-| `src/icloudBridge.ts`      | **Pure.** The injected iCloud provider, and the request/response plumbing. Tested from the root suite.                             |
-| `src/icloudWire.ts`        | **Import-free.** The shapes that cross the bridge — see the note in the file.                                                      |
-| `src/icloud.ts`            | Runs one request against the native module. Degrades to "unavailable" when it is absent.                                           |
-| `src/authSessionBridge.ts` | **Pure.** The injected sign-in provider (`window.__ossAuthSession`) and its request/response plumbing. Tested from the root suite. |
-| `src/authSession.ts`       | Opens one sign-in in an authentication session (`expo-web-browser`) and hands back where it ended.                                 |
-| `src/scriptText.ts`        | **Import-free.** Splicing text safely into an injected script; shared by both bridges.                                             |
-| `modules/icloud-store/`    | A local Expo module: list / read / write / remove inside the app's iCloud container. **Apple only.**                               |
-| `plugins/with-icloud.js`   | Declares the container as a document scope, so it shows up in the Files app.                                                       |
-| `scripts/bundle-web.mjs`   | Builds the web app and packs `dist/` into `assets/webroot.zip`.                                                                    |
+| Path                       | What it is                                                                                                                               |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `App.tsx`                  | The whole app: a WebView, a spinner, and a failure screen.                                                                               |
+| `src/local-server.ts`      | Unpacks `assets/webroot.zip` and serves it on a **fixed** loopback port.                                                                 |
+| `src/injected.ts`          | One of the three injected scripts: reports the page's theme, kills the service worker. Also picks the status-bar style from that report. |
+| `src/icloudBridge.ts`      | **Pure.** The injected iCloud provider, and the request/response plumbing. Tested from the root suite.                                   |
+| `src/icloudWire.ts`        | **Import-free.** The shapes that cross the bridge — see the note in the file.                                                            |
+| `src/icloud.ts`            | Runs one request against the native module. Degrades to "unavailable" when it is absent.                                                 |
+| `src/authSessionBridge.ts` | **Pure.** The injected sign-in provider (`window.__ossAuthSession`) and its request/response plumbing. Tested from the root suite.       |
+| `src/authSession.ts`       | Opens one sign-in in an authentication session (`expo-web-browser`) and hands back where it ended.                                       |
+| `src/scriptText.ts`        | **Import-free.** Splicing text safely into an injected script; shared by both bridges.                                                   |
+| `modules/icloud-store/`    | A local Expo module: list / read / write / remove inside the app's iCloud container. **Apple only.**                                     |
+| `plugins/with-icloud.js`   | Declares the container as a document scope, so it shows up in the Files app.                                                             |
+| `scripts/bundle-web.mjs`   | Builds the web app and packs `dist/` into `assets/webroot.zip`.                                                                          |
 
 `ios/` and `android/` are **prebuild output**: regenerated from `app.config.js`
 and `plugins/` by `expo prebuild --clean`, gitignored, and the source of truth
