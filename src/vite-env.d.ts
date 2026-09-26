@@ -22,6 +22,11 @@ declare const __BUILD_NUMBER__: string;
 // emitted, so there is no update lifecycle for the app to drive.
 declare const __SHELL_BUILD__: boolean;
 
+// Whether this build is the one bundled inside the phone wrapper (native/).
+// True only when `native/scripts/bundle-web.mjs` built it; it leaves out the
+// Donate row, which only the website carries (`src/app/donate.ts`).
+declare const __NATIVE_BUILD__: boolean;
+
 // Build-time env the app reads through `import.meta.env`. All optional — the
 // app builds and runs with none of them set. See `docs/configuration.md`.
 interface ImportMetaEnv {

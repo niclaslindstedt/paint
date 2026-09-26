@@ -154,8 +154,20 @@ const ignorePaths = (process.env.VITE_PWA_IGNORE_PATHS ?? "")
 // local disk and then serve the page from ITS copy, which is how a shell whose
 // binary shipped a new site goes on showing the old one. `__SHELL_BUILD__`
 // carries the same fact into the app, where it switches off the update prompt
-// that has nothing left to prompt about (see `src/App.tsx`).
+// that has nothing left to prompt about (see `src/App.tsx`) — and, with
+// `__NATIVE_BUILD__` below, leaves out the Donate row, which only the website
+// carries.
 const shellBuild = process.env.VITE_SHELL_BUILD === "on";
+
+// A build for the PHONE WRAPPER (native/), set by `native/scripts/bundle-web.mjs`.
+//
+// It changes exactly one thing, and it is about the channel rather than the
+// medium: the sidebar's Donate row is left out (`src/app/donate.ts`). With
+// `__SHELL_BUILD__` it marks every build that is not the website — a payment
+// link outside Apple's is an App Store rejection (guideline 3.1.1), and the
+// listings promise nothing is sold. Both are compile-time constants, so the
+// row and its URL are folded out of those bundles rather than hidden.
+const nativeBuild = process.env.VITE_NATIVE_BUILD === "on";
 
 // Build identity for the Developer tab's "Build" grid. The commit hash is the
 // deploying SHA in CI, falling back to the local working tree's HEAD so a
@@ -213,6 +225,7 @@ export default defineConfig({
     __BUILD_COMMIT__: JSON.stringify(commit),
     __BUILD_NUMBER__: JSON.stringify(buildNumber),
     __SHELL_BUILD__: JSON.stringify(shellBuild),
+    __NATIVE_BUILD__: JSON.stringify(nativeBuild),
   },
   // `appPwa` only applies on build, so dev keeps registering no worker (the app
   // passes `enabled: !import.meta.env.DEV` to `usePwaUpdate`).

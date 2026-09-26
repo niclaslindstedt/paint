@@ -119,7 +119,7 @@ level; a folder arrives as a folder, its drawings still filed inside it.
 
 Below the island, a thin chevron rail folds the footer away when you want the
 extra room for the list — the choice is remembered across reloads. Unfolded, it
-holds **Donate**, an **About** dropdown (What's new, the source repository with
+holds **Donate** (on the website; the apps have none), an **About** dropdown (What's new, the source repository with
 this build's identifier beneath it, and the privacy policy), and **Settings**
 pinned last under the thumb.
 

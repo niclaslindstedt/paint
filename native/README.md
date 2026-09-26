@@ -34,6 +34,13 @@ iCloud **capability** on `window` and this installs one, so a browser (which
 has none) simply does not list the backend — down to its entry in the Storage
 picker. The app never asks what it is running inside.
 
+One thing is decided at build time instead, and it is about the channel, not
+the wrapper: `scripts/bundle-web.mjs` builds the site with
+`VITE_NATIVE_BUILD=on`, which compiles out the sidebar's Donate row — a
+payment link outside Apple's is an App Store rejection (guideline 3.1.1). The
+URL is not in the bundle at all, and the script refuses to zip a `dist/` that
+carries it (a website build re-zipped with `--skip-build`).
+
 The wrapper also decides nothing about the drawings. It moves opaque files
 between the page and a folder. What the document is called, how images and
 rendered layers are filed beside it, what a conflict means and when a save is due are all the web

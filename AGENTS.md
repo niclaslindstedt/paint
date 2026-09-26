@@ -192,8 +192,12 @@ A test that would need the second crate is a decision sitting in the wrong one.
 
 One seam reaches back into this tree, and it is `VITE_SHELL_BUILD`: the shell's
 site build passes it, which switches off the service-worker half of `appPwa`
-and — through `__SHELL_BUILD__` — the in-app update prompt. A desktop build has
-no deploy to notice; a new version arrives as a new binary.
+and — through `__SHELL_BUILD__` — the in-app update prompt and the Donate row.
+A desktop build has no deploy to notice; a new version arrives as a new binary.
+The phone wrapper's site build sets `VITE_NATIVE_BUILD=on`
+(`__NATIVE_BUILD__`), which leaves out the Donate row and nothing else: no
+build but the website may carry a payment link outside Apple's (App Store
+guideline 3.1.1; `src/app/donate.ts`).
 
 ### The phone wrapper offers a capability, and stops there
 

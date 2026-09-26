@@ -5,10 +5,17 @@
 // what makes the app self-contained: the sketchbook runs entirely
 // on-device, and changes only when a new build ships to the store.
 //
-// The web build is a plain `npm run build` at the repo root — base `/`, which
-// is exactly what a localhost origin wants — and NOTHING in `src/` is changed
-// for the app. If the wrapper ever needs the web app to behave differently,
-// that is a sign it has stopped being thin.
+// The web build is `npm run build` at the repo root — base `/`, which is
+// exactly what a localhost origin wants — with one flag, `VITE_NATIVE_BUILD=on`.
+// It is about the channel rather than the medium: it compiles out the
+// sidebar's Donate row, which only the website may carry (App Store guideline
+// 3.1.1; see `src/app/donate.ts`). Nothing else in `src/` changes for the app.
+// If the wrapper ever needs the web app to behave differently in some other
+// way, that is a sign it has stopped being thin.
+//
+// The flag is build-time, so `--skip-build` re-zips whatever the last build
+// left in `dist/` — and a website build there carries the Donate link. The
+// zip is refused when that link is found in it (`assertNoDonateLink`).
 //
 // Usage:
 //   node scripts/bundle-web.mjs                 # build the site, then zip it
@@ -58,6 +65,7 @@ if (!skipBuild) {
     stdio: "inherit",
     // npm on Windows is a batch shim, which Node cannot execute directly.
     shell: WINDOWS,
+    env: { ...process.env, VITE_NATIVE_BUILD: "on" },
   });
 }
 
@@ -94,6 +102,32 @@ if (count === 0 || !files["index.html"]) {
     `dist/ has no index.html (${count} files) — the web build looks empty.`,
   );
 }
+
+/** Refuse a webroot that carries a Donate link: the phone app must not have
+ *  one (App Store guideline 3.1.1), and a `dist/` left by a website build —
+ *  which `--skip-build` would re-zip — does. Looks for the GitHub Sponsors
+ *  fallback and for whatever `VITE_DONATE_URL` this shell has set. */
+function assertNoDonateLink(files) {
+  const needles = [
+    "github.com/sponsors",
+    process.env.VITE_DONATE_URL?.trim(),
+  ].filter(Boolean);
+  const decoder = new TextDecoder();
+  for (const [path, bytes] of Object.entries(files)) {
+    if (!/\.(html|js|mjs|css|json|webmanifest|txt|xml)$/.test(path)) continue;
+    const text = decoder.decode(bytes);
+    const hit = needles.find((needle) => text.includes(needle));
+    if (hit) {
+      throw new Error(
+        `dist/${path} carries a Donate link (${hit}) — the phone app must ` +
+          `not. Rebuild through this script (drop --skip-build) so ` +
+          `VITE_NATIVE_BUILD=on compiles it out.`,
+      );
+    }
+  }
+}
+
+assertNoDonateLink(files);
 
 // Deterministic zip: every entry pinned to the ZIP epoch (1980-01-01), so the
 // artifact is reproducible instead of drifting with the clock.

@@ -39,6 +39,7 @@ import type {
 } from "@niclaslindstedt/oss-framework/namespaces";
 import { useDragDrop } from "@niclaslindstedt/oss-framework/sidebar";
 
+import { DONATE_URL } from "./donate.ts";
 import { CanvasIcon } from "./icons.tsx";
 import { useT } from "./i18n/index.ts";
 import { imageFileStem, importImageFile } from "./images.ts";
@@ -114,13 +115,9 @@ const ABOUT_PLACEMENT: FloatingPlacement = {
   coordinateSpace: "viewport",
 };
 
-// The project links the footer surfaces. The donate target is configurable at
-// build time (`VITE_DONATE_URL`) so the sponsorship destination can change
-// without a code edit; it falls back to the project's GitHub Sponsors page.
+// The project links the footer surfaces; the Donate target, the website's
+// alone, lives in `./donate.ts`.
 const SOURCE_URL = "https://github.com/niclaslindstedt/paint";
-const DONATE_URL =
-  (import.meta.env.VITE_DONATE_URL as string | undefined)?.trim() ||
-  "https://github.com/sponsors/niclaslindstedt";
 // The subtitle under the Source row — the build identifier composed at build
 // time (see `vite.config.ts`): version, CI run number, deploy slot, and the
 // short commit hash, e.g. `1.5.0.297-pre+dba6a70`.
@@ -662,7 +659,7 @@ export function SideMenuContent({
         onClick={() => setFooterCollapsed((v) => !v)}
       />
 
-      {/* The footer: Donate, an About dropdown that folds away the project
+      {/* The footer: Donate (the website only), an About dropdown that folds away the project
           links, and Settings pinned last under the thumb. There is no "check
           for updates" row: the service worker finds a new build on its own and
           raises the toast, so the row was a button for a job nobody had to do —
@@ -677,13 +674,15 @@ export function SideMenuContent({
           way. */}
       {!footerCollapsed && (
         <div className="flex shrink-0 flex-col border-t border-line [padding-top:calc(1.25rem-var(--density-row-py))] [padding-bottom:calc(1.25rem-var(--density-row-py)+10px)]">
-          <FooterLink
-            icon={<HeartIcon className="h-5 w-5 text-danger" />}
-            href={DONATE_URL}
-            external
-          >
-            {t("menu.donate")}
-          </FooterLink>
+          {DONATE_URL && (
+            <FooterLink
+              icon={<HeartIcon className="h-5 w-5 text-danger" />}
+              href={DONATE_URL}
+              external
+            >
+              {t("menu.donate")}
+            </FooterLink>
+          )}
           <FooterRow
             buttonRef={aboutRef}
             expanded={aboutOpen}

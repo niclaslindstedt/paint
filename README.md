@@ -341,7 +341,7 @@ Both packaging targets forward `ARGS` to `tauri build`, e.g.
   at its foot holds new
   drawing (which asks for the page size first), new folder, the archive, and the
   cloud sync glyph, in one row; the
-  footer below it (foldable behind a chevron) holds Donate, About — What's new,
+  footer below it (foldable behind a chevron) holds Donate (on the website only), About — What's new,
   the source, the privacy policy — and Settings. Checking for updates by hand is
   on Settings → Developer; the service worker finds a new build without being
   asked.

@@ -74,7 +74,8 @@ survive a launch.
 
 **The bundled site carries no service worker.** `scripts/bundle-web.mjs` builds
 it with `VITE_SHELL_BUILD=on`, which switches off the worker half of the root
-`appPwa` plugin and, through `__SHELL_BUILD__`, the in-app update prompt. A
+`appPwa` plugin and, through `__SHELL_BUILD__`, the in-app update prompt —
+and the sidebar's Donate row, which only the website carries. A
 desktop build has no deployment to discover an update from — a new version
 arrives as a new binary — so a worker here would precache a copy of files
 already on local disk and then serve the page from _its_ copy, which is how a
