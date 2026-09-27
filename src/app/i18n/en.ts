@@ -787,7 +787,7 @@ export const en = {
     erasers: {
       name: "Erase",
       description:
-        "Take a mark off — cleanly with the digital eraser, or a little at a time with the rubber one. Press it again to pick which.",
+        "Take a mark off — cleanly with the digital eraser, or a little at a time with the pencil eraser. Press it again to pick which.",
     },
     eraser: {
       name: "Eraser",
@@ -795,9 +795,9 @@ export const en = {
         "Rubs marks off the page. Turn the strength down to fade them rather than remove them.",
     },
     rubber: {
-      name: "Rubber eraser",
+      name: "Pencil eraser",
       description:
-        "The pencil eraser, as one really behaves: it lifts pencil a little at a time, leaves the paper's grain showing, and never quite takes all of it. Ink, paint, crayon and marker stay where they are.",
+        "An eraser as one really behaves: it lifts pencil a little at a time, leaves the paper's grain showing, and never quite takes all of it. Ink, paint, crayon and marker stay where they are.",
     },
     line: { name: "Line", description: "A straight line between two points." },
     rectangle: {

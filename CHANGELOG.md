@@ -22,7 +22,7 @@ doc. Do not hand-edit the released sections.
   layers button in the header) for a panel where you can add, pick, show, hide,
   reorder and delete them. [Learn more](feature:layers)
 - **Light page, dark page** — The canvas now follows the app theme — a dark app draws on a dark page in light ink — and a page given a colour of its own when it is made ignores the theme from then on. [Learn more](feature:canvas-theme)
-- **A rubber, not just an eraser** — Press the eraser a second time for the **rubber**, which behaves like a real one: it lifts pencil and crayon a little at a time, leaves the paper's grain showing through, never quite takes all of it, and leaves ink, paint and marker exactly where they are — so you can sketch in pencil, ink over the sketch, and rub the sketch out. [Learn more](feature:plugins)
+- **A pencil eraser, not just a digital one** — Press the eraser a second time for the **pencil eraser**, which behaves like a real one: it lifts pencil and crayon a little at a time, leaves the paper's grain showing through, never quite takes all of it, and leaves ink, paint and marker exactly where they are — so you can sketch in pencil, ink over the sketch, and rub the sketch out. [Learn more](feature:plugins)
 - **A button island in the sidebar** — New image, new folder, the archive and the cloud sync glyph now share one row of buttons pinned above the sidebar footer, under your thumb however long the drawing list grows. [Learn more](feature:drawings)
 - **Favorites** — Star a drawing from the canvas header and it mirrors into a Favorites section at the top of the sidebar, one tap away wherever it is filed. [Learn more](feature:drawings)
 - **Folders and an archive** — Group drawings into folders, and shelve the ones you're done with in the archive instead of deleting them — archiving a folder takes its drawings with it, and restoring brings them back together. [Learn more](feature:drawings)
@@ -114,7 +114,7 @@ doc. Do not hand-edit the released sections.
   you picked decides where the graphite catches and where it skips. [Learn more](feature:surface)
 - **Pencil detail** — A detail slider beside it trades that simulation's fineness back for speed, so a
   page full of sketch strokes still draws on a slower device. [Learn more](feature:surface)
-- **A canvas preset sets its tools up** — Press a tool's mark in a canvas preset's tool list and you can say which of a family that page's button opens on and how the tool itself is set, so a sketchbook page can open with a kneaded rubber at 20 mm rather than just "an eraser". [Learn more](feature:canvas)
+- **A canvas preset sets its tools up** — Press a tool's mark in a canvas preset's tool list and you can say which of a family that page's button opens on and how the tool itself is set, so a sketchbook page can open with a kneaded eraser at 20 mm rather than just "an eraser". [Learn more](feature:canvas)
 - **Ink dial** — An Ink dial on the calligraphy pen sets how full a dip the nib gets per
   stroke — a low one writes the pale, broken strokes of a pen running dry, and
   past full it blobs where it lands. [Learn more](feature:surface)
@@ -197,10 +197,10 @@ doc. Do not hand-edit the released sections.
 - **The nib button shows the mark, not a dot** — The size button and every width in its panel now show a real press with the tool in your hand — an airbrush cone, a highlighter's band, the pen's flat edge, a letter at that type size — painted on your page in your ink, and redrawn as you turn the tool's own dials. [Learn more](feature:plugins)
 - **A brush that runs dry the way one does** — One dip of the round and flat brushes now lasts about three times as long, and when the paint gives out the head keeps marking: a thin, pale film comes off the hairs for about as far again, coming apart and fading until there is nothing left. [Learn more](feature:plugins)
 - **A brush that answers its dial** — The paintbrush now spans a whole pressure series instead of laying down the same slab at every setting — a loaded head covers edge to edge, a medium one is streaked through, and a dry one is mostly paper — and small brushes stay solid where a wide one at the same setting is streaking. [Learn more](feature:plugins)
-- **Zooming, rubbing and pencil pages at frame rate** — Pinch and wheel zooming, working the rubber, and panning pages full of pencil
+- **Zooming, rubbing and pencil pages at frame rate** — Pinch and wheel zooming, working the pencil eraser, and panning pages full of pencil
   marks are an order of magnitude faster: a zoom in flight carries the last frame
   instead of re-simulating every mark, landed pencil marks dry once and are
-  blitted after, and the rubber lays each press once instead of re-walking the
+  blitted after, and the pencil eraser lays each press once instead of re-walking the
   whole gesture on every pointer sample.
 - **Width previews at life size** — The size button and every width in its panel now draw the mark at the size it
   will actually land at — the page at 100% — instead of shrinking it to fit, and
@@ -298,7 +298,7 @@ doc. Do not hand-edit the released sections.
   opens the stroke into scratches before the paint gives out entirely, the round
   holds twice the paint a flat's squeezed ferrule does, and a new Load dial sets
   how much one dip charges. [Learn more](feature:plugins)
-- **Rubber** — The rubber now lifts pencil alone — a wax crayon mark smears under a real one
+- **Pencil eraser** — The pencil eraser now lifts pencil alone — a wax crayon mark smears under a real one
   rather than coming away, so it stays put with the ink and the paint. [Learn more](feature:plugins)
 - **What the app opens on** — A page nobody has given a colour to is now a white sheet drawn on in black ink
   with the pen, whether the app is light or dark — and Settings → General →
@@ -310,7 +310,7 @@ doc. Do not hand-edit the released sections.
 - **The selection is a window now** — The selection tool cuts an **area** in the page rather than picking marks out —
   paint inside it and the mark is cut to it, drag it with the hand and what is
   painted under it travels, adjust it by its corner grips under a 300% magnifier,
-  and clear what is inside with Delete or a tap of the rubber. [Learn more](feature:selection)
+  and clear what is inside with Delete or a tap of the pencil eraser. [Learn more](feature:selection)
 - **Paintbrush ends** — Every paintbrush stroke now comes off its own brush — the touch-down no longer stamps the same little cap at the head of every mark — and how fast you lift decides whether the stroke ends blunt and full or strings out into a pale fan. [Learn more](feature:plugins)
 - **Arrange the right-hand panel** — Colour now sits under the layer stack rather than over it, and every section of the panel can be dragged by the grip on its heading into whatever order suits the way you work. [Learn more](feature:panel)
 - **Levels over your own histogram** — The three levels handles now sit on a picture of your drawing's own tones, so you can see where the marks start and stop, what the ends are about to throw away, and put both of them on the data in one press of Auto. [Learn more](feature:color)
@@ -390,7 +390,7 @@ doc. Do not hand-edit the released sections.
   watercolour brush in hand — its presets, its widths and its wash pictures are
   painted ahead of time and remembered, so it opens already drawn.
 - **Rubbing at speed** — Rubbing at a page full of ink and washes no longer crawls at a few frames a
-  second — the rubber now spends its work only where there is pencil under it.
+  second — the pencil eraser now spends its work only where there is pencil under it.
 - **The paintbrush keeps its angle** — A flattened paintbrush now holds the nib angle you set it to for the whole stroke — the two ends are cut at the angle you are holding the blade at instead of square across the way you dragged, and the angled bar a press leaves no longer flips the moment your hand moves. [Learn more](feature:plugins)
 - **Room to drag a caption** — The text tool's bar is narrower — the typefaces are a menu rather than four
   buttons — and it folds onto a second row instead of sliding off to the left, so

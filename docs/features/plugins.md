@@ -23,7 +23,7 @@ _whole_ default toolbar:
 eleven buttons, families counted as the one button they are, and everything else
 off until you ask for it. Waiting in Settings → Tools: the media that simulate
 their medium (the graphite pencil, the watercolor brush, the paintbrush, the
-crayon, the chalk, the calligraphy pen). The **rubber eraser**
+crayon, the chalk, the calligraphy pen). The **pencil eraser**
 is not one of them: it ships with the eraser, behind the eraser's own button —
 see below.
 
@@ -62,16 +62,16 @@ eleven of them as eleven buttons would be most of a phone's toolbar spent on one
 idea, and eleven switches in Settings → Tools for a question nobody asks eleven
 times. The seven selection tools are the second, the two fills the third, and the
 **two ways of taking a mark off** the fourth: press the eraser again and the
-rubber eraser is behind it.
+pencil eraser is behind it.
 
-That last one is the pattern at its plainest. An eraser and a rubber eraser are not two
+That last one is the pattern at its plainest. An eraser and a pencil eraser are not two
 tools you choose between so much as one question — _how much of this should go_ —
 with two honest answers, and the family is what lets the second answer ship
 without charging every user a permanent button for it. It is also what makes it
 findable: nobody goes looking in Settings → Tools for an eraser they do not know
 exists. The family's id is the **eraser's own** — as the fills' is the bucket's
 and the selection family's is the marquee's — so an install written before the
-rubber eraser existed keeps its button, in its slot, with the rubber eraser now behind it.
+pencil eraser existed keeps its button, in its slot, with the pencil eraser now behind it.
 
 So the shapes button wears whichever shape you last held. Press it again and the
 family opens over the canvas — rectangle, ellipse, line, arrow, rounded
@@ -385,7 +385,7 @@ painters in `src/app/plugins/brushes.ts`, `bristle.ts`, `waxSim.ts`,
 - the **calligraphy pen** is a flat nib held at an angle: broad across the
   stroke, hairline along it. The angle is a dial, in degrees, because the tilt
   of the hand is the one thing a writer actually changes about a broad nib;
-- and the **rubber eraser** is the one medium here that takes something off instead of
+- and the **pencil eraser** is the one medium here that takes something off instead of
   putting it on. It reads the pencil's own sheet — literally the same lattice,
   so the two agree about where the paper is low — and lifts from the peaks the
   lead reached, bridging the dips it never got into. That is the whole model,
@@ -395,24 +395,24 @@ painters in `src/app/plugins/brushes.ts`, `bristle.ts`, `waxSim.ts`,
   and passing again takes the same _fraction_ of what is left — so it fades and
   fades and is never quite gone. **Pressure** is how hard you lean on it, which
   is how deep into the sheet the face deforms: it fades the ghost, it never
-  widens the mark. And it lifts only what a rubber eraser can lift.
+  widens the mark. And it lifts only what a pencil eraser can lift.
 
 All of it is a pure function of the stored stroke: the scatter is hashed off
 position rather than drawn at random, so a repaint, an undo and the PNG export
 produce identical grain instead of a mark that shimmers when you pan.
 
-### What a rubber eraser will not take off
+### What a pencil eraser will not take off
 
 Graphite and chalk sit loose on the sheet and come away; everything else
 stays. Ink, paint, felt tip, a bucket of color and a dropped photograph have
 soaked into the paper, and a wax crayon mark smears under an eraser rather than
 lifting — so however hard you rub, only the pencil and the chalk come off. The
-rubber eraser leaves all the rest exactly where it is — which is what finally makes
+pencil eraser leaves all the rest exactly where it is — which is what finally makes
 the oldest workflow in drawing work here: **sketch it in pencil, ink over the
 sketch, then erase the sketch.**
 
 Two flags say all of it, and nothing anywhere reads a tool's name: `lifts` on
-the rubber eraser, `liftable` on the media that come away. The renderer does the rest
+the pencil eraser, `liftable` on the media that come away. The renderer does the rest
 — an erasing mark can only be a hole, so it takes everything for the length of
 one composite and the marks it could never have lifted are laid straight back
 over it (`relayFixed` in `relay.ts`). Ink comes back at exactly the strength it
@@ -433,7 +433,7 @@ the pattern for any tool that needs the app to treat it differently: a property
 on the descriptor, so nothing outside `plugins/` has to know a tool by name.
 
 `lifts` and `liftable` are the pair that make erasing selective. `lifts`
-says a tool only takes off what a rubber eraser could have taken; `liftable` says a
+says a tool only takes off what a pencil eraser could have taken; `liftable` says a
 medium is one of those. Neither is a rule about erasers and pencils — a charcoal
 tool would declare `liftable` and be lifted, a shape that scrubbed would declare
 `lifts` and need nothing else.
@@ -626,7 +626,7 @@ app:
 | Pen             | Liner · Fineliner · Guide line           |
 | Pencil          | Sketch · Construction · Shading · Detail |
 | Eraser          | Block · Detail · Kneaded                 |
-| Rubber eraser   | Pocket eraser · Kneaded · Pencil top     |
+| Pencil eraser   | Pocket eraser · Kneaded · Pencil top     |
 | Paintbrush      | Round · One-stroke · Filbert · Dry brush |
 | Watercolor      | Wash · Wet-in-wet · Glaze · Dry brush    |
 | Airbrush        | General · Detail · Background            |
@@ -793,7 +793,7 @@ round brush is bought for and the one a stylus will one day move for you.
 | **Highlighter**     | opacity, chisel, nib angle                    |
 | **Calligraphy pen** | nib angle, ink                                |
 | **Eraser**          | strength                                      |
-| **Rubber eraser**   | pressure                                      |
+| **Pencil eraser**   | pressure                                      |
 | **Paint bucket**    | opacity, feather — behind its cog             |
 | **Gradient**        | opacity, feather — behind its cog             |
 | **Dropper**         | sample size — behind its cog                  |
@@ -838,7 +838,7 @@ trigger, and because its coverage
 is built from overlapping passes rather than one opaque dab, turning it down
 really does mean more passes. **Pressure** is how hard the crayon bears down:
 wax only sticks to the peaks it is pressed onto, so a light hand leaves the
-paper's speckle showing and a heavy one fills the valleys in — and the **rubber eraser
+paper's speckle showing and a heavy one fills the valleys in — and the **pencil eraser
 carries the same word for the other end of the same idea**, how far into that
 tooth its face deforms, which fades the ghost an erasure leaves rather than
 removing it. **Softness** is which stick of wax is in the crayon — the hard

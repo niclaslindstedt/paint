@@ -65,7 +65,7 @@ A preset always carries a size, and it can carry three more things:
   tool itself: which of a family the page's button opens on, and how the tool is
   set. A sketchbook is not "a pencil and an eraser" — it is a 2B at 0.7 mm and a
   kneaded eraser — so the page can say so. Two answers, each optional:
-  - **Default tool.** The erase button is an eraser or a rubber eraser, the shapes
+  - **Default tool.** The erase button is an eraser or a pencil eraser, the shapes
     button is a rectangle or a star. Pick which one this page's button opens on,
     or leave it on _whichever you had last_, which is what it has always done.
   - **Its own settings.** Switch it on and the tool gets the width and the knobs
@@ -84,7 +84,7 @@ A preset always carries a size, and it can carry three more things:
   A dot — on a row in the tool list, or on one of those chips — means the page
   says something of its own about that tool. Opening a page made on the preset
   puts those settings in your hand, as if you had pressed the presets yourself,
-  and then leaves you alone: fatten the rubber eraser this afternoon and it stays fat
+  and then leaves you alone: fatten the pencil eraser this afternoon and it stays fat
   until the next time you open a page made on that preset.
 
 - **Its own canvas type.** Picking the preset puts that sheet in the picker

@@ -68,7 +68,7 @@ the same [`oss-framework`](https://github.com/niclaslindstedt/oss-framework).
   the tool it was saved from.
 - **Two ways to rub something out, one button.** The **eraser** is a hole: it
   takes off whatever it covers, at whatever strength you set it to. Press it
-  again for the **rubber**, which is a real one — it lifts pencil and chalk a
+  again for the **pencil eraser**, which is a real one — it lifts pencil and chalk a
   little at a time, leaves the paper's grain showing through what is left,
   never quite takes all of it, and leaves ink, paint, crayon and marker exactly
   where they are. So you can sketch in pencil, ink over the sketch, and rub the
@@ -88,7 +88,7 @@ the same [`oss-framework`](https://github.com/niclaslindstedt/oss-framework).
   can put it between two pixels rather than near them. Ctrl/⌘+Z takes a
   selection back the way it takes a mark back — the window you just cut, slid,
   stretched or painted one stroke too far. Delete (or a tap with the
-  rubber) clears what is inside; Ctrl/⌘+C, X and V copy, cut and paste it — and a
+  pencil eraser) clears what is inside; Ctrl/⌘+C, X and V copy, cut and paste it — and a
   paste also brings in marks from another tab, a screenshot from anywhere, or
   words, which open the caption box so you can set the typeface and size before
   they land.
@@ -353,7 +353,7 @@ Both packaging targets forward `ARGS` to `tauri build`, e.g.
   second button is
   the **nib**, and it shows a **press with the tool in your hand** — the mark
   that width actually leaves, painted by the painter that paints the page (bar
-  the two rubbers, whose mark is a hole, so their width shows as a plain
+  the two erasers, whose mark is a hole, so their width shows as a plain
   circle). It
   opens the widths, a slider for new ones, and — under an **Advanced** heading,
   open rather than folded away — the knobs belonging to the tool in your hand:
@@ -369,7 +369,7 @@ Both packaging targets forward `ARGS` to `tauri build`, e.g.
   tip and the angle it is held at for the marker and the highlighter, the angle
   of the nib for the calligraphy pen and how much ink its nib was dipped with, strength for the
   eraser, pressure for the
-  rubber, a feathered edge for the paint bucket and the gradient, how much page
+  pencil eraser, a feathered edge for the paint bucket and the gradient, how much page
   one press of the dropper reads, and opacity for the pen, the felt tips, the
   shapes and type. The simulated media — pencil, paintbrush, watercolour brush,
   crayon, chalk, broad nib — have no opacity: each is made lighter the way that
@@ -385,7 +385,7 @@ Both packaging targets forward `ARGS` to `tauri build`, e.g.
   under a press of the mark they make, and the ink button is crossed out while it
   is in hand: the gradient is poured from its own two colours (or three) and never
   from the toolbar's. Most tools have a single-key shortcut, and a button with a
-  family behind it — the shapes, the fills, the two rubbers — opens the rest of
+  family behind it — the shapes, the fills, the two erasers — opens the rest of
   it when you press it a second time; that panel is only as wide as the family
   behind it, so two tools open two buttons wide. **Undo and redo** are the
   bottom of the right-hand block — the one pair here that acts on the drawing

@@ -239,8 +239,8 @@ drag is one edit and one undo step.
 Three ways, because a phone and a laptop do not agree on any of them:
 
 - **Delete** or **Backspace**;
-- **a tap inside the window with the rubber eraser** — the touch way, where there is no
-  Delete key to press. Drag the rubber eraser instead and it erases normally, held to
+- **a tap inside the window with the pencil eraser** — the touch way, where there is no
+  Delete key to press. Drag the pencil eraser instead and it erases normally, held to
   the window like any other mark;
 - **Delete** from the menu a right-click (or a long press) opens.
 
