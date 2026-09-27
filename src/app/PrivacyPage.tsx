@@ -15,6 +15,14 @@ import { ArrowLeftIcon } from "@niclaslindstedt/oss-framework/components";
 // only line readers have to look at to see how fresh the policy is.
 const LAST_UPDATED = "2026-09-23";
 
+// Whether this is the website's copy of the page. The phone and desktop apps
+// carry their own copy, and an app carries no link back to the source (owner
+// decision D17): no issue tracker, no security advisories, no commit history,
+// not the web edition's address. The flags are compile-time constants, so in
+// an app build the website's wording is folded out of the bundle rather than
+// hidden; the app's says the same thing without them.
+const WEBSITE = !__NATIVE_BUILD__ && !__SHELL_BUILD__;
+
 export function PrivacyPage() {
   return (
     <div className="h-full overflow-y-auto bg-page-bg pt-[calc(2.5rem+env(safe-area-inset-top))] pr-[max(1rem,env(safe-area-inset-right))] pl-[max(1rem,env(safe-area-inset-left))] pb-[calc(2.5rem+env(safe-area-inset-bottom))] text-fg">
@@ -38,16 +46,22 @@ export function PrivacyPage() {
         <Section title="Summary">
           <p>
             <span className="text-meta">Paint</span> is a local-first sketchpad
-            served as a static site at{" "}
-            <span className="text-path">paint.niclaslindstedt.se</span>. It runs
-            entirely in your browser. There is no backend of our own, no
-            account, no cookies, and no analytics or tracking. By default your
-            drawings are stored only on your device and never leave it. You may
-            optionally connect a cloud backend (Dropbox, or iCloud Drive in the
-            App Store app) to sync your drawings across your own devices — in
-            that case, and only then, they are sent to that one provider at your
-            explicit request. The project authors never receive your drawings in
-            any configuration.
+            served as a static site{" "}
+            {WEBSITE ? (
+              <>
+                at <span className="text-path">paint.niclaslindstedt.se</span>
+              </>
+            ) : (
+              "on the web"
+            )}
+            . It runs entirely in your browser. There is no backend of our own,
+            no account, no cookies, and no analytics or tracking. By default
+            your drawings are stored only on your device and never leave it. You
+            may optionally connect a cloud backend (Dropbox, or iCloud Drive in
+            the App Store app) to sync your drawings across your own devices —
+            in that case, and only then, they are sent to that one provider at
+            your explicit request. The project authors never receive your
+            drawings in any configuration.
           </p>
         </Section>
 
@@ -55,9 +69,16 @@ export function PrivacyPage() {
           <p>
             On your device, inside your browser&apos;s{" "}
             <code className="text-meta">IndexedDB</code> and{" "}
-            <code className="text-meta">localStorage</code> for the origin{" "}
-            <span className="text-path">paint.niclaslindstedt.se</span>, the app
-            keeps:
+            <code className="text-meta">localStorage</code>{" "}
+            {WEBSITE ? (
+              <>
+                for the origin{" "}
+                <span className="text-path">paint.niclaslindstedt.se</span>
+              </>
+            ) : (
+              "for the app's own origin"
+            )}
+            , the app keeps:
           </p>
           <ul className="ml-5 list-disc space-y-1">
             <li>
@@ -199,11 +220,12 @@ export function PrivacyPage() {
 
         <Section title="Changes to this policy">
           <p>
-            Material changes are tracked in the public commit history of the
-            source repository. The <em>Last updated</em> date at the top of this
-            page reflects the most recent edit. Should a future version add
-            another optional feature that sends data anywhere, this policy will
-            be updated to describe it before that feature ships enabled.
+            {WEBSITE &&
+              "Material changes are tracked in the public commit history of the source repository. "}
+            The <em>Last updated</em> date at the top of this page reflects the
+            most recent edit. Should a future version add another optional
+            feature that sends data anywhere, this policy will be updated to
+            describe it before that feature ships enabled.
           </p>
           <p>
             The store listings link to{" "}
@@ -218,23 +240,36 @@ export function PrivacyPage() {
         </Section>
 
         <Section title="Contact">
-          <p>
-            For security reports, see{" "}
-            <a
-              href="https://github.com/niclaslindstedt/paint/security/advisories/new"
-              className="text-link hover:underline"
-            >
-              GitHub Security Advisories
-            </a>
-            . For everything else, open an issue at{" "}
-            <a
-              href="https://github.com/niclaslindstedt/paint/issues"
-              className="text-link hover:underline"
-            >
-              github.com/niclaslindstedt/paint
-            </a>
-            .
-          </p>
+          {WEBSITE ? (
+            <p>
+              For security reports, see{" "}
+              <a
+                href="https://github.com/niclaslindstedt/paint/security/advisories/new"
+                className="text-link hover:underline"
+              >
+                GitHub Security Advisories
+              </a>
+              . For everything else, open an issue at{" "}
+              <a
+                href="https://github.com/niclaslindstedt/paint/issues"
+                className="text-link hover:underline"
+              >
+                github.com/niclaslindstedt/paint
+              </a>
+              .
+            </p>
+          ) : (
+            <p>
+              For security reports and everything else, see the support page at{" "}
+              <a
+                href="https://apps.agilator.se/paint/support/"
+                className="text-link hover:underline"
+              >
+                apps.agilator.se/paint/support
+              </a>
+              .
+            </p>
+          )}
         </Section>
       </article>
     </div>

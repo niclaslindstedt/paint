@@ -116,8 +116,14 @@ const ABOUT_PLACEMENT: FloatingPlacement = {
 };
 
 // The project links the footer surfaces; the Donate target, the website's
-// alone, lives in `./donate.ts`.
-const SOURCE_URL = "https://github.com/niclaslindstedt/paint";
+// alone, lives in `./donate.ts`. The Source row is the website's alone too: an
+// app build carries no link back to the source (owner decision D17). Both
+// flags are compile-time constants, so there the row and its URL are folded
+// out of the bundle rather than hidden.
+const SOURCE_URL: string | null =
+  __NATIVE_BUILD__ || __SHELL_BUILD__
+    ? null
+    : "https://github.com/niclaslindstedt/paint";
 // The subtitle under the Source row — the build identifier composed at build
 // time (see `vite.config.ts`): version, CI run number, deploy slot, and the
 // short commit hash, e.g. `1.5.0.297-pre+dba6a70`.
@@ -701,8 +707,9 @@ export function SideMenuContent({
       )}
 
       {/* The About dropdown — portalled and positioned by the framework's
-          `FloatingPanel`. "What's new" opens the changelog dialog; Source is an
-          external link wearing the build label as its subtitle; Privacy is the
+          `FloatingPanel`. "What's new" opens the changelog dialog; Source (the
+          website only) is an external link wearing the build label as its
+          subtitle; Privacy is the
           standalone policy page the build emits at `/privacy/`. */}
       <FloatingPanel
         open={aboutOpen}
@@ -720,15 +727,17 @@ export function SideMenuContent({
         >
           {t("menu.whatsNew")}
         </FooterRow>
-        <FooterLink
-          icon={<ExternalLinkIcon className="h-5 w-5" />}
-          href={SOURCE_URL}
-          sublabel={BUILD_LABEL}
-          external
-          onClick={() => setAboutOpen(false)}
-        >
-          {t("menu.sourceCode")}
-        </FooterLink>
+        {SOURCE_URL && (
+          <FooterLink
+            icon={<ExternalLinkIcon className="h-5 w-5" />}
+            href={SOURCE_URL}
+            sublabel={BUILD_LABEL}
+            external
+            onClick={() => setAboutOpen(false)}
+          >
+            {t("menu.sourceCode")}
+          </FooterLink>
+        )}
         <FooterLink
           icon={<ShieldIcon className="h-5 w-5" />}
           href={privacyUrl}

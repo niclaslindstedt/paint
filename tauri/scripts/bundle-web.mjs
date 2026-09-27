@@ -12,7 +12,9 @@
 // discover an update from — a new version arrives as a new binary — so a worker
 // here would precache a copy of files already on local disk and poll a
 // `version.json` that never changes. It also switches the in-app update prompt
-// off, which would otherwise be a toast nobody can act on.
+// off, which would otherwise be a toast nobody can act on. And, being a build
+// that is not the website, it leaves out every link back to the source (owner
+// decision D17), the web edition's address included.
 //
 // That is BUILD-TIME, so `--skip-build` copies whatever the last build left in
 // `dist/` — a webroot re-copied from a plain `npm run build` carries the
@@ -28,6 +30,7 @@ import {
   existsSync,
   mkdirSync,
   readdirSync,
+  readFileSync,
   rmSync,
   statSync,
   writeFileSync,
@@ -65,6 +68,32 @@ if (!existsSync(DIST_DIR) || !statSync(DIST_DIR).isDirectory()) {
 if (!existsSync(join(DIST_DIR, "index.html"))) {
   console.error(`✗ ${DIST_DIR} has no index.html — that is not a site build.`);
   process.exit(1);
+}
+
+// Refuse a site build that links back to the source (owner decision D17): no
+// GitHub repository, issues, releases or sponsor link, and not the author's
+// handle anywhere — web-edition address, package name or meta tag included.
+// The website keeps those; the app has none, and `VITE_SHELL_BUILD` is what
+// compiles them out — so a `dist/` from a website build, which `--skip-build`
+// would copy, is caught here, before it replaces the webroot. Every file but a
+// binary asset is read, extensionless ones too, so nothing slips past on its
+// suffix.
+function files(dir) {
+  return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+    const path = join(dir, entry.name);
+    return entry.isDirectory() ? files(path) : [path];
+  });
+}
+for (const path of files(DIST_DIR)) {
+  if (/\.(png|ico|jpe?g|webp|gif|woff2?|ttf|otf)$/i.test(path)) continue;
+  if (readFileSync(path, "utf8").toLowerCase().includes("niclaslindstedt")) {
+    console.error(
+      `✗ ${path} carries a link back to the source ("niclaslindstedt") — the ` +
+        `desktop app must not. Rebuild through this script rather than ` +
+        `copying dist/, so VITE_SHELL_BUILD=on compiles it out.`,
+    );
+    process.exit(1);
+  }
 }
 
 // Replace wholesale rather than merge: a stale chunk left behind from a

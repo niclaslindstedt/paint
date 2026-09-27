@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 import { execSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { readFileSync, rmSync } from "node:fs";
+import { resolve } from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 
@@ -44,7 +45,7 @@ const escapeHtml = (s: string): string =>
 // tag is missing rather than silently shipping a page that inherits the
 // homepage's title — a signal that `index.html`'s head was restructured and
 // this splice needs to follow.
-function splicePrivacyHead(html: string): string {
+function splicePrivacyHead(html: string, website: boolean): string {
   const url = `${SITE_URL}${PRIVACY_ROUTE.path}`;
   const title = escapeHtml(PRIVACY_ROUTE.title);
   const desc = escapeHtml(PRIVACY_ROUTE.description);
@@ -80,11 +81,14 @@ function splicePrivacyHead(html: string): string {
     `$1${desc}$2`,
     "og:description",
   );
-  sub(
-    /(<meta property="og:url" content=")[^"]*("\s*\/>)/,
-    `$1${url}$2`,
-    "og:url",
-  );
+  // An app build has no og:url to splice: `websiteOnly` took it out.
+  if (website) {
+    sub(
+      /(<meta property="og:url" content=")[^"]*("\s*\/>)/,
+      `$1${url}$2`,
+      "og:url",
+    );
+  }
   sub(
     /(<meta\s+name="twitter:title"\s+content=")[\s\S]*?("\s*\/>)/,
     `$1${title}$2`,
@@ -106,7 +110,7 @@ function splicePrivacyHead(html: string): string {
 // (`enforce: "post"`) so the PWA plugin's manifest / icon tags are already
 // baked into the shell we copy, and after `appPwa` so the alias page stays out
 // of its precache (the service worker's shell fallback already covers it).
-function emitPrivacyAlias(): Plugin {
+function emitPrivacyAlias(website: boolean): Plugin {
   return {
     name: "emit-privacy-alias",
     apply: "build",
@@ -117,7 +121,7 @@ function emitPrivacyAlias(): Plugin {
         this.emitFile({
           type: "asset",
           fileName: "privacy/index.html",
-          source: splicePrivacyHead(String(index.source)),
+          source: splicePrivacyHead(String(index.source), website),
         });
       }
     },
@@ -163,6 +167,49 @@ const shellBuild = process.env.VITE_SHELL_BUILD === "on";
 // listings promise nothing is sold. Both are compile-time constants, so the
 // row and its URL are folded out of those bundles rather than hidden.
 const nativeBuild = process.env.VITE_NATIVE_BUILD === "on";
+
+// Together the two flags also keep every link back to the source out of the
+// apps (owner decision D17): the About dropdown's Source row, the privacy
+// page's issue tracker and security advisories, and — through `websiteOnly`
+// below — the web edition's address.
+const appBuild = shellBuild || nativeBuild;
+
+// What only the website carries, left out of an app build (D17): the Open
+// Graph and Twitter tags in `index.html` that point at the web edition's
+// address, the two public files that exist for them and for Pages — the share
+// card (`og.png`) and the custom-domain file (`CNAME`) — and, in the markdown
+// the What's new dialog renders (the CHANGELOG and `docs/features/`), any link
+// to the GitHub repository, which is left as its plain text. The bundle
+// scripts refuse a webroot that still names the site's owner.
+function websiteOnly(): Plugin {
+  let outDir = "";
+  return {
+    name: "website-only",
+    apply: "build",
+    configResolved(config) {
+      outDir = resolve(config.root, config.build.outDir);
+    },
+    transform(code, id) {
+      if (!/\.md(\?|$)/.test(id)) return null;
+      const unlinked = code.replace(
+        /\[([^\]]*)\]\(https?:\/\/github\.com\/niclaslindstedt\b[^)]*\)/g,
+        "$1",
+      );
+      return { code: unlinked, map: null };
+    },
+    transformIndexHtml(html) {
+      return html.replace(
+        /[ \t]*<meta\b[^>]*\bcontent="https?:\/\/[^"]*"[^>]*>\n?/g,
+        "",
+      );
+    },
+    closeBundle() {
+      for (const file of ["CNAME", "og.png"]) {
+        rmSync(resolve(outDir, file), { force: true });
+      }
+    },
+  };
+}
 
 // Build identity for the Developer tab's "Build" grid. The commit hash is the
 // deploying SHA in CI, falling back to the local working tree's HEAD so a
@@ -237,6 +284,7 @@ export default defineConfig({
     preact(),
     tailwindcss(),
     appPwa({ base, version, ignorePaths, serviceWorker: !shellBuild }),
-    emitPrivacyAlias(),
+    ...(appBuild ? [websiteOnly()] : []),
+    emitPrivacyAlias(!appBuild),
   ],
 });
