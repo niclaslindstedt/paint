@@ -35,9 +35,10 @@ import Constants from "expo-constants";
  *  the first one is what keeps the user's drawings across launches.
  *
  *  Every wrapper in the fleet has its own ladder — calendar 8231, contacts
- *  8241, time 8251, calc 8261, paint 8271, checklist 8791, the games 9006 /
- *  9007 / 9033 — so no two contend for a port on a phone that has both. A new
- *  wrapper takes the next free ten. */
+ *  8241, time 8251, calc 8261, paint 8271, meds 8281, cycle 8291, baby 8301,
+ *  notes 8311, checklist 8791, the games 9006 / 9007 / 9033 — so no two
+ *  contend for a port on a phone that has both. A new wrapper takes the next
+ *  free ten. */
 const PORT_LADDER = [8271, 8272, 8273] as const;
 
 /** The hostname the WebView addresses the server as. Not `127.0.0.1`. */
