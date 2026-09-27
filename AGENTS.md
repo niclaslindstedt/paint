@@ -406,9 +406,10 @@ in `index.html` (title, description, Open Graph) and the privacy alias's copy in
 `vite.config.ts` describe the product and **do** drift — refresh them whenever
 the feature set changes.
 
-No SEO and no size budgets, by owner decision: the site is not meant to be
-found, so every page carries `<meta name="robots" content="noindex">`, and
-there is no sitemap, structured data or bundle-size ceiling.
+The website is unlisted (OSS_SPEC §11.3.12), so the spec's SEO, Lighthouse and
+size-budget mandates do not apply; every page carries a robots `noindex`.
+
+oss-spec:unlisted-website: the web build is a testing surface; users install the app from its store listing
 
 ## Maintenance skills
 
