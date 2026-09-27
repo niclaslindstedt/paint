@@ -3,7 +3,7 @@
 // drawn straight from the field with no DOM — judge it against the reference
 // scans, crop with `zoom.ts`, and retune.
 //
-//   npx vite-node .agent/skills/tool-simulation/scripts/ink-sheet.ts
+//   npx vite-node .agents/skills/tool-simulation/scripts/ink-sheet.ts
 //
 // It is also the worked example of a simulation harness. Adapting it to
 // another field-based medium is: swap the imports for that medium's field and

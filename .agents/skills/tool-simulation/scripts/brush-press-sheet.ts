@@ -3,7 +3,7 @@
 // round and then for a flat, and last the stroke the dial exists for — a
 // tapering sweep laid on its point and one leaned on.
 //
-//   npx vite-node .agent/skills/tool-simulation/scripts/brush-press-sheet.ts
+//   npx vite-node .agents/skills/tool-simulation/scripts/brush-press-sheet.ts
 //
 // What to look for, in the order the reference photographs make the claims:
 //

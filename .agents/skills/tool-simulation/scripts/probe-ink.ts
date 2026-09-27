@@ -4,7 +4,7 @@
 // "the fast section looks paler now" is a feeling, `fast mid film: 0.62` is a
 // fact. Adapt the windows and claims to the medium being probed.
 //
-//   npx vite-node .agent/skills/tool-simulation/scripts/probe-ink.ts
+//   npx vite-node .agents/skills/tool-simulation/scripts/probe-ink.ts
 
 import { groundProfile, SOLID_GROUND } from "../../../../src/app/ground.ts";
 import type { GroundProfile } from "../../../../src/app/ground.ts";

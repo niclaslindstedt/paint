@@ -5,7 +5,7 @@
 // widens at all, a pressed head is rougher rather than merely bigger, and it
 // empties sooner because more paint is coming off it.
 //
-//   npx vite-node .agent/skills/tool-simulation/scripts/brush-press.ts
+//   npx vite-node .agents/skills/tool-simulation/scripts/brush-press.ts
 //
 // The claim to check first is the one that is not about pressure: at press 1
 // every number here must be *bit-identical* to the same run before the dial

@@ -67,7 +67,7 @@ not after the first surprise.
 ## The fragment format
 
 ```
-.agent/skills/<skill>/.lessons/<unix-timestamp>-<slug>.md
+.agents/skills/<skill>/.lessons/<unix-timestamp>-<slug>.md
 ```
 
 ```markdown
@@ -122,7 +122,7 @@ A gotcha, a heuristic, a failure mode, a step you wish you'd known, a tuning
 number that worked. Write it in the **same PR** as the work that taught it:
 
 ```sh
-cat > .agent/skills/<skill>/.lessons/$(date +%s)-short-slug.md <<'EOF'
+cat > .agents/skills/<skill>/.lessons/$(date +%s)-short-slug.md <<'EOF'
 ---
 title: …
 date: YYYY-MM-DD
@@ -263,7 +263,9 @@ neither is trustworthy.
 A new skill lands in one of the two tables AGENTS.md keeps, and they are not
 interchangeable: a **sync** skill (`update-*`) also gets a `.last-updated`
 baseline and a row in the `maintenance` skill's Registry; a **craft** skill —
-this one, `glyph-design` — gets neither, because it keeps no artifact in sync.
+this one, `glyph-design` — gets no row, because it keeps no artifact in sync,
+and an empty `.last-updated` ("never run"), because §21.4 asks every skill
+directory for one.
 
 ---
 

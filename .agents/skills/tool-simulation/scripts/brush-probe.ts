@@ -4,7 +4,7 @@
 // a simulation costs. Re-run it after every retune — "the streaks look better"
 // is a feeling, `parting contrast: 0.31` is a fact.
 //
-//   npx vite-node .agent/skills/tool-simulation/scripts/brush-probe.ts
+//   npx vite-node .agents/skills/tool-simulation/scripts/brush-probe.ts
 
 import { groundProfile, SOLID_GROUND } from "../../../../src/app/ground.ts";
 import type { GroundProfile } from "../../../../src/app/ground.ts";

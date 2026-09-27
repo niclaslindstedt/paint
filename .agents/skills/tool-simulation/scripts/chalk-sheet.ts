@@ -3,7 +3,7 @@
 // end-to-end through the public painter (`paintSimulatedChalk`) with no DOM —
 // judge it against the reference photographs, crop with `zoom.ts`, retune.
 //
-//   npx vite-node .agent/skills/tool-simulation/scripts/chalk-sheet.ts
+//   npx vite-node .agents/skills/tool-simulation/scripts/chalk-sheet.ts
 //
 // The rows are the claims: pressure moves coverage, ends are blunt, a second
 // pass bolds, crossings brighten, broad drags streak, dust halos the mark,

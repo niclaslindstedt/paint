@@ -11,14 +11,14 @@ description: "Use when README.md may be stale. Discovers commits since the last 
 
 ## Tracking mechanism
 
-`.agent/skills/update-readme/.last-updated` contains the git commit hash from the last successful run. Empty means "never run" — fall back to the initial commit of the repository.
+`.agents/skills/update-readme/.last-updated` contains the git commit hash from the last successful run. Empty means "never run" — fall back to the initial commit of the repository.
 
 ## Discovery process
 
 1. Read the baseline:
 
    ```sh
-   BASELINE=$(cat .agent/skills/update-readme/.last-updated)
+   BASELINE=$(cat .agents/skills/update-readme/.last-updated)
    ```
 
 2. List commits since the baseline:
@@ -59,7 +59,7 @@ Extend this table every time you find a new source-of-truth file that feeds the 
 - [ ] Run `make test` and the project's own conformance check
 - [ ] Write the new baseline:
 
-      git rev-parse HEAD > .agent/skills/update-readme/.last-updated
+      git rev-parse HEAD > .agents/skills/update-readme/.last-updated
 
 ## Verification
 

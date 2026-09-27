@@ -35,7 +35,7 @@ export default [
       // The phone wrapper's Node-side JavaScript: its Expo config, config
       // plugins, Metro config and bundle script. None of it ships to a device.
       "native/**/*.{js,mjs}",
-      ".agent/skills/**/*.mjs",
+      ".agents/skills/**/*.mjs",
     ],
     languageOptions: {
       sourceType: "module",

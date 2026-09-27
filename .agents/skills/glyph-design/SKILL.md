@@ -38,7 +38,7 @@ and list the glyphs. The config and the `out` directory are **throwaway and
 neither is gitignored** — delete both before you commit.
 
 ```sh
-S=.agent/skills/glyph-design/scripts
+S=.agents/skills/glyph-design/scripts
 node $S/glyphs.mjs render  --config glyphs.config.json   # draw them
 node $S/glyphs.mjs measure --config glyphs.config.json   # the table
 node $S/glyphs.mjs contact --config glyphs.config.json   # design | 96px | 18px

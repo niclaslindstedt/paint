@@ -4,7 +4,7 @@
 // holding the engine's mark up against the photograph rather than against a
 // memory of it.
 //
-//   npx vite-node .agent/skills/tool-simulation/scripts/brush-shot.ts
+//   npx vite-node .agents/skills/tool-simulation/scripts/brush-shot.ts
 
 import { groundProfile } from "../../../../src/app/ground.ts";
 import {

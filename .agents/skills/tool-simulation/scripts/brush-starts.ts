@@ -2,7 +2,7 @@
 // The two ends of a brushed mark, repeated — the sheet a medium that draws
 // every stroke identically cannot pass.
 //
-//   npx vite-node .agent/skills/tool-simulation/scripts/brush-starts.ts
+//   npx vite-node .agents/skills/tool-simulation/scripts/brush-starts.ts
 //
 // `brush-sheet.ts` lays one of everything, which is exactly the sheet that
 // hides a simulation with one brush in it: hashed traits are reproducible by

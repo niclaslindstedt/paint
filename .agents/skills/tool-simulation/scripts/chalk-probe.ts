@@ -4,7 +4,7 @@
 // through `putImageData` (the probe lesson), and what a mark costs. Every
 // retune should re-run this.
 //
-//   npx vite-node .agent/skills/tool-simulation/scripts/chalk-probe.ts
+//   npx vite-node .agents/skills/tool-simulation/scripts/chalk-probe.ts
 
 import { groundProfile } from "../../../../src/app/ground.ts";
 import type { Point } from "../../../../src/app/types.ts";

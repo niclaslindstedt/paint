@@ -7,7 +7,7 @@
 // something end-dependent leaked into the settled prefix, which on screen is
 // a stale patch that only shows under a live gesture.
 //
-//   npx vite-node .agent/skills/tool-simulation/scripts/verify-incremental.ts
+//   npx vite-node .agents/skills/tool-simulation/scripts/verify-incremental.ts
 
 import { groundProfile } from "../../../../src/app/ground.ts";
 import {

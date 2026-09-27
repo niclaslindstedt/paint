@@ -4,7 +4,7 @@
 // flat dark ribbon at 1× is often a perfectly good simulation whose character
 // only reads at 3×. Never retune from the full sheet — crop first.
 //
-//   npx vite-node .agent/skills/tool-simulation/scripts/zoom.ts -- \
+//   npx vite-node .agents/skills/tool-simulation/scripts/zoom.ts -- \
 //     <sheet.png> <x> <y> <w> <h> [zoom=3] [out=zoom.png]
 
 import { readPng, writePng } from "./pngio.ts";

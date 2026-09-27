@@ -238,7 +238,7 @@ sameFrame` → `tiles.ts` chain (see how `leadEngine` travels). A simulation
 ## Scripts
 
 ```sh
-S=.agent/skills/tool-simulation/scripts
+S=.agents/skills/tool-simulation/scripts
 npx vite-node $S/ink-sheet.ts            # the exercise sheet (ink-sheet.png)
 npx vite-node $S/zoom.ts -- ink-sheet.png 60 40 300 160 3   # crop at 3x
 npx vite-node $S/probe-ink.ts            # film numbers + timings

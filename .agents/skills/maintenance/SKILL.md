@@ -17,7 +17,7 @@ Do **not** use this skill for a targeted fix — if you know exactly which artif
 
 ## Registry
 
-The registry is the single source of truth for which sync skills exist in this repo. Every `update-*` directory under `.agent/skills/` must appear here exactly once. Add a row whenever you create a new sync skill.
+The registry is the single source of truth for which sync skills exist in this repo. Every `update-*` directory under `.agents/skills/` must appear here exactly once. Add a row whenever you create a new sync skill.
 
 | Skill           | Fixes                                      | Spec sections | Run order |
 | --------------- | ------------------------------------------ | ------------- | --------- |
@@ -37,7 +37,7 @@ For each skill in the registry, decide whether it needs to run:
 1. Read the skill's baseline:
 
    ```sh
-   BASELINE=$(cat .agent/skills/<skill>/.last-updated)
+   BASELINE=$(cat .agents/skills/<skill>/.last-updated)
    ```
 
    An empty or missing file means "never run" — schedule it.

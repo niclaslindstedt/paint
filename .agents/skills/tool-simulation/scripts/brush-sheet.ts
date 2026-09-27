@@ -3,7 +3,7 @@
 // drawn straight from the field with no DOM — judge it against reference
 // photographs of a real round, crop with `zoom.ts`, and retune.
 //
-//   npx vite-node .agent/skills/tool-simulation/scripts/brush-sheet.ts
+//   npx vite-node .agents/skills/tool-simulation/scripts/brush-sheet.ts
 //
 // Adapted from `ink-sheet.ts` (the worked example): same shape, this medium's
 // field and walk, and one row per claim about a *round* head — the shape whose

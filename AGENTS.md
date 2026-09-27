@@ -415,7 +415,7 @@ oss-spec:unlisted-website: the web build is a testing surface; users install the
 
 Per §21 of `OSS_SPEC.md`, this repo ships agent skills for keeping drift-prone
 artifacts in sync with their sources of truth. Skills live under
-`.agent/skills/<name>/` and are also accessible via the `.claude/skills`
+`.agents/skills/<name>/` and are also accessible via the `.claude/skills`
 symlink.
 
 | Skill           | When to run                                                                                              |
@@ -430,9 +430,9 @@ every `update-*` skill — add a row whenever you create a new sync skill.
 
 ## Craft skills
 
-Not every skill keeps something in sync. `.agent/skills/` also holds playbooks
-for work that is easy to do badly, and those carry no `.last-updated` and no
-registry row.
+Not every skill keeps something in sync. `.agents/skills/` also holds playbooks
+for work that is easy to do badly. Those carry no registry row, and their
+`.last-updated` stays empty ("never run" — §21.4 asks every skill for one).
 
 | Skill              | When to run                                                                                                                                                                                                 |
 | ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -457,7 +457,7 @@ allowed to rewrite another's `SKILL.md`:
   `node scripts/skill-lessons.mjs <skill> --list`, then `--scope=<path>` /
   `--concepts=<tags>`.
 - **At the END, before the commit** — record what the pass learned as a fragment
-  under `.agent/skills/<skill>/.lessons/` (never by appending to a `SKILL.md`,
+  under `.agents/skills/<skill>/.lessons/` (never by appending to a `SKILL.md`,
   which conflicts across parallel sessions), fix anything the skill said that
   turned out WRONG, delete what went stale, merge what now says the same thing
   twice, and promote anything true in 100% of that skill's runs into the

@@ -1,7 +1,7 @@
 ---
 title: A skill that RESTATES a count or a roster rots; point at the module that answers it live
 date: 2026-08-15
-scope: .agent/skills
+scope: .agents/skills
 concepts: [staleness, skill-writing, verification, counts]
 ---
 
