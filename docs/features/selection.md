@@ -5,7 +5,7 @@ are the other half — but not by picking marks out. A selection here is an
 **area**: a window cut in the page that the next thing you do happens inside.
 
 That is the whole idea, and everything below follows from it. Paint in the
-window and the mark is cut to it. Rub out in it and only what is inside comes
+window and the mark is cut to it. Erase in it and only what is inside comes
 off. Drag it with the hand and what is painted under it travels. Drag it with
 the marquee and the window slides and leaves the ink where it is. All of it
 happens on the **layer you are drawing on** and on no other.
@@ -40,15 +40,15 @@ pick one:
 - **Trace** — press an area and the window follows the **contours of what is
   drawn there**: the shape under your finger rather than a shape you drew over
   it. It reads the page the paint bucket reads, so it stops where the bucket
-  would stop. A press on the bare page selects nothing, because the page colour
+  would stop. A press on the bare page selects nothing, because the page color
   runs up against everything you have drawn.
-- **Colour select** — press a colour and **everywhere else it appears** is
+- **Color select** — press a color and **everywhere else it appears** is
   chosen too. Where Trace stops at the first edge it meets, this one crosses the
   whole page, so the twenty leaves of the same green come in together. It has
   one setting of its own under the cog:
 
-  - **Colour tolerance** — how far a shade may drift from the one you pressed
-    and still count. Tight picks out one exact colour, which is what a flat
+  - **Color tolerance** — how far a shade may drift from the one you pressed
+    and still count. Tight picks out one exact color, which is what a flat
     drawing wants; wide takes in a whole sky, which is what a photograph needs.
 
   Unlike Trace, a press on the **bare page is allowed and useful**: it chooses
@@ -58,13 +58,13 @@ pick one:
 - **Gap select** — press a part of the page the selection **doesn't** reach and
   it fills with selection, out to the edges of what is already chosen. It is the
   paint bucket's press aimed at the window instead of at the picture, and it is
-  the answer to the shape you have only gone _round_: trace a ring, draw round a
+  the answer to the shape you have only gone _around_: trace a ring, draw around a
   subject, and the middle is still a hole — one press here says "and the
   inside". With nothing selected yet, one press chooses the whole page, an
   unmarked sheet being one big gap. A press somewhere already chosen leaves the
   selection exactly as it was. Set to **Subtract** (see below) it runs the other
   way: press a chosen area and the whole of it is taken back out, which is how
-  you drop one leaf of the twenty a colour select brought in.
+  you drop one leaf of the twenty a color select brought in.
 
 - **Draw select** — paint the selection the way a pencil paints a line.
   Everything the nib covers is selected, a tap leaves a dab, and — unlike its
@@ -72,7 +72,7 @@ pick one:
   shape (the subject of a photograph, say) is built up stroke by stroke rather
   than caught in one gesture. Set to **Subtract** (see below) the same stroke
   paints selection _away_, which is how a corner that came in with the rest is
-  rubbed back out. It is the one selection tool with a real nib, so it alone has
+  erased again. It is the one selection tool with a real nib, so it alone has
   a width, and one setting of its own under the size button:
 
   - **Feather** — how softly a Delete through the window fades out; see below.
@@ -111,7 +111,7 @@ Two ways to ask for it, because a laptop and a phone do not agree:
   That mode then stays until you put it back — the tool's button wears the same
   **+** or **−**, and a strip at the foot of the canvas says which mode you are
   in, takes you back to the chooser, and puts it back to Replace with its ✕. The
-  chooser itself can be put away without cancelling anything: the mode is the
+  chooser itself can be put away without canceling anything: the mode is the
   point of it, and the page is what you now have to use it on.
 
 Anything can be combined with anything, because every one of these tools answers
@@ -168,10 +168,10 @@ been the point of it, a small card floats **in that pocket**: _Fill the middle?_
 Press **Fill** and the middle joins the window. Press ✕, or simply carry on, and
 it goes — no timer, no second asking, and nothing changed.
 
-It is an offer rather than a rule because "round the outside" is a real answer
-too: a frame, a halo, a ring to rub out. And it keeps quiet about the holes that
+It is an offer rather than a rule because "around the outside" is a real answer
+too: a frame, a halo, a ring to erase. And it keeps quiet about the holes that
 are not the point — a traced face with two eyes in it is a shape with holes, not
-a shape you went round.
+a shape you went around.
 
 Filling this way keeps the outline you drew to the last decimal — the pocket's
 own outline is simply dropped — so the border is not nudged by having asked.
@@ -205,7 +205,7 @@ rather than the whole selection to redraw.
 The edits that move both move both together. Undo a paste and the pasted marks
 go with the window that was around them; undo a hand drag and the ink comes home
 with the outline still on it; undo a crop and the page comes back with the
-window it had. Painting inside a window is the other way round, on purpose:
+window it had. Painting inside a window is the other way around, on purpose:
 undo takes the mark and leaves the window up, ready for the next try.
 
 Nothing about a window is ever saved. It is not in the file, it is not pushed to
@@ -216,7 +216,7 @@ tomorrow — undo reaches back through this session, not through the document.
 
 With a window up, every mark you make is cut to it — the pencil, the brush, the
 bucket, a caption you type. The mark itself is whole: the drawing records the
-outline it was cut to beside it, so nothing is rasterised, nothing is resampled,
+outline it was cut to beside it, so nothing is rasterized, nothing is resampled,
 and the mark still paints the shape it was made in tomorrow. A gesture made
 entirely outside the window lands nothing at all.
 
@@ -239,8 +239,8 @@ drag is one edit and one undo step.
 Three ways, because a phone and a laptop do not agree on any of them:
 
 - **Delete** or **Backspace**;
-- **a tap inside the window with the rubber** — the touch way, where there is no
-  Delete key to press. Drag the rubber instead and it rubs out normally, held to
+- **a tap inside the window with the rubber eraser** — the touch way, where there is no
+  Delete key to press. Drag the rubber eraser instead and it erases normally, held to
   the window like any other mark;
 - **Delete** from the menu a right-click (or a long press) opens.
 
@@ -263,7 +263,7 @@ feather at zero deletes exactly as the marquees always have.
 
 ⌘/Ctrl+C and ⌘/Ctrl+X take what the window holds, each mark cut to it — so a copy
 of half a line is half a line. It goes onto the **real** clipboard, as text
-behind a marker this app recognises, which is what makes it work between two
+behind a marker this app recognizes, which is what makes it work between two
 tabs, between two sketchbooks, and across a reload.
 
 ⌘/Ctrl+V puts things _in_, and what you get depends on what you copied:

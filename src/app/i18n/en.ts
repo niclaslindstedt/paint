@@ -493,7 +493,7 @@ export const en = {
     },
     rub: {
       name: "Pressure: {value}%",
-      hint: "How hard you lean on the rubber — how far into the paper's tooth it reaches. Press harder to fade the ghost, never to remove it.",
+      hint: "How hard you lean on the eraser — how far into the paper's tooth it reaches. Press harder to fade the ghost, never to remove it.",
     },
     chisel: {
       name: "Chisel: {value}%",
@@ -607,7 +607,7 @@ export const en = {
       kneaded: "Kneaded",
     },
     rubber: {
-      pocket: "Pocket rubber",
+      pocket: "Pocket eraser",
       kneaded: "Kneaded",
       top: "Pencil top",
     },
@@ -702,12 +702,12 @@ export const en = {
     mergeTitle: "Merge layers",
     mergeApply: "Merge",
     mergeHint:
-      "Tick the layers to put together and say which one they land on. Everything they hold comes with them — hidden layers included — in the order it was drawn.",
+      "Check the layers to put together and say which one they land on. Everything they hold comes with them — hidden layers included — in the order it was drawn.",
     mergeInto: "Merge into",
     mergeInclude: "Merge {name}",
     mergeLocked: "Locked — unlock it to merge it",
     mergeNoSheet: "The page has no sheet to merge onto",
-    mergePickTwo: "Tick two layers to merge.",
+    mergePickTwo: "Check two layers to merge.",
     mergeSummary:
       "The marks on the other layers — {n} of them — land on “{name}”, and those layers go. Undo brings the stack back.",
   },
@@ -755,7 +755,7 @@ export const en = {
       hint: "Good for: expressive watercolor, dry brush, granulating washes.",
     },
     cartridge: {
-      name: "Cartridge",
+      name: "Drawing paper",
       hint: "Good for: pencil sketches, ink drawing, everyday sketchbook work.",
     },
     bristol: {
@@ -785,9 +785,9 @@ export const en = {
         "A graphite sketching pencil. It only ever draws gray — set the lead from a hard, pale H to a soft, dark B.",
     },
     erasers: {
-      name: "Rub out",
+      name: "Erase",
       description:
-        "Take a mark off — cleanly with the eraser, or a little at a time with the rubber. Press it again to pick which.",
+        "Take a mark off — cleanly with the digital eraser, or a little at a time with the rubber one. Press it again to pick which.",
     },
     eraser: {
       name: "Eraser",
@@ -795,7 +795,7 @@ export const en = {
         "Rubs marks off the page. Turn the strength down to fade them rather than remove them.",
     },
     rubber: {
-      name: "Rubber",
+      name: "Rubber eraser",
       description:
         "The pencil eraser, as one really behaves: it lifts pencil a little at a time, leaves the paper's grain showing, and never quite takes all of it. Ink, paint, crayon and marker stay where they are.",
     },
@@ -844,7 +844,7 @@ export const en = {
     selection: {
       name: "Select",
       description:
-        "Cut a window in the page — with a box, an oval, a lasso, by tracing what is painted under the pointer, by picking out a color wherever it appears, by filling in a gap the selection has gone round, or by drawing it in with a nib. Press it again to choose which. Paint inside it and the mark is cut to it; drag it with the hand to carry what is painted there, or with the marquee to slide the window itself.",
+        "Cut a window in the page — with a box, an oval, a lasso, by tracing what is painted under the pointer, by picking out a color wherever it appears, by filling in a gap the selection has gone around, or by drawing it in with a nib. Press it again to choose which. Paint inside it and the mark is cut to it; drag it with the hand to carry what is painted there, or with the marquee to slide the window itself.",
     },
     select: {
       name: "Box select",
@@ -872,7 +872,7 @@ export const en = {
     selectGap: {
       name: "Gap select",
       description:
-        "Press a part of the page the selection doesn't reach and it fills with selection, out to the edges of what is already chosen — the way to fill in the middle of a shape you have only gone round. With nothing selected yet, one press chooses the whole page.",
+        "Press a part of the page the selection doesn't reach and it fills with selection, out to the edges of what is already chosen — the way to fill in the middle of a shape you have only gone around. With nothing selected yet, one press chooses the whole page.",
     },
     selectDraw: {
       name: "Draw select",
@@ -1017,7 +1017,7 @@ export const en = {
     },
     tools: {
       intro:
-        "Every tool in the app is a plugin, and this is the rack they hang on. Switch one on and it appears in the toolbar straight away.",
+        "Every tool in the app is a plugin, and this is the rack they hang on. Switch one on and it appears in the toolbar right away.",
       alwaysOn: "Always on",
       optionalTitle: "Toolbar",
       optionalHint:
@@ -1064,7 +1064,7 @@ export const en = {
       layersReorder: "Restack",
       layersReorderHint: "The arrows that move the selected layer up and down.",
       layersDelete: "Delete layer",
-      layersDeleteHint: "The bin on the selected layer.",
+      layersDeleteHint: "The trash can on the selected layer.",
       layersMergeHint: "The row under the stack that puts layers together.",
       resizeHint: "The row that opens Resize, and the page's size beside it.",
       cropHint:

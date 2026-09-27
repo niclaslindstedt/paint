@@ -37,7 +37,7 @@ interchange half**: anything that can read JSON and PNG can pull your layers out
 — stack order, names and all — without knowing anything about this app.
 **`vectors.json` is the native half**: it holds the marks, which is what makes
 reopening your own file lossless rather than a flatten. Your strokes come back
-as strokes, undoable and re-editable, and a drawing that pinned no colour of its
+as strokes, undoable and re-editable, and a drawing that pinned no color of its
 own re-inks itself when you flip the app theme.
 
 A file from another tool that has no `vectors.json` still opens — each layer's

@@ -64,8 +64,8 @@ A preset always carries a size, and it can carry three more things:
 - **Those tools, set up.** Press a tool's **mark** in that list and you get the
   tool itself: which of a family the page's button opens on, and how the tool is
   set. A sketchbook is not "a pencil and an eraser" — it is a 2B at 0.7 mm and a
-  kneaded rubber — so the page can say so. Two answers, each optional:
-  - **Default tool.** The rub-out button is an eraser or a rubber, the shapes
+  kneaded eraser — so the page can say so. Two answers, each optional:
+  - **Default tool.** The erase button is an eraser or a rubber eraser, the shapes
     button is a rectangle or a star. Pick which one this page's button opens on,
     or leave it on _whichever you had last_, which is what it has always done.
   - **Its own settings.** Switch it on and the tool gets the width and the knobs
@@ -76,7 +76,7 @@ A preset always carries a size, and it can carry three more things:
 
   These are two separate answers, and a family is not limited to one of them:
   **every member keeps its own settings on the page**, whichever one the button
-  opens on. A sketchbook can carry a kneaded rubber _and_ a block eraser, or
+  opens on. A sketchbook can carry a kneaded eraser _and_ a block eraser, or
   three shapes each at their own width. The row at the head of the settings
   picks which one you are looking at and says nothing about which the page opens
   on.
@@ -84,7 +84,7 @@ A preset always carries a size, and it can carry three more things:
   A dot — on a row in the tool list, or on one of those chips — means the page
   says something of its own about that tool. Opening a page made on the preset
   puts those settings in your hand, as if you had pressed the presets yourself,
-  and then leaves you alone: fatten the rubber this afternoon and it stays fat
+  and then leaves you alone: fatten the rubber eraser this afternoon and it stays fat
   until the next time you open a page made on that preset.
 
 - **Its own canvas type.** Picking the preset puts that sheet in the picker
@@ -93,7 +93,7 @@ A preset always carries a size, and it can carry three more things:
   until you press Create.
 
 Unlike the shipped sizes, a preset stands the way you set it up: type 1600 ×
-2000 because a sketchbook is upright and it stays upright, whichever way round
+2000 because a sketchbook is upright and it stays upright, whichever way around
 the rest of the shelf is facing. **Flip** still turns the page in your hand.
 
 Editing a preset — renaming it, resizing it, changing its tools — leaves the
@@ -148,12 +148,12 @@ wrong way.
 ## What the page is made of
 
 The page also has a **material**, picked beside the page size and the page
-colour under **Canvas type** in the New image dialog (a canvas preset can put one
+color under **Canvas type** in the New image dialog (a canvas preset can put one
 there for you): a solid digital sheet, one
 of six papers, or primed cotton duck. It is not a texture laid over the drawing
 — the sheet's grain is painted under the marks, and on a sheet that drinks, a wet
-tool mixes with what it is painted over instead of covering it. Watercolour is
-the tool to try it with. Like the size and the colour, it is fixed once the page
+tool mixes with what it is painted over instead of covering it. Watercolor is
+the tool to try it with. Like the size and the color, it is fixed once the page
 exists. See [the surface you draw on](surface.md).
 
 ## Zooming and panning
@@ -179,7 +179,7 @@ the hand's double-tap, from any tool: it shows the current zoom, and tapping it
 fits the page (or returns to 100% if it is already fitted). The percentage
 counts your screen's own pixels — **100% is one document pixel per device
 pixel**, so a screen-sized page covering the screen reads 100%, and it is the
-zoom at which a millimetre on the size button is a millimetre on the glass.
+zoom at which a millimeter on the size button is a millimeter on the glass.
 
 Putting a second finger down mid-stroke abandons that stroke rather than
 committing it — you meant to zoom, and half a line you didn't want is worse than
@@ -200,7 +200,7 @@ chrome does nothing, so a pinch aimed at your drawing can never leave the whole
 interface blown up instead.
 
 A drawing is **vector**, not a bitmap: each mark is a stroke object with a
-shape, a colour, and a width. That is what makes undo exact (one mark at a
+shape, a color, and a width. That is what makes undo exact (one mark at a
 time), the saved document small enough for a phone's storage, and a synced copy
 a readable JSON file rather than a blob of pixels.
 
@@ -221,13 +221,13 @@ a readable JSON file rather than a blob of pixels.
 - The **eraser takes ink off**. Its mark subtracts rather than paints, so what
   it covers is gone and the sheet shows through the hole — including on a
   transparent export, where an erased patch is a real hole rather than a
-  page-coloured smear. It lifts ink from the whole picture, whichever layer it
-  was drawn on, the way a rubber does to a drawing on paper. The stroke itself
-  is still an ordinary mark in the document, so a rubbing out undoes, syncs and
+  page-colored smear. It lifts ink from the whole picture, whichever layer it
+  was drawn on, the way an eraser does to a drawing on paper. The stroke itself
+  is still an ordinary mark in the document, so an erasure undoes, syncs and
   re-renders exactly like the line it took off.
 - **Starting over** is not the eraser's job. Throwing a drawing away is an
-  action on the whole document, so it is the bin at the end of the **Image**
-  heading in the right-hand panel: every mark, every layer and the page colour
+  action on the whole document, so it is the trash can at the end of the **Image**
+  heading in the right-hand panel: every mark, every layer and the page color
   in one step. It asks first, undo brings the drawing back, and it is dimmed on
   a page that is already blank (see [layers](layers.md)).
 - The **paint bucket** fills the empty space you tap, up to the marks around it
@@ -235,15 +235,15 @@ a readable JSON file rather than a blob of pixels.
   zoom in. Marks stranded inside the area stay unpainted. Tap a gap in your
   outline and it will leak through it, the same way a bucket always has.
 - The **gradient**, behind the same button, fills that area with a ramp instead
-  of a flat colour: press where the first colour should start, drag the way you
-  want it to run, and let go where the last one should land. Its colours are its
+  of a flat color: press where the first color should start, drag the way you
+  want it to run, and let go where the last one should land. Its colors are its
   own — from, to, and a middle one if you want three — so the toolbar's ink is
   struck through while it is in your hand — a control that changes nothing is
   not offered.
-- The **dropper** takes the colour you tap and makes it the ink — including a
-  colour that only exists where two translucent passes overlap. Its cog sets how
+- The **dropper** takes the color you tap and makes it the ink — including a
+  color that only exists where two translucent passes overlap. Its cog sets how
   much page one tap reads: the single pixel under the pointer, or the average of
-  a disc up to eight millimetres across, which is the setting you want on
+  a disc up to eight millimeters across, which is the setting you want on
   anything sprayed or grainy.
 - With a mouse or a stylus, **the pointer is the nib**: a circle the size of the
   mark you are about to leave, at the page's own scale, so it grows as you zoom
@@ -252,7 +252,7 @@ a readable JSON file rather than a blob of pixels.
   aiming at — and neither do the tools that leave no mark by a nib, which keep
   the crosshair.
 
-## Colour and size
+## Color and size
 
 The toolbar is two bands. The **tools** fill the left of it, wrapping over two
 rows — three on a narrow phone — as you switch more of them on. Everything that
@@ -262,23 +262,23 @@ That block never moves. Whichever tool is in your hand and however many of them
 are switched on, those four buttons are in the same corner of the screen, which
 is what lets you reach them without looking for them.
 
-Colour and size are the top half of it, one button each.
+Color and size are the top half of it, one button each.
 
-The **ink button** is the colour you are drawing with. Press it for the palette
-and whatever colours you have mixed. **Mix a colour…** opens a hue strip and a
+The **ink button** is the color you are drawing with. Press it for the palette
+and whatever colors you have mixed. **Mix a color…** opens a hue strip and a
 saturation/brightness field — drag either and the ink changes as you go;
 **Keep** adds it to your own swatches for good, and a swatch you no longer want
 has a small × on it.
 
 There is no second half to it. It used to be split corner to corner with the
-page colour below the diagonal, back when painting with the page was how you
-rubbed something out. The eraser lifts ink now, and the sheet's colour belongs
+page color below the diagonal, back when painting with the page was how you
+erased something. The eraser lifts ink now, and the sheet's color belongs
 to the background layer (New image gives it one, or leaves the page with none at
 all), so the second half stood for nothing.
 
 The **nib button** shows a press with the tool in your hand: not a dot the size
 of the nib, but the mark that width actually leaves — painted by the same
-painter that paints the page, on the page colour, in the ink you have picked.
+painter that paints the page, on the page color, in the ink you have picked.
 Press it for the three widths it ships with, plus any you have added: each is
 that same press at that width, so the row reads fine-to-broad as marks rather
 than as numbers. The slider sets a width live, and **Keep** puts it in the row,
@@ -330,7 +330,7 @@ tints accent while it is on — so a starred drawing and an open side panel are
 readable at a glance, and the header, the toolbar and the sibling `notes` and
 `contacts` apps all read as one set of chrome.
 
-There is no bin up here any more. Wiping the page is erasing at its largest
+There is no trash can up here anymore. Wiping the page is erasing at its largest
 scale, so it moved to where erasing lives — the eraser's own button, one press
 away from the hand already reaching for it — and the width it took now goes to
 the drawing's name.
@@ -374,7 +374,7 @@ document, so it can never reach a downloaded file.
 ## The pixel grid
 
 Zoom in far enough and the page rules itself into **single pixels** — the
-squares a downloaded image resolves to, one to a colour. They appear when a
+squares a downloaded image resolves to, one to a color. They appear when a
 pixel is about **five pixels wide on screen** and are fully up at seven; below
 that the lines are too close together to read as squares at all and the page
 would just look tinted, so nothing is drawn.
@@ -383,7 +383,7 @@ That is a size rather than a percentage, and deliberately. The zoom readout
 counts your screen's own dots, and a phone has about three of them where a
 desktop monitor has one — so the same reading of 700% shows you a pixel three
 times smaller on the phone, and a grid pinned to the percentage would be a
-readable lattice on the desktop and a grey wash on the phone. Pinned to the
+readable lattice on the desktop and a gray wash on the phone. Pinned to the
 apparent size instead, it arrives when the squares are big enough to see
 wherever you are: around **500%** on a desktop screen, nearer **1000%** on a
 retina laptop and **1500%** on a phone. Those are the same picture.
@@ -400,7 +400,7 @@ and there are no pixel edges in the picture for it to line up with. This follows
 the zoom alone, not the switch below: turning the ruling off says you would
 rather not see lines drawn, not that you would rather see a blur.
 
-The grid is there to work against, not to look at: the ink is a faint grey that
+The grid is there to work against, not to look at: the ink is a faint gray that
 reads on a white sheet and on a black one, and — like the grid above — it is
 painted on the screen and never on the drawing, so no downloaded file has it in
 it. Settings → **General** switches it off.

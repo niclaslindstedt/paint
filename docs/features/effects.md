@@ -3,19 +3,19 @@
 An effect changes what is **on** the page. Blur a sketch to push it behind
 something else; scatter grain over a photograph to take the flatness off it. You
 set it up, you apply it, and it is then part of the picture — like reaching for
-a real can of spray, not like putting a coloured gel over a lamp.
+a real can of spray, not like putting a colored gel over a lamp.
 
 The panel splits them in three. **Effects** is this page — blur and noise, the
 passes that change what a mark looks like. **Image** is surgery on what the
 picture is — cutting a subject out of its background (see
-[`delete-background.md`](delete-background.md)). **Colour** is the tonal work —
-levels, curves, hue, colour balance (see [`color.md`](color.md)). It is the
+[`delete-background.md`](delete-background.md)). **Color** is the tonal work —
+levels, curves, hue, color balance (see [`color.md`](color.md)). It is the
 same machinery throughout, so everything below applies to all of them.
 
 That is the whole idea, and everything else follows from it:
 
 - **It happens once.** A line you draw afterwards is sharp. Nothing keeps
-  re-softening as you work, so drawing and rubbing out on a layer you have
+  re-softening as you work, so drawing and erasing on a layer you have
   blurred is as fast as on any other.
 - **It stacks with itself.** Blur the same layer twice and you have blurred the
   blur — which is exactly what a second pass over the same photograph does.
@@ -26,15 +26,15 @@ That is the whole idea, and everything else follows from it:
 Effects used to be _filters_ — a setting on the drawing that changed nothing and
 was re-applied every time the page was painted. That kept the document purely
 vector, and it cost what it sounds like: every stroke on a blurred layer forced
-the whole layer to be softened again, on every frame, so rubbing out on a
-blurred watercolour crawled. This is the honest version, and the fast one.
+the whole layer to be softened again, on every frame, so erasing on a
+blurred watercolor crawled. This is the honest version, and the fast one.
 
 ## Applying one
 
 Open the right-hand panel — it is docked beside the canvas on a wide screen, and
 behind the panel button in the header (or a swipe in from the right edge) on a
 narrow one — and find the **Effects** section under the Image actions, or
-**Colour** under the layer stack. Both sections move: the grip on a heading
+**Color** under the layer stack. Both sections move: the grip on a heading
 drags it into another order, and Settings → Panel switches a section — or a
 single effect by name — off altogether (see [the panel](panel.md)).
 
@@ -131,11 +131,11 @@ Fine specks scattered over what is already there, half of them lighter than what
 they land on and half darker, the way grain sits on film.
 
 - **Strength** — how far the specks go. Low is a texture you notice only on a
-  flat area of colour; high is a page you read through the dust.
+  flat area of color; high is a page you read through the dust.
 - **Speck size** — how big one speck is, in page pixels. One pixel is film
   grain; a few is closer to a rough paper.
-- **Coloured specks** — off by default, which leaves grey grain. On, the specks
-  carry colour of their own.
+- **Colored specks** — off by default, which leaves gray grain. On, the specks
+  carry color of their own.
 
 Grain lands on the marks and nowhere else, so a layer with a lot of empty space
 on it does not come back as a rectangle of dust.
@@ -145,9 +145,9 @@ on it does not come back as a rectangle of dust.
 The layer is a picture, and it behaves like any other picture on the page:
 
 - **Drawing on it** puts a sharp mark on top. Nothing softens it.
-- **Rubbing out** takes pixels off it and shows what is underneath — the layers
+- **Erasing** takes pixels off it and shows what is underneath — the layers
   below, or the page. That is how you open a soft hole in a photograph, and it
-  is now as quick as rubbing out anywhere else.
+  is now as quick as erasing anywhere else.
 - **Moving, scaling and turning the page** carry it along exactly as they carry
   a photograph you dropped in.
 - **Exports** need do nothing special: the effect is in the marks, so every
@@ -158,7 +158,7 @@ The layer is a picture, and it behaves like any other picture on the page:
 
 - **Anything you did not aim it at.** Layers outside the scope are untouched,
   down to the byte.
-- **Picking colours.** The paint bucket and the dropper read the page as it
+- **Picking colors.** The paint bucket and the dropper read the page as it
   actually is, including a baked effect — which is the right answer now that the
   softening really is on the page.
-- **The page colour.** The sheet is not a mark, so nothing here changes it.
+- **The page color.** The sheet is not a mark, so nothing here changes it.

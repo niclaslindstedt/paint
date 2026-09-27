@@ -1,7 +1,7 @@
 # The right-hand panel, your way
 
 The panel down the right-hand side is what you can do to the _drawing_ rather
-than to a mark: the **Image** actions at the top, **Effects** and **Colour**,
+than to a mark: the **Image** actions at the top, **Effects** and **Color**,
 and the **layer stack**. Not everyone uses all of it, and not everyone reaches
 for it in the same order — so the arrangement is yours rather than the app's.
 
@@ -17,9 +17,9 @@ lose.
 
 It is blue, and it glows gently. Everything else in this panel is always there,
 so you learn where it sits and stop looking at it — these rows are the opposite,
-and a slow pulse in a colour nothing else here uses is how a row that arrived a
+and a slow pulse in a color nothing else here uses is how a row that arrived a
 second ago gets noticed by someone whose eye is on the drawing. If you have
-asked your system for reduced motion the colour stays and the pulse does not.
+asked your system for reduced motion the color stays and the pulse does not.
 
 ## Move a section
 
@@ -32,11 +32,11 @@ On a touch screen, **hold the heading for a moment first**, then drag. A quick
 swipe still scrolls the panel, as it should, and a tap still folds the section
 away — the press that picks a section up is the one you hold.
 
-Out of the box the order is **Image, Effects, Layers, Colour**. Colour is under
+Out of the box the order is **Image, Effects, Layers, Color**. Color is under
 the stack because it is what you do to a picture that is _finished_, while the
 three above it are what you reach for mid-drawing — and the stack is the section
 you open this panel for while you draw, so six adjustments you touch once should
-not sit between you and it. If you work the other way round, drag it back up and
+not sit between you and it. If you work the other way around, drag it back up and
 it stays there.
 
 ## Switch a section off
@@ -47,9 +47,9 @@ way of doing what the grip does) and a switch that takes the section out
 altogether.
 
 Under each section are the things inside it, each with a switch of its own — the
-**Resize** row, the **Flip** and **Mirror** pairs, every effect and every colour
+**Resize** row, the **Flip** and **Mirror** pairs, every effect and every color
 adjustment by name, and the controls on the layer stack: the eye, the padlock,
-the restack arrows, the bin and the **Merge layers…** row. Switch off the last
+the restack arrows, the trash can and the **Merge layers…** row. Switch off the last
 thing in a section and the section goes with it: a heading over an empty box is
 not worth the room.
 

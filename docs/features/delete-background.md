@@ -8,14 +8,14 @@ layer; everything else on that layer is gone.
 The tracing only has to be roughly right. Everything well inside your outline
 is taken to be subject, everything well outside to be background, and the cut
 searches the strip in between for the strongest continuous border: the place
-where the colours genuinely change from the subject's to the background's, all
-the way round.
+where the colors genuinely change from the subject's to the background's, all
+the way around.
 
 **The pencil's width is the search width.** Paint the tracing with the
 selection pencil and the strip the cut searches is exactly the stripe you
 painted — no wider, and no narrower. That is the honest reading of a painted
 line: a nib is not a hairline, and there is no way to tell afterwards whether
-you ran its middle along the border or laid its edge against it and coloured
+you ran its middle along the border or laid its edge against it and colored
 inward. Both are the same gesture, so the cut treats every part of the stripe as
 equally likely and lets the picture decide between them.
 
@@ -24,7 +24,7 @@ pencil and the search narrows with it, which you can see on the page while you
 draw rather than having to picture a number. Reach for a broad one and the cut
 ranges over everything you covered.
 
-Filling the middle in afterwards — with **Gap fill**, or by colouring it —
+Filling the middle in afterwards — with **Gap fill**, or by coloring it —
 changes none of that. The inside of your tracing is settled: you said to keep
 it, so nothing in it is looked at for a border however hard an edge sits there.
 
@@ -40,7 +40,7 @@ picture offers no edge at all the cut simply follows you.
    for it — run it around the subject's edge so the stripe it paints straddles
    the border, then fill the middle in (Gap fill does it in one press), and use
    the Subtract mode — hold Alt, or hold the selection button and pick it — to
-   take back what you overshot (see [`selection.md`](selection.md)). Colouring the whole subject in works too;
+   take back what you overshot (see [`selection.md`](selection.md)). Coloring the whole subject in works too;
    what matters is that the pencil covers the border, because the stripe it
    leaves is where the cut looks. A lasso around the subject works just as well.
    Two loops are two subjects; a loop traced inside another cuts a hole.
@@ -82,7 +82,7 @@ picture offers no edge at all the cut simply follows you.
    - **Feather** — how soft the cut edge is, in page pixels. Zero keeps it
      crisp; a pixel or two sits naturally in a photograph; more melts the
      subject into whatever you put behind it.
-   - **Colour tolerance** — how little colour difference still counts as the
+   - **Color tolerance** — how little color difference still counts as the
      border. Turn it down when a busy background keeps attracting the cut;
      turn it up when the subject nearly matches its background and the cut
      keeps missing the real edge.
@@ -126,9 +126,9 @@ The ants come back when the cut lands, or when you pick up a tool that draws.
 
 ## What to expect
 
-A subject against a differently-coloured background cuts cleanly, whatever the
+A subject against a differently-colored background cuts cleanly, whatever the
 lighting. The honest limits: hair and fur come out as a firm edge rather than
-individual strands (feather covers most of it), and a subject whose colours
+individual strands (feather covers most of it), and a subject whose colors
 melt into the background in places — dark shoes on dark ground — may need one
 correction pass. The cut runs entirely on your device, like everything else
 here: no upload, no model download, no server.

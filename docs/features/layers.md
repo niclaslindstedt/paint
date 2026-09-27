@@ -8,7 +8,7 @@ you drew earlier without redrawing it.
 Every drawing starts with **two** layers: **Background** at the bottom, which is
 the page itself, and **Layer 1** above it, which is where your marks land. The
 background is **locked**, so nothing you draw can end up underneath everything
-else by accident — and because it _is_ the page, hiding it takes the page colour
+else by accident — and because it _is_ the page, hiding it takes the page color
 with it and leaves the drawing on transparency.
 
 ## Getting to the panel
@@ -18,7 +18,7 @@ right-hand side beside the canvas: a panel you have to summon is one you forget
 you have, and there is width to spare. Above the stack it carries the **Image**
 actions — resize, flip, mirror — which act on the whole drawing (see
 [the canvas](canvas.md)), and the **Effects** section under them, which blurs or
-grains what is already on the page (see [effects](effects.md)); **Colour** is
+grains what is already on the page (see [effects](effects.md)); **Color** is
 under the stack. That is where they start out — the grip on each heading drags a
 section into whatever order suits you, and Settings → Panel switches off the ones
 you never use (see [the panel](panel.md)).
@@ -34,7 +34,7 @@ on the page closes a floating panel again.
 A floating panel **goes away again when you press anywhere on the page**. It is
 something you visit between strokes, so it takes no width from the page and never
 stays in the way. The toolbar and the header stay live while it is open — picking
-a colour for the layer you just selected does not cost you the panel. Escape
+a color for the layer you just selected does not cost you the panel. Escape
 closes it too, and so does the header button that opened it — **the panel has no
 close cross of its own**, because that button is the one switch for it and is
 where your hand goes back to.
@@ -58,10 +58,10 @@ preview can never disagree with the drawing.
   everything above it.
 - **Show / hide** — the eye. A hidden layer dims in the list but keeps its
   preview, so you can still see what you have put away. It is off the page, out of every
-  download, and invisible to the paint bucket and the colour dropper, which read
+  download, and invisible to the paint bucket and the color dropper, which read
   what is painted rather than what was drawn. It is not deleted — the marks are
   still in the document and come back with the eye. Hiding the **Background**
-  hides the page colour too, which is the quickest way to see your drawing on
+  hides the page color too, which is the quickest way to see your drawing on
   nothing.
 - **Lock / unlock** — the padlock, beside the eye. A locked layer takes no
   marks: you cannot draw on it, select it, move it in the stack or delete it,
@@ -73,14 +73,14 @@ preview can never disagree with the drawing.
   does not move and nothing goes under it: it is the page, and every mark in the
   drawing is on top of it by definition. Its row offers no arrows, and the arrow
   that would push another layer below it is dimmed.
-- **Delete** — the bin on the selected row. It takes the marks on that layer
+- **Delete** — the trash can on the selected row. It takes the marks on that layer
   with it, so a layer with anything on it asks first. The last layer is never
   deleted, and neither is a locked one: a drawing always has somewhere to draw.
-  To empty a drawing outright, use **Start over** — the bin at the end of the
+  To empty a drawing outright, use **Start over** — the trash can at the end of the
   **Image** heading, which throws away every mark, every layer and the page
-  colour in one step. (Undo brings any of it back in one step, as with every
+  color in one step. (Undo brings any of it back in one step, as with every
   other edit.)
-- **Merge layers…** — the row under the stack. It opens a dialog: tick the
+- **Merge layers…** — the row under the stack. It opens a dialog: check the
   layers to put together, say which one they land on, and press Merge. See
   below.
 
@@ -89,9 +89,9 @@ preview can never disagree with the drawing.
 A stack you have finished arranging is often a stack you would rather stop
 carrying. **Merge layers…** puts several of them on one:
 
-- **Tick the layers.** They are listed the way the panel lists them, with the
-  same previews, so the row you tick is the row you were looking at.
-- **Say where they land.** The destination is one of the ticked layers, and the
+- **Check the layers.** They are listed the way the panel lists them, with the
+  same previews, so the row you check is the row you were looking at.
+- **Say where they land.** The destination is one of the checked layers, and the
   marks arrive on it in the order they were painted — a mark that was above
   another stays above it.
 - **Nothing is thrown away.** A **hidden** layer can be merged like any other,
@@ -112,10 +112,10 @@ Deliberately simple for now: no per-layer opacity, no blend modes, no renaming,
 and no moving marks from one layer to another after they are drawn (merging two
 layers is the nearest thing). The stack, what is on it, and what order it is in —
 that is the whole feature.
-The Background carries the page colour but is not where you _choose_ it — that
+The Background carries the page color but is not where you _choose_ it — that
 is the New image dialog, when the page is made. Its **eye** is the exception, and
 it is not a small one: switching the Background off is exactly what "no page
-colour" means, so an image made transparent arrives here with that eye already
+color" means, so an image made transparent arrives here with that eye already
 off, and turning it back on gives the page its sheet.
 
 ## How it is stored

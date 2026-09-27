@@ -1,8 +1,8 @@
-# Colour
+# Color
 
-The right-hand panel's **Colour** section is the tonal work: how light the
+The right-hand panel's **Color** section is the tonal work: how light the
 picture is, how far apart its tones sit, which of them count as black and white,
-and what colour it all leans. Six adjustments, and between them they cover what
+and what color it all leans. Six adjustments, and between them they cover what
 you would open an Image menu for.
 
 They are [effects](effects.md) in every way that matters. You set one up, the
@@ -14,7 +14,7 @@ the adjustment in them. Undo puts your marks back; a reload will not. The same
 scope rules apply: **This layer** or **All layers**, and hidden or locked layers
 are never touched.
 
-The page colour is not a mark, so nothing here changes it. Adjust a drawing on a
+The page color is not a mark, so nothing here changes it. Adjust a drawing on a
 cream sheet and the sheet stays cream — what moves is the ink on it.
 
 ## Brightness & contrast
@@ -42,7 +42,7 @@ something once you can see that the picture starts there.
 - **White point** — the tone that becomes white. Everything above it is white.
 - **Midtones** — where the middle sits between the two. Drag it toward the
   shadows to lift the midtones and toward the highlights to drop them; it sits
-  dead centre when nothing is being done to them.
+  dead center when nothing is being done to them.
 
 Drag any of the three, or press anywhere on the bar to bring the nearest one to
 you. The **shaded ends** are what is about to be thrown away — everything outside
@@ -86,16 +86,16 @@ RGB lifts the graded picture rather than replacing the grade.
 
 ## Hue & saturation
 
-- **Hue** turns every colour around the wheel, in degrees. Past the end it wraps,
+- **Hue** turns every color around the wheel, in degrees. Past the end it wraps,
   so a full turn is where you began.
-- **Saturation** from grey at one end to fully saturated at the other.
+- **Saturation** from gray at one end to fully saturated at the other.
 - **Lightness** toward black or toward white.
 
-Grey ink has no hue to turn and black has no colour to saturate, so this is a
-tool for a picture with colour in it — a watercolour wash, a photograph you
+Gray ink has no hue to turn and black has no color to saturate, so this is a
+tool for a picture with color in it — a watercolor wash, a photograph you
 dropped in — rather than for a pencil sketch.
 
-## Colour balance
+## Color balance
 
 A cast aimed at one end of the tonal range and nowhere else.
 
@@ -104,23 +104,23 @@ sliders: **Cyan – Red**, **Magenta – Green**, **Yellow – Blue**. The three
 overlap, so a shift aimed at the shadows fades out through the midtones rather
 than stopping at a boundary and leaving a band across the picture.
 
-**Keep the light** shifts the colours without changing how bright each pixel is,
+**Keep the light** shifts the colors without changing how bright each pixel is,
 which is the difference between warming a picture and lightening it. Off, a warm
-cast also brightens; on, only the colour moves.
+cast also brightens; on, only the color moves.
 
 ## Desaturate
 
-Drains the colour out and leaves the light behind. All the way is a black-and-
-white picture; part of the way knocks the colour back without losing it.
+Drains the color out and leaves the light behind. All the way is a black-and-
+white picture; part of the way knocks the color back without losing it.
 
-What each colour comes out as is its own brightness rather than the average of
+What each color comes out as is its own brightness rather than the average of
 its channels, so a saturated blue lands near black and a yellow lands near white
 — which is where your eye already puts them.
 
 ## What to expect on a line drawing
 
 Most of these are made for pictures with a range of tone in them. A drawing that
-is black lines on white paper has very little for a brightness or a colour
+is black lines on white paper has very little for a brightness or a color
 balance to move, and nothing at all for a hue to turn. Bring in a photograph,
-paint a watercolour wash, or fill an area, and the whole section starts to
+paint a watercolor wash, or fill an area, and the whole section starts to
 matter.

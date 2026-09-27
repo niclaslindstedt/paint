@@ -1,7 +1,7 @@
 # Tools are plugins
 
 Every tool in the app — the pencil included — is a plugin: a descriptor with an
-id, a label, an icon, and a behaviour that turns pointer gestures into strokes
+id, a label, an icon, and a behavior that turns pointer gestures into strokes
 and paints them. The app core knows nothing about pencils or rectangles; it
 renders whatever the registry hands it.
 
@@ -13,27 +13,27 @@ There are three kinds, and the only difference is how they are switched on:
 | **Default on** | `defaultOn: true`                | In the toolbar until you switch off |
 | **Optional**   | everything else                  | Off until you switch it on          |
 
-Core is the irreducible three — pen, the rubbing-out family, hand. On out of the box: the
+Core is the irreducible three — pen, the erasing family, hand. On out of the box: the
 airbrush, the marker, the highlighter, the fills (the paint
 bucket, and the gradient behind it), text, the shapes, the selection tools and
-the colour dropper — the toolbox anyone who
+the color dropper — the toolbox anyone who
 has opened a paint program already knows how to use, spray can included, plus
 the two felt tips a hand reaches for on a page it is thinking on. That is the
 _whole_ default toolbar:
 eleven buttons, families counted as the one button they are, and everything else
 off until you ask for it. Waiting in Settings → Tools: the media that simulate
-their medium (the graphite pencil, the watercolour brush, the paintbrush, the
-crayon, the chalk, the calligraphy pen). The **rubber**
+their medium (the graphite pencil, the watercolor brush, the paintbrush, the
+crayon, the chalk, the calligraphy pen). The **rubber eraser**
 is not one of them: it ships with the eraser, behind the eraser's own button —
 see below.
 
 The row reads in the order a hand actually uses it. The pen you draw with, the
 rest of the media, then the three tools that work on an _area_ rather than on a
-line — rubbing one out, and filling one — then the two other families, type —
+line — erasing one, and filling one — then the two other families, type —
 which is what you usually reach for right after picking something out — and last
 the two tools that touch neither the ink nor the document:
 
-**pen · pencil · paintbrush · watercolour · airbrush · marker · highlighter ·
+**pen · pencil · paintbrush · watercolor · airbrush · marker · highlighter ·
 crayon · chalk · calligraphy pen · erasers · fills · shapes · select · text ·
 dropper · hand**
 
@@ -62,16 +62,16 @@ eleven of them as eleven buttons would be most of a phone's toolbar spent on one
 idea, and eleven switches in Settings → Tools for a question nobody asks eleven
 times. The seven selection tools are the second, the two fills the third, and the
 **two ways of taking a mark off** the fourth: press the eraser again and the
-rubber is behind it.
+rubber eraser is behind it.
 
-That last one is the pattern at its plainest. An eraser and a rubber are not two
+That last one is the pattern at its plainest. An eraser and a rubber eraser are not two
 tools you choose between so much as one question — _how much of this should go_ —
 with two honest answers, and the family is what lets the second answer ship
 without charging every user a permanent button for it. It is also what makes it
 findable: nobody goes looking in Settings → Tools for an eraser they do not know
 exists. The family's id is the **eraser's own** — as the fills' is the bucket's
 and the selection family's is the marquee's — so an install written before the
-rubber existed keeps its button, in its slot, with the rubber now behind it.
+rubber eraser existed keeps its button, in its slot, with the rubber eraser now behind it.
 
 So the shapes button wears whichever shape you last held. Press it again and the
 family opens over the canvas — rectangle, ellipse, line, arrow, rounded
@@ -104,8 +104,8 @@ press, same flood, same traced outline, same `region` stroke in the document —
 what differs is what the area is filled _with_. So a second press on the bucket
 offers the pair, and the button wears whichever you last used.
 
-Press inside the space you want filled, drag the way you want the colour to run,
-and let go: where you pressed is the first colour, where you let go is the last,
+Press inside the space you want filled, drag the way you want the color to run,
+and let go: where you pressed is the first color, where you let go is the last,
 and the ramp runs between them. A press that never travels still fills — the ramp
 is laid straight across the area instead — because a fill that came out empty
 would be a strange answer to a tap.
@@ -115,47 +115,47 @@ re-flooding mid-drag would move the area out from under the ramp being drawn.
 
 ## A tool can carry its own inks
 
-The gradient is poured from **two colours (or three)**, and neither of them could
+The gradient is poured from **two colors (or three)**, and neither of them could
 ever be the one on the toolbar's ink button. So a plugin may declare `swatches`
-the way it declares dials — an id, a name, the colour it rests at, and whether
+the way it declares dials — an id, a name, the color it rests at, and whether
 "none" is one of its answers — and everything follows from that:
 
 - the tool's settings panel grows a **swatch row** at its head, over a press of
-  the mark those colours make, and a palette for whichever swatch you are
+  the mark those colors make, and a palette for whichever swatch you are
   setting;
 - the toolbar's ink button is **struck through and disabled** while the tool is
-  in hand, because that colour genuinely changes nothing — the same treatment
+  in hand, because that color genuinely changes nothing — the same treatment
   the eraser, the hand and the marquee get, and for the same reason;
 - the values are kept per tool per swatch in the settings blob, sparsely — only
-  what differs from the colours the tool ships with;
+  what differs from the colors the tool ships with;
 - and a poured mark **records the ramp it was poured with**, so re-mixing the
-  tool tomorrow cannot re-colour the fills you made today.
+  tool tomorrow cannot re-color the fills you made today.
 
 The gradient's are `from`, `to` and an optional `mid`, which is off out of the
 box: a three-stop ramp is a deliberate thing, and a fill that quietly ran through
-a third colour nobody asked for would be a puzzle. Nothing outside
+a third color nobody asked for would be a puzzle. Nothing outside
 `plugins/builtin/gradient.ts` knows those names.
 
 ## …or no ink you can pick at all
 
 The pencil is the other end of that. It carries no swatches, because there is
-nothing to set: **graphite is a grey mineral, and the one thing that decides
-which grey is which lead is in the pencil.** So the plugin declares `fixedInk`,
+nothing to set: **graphite is a gray mineral, and the one thing that decides
+which gray is which lead is in the pencil.** So the plugin declares `fixedInk`,
 and the toolbar's swatch is struck through exactly as the gradient's is — a
-palette that opened and changed nothing was the tool telling you it had a colour
+palette that opened and changed nothing was the tool telling you it had a color
 setting when it did not.
 
-The colour control it does have is already on its panel: the **grade**. It picks
-the grey the same way it picks how much of it goes down — an 8H is a pale, cool
+The color control it does have is already on its panel: the **grade**. It picks
+the gray the same way it picks how much of it goes down — an 8H is a pale, cool
 scratch you can see the sheet through, a 9B is nearly black and a touch warmer
 with it — and the sheet flips the whole ladder, so on dark paper it is the soft
 lead that shows brightest, silverpoint-style, rather than the hard one vanishing
-(see `graphiteInk`). The grey is mixed once, when you draw, and **recorded on the
+(see `graphiteInk`). The gray is mixed once, when you draw, and **recorded on the
 mark**, so re-papering a drawing later leaves the sketch in the tone it was made
 in.
 
-`fixedInk` says nothing about _how_ a tool arrives at its colour — that is its
-behaviour's business. It says only that no palette can reach it, which is why a
+`fixedInk` says nothing about _how_ a tool arrives at its color — that is its
+behavior's business. It says only that no palette can reach it, which is why a
 charcoal or a silverpoint landing next year is one flag rather than a change to
 the toolbar.
 
@@ -164,7 +164,7 @@ the toolbar.
 The selection tools are the same arrangement, for the same reason: _how_ you cut
 the window is a smaller question than which tool you are holding.
 So one button holds a **box** marquee (**V**), an **oval**, a freehand **lasso**,
-a **trace**, a **colour match**, a **gap filler** and the **selection pencil** —
+a **trace**, a **color match**, a **gap filler** and the **selection pencil** —
 and the button wears whichever you last used.
 
 They differ only in the gesture. Every one of them ends by answering one question
@@ -172,18 +172,18 @@ They differ only in the gesture. Every one of them ends by answering one questio
 contours in document coordinates**, and the screen takes contours and nothing
 else. That is why a lasso needed no new idea anywhere outside `plugins/`: the
 canvas, the store and the renderer are unchanged, and a build that adds an
-eighth way to select adds an eighth behaviour and nothing more.
+eighth way to select adds an eighth behavior and nothing more.
 
 Two members answer from more than the draft. The **pencil** reads the selection
 as it stands off the context (`ToolContext.selection`) and answers with that
 selection **worked over** — its stroke's capsule painted in, or, under its erase
 mode, painted away (see `regionMask.ts` for the arithmetic, which is the bucket's
-rasterise-and-trace run in reverse). The **gap filler** reads the same selection
+rasterize-and-trace run in reverse). The **gap filler** reads the same selection
 and floods the part of the page it does _not_ cover, out from where you pressed
 (`fillGap`, the same module): what bounds that flood is the window rather than
-any colour, which is how the middle of a shape you have only gone round gets
+any color, which is how the middle of a shape you have only gone around gets
 filled in. Both say so with `combinesSelection`, which is also what tells the
-canvas that a press inside the window is another go with the tool rather than a
+canvas that a press inside the window is another try with the tool rather than a
 drag of it. The gap filler is the one tool that needs to know how big the sheet
 is, because with nothing selected its answer is all of it — `ToolContext.page`
 is there for that and nothing else.
@@ -200,21 +200,21 @@ paints selection in or, under Subtract, away, and the gap filler fills a pocket
 in or takes a chosen blob back out.
 
 The two that read the page are the interesting ones. Neither has a shape of its
-own at all: both ask the probe the paint bucket asks — a rasterised snapshot of
+own at all: both ask the probe the paint bucket asks — a rasterized snapshot of
 the page — and hand the outlines that come back over as the selection. Nothing
 about either reaches the document; the outline becomes the window and the draft
 is thrown away.
 
 What differs is the question. The **trace** floods out from where you pressed
-until the colour changes (`regionAt`), so it stops where the bucket would stop
-and follows what is _drawn_ rather than a shape drawn over it. The **colour
+until the color changes (`regionAt`), so it stops where the bucket would stop
+and follows what is _drawn_ rather than a shape drawn over it. The **color
 match** tests the whole snapshot instead of walking out from the seed
-(`matchAt`), so it chooses every area of that colour wherever it fell — with a
+(`matchAt`), so it chooses every area of that color wherever it fell — with a
 tolerance dial, because "this blue" is one value on a drawing and ten thousand on
 a photograph, and with the speckle dropped before the outlines are traced
 (`despeckle`) so a noisy photograph chooses areas rather than a thousand
 freckles. It is also the one of the pair that may be pressed on the **bare
-sheet**: tracing the page colour would hand back one area bordering every mark
+sheet**: tracing the page color would hand back one area bordering every mark
 there is, where matching it hands back the page with each mark as a hole in
 it — which is the background, without what is drawn on it.
 
@@ -250,7 +250,7 @@ painters in `src/app/plugins/brushes.ts`, `bristle.ts`, `waxSim.ts`,
   its full width square across itself and closes to a heavy line along its
   own edge, the middle a filbert — and **nib angle** is which way the blade
   is turned. What a blade does is a projection worked out per touch, so one
-  stroke of a flat swells and thins round a curve without the hand doing
+  stroke of a flat swells and thins around a curve without the hand doing
   anything, and the paint the narrower band stops laying sideways it carries
   as extra thickness instead. And **pressure** is the one knob on it that is
   not the brush but your hand: draw with the point of a round and it lays a
@@ -303,10 +303,10 @@ painters in `src/app/plugins/brushes.ts`, `bristle.ts`, `waxSim.ts`,
 - the **pencil** is graphite scratched onto that same tooth, and it is not the
   crayon: the flakes chip off where they land rather than smearing, the grain is
   finer because a sharp lead reaches into tooth a blunt wax face rides over, and
-  the tool mixes its own grey rather than taking the ink you picked — because a
+  the tool mixes its own gray rather than taking the ink you picked — because a
   pencil that drew in red would be a textured pen. The lead's **grade** is one
   axis, and it is both halves of what a lead is: hard and pale at the H end,
-  soft and dark at the B end, picking the grey it draws in as well as how much
+  soft and dark at the B end, picking the gray it draws in as well as how much
   of it sticks, and reaching the deposit and never the width. **Pressure** is
   the other, and it is the hand rather than the stick: it decides how far into
   the sheet the lead is driven, so easing off leaves the paper showing through a
@@ -327,7 +327,7 @@ painters in `src/app/plugins/brushes.ts`, `bristle.ts`, `waxSim.ts`,
   face can reach, and the mark is whatever the tooth caught. Wax comes off in
   crumbs that catch in **clumps** — chains of little streaks pointing the way
   the hand went, with clean paper between them — and each pass stands the
-  surface up under the next, so colouring something in genuinely closes it:
+  surface up under the next, so coloring something in genuinely closes it:
   the second pass reaches valleys the first rode over, up to the waxy
   near-solid a leaned-on stick **burnishes** to and cannot go past. The tooth
   belongs to the **paper, not the stick**, so a wide crayon is a wider band of
@@ -335,12 +335,12 @@ painters in `src/app/plugins/brushes.ts`, `bristle.ts`, `waxSim.ts`,
   marks that cross read the same sheet, they agree about where it is low and
   the page reads as one sheet, while each smears its clumps its own way, the
   way two real strokes do. The face leans as you turn through a stroke so one
-  side goes down solid and the other frays, its worn facets plough shallow
+  side goes down solid and the other frays, its worn facets plow shallow
   furrows along the mark, the edges chip over a few pixels however broad the
   stick is, and the ends fade in instead of starting square. **Softness** is
   the crayon's grade, the way the pencil's is its lead: the hard end is a
   china marker, 100% the wax crayon, the soft end an oil pastel that digs to
-  the bottom of the tooth and slabs colour on at an ordinary touch — and the
+  the bottom of the tooth and slabs color on at an ordinary touch — and the
   preset row hands out exactly those three sticks. Where no field can run — a
   hairline at a far zoom, a face finer than a couple of cells, a browser with
   no canvas — the old geometric grain painter catches the mark inside the
@@ -348,9 +348,9 @@ painters in `src/app/plugins/brushes.ts`, `bristle.ts`, `waxSim.ts`,
 - the **chalk** is a soft board stick scrubbed over that same sheet (see
   `src/app/plugins/chalkSim.ts`), and it is neither the crayon nor the pencil:
   chalk is powder, so one ordinary pass covers where a lead sparkles — and the
-  mark still never closes into solid colour, because how much dust each spot
+  mark still never closes into solid color, because how much dust each spot
   of the page catches is wildly uneven and the dark pinholes that stay open
-  are the whole look of chalk on a board. A worn stick's facets plough faint
+  are the whole look of chalk on a board. A worn stick's facets plow faint
   **streaks** along a broad drag, loose dust falls just past the edge and
   clings here and there as a sparse halo of specks, the ends are blunt because
   a soft stick bites the moment it lands, and a second pass packs the tooth
@@ -368,7 +368,7 @@ painters in `src/app/plugins/brushes.ts`, `bristle.ts`, `waxSim.ts`,
   Every stroke ever drawn with the old flat brush still names it and still
   paints — the tool keeps a registration with no button (the same mechanism
   as the dropped image's painter);
-- the **watercolour brush** is the one medium here where what you are painting
+- the **watercolor brush** is the one medium here where what you are painting
   with is _water_, and the pigment only goes where the water took it. Four
   things happen while a wet stroke dries on a sheet and all four are in the
   mark: the water runs on past the hair that laid it, so the wash is wider than
@@ -378,41 +378,41 @@ painters in `src/app/plugins/brushes.ts`, `bristle.ts`, `waxSim.ts`,
   what makes a laid wash look laid rather than airbrushed; the pigment
   **settles** into the sheet's dips, which is granulation; and nothing
   **covers**, because the sheet is the white and every layer is a filter over
-  what is under it, so passing twice really is twice the colour. The three dials
-  are the three things a watercolourist changes between one stroke and the next
-  — how much water is on the brush, how much colour is in the water, and what
+  what is under it, so passing twice really is twice the color. The three dials
+  are the three things a watercolorist changes between one stroke and the next
+  — how much water is on the brush, how much color is in the water, and what
   the paper does with what is left;
 - the **calligraphy pen** is a flat nib held at an angle: broad across the
   stroke, hairline along it. The angle is a dial, in degrees, because the tilt
   of the hand is the one thing a writer actually changes about a broad nib;
-- and the **rubber** is the one medium here that takes something off instead of
+- and the **rubber eraser** is the one medium here that takes something off instead of
   putting it on. It reads the pencil's own sheet — literally the same lattice,
   so the two agree about where the paper is low — and lifts from the peaks the
   lead reached, bridging the dips it never got into. That is the whole model,
-  and everything anyone knows about rubbing out falls out of it: a passage goes
+  and everything anyone knows about erasing falls out of it: a passage goes
   _paler_ rather than away, what survives is a speckled ghost in the tooth, the
   edge of the rub feathers into the tone around it instead of cutting a window,
   and passing again takes the same _fraction_ of what is left — so it fades and
   fades and is never quite gone. **Pressure** is how hard you lean on it, which
   is how deep into the sheet the face deforms: it fades the ghost, it never
-  widens the mark. And it lifts only what a rubber can lift.
+  widens the mark. And it lifts only what a rubber eraser can lift.
 
 All of it is a pure function of the stored stroke: the scatter is hashed off
 position rather than drawn at random, so a repaint, an undo and the PNG export
 produce identical grain instead of a mark that shimmers when you pan.
 
-### What a rubber will not take off
+### What a rubber eraser will not take off
 
 Graphite and chalk sit loose on the sheet and come away; everything else
-stays. Ink, paint, felt tip, a bucket of colour and a dropped photograph have
-soaked into the paper, and a wax crayon mark smears under a rubber rather than
+stays. Ink, paint, felt tip, a bucket of color and a dropped photograph have
+soaked into the paper, and a wax crayon mark smears under an eraser rather than
 lifting — so however hard you rub, only the pencil and the chalk come off. The
-rubber leaves all the rest exactly where it is — which is what finally makes
+rubber eraser leaves all the rest exactly where it is — which is what finally makes
 the oldest workflow in drawing work here: **sketch it in pencil, ink over the
-sketch, then rub the sketch out.**
+sketch, then erase the sketch.**
 
 Two flags say all of it, and nothing anywhere reads a tool's name: `lifts` on
-the rubber, `liftable` on the media that come away. The renderer does the rest
+the rubber eraser, `liftable` on the media that come away. The renderer does the rest
 — an erasing mark can only be a hole, so it takes everything for the length of
 one composite and the marks it could never have lifted are laid straight back
 over it (`relayFixed` in `relay.ts`). Ink comes back at exactly the strength it
@@ -426,14 +426,14 @@ to white in one drag. That is the one you want for a mistake.
 The **hand** draws nothing. Its descriptor carries `navigates: true`, and that
 flag — not its id — is what tells the canvas a press should pan the page rather
 than start a stroke, and what strikes out the ink it would never use. The **dropper**
-works the same way through `picksColor` — and answers `pick` with the colour a
+works the same way through `picksColor` — and answers `pick` with the color a
 press read, because _how much page_ one press covers is the dropper's own
 setting and the canvas has no business knowing what that dial is called. That is
 the pattern for any tool that needs the app to treat it differently: a property
 on the descriptor, so nothing outside `plugins/` has to know a tool by name.
 
-`lifts` and `liftable` are the pair that make a rubbing out selective. `lifts`
-says a tool only takes off what a rubber could have taken; `liftable` says a
+`lifts` and `liftable` are the pair that make erasing selective. `lifts`
+says a tool only takes off what a rubber eraser could have taken; `liftable` says a
 medium is one of those. Neither is a rule about erasers and pencils — a charcoal
 tool would declare `liftable` and be lifted, a shape that scrubbed would declare
 `lifts` and need nothing else.
@@ -451,13 +451,13 @@ glyph is the descriptor's own `icon` asked for `filled`, so a new fillable tool
 gets the picker by drawing itself solid, with nothing to add to the toolbar.
 
 `wetness` is the flag with a number on it: how much water the tool puts on the
-page, nought for a pencil and one for a loaded watercolour brush. On its own it
+page, nought for a pencil and one for a loaded watercolor brush. On its own it
 does nothing at all. It is multiplied by how thirsty the **sheet** is (see [the
 surface you draw on](surface.md)), and the product is what decides whether a
 mark mixes with what is under it rather than covering it, drags a little of what
 it crossed into its own wet edge, and runs further past the nib than the tool
 would on its own. A new medium declares how wet it is and gets all three; the
-renderer never learns what watercolour is called.
+renderer never learns what watercolor is called.
 
 `grows` and `reach` are the two flags nobody looking at the app can see, and
 they are what keeps a long stroke drawable. `reach` says how far past its own
@@ -482,7 +482,7 @@ next is [selections](selection.md).
 
 `entersText` is the flag for the one mark that can't come from a pointer. The
 **text** tool's press opens a caret on the page instead of beginning a stroke,
-and the words become a mark when you are finished with them — so its behaviour's
+and the words become a mark when you are finished with them — so its behavior's
 `start` returns nothing at all, exactly like the hand's. What you type into is a
 real text box sitting where the caption will land, set in the face, size and ink
 it will land in, so there is no "now render it" beat between typing and having
@@ -518,14 +518,14 @@ you **draw on with a finger**, and the sheet it is really laid against is the
 glass under your hand. Calibrating to the screen makes the number on the size
 button a distance you can measure _on the device you are holding_: set the
 marker to 5 mm, hold the drawing at 1:1, and the band under your thumb is five
-millimetres wide. At 300 dpi the same band came out at three and a third — the
+millimeters wide. At 300 dpi the same band came out at three and a third — the
 app said one thing and the glass said another, and the glass is the one you can
 put a ruler on.
 
-So a millimetre is 18.11 pixels: a 0.5 mm pencil lead is a nine-pixel line, a
+So a millimeter is 18.11 pixels: a 0.5 mm pencil lead is a nine-pixel line, a
 25 mm flat brush a four-hundred-pixel band, and a 3200 × 2000 sheet a
 postcard held landscape at 177 × 110 mm. Type is measured in **points**, because
-type has been sold that way for four hundred years and a caption in millimetres
+type has been sold that way for four hundred years and a caption in millimeters
 is one nobody can compare against anything.
 
 The new-image dialog's **A4** preset is the one number here that is _not_ on
@@ -545,11 +545,11 @@ What changed is what a number _means_.
 A rack of implements is not one rack. A technical pen is drawn to the ISO ladder
 (0.13–2 mm), a mechanical pencil takes four leads, a round brush is numbered by
 its ferrule, a flat is sold in fractions of an inch, a chisel marker runs to
-15 mm and a decorator's brush starts where all of them stop. So each tool
+15 mm and a house painter's brush starts where all of them stop. So each tool
 declares a **gauge**: the range the real thing is made in, the five sizes worth
 a button, and how far past either end you may still go.
 
-The five buttons are sizes a shop actually sells, and each carries the trade's
+The five buttons are sizes a store actually sells, and each carries the trade's
 own designation where there is one — the brush row reads **#2 · #6 · #10 · ½" ·
 1"** (the round series up to where brushes start being sold in inches, which is
 how every flat is), the pencil row **0.3 · 0.5 · 0.7 · 0.9 · 2.0 mm**, the type
@@ -558,7 +558,7 @@ row **10 · 12 · 18 · 24 · 48 pt**.
 Each tool **opens on one of its own five**, and on the one it is reached for
 most of the time rather than on the middle of the rack: the pen at 0.5 mm (the
 liner that outsells the rest put together), the pencil at 0.7 (0.5 is the lead a
-shop sells most of, but a sketching hand wants the blunter point), the marker at
+store sells most of, but a sketching hand wants the blunter point), the marker at
 its 2 mm bullet, the paintbrush at a #6, the airbrush at a general-purpose
 12 mm pattern — which is also where the airbrush's rack now stops. It used to
 run on to 25 and 50 mm, and a pattern that covers a third of a phone in one
@@ -626,13 +626,13 @@ app:
 | Pen             | Liner · Fineliner · Guide line           |
 | Pencil          | Sketch · Construction · Shading · Detail |
 | Eraser          | Block · Detail · Kneaded                 |
-| Rubber          | Pocket rubber · Kneaded · Pencil top     |
+| Rubber eraser   | Pocket eraser · Kneaded · Pencil top     |
 | Paintbrush      | Round · One-stroke · Filbert · Dry brush |
-| Watercolour     | Wash · Wet-in-wet · Glaze · Dry brush    |
+| Watercolor      | Wash · Wet-in-wet · Glaze · Dry brush    |
 | Airbrush        | General · Detail · Background            |
 | Marker          | Marker · Chisel · Fineliner              |
 | Highlighter     | Line of text · Broad                     |
-| Crayon          | Colouring · Shading · Solid              |
+| Crayon          | Coloring · Shading · Solid               |
 | Chalk           | Writing · Side of the stick · Heading    |
 | Calligraphy pen | Italic · Foundational · Uncial           |
 | Paint bucket    | Flat fill · Soft edge · Wash             |
@@ -653,7 +653,7 @@ that setting in its defaults instead — which is what a default is _for_. A row
 one chip is a worse default than a default. That is why the eleven shapes have
 none (a rectangle is a rectangle; what varies is the width of the line it is
 ruled with, and the width row is already five buttons of exactly that, opening on
-the half-millimetre line you would draw a box with) and why the text tool has
+the half-millimeter line you would draw a box with) and why the text tool has
 none either (the size row is the preset row for type, and the face, the weight
 and the slant are not dials — they sit beside the caption you are typing). The
 hand, the dropper and the selection tools have no dials and leave no mark, so
@@ -672,7 +672,7 @@ A width and four dials is a lot of decisions, and the ones worth making are
 worth making once. Finding the 4B at 0.7 mm under a light hand that a
 drawing wants takes a minute of fiddling; wanting it again tomorrow takes the
 same minute. So the panel's title row carries a **star**. Press it, give the tool a name —
-"my sketching pencil" — and a **mark** from the same catalogue a drawing's own
+"my sketching pencil" — and a **mark** from the same catalog a drawing's own
 glyph comes from, and it is a chip at the top of that tool's panel from then on.
 
 A chip is a **whole tool**: pressing one sets the width _and_ every dial at
@@ -694,17 +694,17 @@ everyone means by saving.
 
 ## A width is shown as the mark it makes
 
-The size button and every width in its panel used to be a grey dot the width of
+The size button and every width in its panel used to be a gray dot the width of
 the nib, which told you a number you could already read. It is now a **press**:
-the mark that width would leave, simulated through the same behaviour that would
-make it and painted by the same painter that would paint it, on the page colour
+the mark that width would leave, simulated through the same behavior that would
+make it and painted by the same painter that would paint it, on the page color
 and in the ink you have picked. So an airbrush is a soft cone, a highlighter a
 translucent band, the crayon its speckle, the calligraphy pen its flat, the
 rectangle a rectangle at that line width, the text tool a letter at that type
 size.
 
 A tool whose mark cannot describe itself says so instead
-(`sizePreview: "circle"`) and gets a plain disc. The two rubbers are the ones
+(`sizePreview: "circle"`) and gets a plain disc. The two erasers are the ones
 that do: their mark is a _hole_, and a hole on the bare page a preview is shows
 nothing at all. It used to be previewed as a bite out of a blot of ink that
 nobody had drawn — a mark invented for the preview so that the preview would
@@ -721,19 +721,19 @@ thing worth saying about a nib that size.
 It used to be fitted instead: the size button and each row were scaled down
 until the _broadest_ width the tool is made in fitted its tile. That drew a
 handsome row, and it made every mark on it a different lie — against a rack that
-runs up to a decorator's brush the fine end came out several times the mark it
+runs up to a house painter's brush the fine end came out several times the mark it
 draws and the broad end a fraction of it, so the same 0.5 mm pen previewed
 three times too big and a marker three times too small. Ratios are what the
 numbers under the row are for; the picture's job is the size.
 
 The size button is also the full width of the button now, the same box the
-colour swatch beside it fills, because at life size the room is the thing there
+color swatch beside it fills, because at life size the room is the thing there
 is never enough of.
 
 Type has always worked this way and it is why (`sizePreview: "life"`): an "A" is
 the same letter at 10 pt and at 48 pt, so a row fitted to its own cells drew five
 identical letters and told you nothing about any of them. Its samples are hung
-from the corner where the letter meets its baseline rather than centred, so what
+from the corner where the letter meets its baseline rather than centered, so what
 survives the clipping is the part of a letter you read a size off.
 
 The one place a mark is still fitted is a **preset chip**, where the picture sits
@@ -784,7 +784,7 @@ round brush is bought for and the one a stylus will one day move for you.
 | Tool                | Advanced                                      |
 | ------------------- | --------------------------------------------- |
 | **Paintbrush**      | hardness, load, flatness, nib angle, pressure |
-| **Watercolour**     | water, pigment, granulation                   |
+| **Watercolor**      | water, pigment, granulation                   |
 | **Airbrush**        | hardness, flow                                |
 | **Pencil**          | lead, pressure                                |
 | **Crayon**          | pressure                                      |
@@ -793,7 +793,7 @@ round brush is bought for and the one a stylus will one day move for you.
 | **Highlighter**     | opacity, chisel, nib angle                    |
 | **Calligraphy pen** | nib angle, ink                                |
 | **Eraser**          | strength                                      |
-| **Rubber**          | pressure                                      |
+| **Rubber eraser**   | pressure                                      |
 | **Paint bucket**    | opacity, feather — behind its cog             |
 | **Gradient**        | opacity, feather — behind its cog             |
 | **Dropper**         | sample size — behind its cog                  |
@@ -801,12 +801,12 @@ round brush is bought for and the one a stylus will one day move for you.
 | Hand, select        | nothing — no section appears                  |
 
 **The simulated media have no opacity, on purpose.** The pencil, the paintbrush,
-the watercolour brush, the crayon, the chalk and the broad nib do not draw a
+the watercolor brush, the crayon, the chalk and the broad nib do not draw a
 line and tint it — each works its mark out from a physical model, and each
 already has the dial that makes one lighter the way that medium does: the hand
 on the pencil, the crayon and the chalk, the pigment in the water, the dip on
 the brush and on the nib. A
-flat alpha over the finished mark is a different picture at the same greyness —
+flat alpha over the finished mark is a different picture at the same grayness —
 it fades the paper back out of the mark, which is the one thing the simulation
 is there to put in — so those tools offer the medium's own control and not both.
 Marks drawn before this carry their opacity still, and paint exactly as they
@@ -814,7 +814,7 @@ did.
 
 Most of them are sliders. A dial with a handful of values is **pressed**
 instead: there is nothing between a 2B and a 3B, so the pencil's lead is a row
-of chips — 8H through 9B, the fifteen grades a shop sells — rather than a slider
+of chips — 8H through 9B, the fifteen grades a store sells — rather than a slider
 to hunt along until the readout says the right thing.
 
 Each one is wired to something the painter actually does. **Hardness** is how
@@ -838,22 +838,22 @@ trigger, and because its coverage
 is built from overlapping passes rather than one opaque dab, turning it down
 really does mean more passes. **Pressure** is how hard the crayon bears down:
 wax only sticks to the peaks it is pressed onto, so a light hand leaves the
-paper's speckle showing and a heavy one fills the valleys in — and the **rubber
+paper's speckle showing and a heavy one fills the valleys in — and the **rubber eraser
 carries the same word for the other end of the same idea**, how far into that
-tooth its face deforms, which fades the ghost a rubbing out leaves rather than
+tooth its face deforms, which fades the ghost an erasure leaves rather than
 removing it. **Softness** is which stick of wax is in the crayon — the hard
 end a china marker, the soft end an oil pastel — reaching how deep the face
 digs and how freely it crumbles, so a softer stick is a fuller, creamier mark
 and never a wider one. **Lead** is the
 pencil's grade, by name — 8H is hard and pale and rides the paper, 9B is soft
 and dark and fills its tooth in — and like pressure it reaches the deposit
-rather than the width. **Water** is how charged the watercolour brush is: turned
+rather than the width. **Water** is how charged the watercolor brush is: turned
 up the mark spreads past the hair, both edges wander off the gesture and what is
 left in the middle is dilute; turned down it is nearly dry-brush. **Pigment** is
-how much colour is dissolved in that water, and it is how a wash is made pale:
+how much color is dissolved in that water, and it is how a wash is made pale:
 turning a whole mark down would dim the rim and the granulation with it, while
 thinning the pigment leaves the sheet's own work at full strength and only the
-stain weaker — which is what a glaze is. **Granulation** is the paper and the colour
+stain weaker — which is what a glaze is. **Granulation** is the paper and the color
 rather than the brush: ultramarine on rough stock mottles enough to see across a
 room, phthalo on hot-pressed does not mottle at all. **Chisel** is the shape
 of a felt tip, from a round bullet to a flat wedge, and **nib angle** is the
@@ -867,7 +867,7 @@ strikes a margin down the page instead. **Strength** is how much of a mark one
 pass of the eraser takes off: it is the ink's own alpha under `destination-out`,
 so turning it down gives you the pencil eraser you knock a highlight back with
 rather than the one that takes the page to white in a single drag. **Feather** fades
-the bucket's edge out over a few millimetres instead of stopping it, which turns the
+the bucket's edge out over a few millimeters instead of stopping it, which turns the
 tool into a way of laying a soft wash behind a sketch — and it stays a vector
 fill, so the fade holds at eight hundred percent.
 
@@ -877,7 +877,7 @@ beside the heading once a tool is off its defaults, and puts it back; on the
 bucket's cog, where the sliders are behind a glyph rather than in the open, a
 dot on the button says the same thing.
 
-Marks remember what they were drawn with, the way they remember their colour and
+Marks remember what they were drawn with, the way they remember their color and
 their width, so re-tuning a dial never re-draws work you already did. And a dial
 left alone is recorded nowhere at all — a drawing made without touching one is
 exactly the document it would have been.
@@ -887,7 +887,7 @@ exactly the document it would have been.
 A dial tunes the mark you are about to make. A tool can also declare an
 **option**, and that is a different animal: it says how marks of its kind are
 _painted_, for every drawing you own, including the ones already made. The
-watercolour brush and the pencil have one each today — how finely the simulation
+watercolor brush and the pencil have one each today — how finely the simulation
 behind them works a mark out — and they sit in the same panel as that tool's
 dials, under **Rendering**, above them.
 
@@ -898,7 +898,7 @@ Settings → Tools.)
 
 Both tools used to declare a second option beside it: **which** of two engines
 painted their marks, offered as a pair of swatches of the same stroke. Those are
-gone — there is one watercolour and one pencil now — and the mechanism that
+gone — there is one watercolor and one pencil now — and the mechanism that
 served them is worth keeping in mind even so, because it is still in the
 interface: an option may be a **choice** rather than a slider, its answers may
 carry a painted preview, and one option may be hidden behind another's answer
@@ -916,7 +916,7 @@ desktop.
 ## The fills and the dropper read the page
 
 Some tools need to know what is actually painted, not what was drawn — the
-dropper wants the colour under your finger, the bucket and the gradient want the
+dropper wants the color under your finger, the bucket and the gradient want the
 shape of the area under it, and a stroke list can't answer either after twenty
 passes of a translucent highlighter. So the canvas hands them a narrow window
 onto its own raster (`ToolContext.probe`), taken once per press from the same
@@ -924,9 +924,9 @@ renderer the screen and the PNG export use.
 
 **How much** of that raster one press reads is the dropper's own setting. Its
 sample size runs from the single pixel under the pointer to a disc eight
-millimetres across, and the wider settings are what make it usable on anything
+millimeters across, and the wider settings are what make it usable on anything
 textured: aim at an airbrushed passage and the one pixel under the pointer is a
-speck of spray, where the average over the disc is the colour the passage reads
+speck of spray, where the average over the disc is the color the passage reads
 as.
 
 The bucket then throws the pixels away. It floods the snapshot, traces the
@@ -955,7 +955,7 @@ because they have a place in the row like everything else.
 A family is one row: one glyph, one description, one switch for all eleven
 shapes.
 
-Switching one on adds it to the toolbar straight away — the tab applies live
+Switching one on adds it to the toolbar right away — the tab applies live
 rather than waiting for Save, because a tool you just enabled should be there
 when you close the dialog. A release that ships a new default-on tool folds it
 into your list once; after that the list is yours, and a tool you switched off
@@ -975,7 +975,7 @@ Three steps, none of which touch the canvas, the store, or the toolbar:
    The freehand and shape families in `src/app/plugins/builtin/` are factories,
    so most tools are a few lines of ink configuration. `paint` is also handed a
    `PaintDetail` saying how many device pixels one document pixel is about to
-   become; honouring it is optional, but a painter with a texture should, so it
+   become; honoring it is optional, but a painter with a texture should, so it
    doesn't lay down detail smaller than the screen can show.
 2. Register it in `registerBuiltinPlugins()` with an id, an icon, and its two
    catalog keys — plus `core` or `defaultOn` if it should be in the toolbar
@@ -983,7 +983,7 @@ Three steps, none of which touch the canvas, the store, or the toolbar:
    for the sizes it is really made in (see `plugins/builtin/gauges.ts` — the
    range, the five buttons, and the trade's name for each), `dials` if it has
    anything of its own to tune, `swatches` if it mixes inks of its own rather
-   than drawing with the toolbar's (or `fixedInk` if its colour is what it is
+   than drawing with the toolbar's (or `fixedInk` if its color is what it is
    made of and no palette can reach it), `options` if it has a setting about how
    its marks are painted rather than about the next one (see above), `presets` if its medium has more than one
    way of being held (and if it has exactly one, make that its defaults instead

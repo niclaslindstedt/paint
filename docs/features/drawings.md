@@ -60,7 +60,7 @@ grows:
 | **New image**  | Asks what the page is made of, then opens it.                   |
 | **New folder** | Drops an inline name field into the list; naming it commits it. |
 | **Archive**    | Opens the archive. The corner badge counts what's shelved.      |
-| **Cloud**      | The sync glyph — tap it for the sync command centre.            |
+| **Cloud**      | The sync glyph — tap it for the sync command center.            |
 
 Undo and redo used to take a second row here. They are on the canvas toolbar
 now, beside the ink, where the hand that made the mark already is — so the
@@ -101,7 +101,7 @@ it there — so restoring the group is one action rather than one per drawing.
 
 A namespace is a whole separate set of drawings: work, teaching, scratch. The
 switcher sits at the top of the sidebar; the cog beside it opens the manager,
-where namespaces are created, renamed, given a glyph and a colour, or deleted.
+where namespaces are created, renamed, given a glyph and a color, or deleted.
 
 You start with **one**, called _Default_, and that is deliberate — a second
 sketchbook is a room you have to find your way back out of, and nobody arrives
@@ -123,7 +123,7 @@ holds **Donate** (on the website; the apps have none), an **About** dropdown (Wh
 this build's identifier beneath it, and the privacy policy), and **Settings**
 pinned last under the thumb.
 
-There is no **Check for updates** row here any more. A new build installs itself
+There is no **Check for updates** row here anymore. A new build installs itself
 in the background and raises its own prompt, so the row was a button for a job
 nobody has to do; forcing the check by hand now lives on Settings → **Developer**,
 beside the build stamp you would be comparing it against.

@@ -29,7 +29,7 @@ backend is hidden rather than offered as a dead option.
 - If another device saved in between, the save reports a conflict rather than
   clobbering it: **Reload from the backend** adopts that copy.
 - Offline, an auth expiry, or rate limiting each show in the sync glyph and in
-  the command centre behind it, with the matching recovery action.
+  the command center behind it, with the matching recovery action.
 
 That is your _marks_ — they save themselves, and always have. Your **rendered
 layers** are the one thing you save by hand: press the disk button in the header
@@ -66,7 +66,7 @@ encrypted envelope rather than landing on the drive in the clear.
 Beside the document and the `images/` tree, a connected backend keeps one more
 file: `settings.json`. It holds the kit rather than the drawings — which tools
 are switched on, the order you put them in, every width and dial and saved
-preset, the colours you mixed, and how the app looks.
+preset, the colors you mixed, and how the app looks.
 
 That is there because a kit is worth carrying. Finding the 4B at 0.7 mm under a
 light hand is real work, and doing it again on the laptop is the same

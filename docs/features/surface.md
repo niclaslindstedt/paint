@@ -1,10 +1,10 @@
 # The surface you draw on
 
-A page has a colour and it has a **material**, and until now this app only had
-the colour. The New image dialog's **Canvas type** asks what the page is made
+A page has a color and it has a **material**, and until now this app only had
+the color. The New image dialog's **Canvas type** asks what the page is made
 of: a solid digital sheet, one of six papers, or primed cotton duck. The choice
 belongs to the drawing — it travels with it and syncs with it — and it is made
-in the same breath as the page size and the page colour, because all three are
+in the same breath as the page size and the page color, because all three are
 the same kind of answer.
 
 **It is asked there, and only there.** A stock is not a filter laid over the
@@ -12,12 +12,12 @@ picture: a wet mark is painted _into_ the sheet it was made on, mixing with what
 it is over and pulling the marks it crosses out into its water. Moving a finished
 painting onto rough paper would therefore repaint every mark on it as something
 you never actually made, so the sheet is fixed once the page exists — like its
-size and its colour. To work on a different stock, start an image on one.
+size and its color. To work on a different stock, start an image on one.
 
 The shelf is short on purpose. Eight sheets fit in two rows you can compare at
 a glance, and the rule for what earns a place is the **toolbox**: every medium
 the app ships has a sheet it was made for, and no sheet is there for any other
-reason. The three surfaces watercolour paper is actually sold in, the
+reason. The three surfaces watercolor paper is actually sold in, the
 sketchbook sheet, bristol board for the markers and fineliners, pastel paper
 for the dust media, canvas for the paintbrush, and the plain page.
 
@@ -26,15 +26,15 @@ reads as the texture it is — a close look at the bare paper, with nothing draw
 on it — and the line under the shelf says what the picked sheet is good for.
 
 They are laid out **in the order they get used**, not smoothest to roughest: the
-plain sheet, then cartridge (every sketchbook there has ever been), cold-pressed
-(what "watercolour paper" means unless someone says otherwise), rough,
+plain sheet, then drawing paper (every sketchbook there has ever been), cold-pressed
+(what "watercolor paper" means unless someone says otherwise), rough,
 hot-pressed, bristol (plate-smooth and heavily sized, so marker ink stays crisp
 on its face), pastel (the deep tooth that holds what chalk and crayon shed), and
 cotton duck. Coarseness is a property nobody picks a sheet by, and sorting on it
 buried the two sheets most pages are actually made on in the middle of the row.
 
-It matters because the sheet is not a backdrop. **Watercolour on paper is a
-different mark from watercolour on glass**, and so is a marker on rough. So the
+It matters because the sheet is not a backdrop. **Watercolor on paper is a
+different mark from watercolor on glass**, and so is a marker on rough. So the
 surface does three things, and only the first is decoration.
 
 **It has a grain.** Each stock carries its own, at the size it would measure
@@ -56,7 +56,7 @@ sheets, hot-pressed and bristol a good deal below it because being smooth is,
 and cotton duck just under, since at full weight the weave reads as sackcloth. Picking a different stock re-answers
 it; the slider then moves it from there. It is the one thing about a sheet that
 changes what you see and never how the sheet behaves, and because the grain is
-painted as part of the page, it shows where the page has a colour and not on a
+painted as part of the page, it shows where the page has a color and not on a
 transparent one.
 
 **It decides whether paint sits on top or soaks in.** A sealed sheet holds paint
@@ -64,8 +64,8 @@ on its face, so a second pass covers the first. Paper takes the water into its
 fibres, so paint goes _into_ the sheet and mixes with whatever is already in
 there. On paper a red wash over a blue one comes out purple; on the solid sheet
 it comes out red. A wash over a pencil line leaves the pencil showing through.
-On a dark page the same thing runs the other way — the marks add up towards
-light instead of down towards black — so a wash on a black sheet still reads as
+On a dark page the same thing runs the other way — the marks add up toward
+light instead of down toward black — so a wash on a black sheet still reads as
 a wash.
 
 **It lets a wet mark disturb what it crosses.** Water goes through what is under
@@ -84,24 +84,24 @@ nothing, and a loaded brush on a sealed page behaves exactly as it always has.
 
 | Tool                               | On paper                                              |
 | ---------------------------------- | ----------------------------------------------------- |
-| **Watercolour**                    | The wettest thing in the box — mixes, bleeds, spreads |
+| **Watercolor**                     | The wettest thing in the box — mixes, bleeds, spreads |
 | **Paintbrush**                     | Mixes into what it is over; its edges wick            |
 | **Marker, highlighter, broad nib** | Soak in; on rough they go furry                       |
 | **Pen**                            | Dry on any sized paper, feathers on rough             |
 | **Paint bucket**                   | Lays a wash: mixes with the marks it floods over      |
 | **Airbrush**                       | Nearly dry by the time it lands                       |
-| **Pencil, crayon, eraser**         | Dry — a wash laid over wax goes round it              |
+| **Pencil, crayon, eraser**         | Dry — a wash laid over wax goes around it             |
 
-## The watercolour
+## The watercolor
 
-A wash is **water on paper**. There is water on the sheet and colour in the
+A wash is **water on paper**. There is water on the sheet and color in the
 water, and the mark is whatever is left when it dries — so the rim gathers where
 the wash actually stopped, the wet edge frays into the fibres, a heavy pigment
 rolls into the paper's valleys and a staining one does not, and water arriving on
 a part of the stroke that has already started drying blooms into it. Nothing in
 it is drawn on purpose; all of it comes out of the water.
 
-The app used to offer a second, cheaper watercolour beside this one — a wash
+The app used to offer a second, cheaper watercolor beside this one — a wash
 painted as a _shape_, with the rim drawn on and the mottle hashed into it — and
 a picker in the brush's panel to choose between them. It is gone. Two engines
 meant every user had to judge a rendering model from a pair of swatches before
@@ -157,8 +157,8 @@ so:
 The grain dial you set when you made the page moves all of it, because turning
 the grain up is turning up the tooth the lead has to climb over.
 
-There used to be a second pencil offered beside this one, for the watercolour's
-reason and gone for the watercolour's reason. Its trouble was that it read a
+There used to be a second pencil offered beside this one, for the watercolor's
+reason and gone for the watercolor's reason. Its trouble was that it read a
 fine tooth of its own and nothing else, so a pencil line looked the same on
 hot-pressed paper as on rough — and in life those are two different drawings.
 
@@ -214,13 +214,13 @@ stay crisp goes above the washes, and a wash that should mix with everything
 goes on the same layer as it.
 
 The trade is the one an effect preview already makes: a layer whose marks mix is
-composited as a unit, so a rubbing out on it takes off that layer's ink and
+composited as a unit, so erasing on it takes off that layer's ink and
 shows the layers below rather than cutting through to the sheet.
 
 ## What it costs, and what it doesn't
 
 A drawing with no surface set — every drawing made before this existed, and
-every new one you leave on **Solid colour** — is on the solid sheet, and the
+every new one you leave on **Solid color** — is on the solid sheet, and the
 solid sheet is byte-for-byte and pixel-for-pixel the page this app always had.
 Nothing about existing work changes.
 

@@ -10,7 +10,7 @@ The header's download button opens a short menu: a row per image type — **PNG*
 Which type you want depends on where the drawing is going: a PNG into a chat, an
 SVG into a slide that will be resized afterwards, a JPG when an upload form
 refuses everything else. So the menu asks rather than guessing, and every row
-downloads `<drawing-name>.<type>` straight away.
+downloads `<drawing-name>.<type>` right away.
 
 **Paint file, with layers** saves the drawing itself rather than a picture of
 it: a `.pct` holding every layer and every mark, which opens again exactly as
@@ -39,18 +39,18 @@ which is what you want on a big page with one small diagram on it. A page with
 nothing on it falls back to the whole sheet.
 
 **Background.** Transparent leaves the whole **Background layer** out — the page
-colour and anything you drew on the sheet itself — so the marks land on
+color and anything you drew on the sheet itself — so the marks land on
 transparency and the drawing takes on whatever it is pasted over. Two caveats,
 one physics rather than policy: JPG has no transparency and always keeps the
-page colour. Anywhere you erased comes out transparent — the eraser takes ink
+page color. Anywhere you erased comes out transparent — the eraser takes ink
 off rather than painting over it, so there is nothing there to export.
 
 **An image that never had a page needs none of that.** A new image is made with
-no page colour at all (**New image → Page colour**, the chequered swatch), which
+no page color at all (**New image → Page color**, the checkered swatch), which
 is the same state as switching the Background layer off: a PNG or an SVG of one
 comes out transparent whether or not the switch above is on. JPG is the one
 exception, and for the one reason — it has no transparency to come out with, so
-the file is given the colour the sheet would have had rather than the black an
+the file is given the color the sheet would have had rather than the black an
 empty JPEG would otherwise be.
 
 ## About the SVG
