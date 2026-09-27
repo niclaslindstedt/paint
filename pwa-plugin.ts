@@ -7,6 +7,11 @@ import type { HtmlTagDescriptor, Plugin, ResolvedConfig } from "vite";
 import { APP_NAME, CHANNEL_NAMES } from "./brand.ts";
 import { cacheIdForBase } from "./src/app/pwa.ts";
 
+// The UA chrome tint. The manifest's `theme_color` and the shell's
+// `<meta name="theme-color">` must agree (OSS_SPEC §11.4.1), so both are
+// written from this one value.
+const THEME_COLOR = "#0b0d10";
+
 // Hand-rolls the app's service worker at build time so the deployed app is an
 // installable, self-updating PWA. We deliberately avoid `vite-plugin-pwa` /
 // Workbox: the framework's `usePwaUpdate` hook only needs three files and one
@@ -95,7 +100,7 @@ export function buildManifest(base: string): string {
     display: "standalone",
     orientation: "any",
     background_color: "#0b0d10",
-    theme_color: "#0b0d10",
+    theme_color: THEME_COLOR,
     icons: [
       {
         src: `${base}icons/pwa-192.png`,
@@ -270,10 +275,12 @@ export function appPwa({
       html: string;
       tags: HtmlTagDescriptor[];
     } {
-      const titled = html.replace(
-        /<title>[^<]*<\/title>/,
-        `<title>${APP_NAME}</title>`,
-      );
+      const titled = html
+        .replace(/<title>[^<]*<\/title>/, `<title>${APP_NAME}</title>`)
+        .replace(
+          /(<meta name="theme-color" content=")[^"]*(")/,
+          `$1${THEME_COLOR}$2`,
+        );
       return {
         html: titled,
         tags: [
@@ -305,11 +312,6 @@ export function appPwa({
               rel: "apple-touch-icon",
               href: `${base}icons/apple-touch-icon-180.png`,
             },
-            injectTo: "head",
-          },
-          {
-            tag: "meta",
-            attrs: { name: "theme-color", content: "#0b0d10" },
             injectTo: "head",
           },
           {
