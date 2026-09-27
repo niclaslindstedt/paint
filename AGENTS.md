@@ -36,7 +36,6 @@ make lint          # eslint + tsc --noEmit
 make fmt           # prettier --write
 make fmt-check     # verify formatting (CI)
 make icons         # regenerate the PWA icons + og image from the app mark
-make check-seo     # build, then assert the §11.3 SEO/PWA shape of dist/
 ```
 
 The **desktop shell** (`tauri/`) has a toolchain of its own — Rust — so the
@@ -398,9 +397,13 @@ the fuller reference under `docs/` proper rather than in `docs/features/`.
 The app **is** the website (§11.2 / §11.5): `pages.yml` builds it with the Pages
 base path and deploys `dist/` to the three release channels (`/`, `/preview/`,
 `/branch/`). There is no separate marketing site to drift, but the `<head>` copy
-in `index.html` (title, description, Open Graph, JSON-LD) and `public/llms.txt`
-describe the product and **do** drift — refresh them whenever the feature set
-changes, and re-run `make check-seo` after.
+in `index.html` (title, description, Open Graph) and the privacy alias's copy in
+`vite.config.ts` describe the product and **do** drift — refresh them whenever
+the feature set changes.
+
+No SEO and no size budgets, by owner decision: the site is not meant to be
+found, so every page carries `<meta name="robots" content="noindex">`, and
+there is no sitemap, structured data or bundle-size ceiling.
 
 ## Maintenance skills
 

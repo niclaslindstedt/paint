@@ -5,7 +5,7 @@
 // anyone renaming it would remember: the browser tab, the installed app's tile,
 // the install prompt, iOS's home-screen label, and one per release channel on
 // top of that. Every one of those reads this, so renaming the app is editing
-// this line — and `make build && make check-seo` proves it landed everywhere.
+// this line.
 //
 // The name is deliberately **not** the tagline. A tab that says "Paint" is a
 // tab you can find in a row of twenty; "Paint — a local-first sketchpad" is a

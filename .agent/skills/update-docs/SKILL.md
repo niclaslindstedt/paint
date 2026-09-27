@@ -48,7 +48,7 @@ The `docs/` directory contains conceptual documentation for paint. Unlike the RE
 | `pwa-plugin.ts`, `src/app/pwa.ts`                          | `docs/features/pwa.md`, `docs/architecture.md`                                |
 | Build-time env vars (`VITE_*`)                             | `docs/configuration.md`                                                       |
 | Error messages surfaced to users                           | `docs/troubleshooting.md`                                                     |
-| The product's feature set                                  | `index.html` `<head>` copy + `public/llms.txt` (the app is the website)       |
+| The product's feature set                                  | `index.html` `<head>` copy (the app is the website)                           |
 
 Extend this table every time you find a new source file that feeds the docs.
 

@@ -1,4 +1,4 @@
-.PHONY: demo build test lint fmt fmt-check actionlint release clean docs website website-dev install icons check-seo changelog bump tauri tauri-fast tauri-bundle tauri-install tauri-test tauri-lint tauri-fmt tauri-fmt-check tauri-package tauri-package-debug tauri-clean native-install native-bundle native-typecheck native-prebuild store-preflight store-metadata store-upload
+.PHONY: demo build test lint fmt fmt-check actionlint release clean docs website website-dev install icons changelog bump tauri tauri-fast tauri-bundle tauri-install tauri-test tauri-lint tauri-fmt tauri-fmt-check tauri-package tauri-package-debug tauri-clean native-install native-bundle native-typecheck native-prebuild store-preflight store-metadata store-upload
 
 # The presentation demo (src/app/dev/): the dev server booted onto one
 # person's sketchbooks, held in memory — nothing read from or written to this
@@ -119,9 +119,6 @@ website:
 
 website-dev:
 	npm run dev
-
-check-seo:
-	npm run build && npm run check:seo
 
 # Local preview of what the Release workflow will write to CHANGELOG.md.
 # Pass the planned version: `make changelog VERSION=0.2.0`. Consumes the

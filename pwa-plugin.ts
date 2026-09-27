@@ -51,11 +51,9 @@ type AppPwaOptions = {
 };
 
 // Public assets we never want in the precache: source maps are dead weight
-// offline, and the SEO files are for crawlers, not the app shell.
+// offline, and robots.txt is for crawlers, not the app shell.
 const PUBLIC_SKIP = new Set([
   "robots.txt",
-  "sitemap.xml",
-  "llms.txt",
   "og.png",
   // CNAME is GitHub Pages config, not an app asset. The Pages workflow strips
   // it from every non-root slot (only the root artifact may carry a CNAME), so

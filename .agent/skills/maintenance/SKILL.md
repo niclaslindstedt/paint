@@ -24,7 +24,7 @@ The registry is the single source of truth for which sync skills exist in this r
 | `update-docs`   | `docs/*.md` vs. the source of truth        | §11.1         | 1         |
 | `update-readme` | `README.md` vs. the current public surface | §3            | 2         |
 
-Run order matters: `update-docs` runs first because `README.md` links into `docs/`, so the README pass should read docs that are already current. A future `update-website` would run last — but note that in this project **the app is the website** (§11.2 / §11.5), so "the website" means the `<head>` copy in `index.html` and `public/llms.txt`, which `update-docs` covers.
+Run order matters: `update-docs` runs first because `README.md` links into `docs/`, so the README pass should read docs that are already current. A future `update-website` would run last — but note that in this project **the app is the website** (§11.2 / §11.5), so "the website" means the `<head>` copy in `index.html`, which `update-docs` covers.
 
 ## Tracking mechanism
 
@@ -76,7 +76,6 @@ For each scheduled skill, in order:
 ## Verification
 
 - [ ] `make fmt-check`, `make lint`, and `make test` all pass after the sweep.
-- [ ] `make check-seo` passes if any `<head>` copy or crawler file changed.
 - [ ] Every skill that ran has written its new `.last-updated` baseline.
 - [ ] The combined diff contains no unrelated edits — a maintenance sweep must be reviewable as documentation-only unless a skill explicitly says otherwise.
 - [ ] Report which skills ran, which were skipped, and why.

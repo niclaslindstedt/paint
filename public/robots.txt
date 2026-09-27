@@ -1,4 +1,3 @@
+# Crawling stays allowed: a crawler has to fetch a page to read its noindex.
 User-agent: *
 Allow: /
-
-Sitemap: https://paint.niclaslindstedt.se/sitemap.xml

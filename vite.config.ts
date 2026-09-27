@@ -10,14 +10,14 @@ import { defineConfig, type Plugin } from "vite";
 
 import { appPwa } from "./pwa-plugin.ts";
 
-// The canonical production origin. The privacy alias points its canonical /
-// Open Graph URLs here regardless of which deploy slot built it, since the `/`
-// release is the one search engines should index.
+// The production origin. The privacy alias points its Open Graph URL here
+// regardless of which deploy slot built it, so a shared link names the `/`
+// release.
 const SITE_URL = "https://paint.niclaslindstedt.se";
 
 // The <head> copy for the standalone privacy page the SPA mounts by pathname
-// (see `src/main.tsx`). The homepage's SEO lives statically in `index.html`;
-// this carries its own title, description, canonical, and social-card copy,
+// (see `src/main.tsx`). The homepage's head lives statically in `index.html`;
+// this carries its own title, description, and social-card copy,
 // spliced into a copy of the built shell by the alias plugin below.
 const PRIVACY_ROUTE = {
   path: "/privacy/",
@@ -39,20 +39,20 @@ const escapeHtml = (s: string): string =>
 
 // Rewrite the per-route <head> signals in a copy of the built `index.html`.
 // The homepage shell is the single source of the tag *shape* (asset links,
-// icons, JSON-LD); this only swaps the title / description / canonical / OG /
+// icons, the robots noindex); this only swaps the title / description / OG /
 // Twitter copy so the alias reads as its own page. Throws loudly if an expected
 // tag is missing rather than silently shipping a page that inherits the
 // homepage's title — a signal that `index.html`'s head was restructured and
 // this splice needs to follow.
-function splicePrivacySeo(html: string): string {
-  const canonical = `${SITE_URL}${PRIVACY_ROUTE.path}`;
+function splicePrivacyHead(html: string): string {
+  const url = `${SITE_URL}${PRIVACY_ROUTE.path}`;
   const title = escapeHtml(PRIVACY_ROUTE.title);
   const desc = escapeHtml(PRIVACY_ROUTE.description);
 
   const sub = (re: RegExp, replacement: string, label: string): void => {
     if (!re.test(html)) {
       throw new Error(
-        `seo-alias: could not splice ${label} for ${PRIVACY_ROUTE.path} — ` +
+        `privacy-alias: could not splice ${label} for ${PRIVACY_ROUTE.path} — ` +
           `did index.html's <head> change shape?`,
       );
     }
@@ -64,11 +64,6 @@ function splicePrivacySeo(html: string): string {
     /(<meta\s+name="description"\s+content=")[\s\S]*?("\s*\/>)/,
     `$1${desc}$2`,
     "description",
-  );
-  sub(
-    /(<link rel="canonical" href=")[^"]*("\s*\/>)/,
-    `$1${canonical}$2`,
-    "canonical",
   );
   sub(
     /(<meta property="og:type" content=")[^"]*("\s*\/>)/,
@@ -87,7 +82,7 @@ function splicePrivacySeo(html: string): string {
   );
   sub(
     /(<meta property="og:url" content=")[^"]*("\s*\/>)/,
-    `$1${canonical}$2`,
+    `$1${url}$2`,
     "og:url",
   );
   sub(
@@ -122,7 +117,7 @@ function emitPrivacyAlias(): Plugin {
         this.emitFile({
           type: "asset",
           fileName: "privacy/index.html",
-          source: splicePrivacySeo(String(index.source)),
+          source: splicePrivacyHead(String(index.source)),
         });
       }
     },
@@ -219,6 +214,8 @@ const version = process.env.GITHUB_SHA
 
 export default defineConfig({
   base,
+  // No size budgets, by owner decision: this only keeps Vite's warning quiet.
+  build: { chunkSizeWarningLimit: 100_000 },
   define: {
     __APP_VERSION__: JSON.stringify(appVersion),
     __BUILD_LABEL__: JSON.stringify(buildLabel),

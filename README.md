@@ -4,7 +4,6 @@
 > whiteboard — with tools you switch on when you need them.
 
 [![ci](https://github.com/niclaslindstedt/paint/actions/workflows/ci.yml/badge.svg)](https://github.com/niclaslindstedt/paint/actions/workflows/ci.yml)
-[![seo](https://github.com/niclaslindstedt/paint/actions/workflows/seo.yml/badge.svg)](https://github.com/niclaslindstedt/paint/actions/workflows/seo.yml)
 [![pages](https://github.com/niclaslindstedt/paint/actions/workflows/pages.yml/badge.svg)](https://github.com/niclaslindstedt/paint/actions/workflows/pages.yml)
 [![license](https://img.shields.io/badge/license-PolyForm--Noncommercial--1.0.0-blue.svg)](LICENSE)
 
@@ -300,18 +299,17 @@ npm run preview
 
 ## Usage
 
-| Command          | What it does                                      |
-| ---------------- | ------------------------------------------------- |
-| `npm run dev`    | Dev server with hot reload                        |
-| `make demo`      | Dev server on the demo sketchbooks, in memory     |
-| `make build`     | Production build into `dist/`                     |
-| `make test`      | Test suite (vitest)                               |
-| `make lint`      | ESLint + `tsc --noEmit`                           |
-| `make fmt`       | Format with Prettier                              |
-| `make fmt-check` | Verify formatting (what CI runs)                  |
-| `make icons`     | Regenerate the PWA icons, favicon, and OG image   |
-| `make check-seo` | Build, then assert the SEO / PWA shape of `dist/` |
-| `make bump`      | Print the semver bump the next release will take  |
+| Command          | What it does                                     |
+| ---------------- | ------------------------------------------------ |
+| `npm run dev`    | Dev server with hot reload                       |
+| `make demo`      | Dev server on the demo sketchbooks, in memory    |
+| `make build`     | Production build into `dist/`                    |
+| `make test`      | Test suite (vitest)                              |
+| `make lint`      | ESLint + `tsc --noEmit`                          |
+| `make fmt`       | Format with Prettier                             |
+| `make fmt-check` | Verify formatting (what CI runs)                 |
+| `make icons`     | Regenerate the PWA icons, favicon, and OG image  |
+| `make bump`      | Print the semver bump the next release will take |
 
 The desktop shell (`tauri/`) has a toolchain of its own — a Rust one — so
 `make test` and `make lint` deliberately stop at its edge and these reach it

@@ -17,7 +17,6 @@
     "fmt": "prettier --write .",
     "fmt:check": "prettier --check .",
     "icons": "node scripts/generate-icons.mjs",
-    "check:seo": "node scripts/check-seo.mjs",
     "tauri": "npm --prefix tauri run start",
     "tauri:fast": "npm --prefix tauri run start:fast",
     "tauri:bundle": "npm --prefix tauri run bundle",

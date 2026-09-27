@@ -26,7 +26,7 @@ export default [
   },
   js.configs.recommended,
   {
-    // Node tooling scripts (icon generation, SEO checks) and agent-skill
+    // Node tooling scripts (icon generation, store metadata) and agent-skill
     // helpers. These run under Node, so expose its globals rather than the
     // browser's.
     files: [
