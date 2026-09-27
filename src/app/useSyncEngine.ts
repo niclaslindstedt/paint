@@ -38,6 +38,7 @@ import {
   summarizeDoc,
   type CloudDocSummary,
 } from "./cloudSetup.ts";
+import { DEMO } from "./dev/flag.ts";
 import { folderFileStore } from "./folderFileStore.ts";
 import { dropboxByteFileStore } from "./imageFileStore.ts";
 import {
@@ -449,7 +450,7 @@ export function useSyncEngine(
   // Complete a Dropbox OAuth redirect: trade the `?code=` for tokens, persist
   // them, and adopt the backend. Runs once on boot when a flow is mid-flight.
   useEffect(() => {
-    if (!DROPBOX_APP_KEY || !hasPendingDropboxAuth()) return;
+    if (DEMO || !DROPBOX_APP_KEY || !hasPendingDropboxAuth()) return;
     const code = new URLSearchParams(window.location.search).get("code");
     if (!code) return;
     void (async () => {
@@ -701,6 +702,12 @@ export function useSyncEngine(
 
   const setBackend = useCallback(
     (b: SyncBackendId) => {
+      // The presentation demo is held in memory (`dev/demo.ts`): its first
+      // sync would copy the demo into the reader's own folder or cloud.
+      if (DEMO && b !== "local") {
+        syncLog.warn("demo: storage stays on this page while the demo runs");
+        return;
+      }
       localStorage.setItem(BACKEND_KEY, b);
       // Adopt the backend "in sync": the current document is the baseline, so
       // the glyph starts green rather than flagging everything as unsaved.
@@ -714,7 +721,7 @@ export function useSyncEngine(
   );
 
   const connectDropbox = useCallback(async () => {
-    if (!DROPBOX_APP_KEY) return;
+    if (DEMO || !DROPBOX_APP_KEY) return;
     // Two hosts cannot take the redirect back, and both finish the sign-in in
     // one promise, in place, no reload:
     //   • a host that OFFERS an authentication session (the phone app): the
@@ -753,6 +760,7 @@ export function useSyncEngine(
 
   // Pick a local folder and switch to it, once the grant is in hand.
   const connectFolder = useCallback(async () => {
+    if (DEMO) return;
     if (await folder.connect()) {
       justConnected.current = true;
       setBackend("folder");

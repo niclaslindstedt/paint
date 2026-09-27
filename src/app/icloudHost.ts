@@ -25,6 +25,8 @@
 
 import { useEffect, useState } from "react";
 
+import { DEMO } from "./dev/flag.ts";
+
 /** Whether the container can be used right now.
  *
  *  `unavailable` is not a refusal — it is the website, and every build with no
@@ -96,7 +98,9 @@ const METHODS = [
 /** The installed host, or null. Validates the shape rather than trusting it:
  *  the value arrives from code outside this bundle. */
 export function getICloudHost(): ICloudHost | null {
-  if (typeof window === "undefined") return null;
+  // The presentation demo is held in memory; a host would carry it into the
+  // reader's iCloud Drive, so the demo reports none (see `dev/demo.ts`).
+  if (DEMO || typeof window === "undefined") return null;
   const candidate = (window as HostWindow)[HOST_PROPERTY];
   if (typeof candidate !== "object" || candidate === null) return null;
   const host = candidate as Partial<ICloudHost> & Record<string, unknown>;

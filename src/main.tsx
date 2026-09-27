@@ -1,4 +1,9 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+// The presentation demo's switch (`VITE_SEED=demo`): first, so its in-memory
+// store is in place before any other module reads `localStorage`. Folds away
+// in every other build (see `app/dev/demo-boot.ts`).
+import "./app/dev/demo-boot.ts";
+
 import { render } from "preact";
 
 // The default UI family (JetBrains Mono) is imported statically so it ships in

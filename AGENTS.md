@@ -29,6 +29,7 @@ run needs neither. Don't reintroduce `version-bump.yml`.
 
 ```sh
 make install       # npm install (needs GitHub Packages auth — see below)
+make demo          # dev server booted onto the demo (VITE_SEED=demo, src/app/dev/), held in memory
 make build         # production build (vite build)
 make test          # full test suite (vitest)
 make lint          # eslint + tsc --noEmit

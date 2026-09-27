@@ -36,6 +36,7 @@
 
 import { DEFAULT_NAMESPACE_SLUG } from "@niclaslindstedt/oss-framework/namespaces";
 
+import { DEMO } from "./dev/flag.ts";
 import { logStore } from "./log.ts";
 
 const log = logStore.createLogger("docdb");
@@ -121,7 +122,10 @@ function openDb(): Promise<IDBDatabase | null> {
   // Memoised: every read and write goes through one connection, and a browser
   // that refused once will refuse again — there is nothing to retry.
   dbPromise ??= new Promise<IDBDatabase | null>((resolve) => {
-    if (typeof indexedDB === "undefined") {
+    // The presentation demo (`dev/demo.ts`) never opens the device's database:
+    // it runs as a browser with none, off the in-memory `localStorage` it
+    // swapped in, so the device's drawings are neither read nor written.
+    if (DEMO || typeof indexedDB === "undefined") {
       resolve(null);
       return;
     }
@@ -203,6 +207,18 @@ function legacyRead(key: string): string | null {
     return localStorage.getItem(key);
   } catch {
     return null;
+  }
+}
+
+// The demo's only write path: the in-memory store standing in for
+// `localStorage` (see `dev/demo.ts`), so a hand-off between the demo's two
+// sketchbooks lands and a reload of the fallback path reads it back.
+function demoWrite(key: string, text: string): boolean {
+  try {
+    localStorage.setItem(key, text);
+    return true;
+  } catch {
+    return false;
   }
 }
 
@@ -321,6 +337,10 @@ function schedule(key: string, onError: (message: string) => void): void {
       if (text === undefined) break;
       pending.delete(key);
       if (!db) {
+        if (DEMO) {
+          demoWrite(key, text);
+          continue;
+        }
         onError(
           "Couldn't save the drawing to this device's storage. Your work stays in memory and in any connected cloud copy.",
         );
@@ -371,7 +391,7 @@ export async function putDocDurable(
   const key = docKey(slug);
   remember(key, text);
   const db = await openDb();
-  if (!db) return false;
+  if (!db) return DEMO && demoWrite(key, text);
   return writeRecord(db, key, text);
 }
 

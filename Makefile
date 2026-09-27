@@ -1,4 +1,10 @@
-.PHONY: build test lint fmt fmt-check actionlint release clean docs website website-dev install icons check-seo changelog bump tauri tauri-fast tauri-bundle tauri-install tauri-test tauri-lint tauri-fmt tauri-fmt-check tauri-package tauri-package-debug tauri-clean native-install native-bundle native-typecheck native-prebuild store-preflight store-metadata
+.PHONY: demo build test lint fmt fmt-check actionlint release clean docs website website-dev install icons check-seo changelog bump tauri tauri-fast tauri-bundle tauri-install tauri-test tauri-lint tauri-fmt tauri-fmt-check tauri-package tauri-package-debug tauri-clean native-install native-bundle native-typecheck native-prebuild store-preflight store-metadata
+
+# The presentation demo (src/app/dev/): the dev server booted onto one
+# person's sketchbooks, held in memory — nothing read from or written to this
+# browser's drawings. What the App Store screenshots are taken of.
+demo:
+	VITE_SEED=demo npm run dev
 
 build:
 	npm run build

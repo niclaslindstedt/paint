@@ -303,6 +303,7 @@ npm run preview
 | Command          | What it does                                      |
 | ---------------- | ------------------------------------------------- |
 | `npm run dev`    | Dev server with hot reload                        |
+| `make demo`      | Dev server on the demo sketchbooks, in memory     |
 | `make build`     | Production build into `dist/`                     |
 | `make test`      | Test suite (vitest)                               |
 | `make lint`      | ESLint + `tsc --noEmit`                           |

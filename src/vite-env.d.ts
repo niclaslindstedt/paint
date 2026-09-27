@@ -35,4 +35,7 @@ interface ImportMetaEnv {
   readonly VITE_DROPBOX_APP_KEY?: string;
   // The Dropbox app-folder name (`Apps/<name>/`), when it isn't "Paint".
   readonly VITE_DROPBOX_APP_FOLDER?: string;
+  // `demo` boots the presentation demo, held in memory (`src/app/dev/`). Any
+  // other value, or none, is the app. Never set for a release build.
+  readonly VITE_SEED?: string;
 }
