@@ -113,7 +113,14 @@ export function AppearanceTab({
         {t("settings.appearance.intro")}
       </p>
 
-      <AppearancePicker appearance={appearance} onChange={setAppearance} />
+      <AppearancePicker
+        appearance={appearance}
+        onChange={setAppearance}
+        labels={{
+          reduceMotionHint: t("settings.appearance.pickerReduceMotionHint"),
+          colours: t("settings.appearance.pickerColors"),
+        }}
+      />
 
       <Section title={t("settings.appearance.backdropTitle")}>
         <div className="flex flex-col gap-1">

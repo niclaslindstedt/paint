@@ -84,7 +84,7 @@ export const en = {
     width: "Width",
     height: "Height",
     sizeHint: "Pixels, {min}–{max} on each side.",
-    pageColorLabel: "Page colour",
+    pageColorLabel: "Page color",
     pageColorTransparent: "Transparent",
     canvasTypeLabel: "Canvas type",
     grainLabel: "Grain: {value}%",
@@ -109,7 +109,7 @@ export const en = {
     crop: "Crop…",
     reset: "Start over",
     resetConfirm:
-      "Throw this drawing away and start over? Every mark and every layer go — the page keeps its colour. Undo still brings them back.",
+      "Throw this drawing away and start over? Every mark and every layer go — the page keeps its color. Undo still brings them back.",
     resetConfirmLabel: "Start over",
     flip: "Flip",
     flipLeft: "Quarter turn left",
@@ -182,9 +182,9 @@ export const en = {
       hint: "Scatters fine specks over what is already there, the way grain sits on film.",
       amount: "Strength: {value}%",
       grain: "Speck size: {value} px",
-      color: "Coloured specks",
+      color: "Colored specks",
       colorHint:
-        "Speckle the colours as well as the light. Off leaves the grey grain film does.",
+        "Speckle the colors as well as the light. Off leaves the gray grain film does.",
     },
     imageTitle: "Image",
     cutout: {
@@ -192,12 +192,12 @@ export const en = {
       hint: "Keeps what you traced with a selection tool and deletes everything else — the cut finds the subject's exact edge near your outline, so the tracing only has to be roughly right. Paint the tracing and the cut searches exactly the stripe you painted, so a finer pencil is a tighter search.",
       band: "Search width: {value} px either side",
       feather: "Feather: {value} px",
-      tolerance: "Colour tolerance: {value}%",
+      tolerance: "Color tolerance: {value}%",
       smoothness: "Smoothness: {value}%",
       noSubject:
         "Nothing is traced yet. The selection pencil is in your hand — put these options away with the button below, then paint roughly over the subject you want to keep. They stay open while you do, and the page shows the cut as you go. Roughly is fine: the cut searches the stripe you paint for the exact edge, so run the pencil along the border and pick a finer one where you want the cut held closer.",
     },
-    colorTitle: "Colour",
+    colorTitle: "Color",
     brightness: {
       name: "Brightness & contrast",
       hint: "Lifts or drops the light in the marks, and pushes the tones apart or pulls them together.",
@@ -232,13 +232,13 @@ export const en = {
     },
     hue: {
       name: "Hue & saturation",
-      hint: "Turns every colour around the wheel, and says how strong and how light they come out.",
+      hint: "Turns every color around the wheel, and says how strong and how light they come out.",
       hue: "Hue: {value}°",
       saturation: "Saturation: {value}%",
       lightness: "Lightness: {value}%",
     },
     balance: {
-      name: "Colour balance",
+      name: "Color balance",
       hint: "Warms or cools one end of the tonal range without moving the other two.",
       range: "Tones",
       rangeShadows: "Shadows",
@@ -249,11 +249,11 @@ export const en = {
       blue: "Yellow – Blue: {value}",
       luminosity: "Keep the light",
       luminosityHint:
-        "Shift the colours without changing how bright each pixel is.",
+        "Shift the colors without changing how bright each pixel is.",
     },
     desaturate: {
       name: "Desaturate",
-      hint: "Drains the colour out and leaves the light behind. All the way is a black-and-white picture.",
+      hint: "Drains the color out and leaves the light behind. All the way is a black-and-white picture.",
       amount: "Amount: {value}%",
     },
   },
@@ -333,7 +333,7 @@ export const en = {
       top: "Top",
       "top-right": "Top right",
       left: "Left",
-      center: "Centre",
+      center: "Center",
       right: "Right",
       "bottom-left": "Bottom left",
       bottom: "Bottom",
@@ -372,9 +372,9 @@ export const en = {
     placeImageKeep: "Keep",
     placeImageDiscard: "Discard",
     resizeImage: "Resize the image",
-    pageColor: "Page colour",
+    pageColor: "Page color",
     grid: "Grid",
-    color: "Colour",
+    color: "Color",
     size: "Size",
     // The cog beside the ink, for a tool whose settings are not a width — the
     // paint bucket (see `plugins/controls.ts`).
@@ -382,7 +382,7 @@ export const en = {
     fill: "Fill shapes",
     fillOutline: "Outline",
     fillFilled: "Filled",
-    mixColor: "Mix a colour…",
+    mixColor: "Mix a color…",
     hideMixer: "Hide the mixer",
     mixField: "Saturation and brightness",
     mixHue: "Hue",
@@ -415,7 +415,7 @@ export const en = {
     savePresetName: "Name",
     savePresetGlyph: "Mark",
     presetNoGlyph: "No mark",
-    savePresetPlaceholder: "My favourite pencil",
+    savePresetPlaceholder: "My favorite pencil",
     presetDefaultName: "Preset",
     presetSave: "Save",
     presetForget: "Forget",
@@ -537,7 +537,7 @@ export const en = {
     },
     soft: {
       name: "Softness: {value}%",
-      hint: "Which stick of wax: hard is a china marker, 100% the wax crayon, soft an oil pastel that slabs colour on.",
+      hint: "Which stick of wax: hard is a china marker, 100% the wax crayon, soft an oil pastel that slabs color on.",
     },
     press: {
       name: "Pressure: {value}%",
@@ -551,12 +551,12 @@ export const en = {
       hint: "How softly a Delete through the selection fades out — the edges and corners go gently instead of dead sharp.",
     },
     tolerance: {
-      name: "Colour tolerance: {value}%",
-      hint: "How far a colour may drift from the one you pressed and still be chosen. Tight picks out one exact shade; wide takes in a whole sky.",
+      name: "Color tolerance: {value}%",
+      hint: "How far a color may drift from the one you pressed and still be chosen. Tight picks out one exact shade; wide takes in a whole sky.",
     },
     sample: {
       name: "Sample: {value}",
-      hint: "How much page one press reads. Wider averages a textured passage into the colour it looks like.",
+      hint: "How much page one press reads. Wider averages a textured passage into the color it looks like.",
     },
     water: {
       name: "Water: {value}%",
@@ -564,11 +564,11 @@ export const en = {
     },
     pigment: {
       name: "Pigment: {value}%",
-      hint: "How much colour is in the water — a pale tint, or a full-strength stain.",
+      hint: "How much color is in the water — a pale tint, or a full-strength stain.",
     },
     granulation: {
       name: "Granulation: {value}%",
-      hint: "How heavily the pigment settles into the paper's dips. Rough stock and mineral colours mottle most.",
+      hint: "How heavily the pigment settles into the paper's dips. Rough stock and mineral colors mottle most.",
     },
   },
   // The tool options — the section under the dials in the same panel (see
@@ -719,7 +719,7 @@ export const en = {
     from: "From",
     mid: "Middle",
     to: "To",
-    none: "No {name} colour",
+    none: "No {name} color",
   },
   // The sheets a drawing can be laid on (see `ground.ts`). Named the way a
   // paper merchant names them — these are stocks you can buy, not adjectives —
@@ -739,20 +739,20 @@ export const en = {
   },
   grounds: {
     solid: {
-      name: "Solid colour",
-      hint: "Good for: digital art, flat colour, sharp lines and fills.",
+      name: "Solid color",
+      hint: "Good for: digital art, flat color, sharp lines and fills.",
     },
     hot: {
       name: "Hot-pressed",
-      hint: "Good for: detailed watercolour, pen and wash, botanical work.",
+      hint: "Good for: detailed watercolor, pen and wash, botanical work.",
     },
     cold: {
       name: "Cold-pressed",
-      hint: "Good for: watercolour, gouache, mixed media.",
+      hint: "Good for: watercolor, gouache, mixed media.",
     },
     rough: {
       name: "Rough",
-      hint: "Good for: expressive watercolour, dry brush, granulating washes.",
+      hint: "Good for: expressive watercolor, dry brush, granulating washes.",
     },
     cartridge: {
       name: "Cartridge",
@@ -782,7 +782,7 @@ export const en = {
     graphite: {
       name: "Pencil",
       description:
-        "A graphite sketching pencil. It only ever draws grey — set the lead from a hard, pale H to a soft, dark B.",
+        "A graphite sketching pencil. It only ever draws gray — set the lead from a hard, pale H to a soft, dark B.",
     },
     erasers: {
       name: "Rub out",
@@ -844,7 +844,7 @@ export const en = {
     selection: {
       name: "Select",
       description:
-        "Cut a window in the page — with a box, an oval, a lasso, by tracing what is painted under the pointer, by picking out a colour wherever it appears, by filling in a gap the selection has gone round, or by drawing it in with a nib. Press it again to choose which. Paint inside it and the mark is cut to it; drag it with the hand to carry what is painted there, or with the marquee to slide the window itself.",
+        "Cut a window in the page — with a box, an oval, a lasso, by tracing what is painted under the pointer, by picking out a color wherever it appears, by filling in a gap the selection has gone round, or by drawing it in with a nib. Press it again to choose which. Paint inside it and the mark is cut to it; drag it with the hand to carry what is painted there, or with the marquee to slide the window itself.",
     },
     select: {
       name: "Box select",
@@ -865,9 +865,9 @@ export const en = {
         "Press an area and the selection follows the contours of what is drawn there, rather than a shape you drew over it.",
     },
     selectMatch: {
-      name: "Colour select",
+      name: "Color select",
       description:
-        "Press a colour and everywhere else it appears on the page is chosen too — the tolerance dial says how far a shade may drift and still count. Where Trace select stops at the first edge, this one crosses the whole page, and it may be pressed on the bare paper: that chooses the background with your marks left out of it.",
+        "Press a color and everywhere else it appears on the page is chosen too — the tolerance dial says how far a shade may drift and still count. Where Trace select stops at the first edge, this one crosses the whole page, and it may be pressed on the bare paper: that chooses the background with your marks left out of it.",
     },
     selectGap: {
       name: "Gap select",
@@ -900,7 +900,7 @@ export const en = {
         "A one-stroke brush with a chisel ferrule: full width pulled across itself, a hairline pulled along its edge.",
     },
     watercolor: {
-      name: "Watercolour",
+      name: "Watercolor",
       description:
         "A wet wash on paper. It spreads past the hair, dries darkest at the rim, and every layer shows what is under it.",
     },
@@ -937,17 +937,17 @@ export const en = {
     filler: {
       name: "Paint bucket",
       description:
-        "Tap an empty space and it takes the colour, up to the marks around it.",
+        "Tap an empty space and it takes the color, up to the marks around it.",
     },
     gradient: {
       name: "Gradient",
       description:
-        "Press an area and drag: it fills with a ramp running the way you dragged, in its own two colours (or three).",
+        "Press an area and drag: it fills with a ramp running the way you dragged, in its own two colors (or three).",
     },
     dropper: {
-      name: "Colour dropper",
+      name: "Color dropper",
       description:
-        "Tap the page to draw with the colour you tapped. Set how much of it one tap reads.",
+        "Tap the page to draw with the color you tapped. Set how much of it one tap reads.",
     },
     image: {
       name: "Image",
@@ -1003,10 +1003,10 @@ export const en = {
         "What the app opens on: the sheet, the ink, and the tool in your hand. Deleting the last drawing hands you the same thing again.",
       page: "Page",
       pageHint:
-        "The colour of a page that was never given one of its own. A drawing you picked a colour for keeps it.",
+        "The color of a page that was never given one of its own. A drawing you picked a color for keeps it.",
       ink: "Ink",
       inkHint:
-        "The colour a mark is drawn in until you pick a swatch. Marks already drawn without a colour of their own follow it too.",
+        "The color a mark is drawn in until you pick a swatch. Marks already drawn without a color of their own follow it too.",
       tool: "Tool",
       toolHint: "What is in your hand on a page you have just been handed.",
       preset: "Preset",
@@ -1140,7 +1140,7 @@ export const en = {
       backgroundTitle: "Background",
       transparent: "Transparent background",
       transparentHint:
-        "Leave the page unpainted so the marks land on transparency. JPG has no transparency and always keeps the page colour; the eraser paints with the page colour, so erased areas stay opaque.",
+        "Leave the page unpainted so the marks land on transparency. JPG has no transparency and always keeps the page color; the eraser paints with the page color, so erased areas stay opaque.",
     },
     appearance: {
       intro: "Theme, fonts, and the look of the app chrome.",
@@ -1152,6 +1152,10 @@ export const en = {
       levelMedium: "Medium",
       levelStrong: "Strong",
       darknessDark: "Dark",
+      // The two framework picker labels whose defaults are British; the rest
+      // of the picker keeps the framework's own wording.
+      pickerReduceMotionHint: "Minimize animations and transitions.",
+      pickerColors: "Colors",
     },
     storage: {
       intro:
@@ -1289,7 +1293,7 @@ export const en = {
     nameLabel: "Name",
     create: "Create",
     nameRequired: "Give it a name first.",
-    colorLabel: "Colour",
+    colorLabel: "Color",
     glyphLabel: "Glyph",
     glyphNone: "None",
     save: "Save",

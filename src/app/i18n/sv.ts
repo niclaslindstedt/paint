@@ -1045,6 +1045,8 @@ export const sv: Catalog = {
       levelMedium: "Mellan",
       levelStrong: "Stark",
       darknessDark: "Mörk",
+      pickerReduceMotionHint: "Minimera animationer och övergångar.",
+      pickerColors: "Färger",
     },
     storage: {
       intro:
