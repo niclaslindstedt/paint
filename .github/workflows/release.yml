@@ -287,6 +287,8 @@ jobs:
           # HOC: it runs natively and the user answers one Gatekeeper prompt.
           # With MAC_CSC_LINK the certificate is imported and the app signed
           # with it, and with the APPLE_ID trio as well it is notarized.
+          # package-desktop hands the certificate to
+          # .github/actions/apple-signing, the one place it is imported.
           apple-certificate: ${{ secrets.MAC_CSC_LINK }}
           apple-certificate-password: ${{ secrets.MAC_CSC_KEY_PASSWORD }}
           apple-signing-identity: ${{ secrets.MAC_SIGN_IDENTITY }}

@@ -151,6 +151,8 @@ jobs:
           # Signed and notarized exactly as a release is, so a wrong
           # certificate or app-specific password shows up here rather than
           # after a version is tagged. Absent secrets package ad hoc.
+          # package-desktop hands the certificate to
+          # .github/actions/apple-signing, the one place it is imported.
           apple-certificate: ${{ secrets.MAC_CSC_LINK }}
           apple-certificate-password: ${{ secrets.MAC_CSC_KEY_PASSWORD }}
           apple-signing-identity: ${{ secrets.MAC_SIGN_IDENTITY }}

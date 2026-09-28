@@ -56,7 +56,8 @@ jobs:
       # Expo's own health check: dependency versions against the SDK, config
       # schema, duplicate native modules. It reads the config the way EAS will,
       # so a drift it catches here would otherwise surface as a failed build.
-      - run: npm run doctor
+      - name: expo-doctor
+        run: npm run doctor
 
   changeset:
     # Enforces that every PR touching user-visible code drops a
