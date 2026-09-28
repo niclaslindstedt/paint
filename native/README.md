@@ -74,6 +74,7 @@ for nothing. Never edit them.
 make native-install      # or: npm --prefix native install
 make native-bundle       # build the web app into assets/webroot.zip
 make native-typecheck
+make native-doctor       # expo-doctor, as CI runs it
 make native-prebuild     # inspect what the config plugin generates
 ```
 

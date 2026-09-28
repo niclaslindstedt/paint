@@ -65,6 +65,7 @@ The phone and tablet wrapper in `native/` has a **dependency tree of its own**
 make native-install    # npm --prefix native install
 make native-bundle     # build the web app into native/assets/webroot.zip
 make native-typecheck  # the wrapper's own tsc
+make native-doctor     # expo-doctor over the wrapper, as CI runs it
 make native-prebuild   # inspect what the config plugin generates
 ```
 

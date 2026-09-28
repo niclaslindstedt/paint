@@ -122,7 +122,7 @@ build without it launches to a blank screen.
 ## Checklist before a store build
 
 - [ ] `make lint && make test && make build` is green at the repo root.
-- [ ] `make native-typecheck` is green.
+- [ ] `make native-typecheck` and `make native-doctor` are green.
 - [ ] `EXPO_PUBLIC_PAINT_URL` is **unset** — a build that streams the
       website is the exact shape App Store guideline 4.2 rejects.
 - [ ] The version in the root `package.json` is the one you mean to ship.
