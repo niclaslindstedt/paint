@@ -8,12 +8,12 @@ import {
   IconButton,
   type FloatingPlacement,
 } from "@niclaslindstedt/oss-framework/components";
-import { downloadBlob } from "@niclaslindstedt/oss-framework/files";
+import { saveFile } from "@niclaslindstedt/oss-framework/files";
 
 import {
   copyDrawingToClipboard,
-  drawingToBlob,
   exportFileName,
+  saveDrawing,
   type DownloadFormat,
   type ExportOptions,
 } from "./export.ts";
@@ -36,7 +36,10 @@ import type { Drawing } from "./types.ts";
 //
 // Settings → Download owns *which* rows are here and what they produce (the
 // whole page or a crop of the marks, on the page colour or on transparency);
-// this component owns the menu and the file that comes out of it.
+// this component owns the menu and the file that comes out of it. A file
+// leaves through the framework's `saveFile` — a download on the web, the share
+// sheet in the phone app — never through a hand-clicked download link, which
+// goes nowhere inside the app's WebView.
 
 // The menu hangs under the header button and is right-aligned with it — the
 // button sits at the right end of the header, so a left-anchored panel would
@@ -66,8 +69,8 @@ export function DownloadMenu({ drawing, options, formats }: Props) {
     setOpen(false);
     const name = exportFileName(drawing, format);
     try {
-      downloadBlob(name, await drawingToBlob(drawing, format, options));
-      log.info(`export: wrote ${name}`);
+      const how = await saveDrawing(drawing, format, options);
+      log.info(`export: ${how} ${name}`);
     } catch (err) {
       output.error(
         `Couldn't export the ${format.toUpperCase()} — ${message(err)}`,
@@ -85,14 +88,14 @@ export function DownloadMenu({ drawing, options, formats }: Props) {
     const { writePct } = await import("./pctFile.ts");
     const name = exportFileName(drawing, PCT_EXTENSION);
     try {
-      downloadBlob(
-        name,
-        await writePct(drawing, {
+      const how = await saveFile({
+        blob: await writePct(drawing, {
           pageColor: options.pageColor,
           defaultInk: options.defaultInk,
         }),
-      );
-      log.info(`export: wrote ${name}`);
+        filename: name,
+      });
+      log.info(`export: ${how} ${name}`);
     } catch (err) {
       output.error(`Couldn't write the paint file — ${message(err)}`);
     }

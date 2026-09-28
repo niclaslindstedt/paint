@@ -60,7 +60,8 @@ const SW_TEARDOWN = `
 /**
  * The script injected BEFORE the page loads.
  *
- * Only the service-worker teardown goes here, and it has to: a worker that has
+ * Of this file's work only the service-worker teardown goes here (`App.tsx`
+ * puts the save-file descriptor beside it), and it has to: a worker that has
  * already claimed the page is answering fetches by the time the document
  * fires `load`, so unregistering it after the fact leaves this launch on the
  * stale bundle. Reporting waits for the page, since there is no theme to read

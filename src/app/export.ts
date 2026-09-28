@@ -3,13 +3,20 @@
 //
 // Two exits, both offline: the whole document as JSON (the same bytes the sync
 // backends carry, so an export is a portable backup), and the open page as an
-// image — PNG, JPG, or SVG, downloaded or put straight on the clipboard.
+// image — PNG, JPG, or SVG, saved as a file or put straight on the clipboard.
+// A file leaves through the framework's `saveFile`: a download in a browser,
+// the share sheet in the phone app, where a download has nowhere to go.
 //
 // Every one of those goes through the *same* renderer the screen uses: the
 // raster formats paint onto an off-screen canvas at the document's own pixel
 // size, and the SVG paints onto a recording context that writes elements
 // instead of pixels (see `svg.ts`). So what lands in the file is exactly what
 // was on screen — there is no second painting path to drift.
+
+import {
+  saveFile,
+  type SaveFileOutcome,
+} from "@niclaslindstedt/oss-framework/files";
 
 import { clipToPage, drawingBounds, padBox, type Box } from "./bounds.ts";
 import { preloadDrawingImages } from "./images.ts";
@@ -210,6 +217,21 @@ export async function drawingToPng(
     ...ink,
     scope: "page",
     transparent: false,
+  });
+}
+
+/** Save the drawing as a `<drawing-name>.<format>` file — the download menu's
+ *  rows. A download on the web; in the phone app the shell advertises
+ *  `save-file` and the file goes to the share sheet instead. Rejects when the
+ *  render or the shell fails, so the caller can say so. */
+export async function saveDrawing(
+  drawing: Drawing,
+  format: DownloadFormat,
+  options: ExportOptions,
+): Promise<SaveFileOutcome> {
+  return saveFile({
+    blob: await drawingToBlob(drawing, format, options),
+    filename: exportFileName(drawing, format),
   });
 }
 

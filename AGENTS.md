@@ -222,7 +222,13 @@ none, and the backend is not offered. The same holds for signing in to
 Dropbox: the wrapper installs an authentication-session provider at
 `window.__ossAuthSession` (the framework's name), the framework's
 `getAuthSessionHost()` finds it, and `connectDropboxAuthSession` signs in
-through a sheet over the app; a browser has none and keeps its redirect. The wrapper moves opaque files; the
+through a sheet over the app; a browser has none and keeps its redirect.
+Exports work the same way: every file the app hands the user goes through the
+framework's `saveFile` (never `downloadBlob` or a hand-clicked `download`
+link, which save nothing inside a WebView — `tests/save_file_test.ts` keeps
+them out), and the wrapper advertises `save-file` in `window.__ossShell`, so
+`saveFile` sends the bytes to the share sheet (`native/src/saveFileBridge.ts`)
+instead of downloading them. The wrapper moves opaque files; the
 document's name, the `images/` and `drawings/` layout and when a save is due
 stay in `src/app/useSyncEngine.ts`. See [`native/README.md`](native/README.md).
 

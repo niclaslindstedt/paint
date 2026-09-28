@@ -19,11 +19,7 @@ import {
   type PwaUpdate,
   type PwaUpdateCheckResult,
 } from "@niclaslindstedt/oss-framework/pwa";
-import {
-  downloadBlob,
-  downloadText,
-  MIME_JSON,
-} from "@niclaslindstedt/oss-framework/files";
+import { MIME_JSON, saveFile } from "@niclaslindstedt/oss-framework/files";
 
 import { defaultInk, isDarkColor, resolvePageColor } from "../canvas.ts";
 import { drawingToPng, exportFileName } from "../export.ts";
@@ -34,6 +30,7 @@ import { log, logStore } from "../log.ts";
 import { serializeDoc } from "../migrations.ts";
 import { allPlugins } from "../plugins/registry.ts";
 import { applyBackdropVars } from "../useAppSettings.ts";
+import * as output from "../../output.ts";
 import type {
   AppSettings,
   BackdropBlur,
@@ -293,9 +290,18 @@ export function StorageTab({
   // worth explaining rather than leaving the picker silently stuck.
   const missingKey = pickedCloud === "dropbox" && !DROPBOX_APP_KEY;
 
+  // Both leave through `saveFile`: a download on the web, the share sheet in
+  // the phone app, where a download has nowhere to go.
   const exportJson = () => {
-    downloadText("paint.json", serializeDoc(store.data), MIME_JSON);
-    log.info("export: wrote paint.json");
+    saveFile({
+      text: serializeDoc(store.data),
+      filename: "paint.json",
+      mimeType: MIME_JSON,
+    }).then(
+      (how) => log.info(`export: ${how} paint.json`),
+      (err: unknown) =>
+        output.error(`Couldn't export paint.json — ${reason(err)}`),
+    );
   };
   const exportPng = () => {
     const drawing = store.activeDrawing;
@@ -306,10 +312,15 @@ export function StorageTab({
       // Inked against the page in the file, not against the app around it — the
       // exported PNG has no theme (see `defaultInk`).
       defaultInk: defaultInk(isDarkColor(pageColor)),
-    }).then((blob) => {
-      downloadBlob(exportFileName(drawing, "png"), blob);
-      log.info("export: wrote the page as PNG");
-    });
+    })
+      .then((blob) =>
+        saveFile({ blob, filename: exportFileName(drawing, "png") }),
+      )
+      .then(
+        (how) => log.info(`export: ${how} the page as PNG`),
+        (err: unknown) =>
+          output.error(`Couldn't export the PNG — ${reason(err)}`),
+      );
   };
 
   return (
@@ -738,6 +749,11 @@ export function DeveloperTab({
       </Section>
     </div>
   );
+}
+
+/** What went wrong, for the log line. */
+function reason(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
 }
 
 // --- Logs ------------------------------------------------------------------

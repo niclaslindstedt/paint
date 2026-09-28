@@ -136,5 +136,9 @@ build without it launches to a blank screen.
 - [ ] Settings → Storage → Dropbox → Connect opens Dropbox in a sheet over
       the app (not in Safari), and approving closes the sheet and connects.
       Closing the sheet instead leaves nothing connected.
+- [ ] The header's download menu → PNG opens the share sheet, and **Save to
+      Files** writes `<drawing-name>.png`; the same for JPG, SVG and the
+      `.pct`, and for Settings → Storage → Export (`paint.json`). Nothing opens
+      Safari.
 - [ ] On a device signed OUT of iCloud: the backend explains itself rather than
       failing on the first save.

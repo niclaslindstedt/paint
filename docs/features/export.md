@@ -26,6 +26,10 @@ All four are rendered through the _same_ renderer that paints the screen, so wha
 lands in the file is what you saw. The on-screen grid is the one exception — the
 export simply doesn't ask for it, so it never appears.
 
+**In the phone app** a file has nowhere to download to, so each of these rows
+opens the share sheet instead, with the file already named: save it to Files,
+AirDrop it, or hand it to another app. The website keeps its download.
+
 ## Settings → Download
 
 Three choices, and they apply to every download and to the clipboard alike.
