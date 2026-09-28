@@ -117,7 +117,7 @@ const ABOUT_PLACEMENT: FloatingPlacement = {
 
 // The project links the footer surfaces; the Donate target, the website's
 // alone, lives in `./donate.ts`. The Source row is the website's alone too: an
-// app build carries no link back to the source (owner decision D17). Both
+// app build carries no link back to the source (by owner decision). Both
 // flags are compile-time constants, so there the row and its URL are folded
 // out of the bundle rather than hidden.
 const SOURCE_URL: string | null =

@@ -190,7 +190,7 @@ The phone wrapper's site build is the same shape of thing and passes it too,
 plus `VITE_NATIVE_BUILD=on` (`__NATIVE_BUILD__`), which leaves out the Donate
 row: no build but the website may carry a payment link outside Apple's (App
 Store guideline 3.1.1; `src/app/donate.ts`). Either flag also leaves out every link back to the
-source (owner decision D17) — the About dropdown's Source row, the privacy
+source (by owner decision) — the About dropdown's Source row, the privacy
 page's issue tracker, advisories and commit history, the web edition's
 address, the Open Graph tags naming it, `CNAME` and `og.png`, and GitHub links
 in the What's new markdown (`websiteOnly` in `vite.config.ts`) — and both

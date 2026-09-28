@@ -170,7 +170,7 @@ const shellBuild = process.env.VITE_SHELL_BUILD === "on";
 const nativeBuild = process.env.VITE_NATIVE_BUILD === "on";
 
 // Together the two flags also keep every link back to the source out of the
-// apps (owner decision D17): the About dropdown's Source row, the privacy
+// apps (by owner decision): the About dropdown's Source row, the privacy
 // page's issue tracker and security advisories, and — through `websiteOnly`
 // below — the web edition's address.
 const appBuild = shellBuild || nativeBuild;
@@ -182,7 +182,7 @@ const appBuild = shellBuild || nativeBuild;
 // store shows. The website stays `APP_NAME` whatever the environment holds.
 const appName = appDisplayName(appBuild, process.env.APP_DISPLAY_NAME);
 
-// What only the website carries, left out of an app build (D17): the Open
+// What only the website carries, left out of an app build (by owner decision): the Open
 // Graph and Twitter tags in `index.html` that point at the web edition's
 // address, the two public files that exist for them and for Pages — the share
 // card (`og.png`) and the custom-domain file (`CNAME`) — and, in the markdown

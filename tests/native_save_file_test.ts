@@ -66,7 +66,7 @@ describe("the descriptor", () => {
   });
 
   it("makes the page count as standalone on a phone, like an installed app", () => {
-    // D29: the framework's shell detection. No `matchMedia` in node, so a
+    // The framework's shell detection. No `matchMedia` in node, so a
     // phone's browser tab is not standalone and the shell alone makes it so.
     vi.stubGlobal("navigator", {
       userAgent:

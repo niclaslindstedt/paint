@@ -10,7 +10,7 @@
 // `web-build.mts`). `VITE_NATIVE_BUILD=on` is about the channel: it compiles
 // out the sidebar's Donate row, which only the website may carry (App Store
 // guideline 3.1.1; see `src/app/donate.ts`), and every link back to the
-// source, which only the website carries either (owner decision D17): the
+// source, which only the website carries either (by owner decision): the
 // About dropdown's Source row, the privacy page's issue tracker, the web
 // edition's address. `VITE_SHELL_BUILD=on` is about the medium, and is the
 // desktop shell's flag: the site ships inside the binary, so it has no service
@@ -150,7 +150,7 @@ function assertNoDonateLink(files) {
 
 assertNoDonateLink(files);
 
-/** Refuse a webroot that links back to the source (owner decision D17): no
+/** Refuse a webroot that links back to the source (by owner decision): no
  *  GitHub repository, issues, releases or sponsor link, and not the author's
  *  handle anywhere — web-edition address, package name or meta tag included.
  *  The website keeps those; the app has none. Every file but a binary asset is

@@ -13,8 +13,8 @@
 // here would precache a copy of files already on local disk and poll a
 // `version.json` that never changes. It also switches the in-app update prompt
 // off, which would otherwise be a toast nobody can act on. And, being a build
-// that is not the website, it leaves out every link back to the source (owner
-// decision D17), the web edition's address included.
+// that is not the website, it leaves out every link back to the source (by owner
+// decision), the web edition's address included.
 //
 // That is BUILD-TIME, so `--skip-build` copies whatever the last build left in
 // `dist/` — a webroot re-copied from a plain `npm run build` carries the
@@ -70,7 +70,7 @@ if (!existsSync(join(DIST_DIR, "index.html"))) {
   process.exit(1);
 }
 
-// Refuse a site build that links back to the source (owner decision D17): no
+// Refuse a site build that links back to the source (by owner decision): no
 // GitHub repository, issues, releases or sponsor link, and not the author's
 // handle anywhere — web-edition address, package name or meta tag included.
 // The website keeps those; the app has none, and `VITE_SHELL_BUILD` is what
