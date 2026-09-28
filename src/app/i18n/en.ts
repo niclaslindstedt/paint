@@ -4,7 +4,7 @@
 // (`./index.ts`) flattens it to dotted keys (`menu.drawings`, …) that `t()`
 // resolves.
 //
-// oss-spec:allow-large-file: a message catalogue is a lookup table that grows
+// guidelines:allow-large-file: a message catalogue is a lookup table that grows
 // one line per string the app says, and this one is also the *type* every other
 // language must satisfy — splitting the object would split that contract, and
 // leave "which file is this key in?" as a question before every new string.

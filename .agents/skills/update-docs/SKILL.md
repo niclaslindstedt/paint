@@ -5,8 +5,6 @@ description: "Use when files under docs/ may be stale. Discovers commits since t
 
 # Updating the Docs
 
-**Governing spec sections:** §11.1 (`docs/` directory — the required conceptual docs tree), §21.5 (this skill is mandated because `docs/` is a drift-prone artifact in every project).
-
 The `docs/` directory contains conceptual documentation for paint. Unlike the README (overview) or man pages (command reference), `docs/` explains _why_ and _how_ in depth. It goes stale whenever a user-visible behavior, configuration key, or supported surface changes without a matching edit.
 
 ## Tracking mechanism

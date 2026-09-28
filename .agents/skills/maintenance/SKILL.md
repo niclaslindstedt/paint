@@ -5,7 +5,7 @@ description: "Use when you want to bring every drift-prone artifact in the paint
 
 # Maintenance
 
-This is the umbrella skill for paint, mandated by §21.6 of `OSS_SPEC.md`. It does no rewriting itself — it decides which sync skills are stale, runs each one, and reports a combined summary. Use it when you do not know which specific artifact is out of date, or when several have likely drifted at once (for example, after a large merge).
+This is the umbrella skill for paint. It does no rewriting itself — it decides which sync skills are stale, runs each one, and reports a combined summary. Use it when you do not know which specific artifact is out of date, or when several have likely drifted at once (for example, after a large merge).
 
 ## When to run
 
@@ -19,12 +19,12 @@ Do **not** use this skill for a targeted fix — if you know exactly which artif
 
 The registry is the single source of truth for which sync skills exist in this repo. Every `update-*` directory under `.agents/skills/` must appear here exactly once. Add a row whenever you create a new sync skill.
 
-| Skill           | Fixes                                      | Spec sections | Run order |
-| --------------- | ------------------------------------------ | ------------- | --------- |
-| `update-docs`   | `docs/*.md` vs. the source of truth        | §11.1         | 1         |
-| `update-readme` | `README.md` vs. the current public surface | §3            | 2         |
+| Skill           | Fixes                                      | Run order |
+| --------------- | ------------------------------------------ | --------- |
+| `update-docs`   | `docs/*.md` vs. the source of truth        | 1         |
+| `update-readme` | `README.md` vs. the current public surface | 2         |
 
-Run order matters: `update-docs` runs first because `README.md` links into `docs/`, so the README pass should read docs that are already current. A future `update-website` would run last — but note that in this project **the app is the website** (§11.2 / §11.5), so "the website" means the `<head>` copy in `index.html`, which `update-docs` covers.
+Run order matters: `update-docs` runs first because `README.md` links into `docs/`, so the README pass should read docs that are already current. There is no website skill: in this project **the app is the website**, so "the website" means the `<head>` copy in `index.html`, which `update-docs` covers. Name only skills that exist in this section — every backticked sync-skill name here is read as a registry row.
 
 ## Tracking mechanism
 

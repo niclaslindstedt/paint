@@ -55,7 +55,7 @@ commit on `main` and must follow the same format.
 ### Testing expectations
 
 - Tests live in `tests/`, never inline in source files, and are named with a
-  `_test` suffix (`plugins_test.ts`) per §20.2 of `OSS_SPEC.md`.
+  `_test` suffix (`plugins_test.ts`).
 - New domain logic — a tool behaviour, a migration step, a pure helper — comes
   with tests. Tool behaviours are pure by construction, so a whole gesture can
   be driven without a browser.

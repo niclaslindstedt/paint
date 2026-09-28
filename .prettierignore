@@ -6,8 +6,6 @@ package-lock.json
 # collated sections are machine-written, so they aren't held to Prettier's
 # style (and must never be hand-edited to satisfy it).
 CHANGELOG.md
-# Verbatim copy of the governing spec.
-OSS_SPEC.md
 # The desktop shell's build output and the site copied into it.
 tauri/target/
 tauri/webroot/

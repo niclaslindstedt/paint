@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 // The Swedish catalog — code-split and loaded on demand (see `./index.ts`).
 //
-// oss-spec:allow-large-file: it satisfies `Catalog`, so it is `en.ts` line for
+// guidelines:allow-large-file: it satisfies `Catalog`, so it is `en.ts` line for
 // line — see the note there.
 
 import type { Catalog } from "./en.ts";

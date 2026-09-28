@@ -5,9 +5,7 @@ description: "Use when README.md may be stale. Discovers commits since the last 
 
 # Updating the README
 
-**Governing spec sections:** §3 (`README.md` — required sections and content), §21.5 (this skill is mandated because `README.md` is a drift-prone artifact).
-
-`README.md` is the primary user-facing documentation for paint. Per §3 of `OSS_SPEC.md` it must cover the project description, installation, a quick-start, usage, contribution pointer, license, and a link to `OSS_SPEC.md`. It goes stale whenever a CLI flag, subcommand, default, or supported surface changes without a matching edit.
+`README.md` is the primary user-facing documentation for paint. It says what the app is in one sentence, then how to build, run and test it, the storage it offers and where the docs are. It goes stale whenever a CLI flag, subcommand, default, or supported surface changes without a matching edit.
 
 ## Tracking mechanism
 

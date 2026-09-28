@@ -264,8 +264,8 @@ A new skill lands in one of the two tables AGENTS.md keeps, and they are not
 interchangeable: a **sync** skill (`update-*`) also gets a `.last-updated`
 baseline and a row in the `maintenance` skill's Registry; a **craft** skill —
 this one, `glyph-design` — gets no row, because it keeps no artifact in sync,
-and an empty `.last-updated` ("never run"), because §21.4 asks every skill
-directory for one.
+and an empty `.last-updated` ("never run"), because every skill directory
+carries one.
 
 ---
 

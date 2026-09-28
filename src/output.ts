@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-// The central output module (OSS_SPEC §19.4): every user-facing diagnostic
+// The central output module: every user-facing diagnostic
 // line the app emits goes through these semantic helpers rather than bare
 // `console.*` calls. They fan out to the in-app log buffer (the Logs settings
 // tab renders it live) so "what did the app just do?" is answerable on-device.

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-// oss-spec:allow-large-file: split when next touched; known deviation by owner decision
+// guidelines:allow-large-file: split when next touched; known deviation by owner decision
 import { useCallback } from "react";
 
 import { useLocalStorageState } from "@niclaslindstedt/oss-framework/hooks";

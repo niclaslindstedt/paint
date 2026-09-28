@@ -8,7 +8,7 @@ import { APP_NAME, CHANNEL_NAMES } from "./brand.ts";
 import { cacheIdForBase } from "./src/app/pwa.ts";
 
 // The UA chrome tint. The manifest's `theme_color` and the shell's
-// `<meta name="theme-color">` must agree (OSS_SPEC §11.4.1), so both are
+// `<meta name="theme-color">` must agree, so both are
 // written from this one value.
 const THEME_COLOR = "#0b0d10";
 

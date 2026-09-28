@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-// oss-spec:allow-large-file: split when next touched; known deviation by owner decision
+// guidelines:allow-large-file: split when next touched; known deviation by owner decision
 // What Delete background keeps: the subject, found from a rough tracing of it.
 //
 // The user paints roughly over the subject and this module finds where the
