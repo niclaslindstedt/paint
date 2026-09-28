@@ -72,7 +72,9 @@ export const en = {
       screen: "This screen",
       hd: "Full HD",
       uhd: "4K",
-      print: "A4",
+      // The print preset is named for the sheet it is (`sizePresetName`).
+      a4: "A4",
+      letter: "Letter",
     },
     custom: "Custom",
     customEmpty: "Type a size",

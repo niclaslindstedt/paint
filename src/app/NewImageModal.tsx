@@ -25,6 +25,7 @@ import {
 
 import {
   currentScreenCanvasSize,
+  devicePaper,
   CUSTOM_CANVAS,
   flipOrientation,
   MAX_CANVAS_SIDE,
@@ -271,6 +272,9 @@ export function NewImageModal({
   // The screen is read once, when the dialog opens: it is the default answer,
   // and it can't change while the dialog is in front of you.
   const [screen] = useState(currentScreenCanvasSize);
+  // Which sheet the print preset is — A4, or Letter where that is the paper
+  // (see `paperFor`). Read once, like the screen.
+  const [paper] = useState(devicePaper);
   // …and which way round the shelf stands, which starts as which way round that
   // screen is. Every size is turned to face it, so a phone held upright offers
   // upright pages instead of asking for the one it is obviously being asked for
@@ -284,12 +288,12 @@ export function NewImageModal({
   const shelf = useMemo(
     () =>
       canvasShelf(
-        sizePresets(screen, orientation),
+        sizePresets(screen, orientation, paper),
         hiddenSizes,
         canvasPresets,
         orientation,
       ),
-    [screen, orientation, hiddenSizes, canvasPresets],
+    [screen, orientation, paper, hiddenSizes, canvasPresets],
   );
   const [source, setSource] = useState<Source>("blank");
   // Which cell of the shelf is in hand — by id, with the page it stands for and

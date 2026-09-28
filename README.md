@@ -172,7 +172,7 @@ the same [`oss-framework`](https://github.com/niclaslindstedt/oss-framework).
 - **A page the size you meant.** New asks what the drawing is made of — an empty
   page, an image from disk, or whatever is on the clipboard — and, for an empty
   one, how big it is. The four sizes are _drawn_ at one shared scale (this
-  screen, Full HD, 4K, A4), so you pick by comparing rectangles rather than by
+  screen, Full HD, 4K, and A4 or US Letter, whichever your device prints on), so you pick by comparing rectangles rather than by
   reading numbers. The page is fixed after that, so the sketch looks the same
   everywhere it opens.
 - **Layers, from the first stroke.** Every drawing opens as a locked

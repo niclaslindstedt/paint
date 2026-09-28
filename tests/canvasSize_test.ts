@@ -4,6 +4,10 @@ import { describe, expect, it } from "vitest";
 import {
   MAX_CANVAS_SIDE,
   MIN_CANVAS_SIDE,
+  PAPER_SIZES,
+  allSizePresets,
+  paperFor,
+  sizePresetName,
   sizePresets,
   clampCanvasSize,
   clampSide,
@@ -240,5 +244,59 @@ describe("previewScale", () => {
     const hd = presets.find((p) => p.id === "hd")!;
     const uhd = presets.find((p) => p.id === "uhd")!;
     expect(uhd.size.width * scale).toBeCloseTo(hd.size.width * scale * 2, 6);
+  });
+});
+
+describe("the print preset follows the device's paper", () => {
+  const laptop = { width: 2560, height: 1440 };
+
+  it("is Letter, 8½ × 11 in at 300 ppi, on a US device", () => {
+    expect(PAPER_SIZES.letter).toEqual({ width: 2550, height: 3300 });
+    expect(paperFor(["en-US"])).toBe("letter");
+    const print = sizePresets(laptop, "portrait", "letter").find(
+      (p) => p.id === "print",
+    )!;
+    expect(print.size).toEqual({ width: 2550, height: 3300 });
+    expect(sizePresetName(print)).toBe("letter");
+  });
+
+  it("is A4 in the rest of the world, and where nothing says otherwise", () => {
+    expect(paperFor(["sv-SE", "en-US"])).toBe("a4");
+    expect(paperFor(["en-GB"])).toBe("a4");
+    expect(paperFor([])).toBe("a4");
+    const print = sizePresets(laptop).find((p) => p.id === "print")!;
+    expect(print.size).toEqual({ width: 3508, height: 2480 });
+    expect(sizePresetName(print)).toBe("a4");
+  });
+
+  it("goes by the country, not the language", () => {
+    // A Swede whose phone is in English still prints on A4; a Mexican whose
+    // phone is in Spanish prints on Letter, as does all of Canada.
+    expect(paperFor(["en-SE"])).toBe("a4");
+    expect(paperFor(["es-MX"])).toBe("letter");
+    expect(paperFor(["fr-CA"])).toBe("letter");
+    // A bare `en` is most likely the US.
+    expect(paperFor(["en"])).toBe("letter");
+    expect(paperFor(["sv"])).toBe("a4");
+  });
+
+  it("names the sheet by its size, whichever way it is turned", () => {
+    for (const paper of ["a4", "letter"] as const) {
+      for (const orientation of ["portrait", "landscape"] as const) {
+        const print = allSizePresets(laptop, orientation, paper).find(
+          (p) => p.id === "print",
+        )!;
+        expect(sizePresetName(print)).toBe(paper);
+      }
+    }
+    expect(
+      sizePresetName({ id: "hd", size: { width: 1920, height: 1080 } }),
+    ).toBe("hd");
+  });
+
+  it("keeps the preset's id, so a hidden print size stays hidden", () => {
+    const ids = (paper: "a4" | "letter") =>
+      allSizePresets(laptop, "landscape", paper).map((p) => p.id);
+    expect(ids("letter")).toEqual(ids("a4"));
   });
 });

@@ -4,6 +4,7 @@ import { FlipIcon, ToolboxIcon } from "./icons.tsx";
 import {
   CUSTOM_CANVAS,
   previewScale,
+  sizePresetName,
   type CanvasSize,
   type Orientation,
 } from "./canvasSize.ts";
@@ -146,7 +147,7 @@ export function SizeShelf({
               }`}
             >
               {item.kind === "size"
-                ? t(`newImage.presets.${item.id}`)
+                ? t(`newImage.presets.${sizePresetName(item)}`)
                 : item.name}
             </span>
             <span className="text-[10px] whitespace-nowrap text-muted tabular-nums">

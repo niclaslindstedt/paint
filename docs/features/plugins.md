@@ -532,7 +532,8 @@ The new-image dialog's **A4** preset is the one number here that is _not_ on
 this scale, and deliberately: it answers a different question — how many pixels
 a sheet needs to **print** sharply. Photo labs and consumer inkjets want image
 data at 300 ppi (the 1440 and 5760 dpi on the box are ink droplets, not pixels),
-so A4 is 2480 × 3508 whatever the page's own scale is. That rectangle measures
+so A4 is 2480 × 3508 (and Letter, where the device prints on it, 2550 × 3300)
+whatever the page's own scale is. That rectangle measures
 137 × 194 mm in the app and 210 × 297 mm on the paper; both are true of the same
 pixels, and which you mean depends on whether you are looking at the glass or at
 the print.

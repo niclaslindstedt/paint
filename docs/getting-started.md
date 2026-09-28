@@ -283,8 +283,8 @@ will say about the clipboard: where a page may look freely the tab appears only
 when there is actually something to paste, and where it may not — Safari, and so
 every drawing app installed to an iPhone home screen — the tab holds a **Paste
 from clipboard** button, and the browser puts up its own Paste to confirm. An empty one asks how big it
-is, and the sizes are drawn rather than listed: this screen, Full HD, 4K, A4 and
-one you type, all at one shared scale, so you can see how much bigger 4K is
+is, and the sizes are drawn rather than listed: this screen, Full HD, 4K, A4 (Letter
+on a device set to the US or another Letter country) and one you type, all at one shared scale, so you can see how much bigger 4K is
 before you pick it. They all stand **the way your screen does** — hold a phone
 upright and every one of them is upright, A4 included — and **Flip**, the last
 cell of the shelf, turns the whole row over at once, the one you have already

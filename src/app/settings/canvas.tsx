@@ -11,6 +11,8 @@ import {
 import {
   currentScreenCanvasSize,
   allSizePresets,
+  devicePaper,
+  sizePresetName,
   type SizePreset,
 } from "../canvasSize.ts";
 import {
@@ -71,7 +73,7 @@ export function CanvasTab({
   // turns to face the screen, but a settings list that flipped with the phone
   // would be a list whose rows changed shape in your hand.
   const [sizes] = useState<SizePreset[]>(() =>
-    allSizePresets(currentScreenCanvasSize()),
+    allSizePresets(currentScreenCanvasSize(), undefined, devicePaper()),
   );
 
   const presets = settings.canvasPresets;
@@ -119,7 +121,7 @@ export function CanvasTab({
         <ul className="flex flex-col gap-1">
           {sizes.map((preset) => {
             const off = hidden.includes(preset.id);
-            const name = t(`newImage.presets.${preset.id}`);
+            const name = t(`newImage.presets.${sizePresetName(preset)}`);
             return (
               <li key={preset.id}>
                 <ShelfRow

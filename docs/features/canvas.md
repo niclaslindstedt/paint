@@ -11,6 +11,12 @@ is made: **New image** asks how big the page should be before it opens one.
 | **A4**          | 2480 × 3508 — A4 at 300 dpi, the resolution a photo printer wants |
 | **Custom**      | Type a width and a height, 64–8192 px on each side                |
 
+The paper follows your device: where Letter is the standard sheet — the United
+States, Canada, Mexico and the rest of the Americas that print on it, and the
+Philippines — the paper size is **Letter** instead, 2550 × 3300, which is 8½ × 11
+inches at the same 300 dpi. The app reads the country off your device's
+languages, so an English-speaking phone set to Sweden still gets A4.
+
 They are **drawn rather than listed**: five rectangles at one shared scale, so
 "how much bigger is 4K than Full HD" and "is A4 taller than my screen" are
 questions you answer by looking. The custom cell is drawn too — type a size and

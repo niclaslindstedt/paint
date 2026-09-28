@@ -10,6 +10,7 @@
 // Pure by design. The picker (`NewDrawingModal.tsx`) reads the screen once and
 // hands it in, so every rule below can be driven from a test without a browser.
 
+import { deviceLanguageTags, deviceRegion } from "./locale.ts";
 import { DEFAULT_CANVAS } from "./types.ts";
 
 /** A page size in document pixels. */
@@ -31,6 +32,60 @@ export type SizePresetId = "screen" | "hd" | "uhd" | "print";
 
 export type SizePreset = { id: SizePresetId; size: CanvasSize };
 
+/** The sheet of paper the print preset is. A4 in most of the world; US Letter
+ *  where Letter is what comes out of the printer. */
+export type Paper = "a4" | "letter";
+
+/** The two sheets at 300 ppi, portrait — see the print preset below for why a
+ *  printer's resolution. Letter is 8½ × 11 inches, so 2550 × 3300. */
+export const PAPER_SIZES: Readonly<Record<Paper, CanvasSize>> = {
+  a4: { width: 2480, height: 3508 },
+  letter: { width: 2550, height: 3300 },
+};
+
+/** Where Letter is the standard sheet: CLDR's `paperSize` territories for
+ *  `US-Letter` (the data the operating systems' own region settings use). */
+const LETTER_REGIONS = new Set([
+  "BZ",
+  "CA",
+  "CL",
+  "CO",
+  "CR",
+  "GT",
+  "MX",
+  "NI",
+  "PA",
+  "PH",
+  "PR",
+  "SV",
+  "US",
+  "VE",
+]);
+
+/** The paper a device's language tags point at (`navigator.languages`). */
+export function paperFor(tags: readonly string[]): Paper {
+  const region = deviceRegion(tags);
+  return region && LETTER_REGIONS.has(region) ? "letter" : "a4";
+}
+
+/** …and this device's. A4 where there is no browser to ask. */
+export function devicePaper(): Paper {
+  return paperFor(deviceLanguageTags());
+}
+
+/** The catalog name of a shipped size: its id, except that the print preset is
+ *  named for the sheet it is — read off its size, so the name can never
+ *  disagree with the rectangle drawn above it. */
+export function sizePresetName(
+  preset: SizePreset,
+): Exclude<SizePresetId, "print"> | Paper {
+  if (preset.id !== "print") return preset.id;
+  const letter = PAPER_SIZES.letter;
+  const long = Math.max(preset.size.width, preset.size.height);
+  const short = Math.min(preset.size.width, preset.size.height);
+  return long === letter.height && short === letter.width ? "letter" : "a4";
+}
+
 /** The named sizes, in the order they are offered under "This screen".
  *
  *  Four sizes, and no more. The dialog *draws* them (see `NewDrawingModal`), so
@@ -38,26 +93,29 @@ export type SizePreset = { id: SizePresetId; size: CanvasSize };
  *  numbers — and a shelf of a dozen shapes is a thing you compare instead of a
  *  thing you choose from. What is left is the two displays anything is made
  *  for, the display it will be shown on, and the piece of paper. */
-const NAMED_PRESETS: readonly SizePreset[] = [
-  { id: "hd", size: { width: 1920, height: 1080 } },
-  { id: "uhd", size: { width: 3840, height: 2160 } },
-  // A4 — the one preset that is a piece of paper rather than a display. Written
-  // down the way a sheet of paper is quoted, portrait; the shelf stands it
-  // whichever way round the rest of the shelf is facing (see `Orientation`).
-  //
-  // **300 dpi, which is a photo printer's resolution rather than the page's
-  // own.** The two are different questions and this preset answers the second:
-  // how many pixels a sheet of A4 needs to *print* sharply. Every photo lab and
-  // every consumer inkjet wants image data at 300 ppi — the 1440 and 5760 dpi
-  // numbers on the box are ink droplets, not pixels — so 2480 × 3508 is the
-  // file that comes back as a full-bleed A4 print.
-  //
-  // The page's own scale is the screen's (see `units.ts`), so this rectangle
-  // measures 137 × 194 mm *in the app* and 210 × 297 mm *on the paper*. Both
-  // are true of the same pixels; which one you mean depends on whether you are
-  // looking at the glass or at the print.
-  { id: "print", size: { width: 2480, height: 3508 } },
-];
+function namedPresets(paper: Paper): readonly SizePreset[] {
+  return [
+    { id: "hd", size: { width: 1920, height: 1080 } },
+    { id: "uhd", size: { width: 3840, height: 2160 } },
+    // A4 — the one preset that is a piece of paper rather than a display (US
+    // Letter where that is the sheet; see `paperFor`). Written
+    // down the way a sheet of paper is quoted, portrait; the shelf stands it
+    // whichever way round the rest of the shelf is facing (see `Orientation`).
+    //
+    // **300 dpi, which is a photo printer's resolution rather than the page's
+    // own.** The two are different questions and this preset answers the second:
+    // how many pixels a sheet of A4 needs to *print* sharply. Every photo lab and
+    // every consumer inkjet wants image data at 300 ppi — the 1440 and 5760 dpi
+    // numbers on the box are ink droplets, not pixels — so 2480 × 3508 is the
+    // file that comes back as a full-bleed A4 print.
+    //
+    // The page's own scale is the screen's (see `units.ts`), so this rectangle
+    // measures 137 × 194 mm *in the app* and 210 × 297 mm *on the paper*. Both
+    // are true of the same pixels; which one you mean depends on whether you are
+    // looking at the glass or at the print.
+    { id: "print", size: PAPER_SIZES[paper] },
+  ];
+}
 
 /** Which way round a page stands.
  *
@@ -172,8 +230,9 @@ export function currentScreenCanvasSize(): CanvasSize {
 export function sizePresets(
   screen: CanvasSize,
   orientation: Orientation = orientationOf(screen),
+  paper: Paper = "a4",
 ): SizePreset[] {
-  const [first, ...rest] = allSizePresets(screen, orientation);
+  const [first, ...rest] = allSizePresets(screen, orientation, paper);
   return [first!, ...rest.filter((p) => !sameCanvasSize(p.size, first!.size))];
 }
 
@@ -187,10 +246,11 @@ export function sizePresets(
 export function allSizePresets(
   screen: CanvasSize,
   orientation: Orientation = orientationOf(screen),
+  paper: Paper = "a4",
 ): SizePreset[] {
   return [
     { id: "screen", size: orientSize(clampCanvasSize(screen), orientation) },
-    ...NAMED_PRESETS.map((p) => ({
+    ...namedPresets(paper).map((p) => ({
       ...p,
       size: orientSize(p.size, orientation),
     })),
