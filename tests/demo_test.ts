@@ -17,7 +17,13 @@ import {
   parseDoc,
   serializeDoc,
 } from "../src/app/migrations.ts";
-import type { AppData, Drawing, Point } from "../src/app/types.ts";
+import {
+  lastTouched,
+  liveDrawings,
+  type AppData,
+  type Drawing,
+  type Point,
+} from "../src/app/types.ts";
 
 // The presentation demo (`VITE_SEED=demo`): what the App Store screenshots are
 // taken of, and the live demo. It is held to three things — the documents are
@@ -146,6 +152,60 @@ describe("the demo's documents", () => {
         image.shape.src?.startsWith("data:image/jpeg"),
     ).toBe(true);
   });
+});
+
+describe("a year of openings", () => {
+  // The demo is placed from the moment it opens, and that moment is any day of
+  // the year at any hour — not only the morning the frames were shot. So walk
+  // every day of a year, each opened at a different hour (five hours on from
+  // the day before, so the walk passes every hour of the day some fifteen times),
+  // and hold each opening to what the frames assume: the menu leads with the
+  // upload sketch and opens on it, nothing is stamped after the moment it
+  // opens, every folder existed before the drawings filed in it, and the
+  // drawings themselves are the same pages whatever the date. One build is a
+  // few tens of milliseconds of simulated hand, so the walk takes seconds.
+  const DAY = 86_400_000;
+  const HOUR = 3_600_000;
+  const start = Date.parse("2026-01-01T00:00:00Z");
+  const pages = (doc: AppData) =>
+    doc.drawings.map((d) => `${d.id}:${d.strokes.length}`);
+  const reference = Object.fromEntries(
+    Object.entries(docs()).map(([slug, doc]) => [slug, pages(doc)]),
+  );
+
+  it("holds on every day of the year, at every hour it is opened", () => {
+    const hours = new Set<number>();
+    for (let day = 0; day < 365; day++) {
+      const hour = (day * 5) % 24;
+      hours.add(hour);
+      const now = start + day * DAY + hour * HOUR + 41 * 60_000;
+      const { storage } = buildDemo(now);
+      const opened = {
+        default: parseDoc(storage["paint:doc"]!),
+        sketchbook: parseDoc(storage["paint:doc:sketchbook"]!),
+      };
+      for (const [slug, doc] of Object.entries(opened)) {
+        expect(pages(doc)).toEqual(reference[slug]);
+        const shown = liveDrawings(doc);
+        expect(shown[0]!.id).toBe(doc.activeDrawingId);
+        const made = new Map(
+          doc.folders.map((f) => [f.id, Date.parse(f.createdAt!)]),
+        );
+        for (const at of made.values()) expect(at).toBeLessThan(now);
+        for (const d of shown) {
+          expect(lastTouched(d)).toBeLessThan(now);
+          expect(lastTouched(d)).toBeGreaterThan(now - 30 * DAY);
+          if (d.folderId) {
+            expect(made.get(d.folderId)!).toBeLessThan(
+              Date.parse(d.createdAt!),
+            );
+          }
+        }
+      }
+      expect(opened.default.activeDrawingId).toBe("demo-upload-path");
+    }
+    expect(hours.size).toBe(24);
+  }, 120_000);
 });
 
 describe("the hand", () => {

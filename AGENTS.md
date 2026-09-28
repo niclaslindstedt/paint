@@ -316,6 +316,9 @@ changelog payload, and the cloud-setup prompt are all behind `import()` already.
   in a test without a canvas.
 - Run them with `make test`, or one file with
   `npx vitest run tests/plugins_test.ts`, on the Node `.nvmrc` pins (from nvm).
+- `tests/demo_test.ts` walks the demo across a whole year, one opening a day at
+  a different hour each time, so a demo that only holds together on the day it
+  was written fails. It takes seconds: every opening builds the demo afresh.
 
 ## Source file size
 
