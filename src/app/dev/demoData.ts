@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+// oss-spec:allow-large-file: split when next touched; known deviation by owner decision
 // The presentation demo's data (see `demo.ts`): one person's sketchbooks, drawn
 // stroke by stroke through `hand.ts` into the app's own document format.
 //

@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+// oss-spec:allow-large-file: split when next touched; known deviation by owner decision
 // The tools this build ships, registered in toolbar order.
 //
 // Importing this module is what puts them in the registry — `src/main.tsx`

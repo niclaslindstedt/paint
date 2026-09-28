@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+// oss-spec:allow-large-file: split when next touched; known deviation by owner decision
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { keyboardIsClaimed } from "@niclaslindstedt/oss-framework/hooks";

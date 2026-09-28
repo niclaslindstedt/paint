@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+// oss-spec:allow-large-file: split when next touched; known deviation by owner decision
 // App-owned glyphs. **Every tool in the toolbar is drawn here** — none of them
 // comes from the framework's icon set, including the pencil, which used to. The
 // tool glyphs are one designed set drawn to one sheet, and a borrowed pencil
