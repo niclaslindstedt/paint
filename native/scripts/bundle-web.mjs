@@ -6,19 +6,23 @@
 // on-device, and changes only when a new build ships to the store.
 //
 // The web build is `npm run build` at the repo root — base `/`, which is
-// exactly what a localhost origin wants — with one flag, `VITE_NATIVE_BUILD=on`.
-// It is about the channel rather than the medium: it compiles out the
-// sidebar's Donate row, which only the website may carry (App Store guideline
-// 3.1.1; see `src/app/donate.ts`), and every link back to the source, which
-// only the website carries either (owner decision D17): the About dropdown's
-// Source row, the privacy page's issue tracker, the web edition's address.
+// exactly what a localhost origin wants — with two flags (`WEB_BUILD_FLAGS` in
+// `web-build.mts`). `VITE_NATIVE_BUILD=on` is about the channel: it compiles
+// out the sidebar's Donate row, which only the website may carry (App Store
+// guideline 3.1.1; see `src/app/donate.ts`), and every link back to the
+// source, which only the website carries either (owner decision D17): the
+// About dropdown's Source row, the privacy page's issue tracker, the web
+// edition's address. `VITE_SHELL_BUILD=on` is about the medium, and is the
+// desktop shell's flag: the site ships inside the binary, so it has no service
+// worker and no in-app update prompt — a new version arrives from the store.
 // Nothing else in `src/` changes for the app.
 // If the wrapper ever needs the web app to behave differently in some other
 // way, that is a sign it has stopped being thin.
 //
-// The flag is build-time, so `--skip-build` re-zips whatever the last build
-// left in `dist/` — and a website build there carries those links. The zip is
-// refused when one is found in it (`assertNoDonateLink`, `assertNoSourceLink`).
+// The flags are build-time, so `--skip-build` re-zips whatever the last build
+// left in `dist/` — and a website build there carries those links and the
+// worker. The zip is refused when one is found in it (`assertNoDonateLink`,
+// `assertNoSourceLink`, `assertNoUpdateCycle`).
 //
 // Usage:
 //   node scripts/bundle-web.mjs                 # build the site, then zip it
@@ -47,6 +51,8 @@ import { fileURLToPath } from "node:url";
 
 import { zipSync } from "fflate";
 
+import { updateMachinery, webBuildEnv } from "./web-build.mts";
+
 const APP_DIR = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const REPO_DIR = resolve(APP_DIR, "..");
 const DIST_DIR = join(REPO_DIR, "dist");
@@ -68,7 +74,7 @@ if (!skipBuild) {
     stdio: "inherit",
     // npm on Windows is a batch shim, which Node cannot execute directly.
     shell: WINDOWS,
-    env: { ...process.env, VITE_NATIVE_BUILD: "on" },
+    env: webBuildEnv(process.env),
   });
 }
 
@@ -153,6 +159,26 @@ function assertNoSourceLink(files) {
 }
 
 assertNoSourceLink(files);
+
+/** Refuse a webroot that carries the website's update cycle — the service
+ *  worker, the `version.json` it polls, its precache list. In the app a worker
+ *  would serve the page from its own cache of files already on the device, so
+ *  an app updated from the store could go on showing the old site, and the
+ *  update prompt would announce a version nobody can install from inside it.
+ *  `VITE_SHELL_BUILD=on` is what leaves them out; this is the check that the
+ *  build honoured it. */
+function assertNoUpdateCycle(files) {
+  const found = updateMachinery(Object.keys(files));
+  if (found.length) {
+    throw new Error(
+      `dist/ carries the website's update cycle (${found.join(", ")}) — the ` +
+        `phone app must not. Rebuild through this script (drop --skip-build) ` +
+        `so VITE_SHELL_BUILD=on leaves it out.`,
+    );
+  }
+}
+
+assertNoUpdateCycle(files);
 
 // Deterministic zip: every entry pinned to the ZIP epoch (1980-01-01), so the
 // artifact is reproducible instead of drifting with the clock.

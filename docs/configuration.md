@@ -62,7 +62,7 @@ The Donate row is the website's alone. A payment link outside Apple's is an
 App Store rejection (guideline 3.1.1), and the store listings promise nothing
 is sold, so the phone app and the desktop app ship without it. Each is built
 with a flag — `VITE_NATIVE_BUILD=on` by `native/scripts/bundle-web.mjs`,
-`VITE_SHELL_BUILD=on` by `tauri/scripts/bundle-web.mjs` — that Vite turns into
+`VITE_SHELL_BUILD=on` by both bundle scripts — that Vite turns into
 a compile-time constant, so the row and its URL, fallback included, are folded
 out of those bundles rather than hidden (`src/app/donate.ts`). Setting
 `VITE_DONATE_URL` for an app build changes nothing, and the phone bundle script
