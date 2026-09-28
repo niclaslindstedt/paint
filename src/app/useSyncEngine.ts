@@ -93,8 +93,8 @@ export type SyncBackendId = "local" | "folder" | "dropbox" | "icloud";
 
 const BACKEND_KEY = "paint:sync:backend";
 const DROPBOX_TOKENS_KEY = "paint:sync:dropbox";
-// Google Drive is gone as a backend. The key stays named so a token a device
-// may still hold is cleared rather than left sitting in storage.
+// A backend the app no longer offers kept its token here. The key stays named
+// so a token a device may still hold is cleared rather than left in storage.
 const RETIRED_GDRIVE_TOKEN_KEY = "paint:sync:gdrive";
 const ENCRYPTED_KEY = "paint:sync:encrypted";
 

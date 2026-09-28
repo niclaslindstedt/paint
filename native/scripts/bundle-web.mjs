@@ -173,7 +173,7 @@ function assertNoSourceLink(files) {
 assertNoSourceLink(files);
 
 /** Refuse a webroot that carries the website's update cycle — the service
- *  worker, the `version.json` it polls, its precache list. In the app a worker
+ *  worker (`sw.js`), the `version.json` it polls, its precache list. In the app a worker
  *  would serve the page from its own cache of files already on the device, so
  *  an app updated from the store could go on showing the old site, and the
  *  update prompt would announce a version nobody can install from inside it.
