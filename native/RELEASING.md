@@ -27,13 +27,16 @@ repository **secrets** and as EAS environment variables on the project (EAS
 evaluates `app.config.js` again on its builder), under the same names in every
 app:
 
-| Variable           | Becomes                                                    |
-| ------------------ | ---------------------------------------------------------- |
-| `APP_DISPLAY_NAME` | `expo.name` — the listing name and the name under the icon |
-| `APP_BUNDLE_ID`    | `ios.bundleIdentifier` and `android.package`               |
+| Variable           | Becomes                                                                                       |
+| ------------------ | --------------------------------------------------------------------------------------------- |
+| `APP_DISPLAY_NAME` | `expo.name` — the listing name and the name under the icon — and the name the app's pages say |
+| `APP_BUNDLE_ID`    | `ios.bundleIdentifier` and `android.package`                                                  |
 
 Unset, a checkout builds as the project's own name under a development id; the
 `production` profile refuses to build without them (`identifiers.js`).
+`APP_DISPLAY_NAME` reaches the web bundle too: `npm run bundle` reads it from
+the environment or from `native/.env`, and the build workflow passes the
+secret, so the privacy page says the name under the icon rather than "Paint".
 
 ### 2. The CI token
 

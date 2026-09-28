@@ -43,9 +43,9 @@ type AppPwaOptions = {
   ignorePaths?: string[];
   // Whether to emit the service worker and the two manifests it reads.
   //
-  // Off for the DESKTOP SHELL's build (`tauri/scripts/bundle-web.mjs`), which
-  // is the one build with no deployment behind it: a new version arrives there
-  // as a new binary, so a worker would precache a copy of files already on
+  // Off for the app builds (`tauri/scripts/bundle-web.mjs`,
+  // `native/scripts/bundle-web.mjs`), which have no deployment behind them: a
+  // new version arrives there as a new binary, so a worker would precache a copy of files already on
   // local disk and then serve the page from ITS copy — which is how a shell
   // whose binary shipped a new site goes on showing the old one.
   //
@@ -53,6 +53,10 @@ type AppPwaOptions = {
   // `brand.ts`, the icons, the theme colour — is the app's identity rather than
   // its update lifecycle, and the shell wants all of it.
   serviceWorker?: boolean;
+  // The name the tab, the manifest and iOS's home-screen label are given.
+  // `APP_NAME` unless an app build was handed its store listing's name (see
+  // `appDisplayName` in `brand.ts`).
+  name?: string;
 };
 
 // Public assets we never want in the precache: source maps are dead weight
@@ -73,10 +77,13 @@ const PUBLIC_SKIP = new Set([
 // visibly separate home-screen tiles instead of three identical app icons that
 // are impossible to tell apart once installed. All three are the app's one
 // name plus a suffix — see `brand.ts`, which is the only place it is written.
-function channelName(base: string): { name: string; short_name: string } {
+function channelName(
+  base: string,
+  appName: string,
+): { name: string; short_name: string } {
   const channel = CHANNEL_NAMES[base];
   if (channel) return { name: channel.name, short_name: channel.short };
-  return { name: APP_NAME, short_name: APP_NAME };
+  return { name: appName, short_name: appName };
 }
 
 // Build the web app manifest for a given deploy base. Emitted per build rather
@@ -87,8 +94,8 @@ function channelName(base: string): { name: string; short_name: string } {
 // root app (installing from `/preview/` silently installs the `/` app). Pinning
 // them to the absolute `base` gives each channel an unambiguous identity. Icon
 // `src`s are base-qualified for the same reason.
-export function buildManifest(base: string): string {
-  const { name, short_name } = channelName(base);
+export function buildManifest(base: string, appName = APP_NAME): string {
+  const { name, short_name } = channelName(base, appName);
   const manifest = {
     name,
     short_name,
@@ -250,6 +257,7 @@ export function appPwa({
   version,
   ignorePaths = [],
   serviceWorker = true,
+  name = APP_NAME,
 }: AppPwaOptions): Plugin {
   const cacheId = cacheIdForBase(base);
   let config: ResolvedConfig;
@@ -276,7 +284,11 @@ export function appPwa({
       tags: HtmlTagDescriptor[];
     } {
       const titled = html
-        .replace(/<title>[^<]*<\/title>/, `<title>${APP_NAME}</title>`)
+        .replace(/<title>[^<]*<\/title>/, `<title>${name}</title>`)
+        .replace(
+          /(<meta name="application-name" content=")[^"]*(")/,
+          `$1${name}$2`,
+        )
         .replace(
           /(<meta name="theme-color" content=")[^"]*(")/,
           `$1${THEME_COLOR}$2`,
@@ -329,7 +341,7 @@ export function appPwa({
           },
           {
             tag: "meta",
-            attrs: { name: "apple-mobile-web-app-title", content: APP_NAME },
+            attrs: { name: "apple-mobile-web-app-title", content: name },
             injectTo: "head",
           },
         ],
@@ -377,7 +389,7 @@ export function appPwa({
       // The web manifest is generated here (not shipped from `public/`) so its
       // identity fields are base-correct per channel; add it to the precache so
       // the installed shell resolves its icons and identity offline.
-      const manifestSource = buildManifest(base);
+      const manifestSource = buildManifest(base, name);
       add(`${base}manifest.webmanifest`, Buffer.byteLength(manifestSource));
 
       const precache = Object.keys(assets);

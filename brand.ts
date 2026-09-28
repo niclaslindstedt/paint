@@ -23,6 +23,19 @@
 /** The app's name — the browser tab, the manifest, the home-screen tile. */
 export const APP_NAME = "Paint";
 
+/** What an app build calls itself: the store listing's name when the build was
+ *  given one (`APP_DISPLAY_NAME`, the same variable that names the phone app
+ *  under its icon — `native/identifiers.js`), so the app says the name the
+ *  store sold it under rather than the project's. The website is always
+ *  `APP_NAME`: the listing is a deployment of the project, and the website is
+ *  the project's own. */
+export function appDisplayName(
+  appBuild: boolean,
+  listingName: string | undefined,
+): string {
+  return (appBuild && listingName?.trim()) || APP_NAME;
+}
+
 /** …and what the two side channels are called, so three installs from one
  *  origin are three distinguishable tiles rather than three identical ones (see
  *  `channelName` in `pwa-plugin.ts`). The short forms are what a phone actually

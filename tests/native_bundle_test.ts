@@ -11,6 +11,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   WEB_BUILD_FLAGS,
+  listingName,
   updateMachinery,
   webBuildEnv,
 } from "../native/scripts/web-build.mts";
@@ -33,6 +34,39 @@ describe("the phone app's web build", () => {
     expect(env.VITE_DROPBOX_APP_KEY).toBe("key");
     expect(env.VITE_SHELL_BUILD).toBe("on");
     expect(env.VITE_NATIVE_BUILD).toBe("on");
+  });
+});
+
+describe("the listing name the site is built under", () => {
+  it("comes from the environment first — CI's secret", () => {
+    expect(
+      listingName(
+        { APP_DISPLAY_NAME: " Nird Paint " },
+        "APP_DISPLAY_NAME=Other\n",
+      ),
+    ).toBe("Nird Paint");
+  });
+
+  it("falls back to native/.env, as a local build has it", () => {
+    const dotenv = [
+      "# The listing's name",
+      "APP_BUNDLE_ID=se.example.paint",
+      'APP_DISPLAY_NAME="Nird Paint"',
+    ].join("\n");
+    expect(listingName({}, dotenv)).toBe("Nird Paint");
+    expect(listingName({ APP_DISPLAY_NAME: "  " }, dotenv)).toBe("Nird Paint");
+  });
+
+  it("is absent when neither sets it, so the project name stands", () => {
+    expect(listingName({})).toBeUndefined();
+    expect(listingName({}, "# APP_DISPLAY_NAME=\n")).toBeUndefined();
+    expect(webBuildEnv({})).not.toHaveProperty("APP_DISPLAY_NAME");
+  });
+
+  it("is handed to the web build", () => {
+    expect(
+      webBuildEnv({}, "APP_DISPLAY_NAME=Nird Paint\n").APP_DISPLAY_NAME,
+    ).toBe("Nird Paint");
   });
 });
 

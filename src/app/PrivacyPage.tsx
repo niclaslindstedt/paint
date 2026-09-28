@@ -37,7 +37,7 @@ export function PrivacyPage() {
             className="inline-flex items-center gap-1.5 self-start text-xs text-link hover:underline"
           >
             <ArrowLeftIcon className="h-3.5 w-3.5" />
-            Back to Paint
+            Back to {__APP_NAME__}
           </a>
           <h1 className="text-lg font-bold text-fg-bright">Privacy policy</h1>
           <p className="text-xs text-muted">Last updated: {LAST_UPDATED}</p>
@@ -45,8 +45,8 @@ export function PrivacyPage() {
 
         <Section title="Summary">
           <p>
-            <span className="text-meta">Paint</span> is a local-first sketchpad
-            served as a static site{" "}
+            <span className="text-meta">{__APP_NAME__}</span> is a local-first
+            sketchpad served as a static site{" "}
             {WEBSITE ? (
               <>
                 at <span className="text-path">paint.niclaslindstedt.se</span>

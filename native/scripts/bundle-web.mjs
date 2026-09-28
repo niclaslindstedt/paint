@@ -15,6 +15,9 @@
 // edition's address. `VITE_SHELL_BUILD=on` is about the medium, and is the
 // desktop shell's flag: the site ships inside the binary, so it has no service
 // worker and no in-app update prompt — a new version arrives from the store.
+// The build is also handed the store listing's name (`APP_DISPLAY_NAME`, from
+// the environment or `native/.env`), so the app's own pages say the name the
+// phone shows under the icon (`listingName` in `web-build.mts`).
 // Nothing else in `src/` changes for the app.
 // If the wrapper ever needs the web app to behave differently in some other
 // way, that is a sign it has stopped being thin.
@@ -40,6 +43,7 @@
 
 import { execFileSync } from "node:child_process";
 import {
+  existsSync,
   mkdirSync,
   readdirSync,
   readFileSync,
@@ -57,6 +61,7 @@ const APP_DIR = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const REPO_DIR = resolve(APP_DIR, "..");
 const DIST_DIR = join(REPO_DIR, "dist");
 const OUT_ZIP = join(APP_DIR, "assets", "webroot.zip");
+const DOTENV = join(APP_DIR, ".env");
 const WINDOWS = process.platform === "win32";
 const NPM = WINDOWS ? "npm.cmd" : "npm";
 
@@ -68,13 +73,20 @@ const profile =
   "preview";
 
 if (!skipBuild) {
-  console.log(`• building the web app (npm run build) — profile ${profile}…`);
+  const env = webBuildEnv(
+    process.env,
+    existsSync(DOTENV) ? readFileSync(DOTENV, "utf8") : undefined,
+  );
+  console.log(
+    `• building the web app (npm run build) — profile ${profile}, ` +
+      `named ${env.APP_DISPLAY_NAME ?? "Paint (no APP_DISPLAY_NAME)"}…`,
+  );
   execFileSync(NPM, ["run", "build"], {
     cwd: REPO_DIR,
     stdio: "inherit",
     // npm on Windows is a batch shim, which Node cannot execute directly.
     shell: WINDOWS,
-    env: webBuildEnv(process.env),
+    env,
   });
 }
 

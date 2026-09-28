@@ -9,6 +9,7 @@ import preact from "@preact/preset-vite";
 import tailwindcss from "@tailwindcss/vite";
 import { defineConfig, type Plugin } from "vite";
 
+import { appDisplayName } from "./brand.ts";
 import { appPwa } from "./pwa-plugin.ts";
 
 // The production origin. The privacy alias points its Open Graph URL here
@@ -174,6 +175,13 @@ const nativeBuild = process.env.VITE_NATIVE_BUILD === "on";
 // below — the web edition's address.
 const appBuild = shellBuild || nativeBuild;
 
+// What the app calls itself. An app build takes its store listing's name from
+// `APP_DISPLAY_NAME` — the variable that also names the phone app under its
+// icon (`native/identifiers.js`), and that `native/scripts/bundle-web.mjs`
+// passes through — so the privacy page and the page title say the name the
+// store shows. The website stays `APP_NAME` whatever the environment holds.
+const appName = appDisplayName(appBuild, process.env.APP_DISPLAY_NAME);
+
 // What only the website carries, left out of an app build (D17): the Open
 // Graph and Twitter tags in `index.html` that point at the web edition's
 // address, the two public files that exist for them and for Pages — the share
@@ -270,6 +278,7 @@ export default defineConfig({
     __BUILD_NUMBER__: JSON.stringify(buildNumber),
     __SHELL_BUILD__: JSON.stringify(shellBuild),
     __NATIVE_BUILD__: JSON.stringify(nativeBuild),
+    __APP_NAME__: JSON.stringify(appName),
   },
   // `appPwa` only applies on build, so dev keeps registering no worker (the app
   // passes `enabled: !import.meta.env.DEV` to `usePwaUpdate`).
@@ -283,7 +292,13 @@ export default defineConfig({
   plugins: [
     preact(),
     tailwindcss(),
-    appPwa({ base, version, ignorePaths, serviceWorker: !shellBuild }),
+    appPwa({
+      base,
+      version,
+      ignorePaths,
+      serviceWorker: !shellBuild,
+      name: appName,
+    }),
     ...(appBuild ? [websiteOnly()] : []),
     emitPrivacyAlias(!appBuild),
   ],

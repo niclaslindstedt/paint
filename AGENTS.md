@@ -203,6 +203,9 @@ page's issue tracker, advisories and commit history, the web edition's
 address, the Open Graph tags naming it, `CNAME` and `og.png`, and GitHub links
 in the What's new markdown (`websiteOnly` in `vite.config.ts`) — and both
 bundle scripts refuse a webroot that still contains `niclaslindstedt`.
+An app build also says its store listing's name where the website says
+"Paint" — `APP_DISPLAY_NAME`, which names the phone app under its icon too
+(`appDisplayName` in `brand.ts`, `__APP_NAME__`); the website ignores it.
 
 ### The phone wrapper offers a capability, and stops there
 

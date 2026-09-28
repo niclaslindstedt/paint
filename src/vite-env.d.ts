@@ -27,6 +27,11 @@ declare const __SHELL_BUILD__: boolean;
 // Donate row, which only the website carries (`src/app/donate.ts`).
 declare const __NATIVE_BUILD__: boolean;
 
+// What the app calls itself: "Paint" on the website, and in an app build the
+// store listing's name when the build was given one (`appDisplayName` in
+// `brand.ts`, from `APP_DISPLAY_NAME`).
+declare const __APP_NAME__: string;
+
 // Build-time env the app reads through `import.meta.env`. All optional — the
 // app builds and runs with none of them set. See `docs/configuration.md`.
 interface ImportMetaEnv {
