@@ -4,21 +4,13 @@ This file is the canonical source of truth for AI coding agents working in this
 repo. `CLAUDE.md`, `.cursorrules`, `.windsurfrules`, `GEMINI.md`, and
 `.github/copilot-instructions.md` are symlinks to this file.
 
-## OSS Spec conformance
+Fleet guidelines: APP_GUIDELINES 1.0.1
 
-This repository adheres to [`OSS_SPEC.md`](OSS_SPEC.md), a prescriptive
-specification for open source project layout, documentation, automation, and
-governance. A copy of the spec lives at the repository root so contributors and
-AI agents can consult it without leaving the repo.
+## Releases
 
-Run `oss-spec validate .` (or the standalone
-[`validate.sh`](https://github.com/niclaslindstedt/oss-spec/blob/main/scripts/validate.sh))
-to verify conformance. When in doubt about a layout, naming, or workflow
-decision, consult the relevant section of `OSS_SPEC.md`.
-
-§10.3's two release workflows are here, but only one of them tags: a
-maintainer dispatches **version-bump**, which previews the bump the changeset
-fragments imply and dispatches **release** with it, and that single release run
+There are two release workflows, but only one of them tags: a maintainer
+dispatches **version-bump**, which previews the bump the changeset fragments
+imply and dispatches **release** with it, and that single release run
 computes the version, writes the changelog, commits, tags, publishes, and
 deploys. Dispatching **release** directly does the same. The tag is created on
 the release commit, once, so no `RELEASE_TOKEN` PAT and no force-retag — keep
@@ -169,8 +161,8 @@ The app owns the domain and the stores ("store stays in the app"):
   three jobs the canvas component is _not_: when the screen is redrawn, what a
   tool is handed when a press reaches it, and whose a touch at the screen edge
   is. `PaintCanvas` keeps only what a press means.
-- `src/output.ts` — the §19.4 central output module (semantic log helpers over
-  the in-app log store).
+- `src/output.ts` — the central output module (semantic log helpers over the
+  in-app log store); no bare `console.*` outside it and the log store.
 - `pwa-plugin.ts` — emits the service worker + version/precache manifests the
   framework's `usePwaUpdate` consumes.
 
@@ -307,7 +299,6 @@ changelog payload, and the cloud-setup prompt are all behind `import()` already.
 | Tests         | `tests/...`                                                                  |
 | Docs update   | `docs/...`                                                                   |
 | Examples      | `examples/...`                                                               |
-| LLM prompt    | `prompts/<name>/<major>_<minor>_<patch>.md` (see `prompts/README.md`)        |
 | Desktop shell | `tauri/shell/` if it is a decision, `tauri/src-tauri/` if it is an effect    |
 | Phone wrapper | `native/...` (a separate npm project — see above)                            |
 
@@ -315,21 +306,24 @@ changelog payload, and the cloud-setup prompt are all behind `import()` already.
 
 - **All tests live in separate files** in `tests/` — never inline in source
   files.
-- Test files are named with a `_test` suffix (e.g. `plugins_test.ts`), per §20.2
-  of `OSS_SPEC.md`; vitest picks up `tests/**/*_test.ts`.
+- Test files are named with a `_test` suffix (e.g. `plugins_test.ts`); vitest
+  picks up `tests/**/*_test.ts`. Helpers the tests share (`tests/support/`) may
+  take any name as long as they hold no test.
 - Tests cover the pure domain modules (the plugin registry and tool behaviours,
   stroke geometry, migrations, the sync gate, export naming) and run in a node
   environment — no DOM. A tool behaviour is pure by construction (`start` /
   `move` / `end` take a draft and return one), so a whole gesture can be driven
   in a test without a canvas.
-- Run them with `make test`.
+- Run them with `make test`, or one file with
+  `npx vitest run tests/plugins_test.ts`, on the Node `.nvmrc` pins (from nvm).
 
 ## Source file size
 
-- Non-test source files must stay under **1000 physical lines** (§20.5 of
-  `OSS_SPEC.md`). Prefer splitting by concern over relaxing the cap.
-- A file may opt out with `oss-spec:allow-large-file: <reason>` in its first 20
-  lines; the reason must be real.
+- Non-test source files must stay under **1000 physical lines**. Prefer
+  splitting by concern over relaxing the cap.
+- A file may opt out with `guidelines:allow-large-file: <reason>` in its first
+  20 lines; the reason must be real. The files marked "split when next touched"
+  are known deviations: whoever next changes one splits it.
 
 ## Documentation sync points
 
@@ -408,24 +402,23 @@ the fuller reference under `docs/` proper rather than in `docs/features/`.
 
 ## Website staleness
 
-The app **is** the website (§11.2 / §11.5): `pages.yml` builds it with the Pages
-base path and deploys `dist/` to the three release channels (`/`, `/preview/`,
-`/branch/`). There is no separate marketing site to drift, but the `<head>` copy
-in `index.html` (title, description, Open Graph) and the privacy alias's copy in
+The app **is** the website: `pages.yml` builds it with the Pages base path and
+deploys `dist/` to the three release channels (`/`, `/preview/`, `/branch/`).
+There is no separate marketing site to drift, but the `<head>` copy in
+`index.html` (title, description, Open Graph) and the privacy alias's copy in
 `vite.config.ts` describe the product and **do** drift — refresh them whenever
 the feature set changes.
 
-The website is unlisted (OSS_SPEC §11.3.12), so the spec's SEO, Lighthouse and
-size-budget mandates do not apply; every page carries a robots `noindex`.
-
-oss-spec:unlisted-website: the web build is a testing surface; users install the app from its store listing
+The website is unlisted: it is a testing surface, and people install the app
+from its store listing. Every page it emits carries a robots `noindex`, and it
+ships no sitemap, structured data, `llms.txt`, SEO or Lighthouse workflow, and
+no page-weight or chunk budget.
 
 ## Maintenance skills
 
-Per §21 of `OSS_SPEC.md`, this repo ships agent skills for keeping drift-prone
-artifacts in sync with their sources of truth. Skills live under
-`.agents/skills/<name>/` and are also accessible via the `.claude/skills`
-symlink.
+This repo ships agent skills for keeping drift-prone artifacts in sync with
+their sources of truth. Skills live under `.agents/skills/<name>/` and are also
+accessible via the `.claude/skills` symlink.
 
 | Skill           | When to run                                                                                              |
 | --------------- | -------------------------------------------------------------------------------------------------------- |
@@ -441,7 +434,7 @@ every `update-*` skill — add a row whenever you create a new sync skill.
 
 Not every skill keeps something in sync. `.agents/skills/` also holds playbooks
 for work that is easy to do badly. Those carry no registry row, and their
-`.last-updated` stays empty ("never run" — §21.4 asks every skill for one).
+`.last-updated` stays empty ("never run").
 
 | Skill              | When to run                                                                                                                                                                                                 |
 | ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
