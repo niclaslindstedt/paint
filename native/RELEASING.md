@@ -102,6 +102,12 @@ and the website never disagree about which release they are. Store **build
 numbers** are auto-incremented by EAS (`appVersionSource: remote`); nothing is
 bumped by hand.
 
+EAS installs with the Node that `eas.json` pins — `"node"` in every build
+profile, the same major as `.nvmrc`. Without it EAS falls back to its image's
+default Node, whose npm 10 reads the lockfile npm 11 wrote as out of sync and
+stops the build at `npm ci` ("Missing: typescript@5.9.3 from lock file"). Move
+the pin when `.nvmrc` moves.
+
 ## Doing it from a laptop instead
 
 ```sh
