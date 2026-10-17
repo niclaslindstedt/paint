@@ -12,10 +12,10 @@ Actions variables, so there is one place to look for all of it.
 
 ## Cloud sync
 
-| Variable                  | Effect                                                                                       |
-| ------------------------- | -------------------------------------------------------------------------------------------- |
-| `VITE_DROPBOX_APP_KEY`    | Dropbox app key (PKCE public client). **Unset ⇒ Dropbox is hidden** from Settings → Storage. |
-| `VITE_DROPBOX_APP_FOLDER` | The app-folder name the document is filed under (`Apps/<name>/`). Defaults to `Paint`.       |
+| Variable                  | Effect                                                                                                                                                  |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `VITE_DROPBOX_APP_KEY`    | Dropbox app key (PKCE public client). **Unset ⇒ Dropbox is hidden** from Settings → Storage. Ignored by the phone app's build, which offers no Dropbox. |
+| `VITE_DROPBOX_APP_FOLDER` | The app-folder name the document is filed under (`Apps/<name>/`). Defaults to `Paint`.                                                                  |
 
 An unconfigured backend is hidden rather than shown broken, so a build with
 neither key simply offers "This device" and, on Chromium, "Local folder" (which
@@ -28,12 +28,15 @@ needs no configuration — it uses the File System Access API).
 "App folder" access and the `files.content.read` / `files.content.write` scopes.
 Add your deploy origin (and `http://localhost:5173` for local work) as a
 redirect URI, plus `http://127.0.0.1:53682/`, `:53683/` and `:53684/` for the
-desktop app and **`se.agilator.paint://oauth`** for the phone app — its URL
-scheme is the bundle id, and it signs in through an in-app authentication
-session (see
-[`../native/README.md`](../native/README.md#signing-in-to-dropbox)). The native
-build passes the same two secrets to the bundle it ships. The app key goes in `VITE_DROPBOX_APP_KEY`; the folder name you
-gave the app goes in `VITE_DROPBOX_APP_FOLDER`.
+desktop app. The app key goes in `VITE_DROPBOX_APP_KEY`; the folder name you
+gave the app goes in `VITE_DROPBOX_APP_FOLDER`. The website and the desktop
+build read them.
+
+**The phone app offers no Dropbox.** It keeps the drawings on the device or, on
+iPhone and iPad, in iCloud Drive. Its build (`VITE_NATIVE_BUILD=on`) folds every
+Dropbox path out of the bundle whatever the environment holds
+(`src/app/storageBackends.ts`), the native workflow does not pass these two
+secrets, and the Dropbox app needs no redirect URI for it.
 
 ### What lands on the backend
 

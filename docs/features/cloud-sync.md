@@ -8,17 +8,22 @@ _copy_ of that document being pushed somewhere you chose.
 
 Settings → Storage picks where the document is kept:
 
-| Backend          | What it is                                                                    |
-| ---------------- | ----------------------------------------------------------------------------- |
-| **This device**  | This browser's IndexedDB. The default; nothing leaves the browser.            |
-| **Local folder** | A folder you pick on this computer (Chromium's File System Access API).       |
-| **Dropbox**      | A `paint-<namespace>.json` file in the app's Dropbox app folder.              |
-| **iCloud Drive** | The same file in a **Paint** folder in iCloud Drive — the App Store app only. |
+| Backend          | What it is                                                                                      |
+| ---------------- | ----------------------------------------------------------------------------------------------- |
+| **This device**  | This browser's IndexedDB. The default; nothing leaves the browser.                              |
+| **Local folder** | A folder you pick on this computer (Chromium's File System Access API).                         |
+| **iCloud Drive** | A `paint-<namespace>.json` file in a **Paint** folder in iCloud Drive — the App Store app only. |
 
-A backend only appears in the picker when it can be connected: Dropbox when the
-build carries its app key (see [configuration](../configuration.md)), iCloud
-Drive in the App Store app, where the native shell provides it. An unavailable
-backend is hidden rather than offered as a dead option.
+<!-- dropbox -->
+
+In the browser and the desktop app there is one more: **Dropbox**, the same
+file in the app's Dropbox app folder, offered when the build carries its app key
+(see [configuration](../configuration.md)).
+<!-- /dropbox -->
+
+A backend only appears in the picker when it can be connected — iCloud Drive in
+the App Store app, where the native shell provides it. An unavailable backend is
+hidden rather than offered as a dead option.
 
 ## How saving works
 
@@ -70,8 +75,8 @@ preset, the colors you mixed, and how the app looks.
 
 That is there because a kit is worth carrying. Finding the 4B at 0.7 mm under a
 light hand is real work, and doing it again on the laptop is the same
-work twice. Connect the same folder — or the same Dropbox — on the other machine
-and the tools are already set up the way you left them.
+work twice. Connect the same folder or cloud drive on the other machine and the
+tools are already set up the way you left them.
 
 Two rules decide which copy wins, and they are not symmetrical:
 
@@ -96,7 +101,7 @@ the way you set it up before you have typed the passphrase.
 
 When you connect a backend that already holds drawings which differ from this
 device's, the app doesn't pick a side silently — it asks, showing what each copy
-holds ("Dropbox: 4 drawings, 512 marks" vs "This device: 1 drawing, 12 marks").
+holds ("4 drawings, 512 marks" there vs "1 drawing, 12 marks" on this device).
 Saving is held until you choose. A device holding nothing but a blank page skips
 the question: there is nothing to lose, so the remote copy is adopted.
 

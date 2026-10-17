@@ -7,5 +7,7 @@ export default defineConfig({
     // `_test`.
     environment: "node",
     include: ["tests/**/*_test.ts"],
+    // The compile-time build flags, as the website has them.
+    setupFiles: ["tests/support/buildFlags.ts"],
   },
 });

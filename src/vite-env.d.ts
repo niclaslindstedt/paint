@@ -36,7 +36,8 @@ declare const __APP_NAME__: string;
 // app builds and runs with none of them set. See `docs/configuration.md`.
 interface ImportMetaEnv {
   // Dropbox app key (PKCE public client). Unset hides the Dropbox storage
-  // backend in Settings → Storage. See `src/app/useSyncEngine.ts`.
+  // backend in Settings → Storage; the phone app's build ignores it and offers
+  // no Dropbox. See `src/app/storageBackends.ts`.
   readonly VITE_DROPBOX_APP_KEY?: string;
   // The Dropbox app-folder name (`Apps/<name>/`), when it isn't "Paint".
   readonly VITE_DROPBOX_APP_FOLDER?: string;

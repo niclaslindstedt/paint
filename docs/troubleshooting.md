@@ -19,8 +19,8 @@ when you make it (**New image** → **Page colour**).
 
 Dropbox only appears when the build carries its app key (see
 [configuration](configuration.md)); a build without it offers only "This
-device" and, on Chromium, "Local folder". iCloud Drive appears only in the App
-Store app. "Local folder" itself is hidden
+device" and, on Chromium, "Local folder". The phone app never offers Dropbox,
+whatever its build holds. iCloud Drive appears only in the App Store app. "Local folder" itself is hidden
 in browsers without the File System Access API — Firefox and Safari today.
 
 ## Sync says "session expired"

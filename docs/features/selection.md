@@ -209,7 +209,7 @@ window it had. Painting inside a window is the other way around, on purpose:
 undo takes the mark and leaves the window up, ready for the next try.
 
 Nothing about a window is ever saved. It is not in the file, it is not pushed to
-a connected folder or Dropbox, and it is not there when you open the drawing
+a connected folder or cloud drive, and it is not there when you open the drawing
 tomorrow — undo reaches back through this session, not through the document.
 
 ## Painting inside it

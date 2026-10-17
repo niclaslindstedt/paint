@@ -78,16 +78,10 @@ in to iCloud" on a device that plainly is. Both are configuration, not code.
 
 ### 5. Dropbox
 
-The phone app signs in to Dropbox through an in-app authentication session
-that returns on **`<bundle id>://oauth`** — `se.agilator.paint://oauth` for
-the store build (see
-[README → Signing in to Dropbox](README.md#signing-in-to-dropbox)). In the
-[Dropbox App Console](https://www.dropbox.com/developers/apps), open the app
-whose key is the `VITE_DROPBOX_APP_KEY` secret and add
-`se.agilator.paint://oauth` under **Settings → OAuth 2 → Redirect URIs**,
-exactly as written. The native workflow passes that secret (and
-`VITE_DROPBOX_APP_FOLDER`) to the web bundle; without it the app offers no
-Dropbox at all.
+Nothing to do: the phone app offers no Dropbox. Its web build folds every
+Dropbox path out of the bundle (`src/app/storageBackends.ts`), and the native
+workflow passes no Dropbox secret to it. The website and the desktop app keep
+Dropbox ([configuration](../docs/configuration.md)).
 
 ## Cutting a build
 
@@ -133,9 +127,9 @@ build without it launches to a blank screen.
       Drive**, connecting files `paint-default.json` into the **Paint**
       folder in the Files app, and a drawing made on one device shows up on
       another — with any placed image beside it under `images/`.
-- [ ] Settings → Storage → Dropbox → Connect opens Dropbox in a sheet over
-      the app (not in Safari), and approving closes the sheet and connects.
-      Closing the sheet instead leaves nothing connected.
+- [ ] Settings → Storage offers no Dropbox, and nothing in the app names it
+      — the privacy page, Settings → Storage, the feature pages What's new
+      opens (past release notes may still name it, as history).
 - [ ] The header's download menu → PNG opens the share sheet, and **Save to
       Files** writes `<drawing-name>.png`; the same for JPG, SVG and the
       `.pct`, and for Settings → Storage → Export (`paint.json`). Nothing opens

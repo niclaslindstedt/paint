@@ -27,11 +27,11 @@ describe("the phone app's web build", () => {
   it("keeps the caller's environment and overrides a stray flag", () => {
     const env = webBuildEnv({
       PATH: "/bin",
-      VITE_DROPBOX_APP_KEY: "key",
+      VITE_BASE: "/",
       VITE_SHELL_BUILD: "off",
     });
     expect(env.PATH).toBe("/bin");
-    expect(env.VITE_DROPBOX_APP_KEY).toBe("key");
+    expect(env.VITE_BASE).toBe("/");
     expect(env.VITE_SHELL_BUILD).toBe("on");
     expect(env.VITE_NATIVE_BUILD).toBe("on");
   });

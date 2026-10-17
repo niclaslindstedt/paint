@@ -50,6 +50,12 @@ import {
 } from "./imageStore.ts";
 import { createICloudAdapter, icloudByteFileStore } from "./icloudStore.ts";
 import { useICloudBackend } from "./useICloudBackend.ts";
+import {
+  DROPBOX_APP_FOLDER,
+  DROPBOX_APP_KEY,
+  storedBackend,
+  type SyncBackendId,
+} from "./storageBackends.ts";
 import { fileSettingsStore, type SettingsStore } from "./settingsStore.ts";
 import { logStore } from "./log.ts";
 import { serializeDoc } from "./migrations.ts";
@@ -62,6 +68,11 @@ import { useFolderBackend } from "./useFolderBackend.ts";
 import { docKey, type PaintStore } from "./usePaintStore.ts";
 
 export { FOLDER_BACKEND_AVAILABLE } from "./useFolderBackend.ts";
+export {
+  DROPBOX_APP_FOLDER,
+  DROPBOX_APP_KEY,
+  type SyncBackendId,
+} from "./storageBackends.ts";
 
 // The app's sync engine — the state machine the framework's `SyncStatus` glyph
 // and `SyncDetailsModal` command centre paint over. The local document
@@ -89,8 +100,6 @@ export { FOLDER_BACKEND_AVAILABLE } from "./useFolderBackend.ts";
 
 const syncLog = logStore.createLogger("sync");
 
-export type SyncBackendId = "local" | "folder" | "dropbox" | "icloud";
-
 const BACKEND_KEY = "paint:sync:backend";
 const DROPBOX_TOKENS_KEY = "paint:sync:dropbox";
 // A backend the app no longer offers kept its token here. The key stays named
@@ -101,19 +110,6 @@ const ENCRYPTED_KEY = "paint:sync:encrypted";
 // Long enough that a burst of quick strokes settles into one push, short enough
 // that stepping away from the canvas leaves the cloud copy current.
 const SAVE_DEBOUNCE_MS = 1500;
-
-// OAuth app identities, injected at build time. Without them the matching
-// backend is hidden in Settings → Storage rather than offered as a dead option.
-export const DROPBOX_APP_KEY: string =
-  (import.meta.env.VITE_DROPBOX_APP_KEY as string | undefined) ?? "";
-
-// Dropbox fixes the app-folder name from the app's own configuration (an "App
-// folder"-scoped app lives under `Apps/<name>/`), so it isn't always "Paint".
-// Inject the real name at build time so the "Open in Dropbox" link and the
-// displayed file location point at the folder that actually exists.
-export const DROPBOX_APP_FOLDER: string =
-  (import.meta.env.VITE_DROPBOX_APP_FOLDER as string | undefined)?.trim() ||
-  "Paint";
 
 // What the iCloud Drive container shows up as in the Files app. Not a build
 // knob: it is `NSUbiquitousContainerName` in the wrapper's config plugin, and
@@ -145,10 +141,7 @@ export type PendingCloudSetup = {
 };
 
 function readBackend(): SyncBackendId {
-  const raw = localStorage.getItem(BACKEND_KEY);
-  return raw === "dropbox" || raw === "folder" || raw === "icloud"
-    ? raw
-    : "local";
+  return storedBackend(localStorage.getItem(BACKEND_KEY));
 }
 
 function readDropboxTokens(): DropboxTokens | null {

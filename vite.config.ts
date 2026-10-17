@@ -26,8 +26,10 @@ const PRIVACY_ROUTE = {
   title: "Privacy — Paint",
   description:
     "Paint privacy: local-first by default — no account, no cookies, no " +
-    "analytics, no tracking. Optional Dropbox sync only when " +
-    "you connect it.",
+    "analytics, no tracking. Optional " +
+    // The phone app offers no Dropbox (see `src/app/storageBackends.ts`).
+    (process.env.VITE_NATIVE_BUILD === "on" ? "iCloud Drive" : "Dropbox") +
+    " sync only when you connect it.",
   ogType: "article",
 } as const;
 
@@ -219,6 +221,50 @@ function websiteOnly(): Plugin {
   };
 }
 
+// The phone app offers no Dropbox (see `src/app/storageBackends.ts`), and the
+// words that ship with it say so. The feature docs the What's new dialog
+// renders (`docs/features/`) keep what Dropbox does inside `<!-- dropbox -->`
+// … `<!-- /dropbox -->` blocks: the phone build drops those blocks whole, and
+// every other build drops only the marker lines. The docs arrive as `?raw`
+// modules — a JSON string behind `export default` — so the string is
+// unwrapped, edited and wrapped again; a module of any other shape fails the
+// build rather than shipping the block. The phone build's page description
+// names iCloud Drive in Dropbox's place, and fails the build if Dropbox is
+// still named there.
+const DROPBOX_BLOCK = /^<!-- dropbox -->\n([\s\S]*?)^<!-- \/dropbox -->\n/gm;
+
+function dropboxWords(keep: boolean): Plugin {
+  return {
+    name: "dropbox-words",
+    transform(code, id) {
+      if (!/\/docs\/features\/[^/]+\.md\?/.test(id)) return null;
+      if (!code.includes("<!-- dropbox -->")) return null;
+      const raw = /^export default ("(?:[^"\\]|\\.)*");?\s*$/.exec(code);
+      if (!raw) {
+        throw new Error(`dropbox-words: ${id} is not a raw string module`);
+      }
+      const md = (JSON.parse(raw[1]) as string).replace(
+        DROPBOX_BLOCK,
+        keep ? "$1" : "",
+      );
+      return { code: `export default ${JSON.stringify(md)};`, map: null };
+    },
+    transformIndexHtml(html) {
+      if (keep) return html;
+      const phone = html.replace(
+        " — with optional Dropbox sync.",
+        " — with optional iCloud Drive sync.",
+      );
+      if (/dropbox/i.test(phone)) {
+        throw new Error(
+          "dropbox-words: the phone build's index.html names Dropbox",
+        );
+      }
+      return phone;
+    },
+  };
+}
+
 // Build identity for the Developer tab's "Build" grid. The commit hash is the
 // deploying SHA in CI, falling back to the local working tree's HEAD so a
 // `make build` still stamps a real hash; "unknown" only if git isn't reachable.
@@ -300,6 +346,7 @@ export default defineConfig({
       name: appName,
     }),
     ...(appBuild ? [websiteOnly()] : []),
+    dropboxWords(!nativeBuild),
     emitPrivacyAlias(!appBuild),
   ],
 });

@@ -22,7 +22,8 @@ Thin is the design, not an aspiration. The wrapper:
   `modules/icloud-store`);
 - opens a cloud provider's sign-in in an **authentication session** when the
   page asks for one (`src/authSessionBridge.ts` → `src/authSession.ts` →
-  `expo-web-browser`) — see [Signing in to Dropbox](#signing-in-to-dropbox);
+  `expo-web-browser`) — see [Signing in to Dropbox](#signing-in-to-dropbox),
+  which the phone app no longer offers;
 - hands an export to the **share sheet** when the page saves a file
   (`src/saveFileBridge.ts` → `src/saveFile.ts` → `expo-sharing`) — see
   [Exporting a file](#exporting-a-file).
@@ -151,8 +152,8 @@ There is no iCloud on Android, and the module says so rather than pretending:
 `modules/icloud-store` declares only the `apple` platform, so
 `requireOptionalNativeModule` returns `null` there and the backend is reported
 unavailable — which means the web app never lists it. The Android build is the
-same offline-capable sketchbook with the same Dropbox and on-device backends
-the website has.
+same offline-capable sketchbook, and keeps the drawings on the device: the phone
+app offers no Dropbox on either platform.
 
 ## Exporting a file
 
@@ -182,6 +183,12 @@ than the latest one, logs nothing of it and hands it to nothing but the sheet. A
 rather than handed to the system browser, which could not open it either.
 
 ## Signing in to Dropbox
+
+**The phone app offers no Dropbox.** Its web build (`VITE_NATIVE_BUILD=on`)
+folds every Dropbox path out of the bundle (`src/app/storageBackends.ts`), and
+the native workflow passes no Dropbox secret, so nothing in the page asks for
+an authentication session today. The bridge below stays, because it is the
+capability any OAuth backend would use; this section is what it does.
 
 The page's own Dropbox sign-in is a redirect: consent at dropbox.com, then
 back to the page's origin with a code, which the page trades for tokens using

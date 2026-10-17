@@ -45,6 +45,7 @@ import {
   type SyncBackendId,
   type SyncEngine,
 } from "../useSyncEngine.ts";
+import { DROPBOX_IN_BUILD, offeredBackends } from "../storageBackends.ts";
 import { DefaultsSection } from "./defaults.tsx";
 import { LanguagePicker } from "./shared.tsx";
 
@@ -248,43 +249,28 @@ export function StorageTab({
     void fn().finally(() => setConnecting(false));
   };
 
-  // A cloud backend only appears in the picker when its OAuth identifier is
-  // baked into the build — an unconfigured backend can't be connected, so we
-  // hide it rather than offer a dead option. The local folder appears only in
-  // browsers that expose the File System Access API (Chromium-based).
-  const backendOptions = [
-    { value: "local" as const, label: t("settings.storage.backendThisDevice") },
-    ...(FOLDER_BACKEND_AVAILABLE
-      ? [
-          {
-            value: "folder" as const,
-            label: t("settings.storage.backendFolder"),
-          },
-        ]
-      : []),
-    ...(DROPBOX_APP_KEY
-      ? [
-          {
-            value: "dropbox" as const,
-            label: t("settings.storage.backendDropbox"),
-          },
-        ]
-      : []),
-    // Offered only where a host provides an iCloud container — the App Store
-    // app. A browser has none, and there is nothing it could connect to.
-    ...(sync.icloudAvailable
-      ? [
-          {
-            value: "icloud" as const,
-            label: t("settings.storage.backendICloud"),
-          },
-        ]
-      : []),
-  ];
+  // A backend only appears in the picker when it can be connected here — an
+  // unconfigured one is hidden rather than offered as a dead option (see
+  // `offeredBackends`): the local folder in browsers that expose the File
+  // System Access API, Dropbox when its OAuth identifier is baked into the
+  // build (and never in the phone app), iCloud Drive where a host provides a
+  // container — the App Store app.
+  const backendLabels: Record<SyncBackendId, string> = {
+    local: t("settings.storage.backendThisDevice"),
+    folder: t("settings.storage.backendFolder"),
+    dropbox: t("settings.storage.backendDropbox"),
+    icloud: t("settings.storage.backendICloud"),
+  };
+  const backendOptions = offeredBackends({
+    folder: FOLDER_BACKEND_AVAILABLE,
+    icloud: sync.icloudAvailable,
+  }).map((value) => ({ value, label: backendLabels[value] }));
 
   const pickedFolder = picked === "folder";
   const pickedICloud = picked === "icloud";
-  const pickedCloud = picked === "dropbox" ? picked : null;
+  // A build without Dropbox (the phone app) never picks it: the stored choice
+  // reads as this device there, and the constant folds the branch away.
+  const pickedCloud = DROPBOX_IN_BUILD && picked === "dropbox" ? picked : null;
   // Unconfigured backends are hidden above, so this only fires for a backend
   // persisted by an earlier build that had the key and this one doesn't — still
   // worth explaining rather than leaving the picker silently stuck.
