@@ -94,6 +94,9 @@ export const sv: Catalog = {
     clipboardAgain: "Titta igen",
     clipboardAsk: "Webbläsaren frågar innan en sida får läsa urklippet.",
     clipboardWaiting: "Bekräfta inklistringen när webbläsaren frågar.",
+    // Telefonappens egna ord: där syns ingen webbläsare.
+    clipboardAskPhone: "Enheten frågar innan en app får läsa urklippet.",
+    clipboardWaitingPhone: "Bekräfta inklistringen när enheten frågar.",
     clipboardEmpty: "Det finns ingen bild i urklippet.",
     create: "Skapa",
   },
@@ -1052,6 +1055,9 @@ export const sv: Catalog = {
     storage: {
       intro:
         "Dina teckningar ligger på den här enheten. Anslut en mapp eller en molntjänst för att hålla dem i takt mellan enheter.",
+      // Telefonappen erbjuder ingen mapp (en WebView har ingen mappväljare).
+      introPhone:
+        "Dina teckningar ligger på den här enheten. Anslut en molntjänst för att hålla dem i takt mellan enheter.",
       backendTitle: "Var teckningarna sparas",
       backendThisDevice: "Den här enheten",
       backendFolder: "Lokal mapp",
@@ -1081,6 +1087,8 @@ export const sv: Catalog = {
       exportTitle: "Export",
       exportHint:
         "Ladda ner hela dokumentet som JSON, eller den här sidan som PNG.",
+      exportHintPhone:
+        "Spara hela dokumentet som JSON, eller den här sidan som PNG.",
     },
     performance: {
       intro:

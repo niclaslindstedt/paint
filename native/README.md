@@ -157,7 +157,7 @@ There is no iCloud on Android, and the module says so rather than pretending:
 `requireOptionalNativeModule` returns `null` there and the backend is reported
 unavailable — which means the web app never lists it. The Android build is the
 same offline-capable sketchbook, and keeps the drawings on the device: the phone
-app offers no Dropbox on either platform.
+app offers neither Dropbox nor a local folder on either platform.
 
 ## Exporting a file
 

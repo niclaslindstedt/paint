@@ -11,7 +11,7 @@ Settings → Storage picks where the document is kept:
 | Backend          | What it is                                                                                      |
 | ---------------- | ----------------------------------------------------------------------------------------------- |
 | **This device**  | This browser's IndexedDB. The default; nothing leaves the browser.                              |
-| **Local folder** | A folder you pick on this computer (Chromium's File System Access API).                         |
+| **Local folder** | A folder you pick on this computer (Chromium's File System Access API). Not in the phone app.   |
 | **iCloud Drive** | A `paint-<namespace>.json` file in a **Paint** folder in iCloud Drive — the App Store app only. |
 
 In the browser and the desktop app there is one more: **Dropbox**, the same

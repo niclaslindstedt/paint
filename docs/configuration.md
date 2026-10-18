@@ -38,6 +38,16 @@ Dropbox path out of the bundle whatever the environment holds
 (`src/app/storageBackends.ts`), the native workflow does not pass these two
 secrets, and the Dropbox app needs no redirect URI for it.
 
+Nor does the phone app offer a local folder: a WebView has no directory
+picker, so the option could only ever be missing or dead there. The same flag
+folds the folder's row, its panel, the picker flow and its transports out of
+that bundle, the Storage tab's intro names a cloud drive alone, and a stored
+folder choice opens on this device, where the drawings have been all along.
+Every gate tests `__NATIVE_BUILD__` where it stands rather than reading
+`DROPBOX_IN_BUILD`: the minifier keeps a constant imported from another module
+as a variable, which would leave the gated code in the bundle as dead weight.
+`tests/storageBackends_test.ts` builds both apps to check it.
+
 ### What lands on the backend
 
 Whichever backend is connected, its folder holds the document plus one file per

@@ -709,10 +709,14 @@ export function NewImageModal({
                 {pasted
                   ? dimensions(pasted)
                   : clip.kind === "reading"
-                    ? t("newImage.clipboardWaiting")
+                    ? __NATIVE_BUILD__
+                      ? t("newImage.clipboardWaitingPhone")
+                      : t("newImage.clipboardWaiting")
                     : clip.kind === "nothing"
                       ? t("newImage.clipboardEmpty")
-                      : t("newImage.clipboardAsk")}
+                      : __NATIVE_BUILD__
+                        ? t("newImage.clipboardAskPhone")
+                        : t("newImage.clipboardAsk")}
               </p>
             </div>
           )}

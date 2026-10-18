@@ -319,8 +319,10 @@ export function useSyncEngine(
   // A "remote" backend is anything that pushes the document through a
   // `StorageAdapter` (folder or cloud). "Cloud" is the OAuth subset.
   const isRemote = backend !== "local";
-  const isCloud = backend === "dropbox";
-  const isFolder = backend === "folder";
+  // The phone app has neither (`storageBackends.ts`): every Dropbox and folder
+  // gate below tests `__NATIVE_BUILD__` in place, so that bundle drops them.
+  const isCloud = !__NATIVE_BUILD__ && backend === "dropbox";
+  const isFolder = !__NATIVE_BUILD__ && backend === "folder";
   // iCloud is neither: it needs no OAuth (so none of the `isCloud` connect and
   // reconnect paths apply) and no picked handle (so none of `isFolder`'s
   // permission machinery does either). It is a folder the device syncs, and
@@ -358,7 +360,7 @@ export function useSyncEngine(
   // the document (`withExternalImages`) and — when the user opted in —
   // encrypted at the byte boundary (`withEncryption`).
   const adapter: StorageAdapter | null = useMemo(() => {
-    if (backend === "dropbox" && dropboxAuth) {
+    if (!__NATIVE_BUILD__ && backend === "dropbox" && dropboxAuth) {
       const cloud = createDropboxAdapter(dropboxAuth, {
         appKey: DROPBOX_APP_KEY || undefined,
         fileName: cloudFileName(slug),
@@ -380,7 +382,7 @@ export function useSyncEngine(
             () => setImageSweep(true),
           );
     }
-    if (backend === "folder" && folderHandle) {
+    if (!__NATIVE_BUILD__ && backend === "folder" && folderHandle) {
       // Unlike the cloud adapters there's no `withLocalCache` — the folder is
       // already local and never raises network errors.
       const folderAdapter = createFolderAdapter(folderHandle, {
@@ -444,7 +446,8 @@ export function useSyncEngine(
   // Complete a Dropbox OAuth redirect: trade the `?code=` for tokens, persist
   // them, and adopt the backend. Runs once on boot when a flow is mid-flight.
   useEffect(() => {
-    if (DEMO || !DROPBOX_APP_KEY || !hasPendingDropboxAuth()) return;
+    if (__NATIVE_BUILD__ || DEMO || !DROPBOX_APP_KEY) return;
+    if (!hasPendingDropboxAuth()) return;
     const code = new URLSearchParams(window.location.search).get("code");
     if (!code) return;
     void (async () => {
@@ -715,7 +718,7 @@ export function useSyncEngine(
   );
 
   const connectDropbox = useCallback(async () => {
-    if (DEMO || !DROPBOX_APP_KEY) return;
+    if (__NATIVE_BUILD__ || DEMO || !DROPBOX_APP_KEY) return;
     // Two hosts cannot take the redirect back, and both finish the sign-in in
     // one promise, in place, no reload:
     //   • a host that OFFERS an authentication session (the phone app): the
@@ -754,7 +757,7 @@ export function useSyncEngine(
 
   // Pick a local folder and switch to it, once the grant is in hand.
   const connectFolder = useCallback(async () => {
-    if (DEMO) return;
+    if (__NATIVE_BUILD__ || DEMO) return;
     if (await folder.connect()) {
       justConnected.current = true;
       setBackend("folder");
@@ -811,12 +814,17 @@ export function useSyncEngine(
     () =>
       layerBackendFor({
         backend,
-        dropbox: dropboxAuth
-          ? { auth: dropboxAuth, appKey: DROPBOX_APP_KEY || undefined }
-          : null,
-        folder: folderHandle
-          ? { handle: folderHandle, onPermissionLost: markFolderPermissionLost }
-          : null,
+        dropbox:
+          !__NATIVE_BUILD__ && dropboxAuth
+            ? { auth: dropboxAuth, appKey: DROPBOX_APP_KEY || undefined }
+            : null,
+        folder:
+          !__NATIVE_BUILD__ && folderHandle
+            ? {
+                handle: folderHandle,
+                onPermissionLost: markFolderPermissionLost,
+              }
+            : null,
         icloud: icloudHost,
       }),
     [backend, dropboxAuth, folderHandle, markFolderPermissionLost, icloudHost],
@@ -919,8 +927,8 @@ export function useSyncEngine(
 
   // Re-run the backend's consent flow — the command centre's "Reconnect".
   const reconnect = useCallback(async () => {
-    if (backend === "dropbox") await connectDropbox();
-    else if (backend === "folder") {
+    if (!__NATIVE_BUILD__ && backend === "dropbox") await connectDropbox();
+    else if (!__NATIVE_BUILD__ && backend === "folder") {
       await reconnectFolder();
       return; // reconnectFolder clears the fault only on a granted re-confirm.
     } else if (backend === "icloud") {
@@ -970,12 +978,12 @@ export function useSyncEngine(
   // readable file is what lets a fresh device render the app the way you set it
   // up before anyone types the passphrase.
   const settingsStore = useMemo<SettingsStore | null>(() => {
-    if (backend === "dropbox" && dropboxAuth) {
+    if (!__NATIVE_BUILD__ && backend === "dropbox" && dropboxAuth) {
       return fileSettingsStore(
         dropboxByteFileStore(dropboxAuth, DROPBOX_APP_KEY || undefined),
       );
     }
-    if (backend === "folder" && folderHandle) {
+    if (!__NATIVE_BUILD__ && backend === "folder" && folderHandle) {
       return fileSettingsStore(
         folderFileStore(folderHandle, markFolderPermissionLost),
       );

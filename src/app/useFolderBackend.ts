@@ -77,7 +77,7 @@ export function useFolderBackend(
   // still stands. Read from the mount-time `active` rather than a live prop —
   // this runs once, for the backend the app opened on.
   useEffect(() => {
-    if (!active) return;
+    if (__NATIVE_BUILD__ || !active) return;
     let cancelled = false;
     setLoaded(false);
     void (async () => {
@@ -102,7 +102,9 @@ export function useFolderBackend(
   }, []);
 
   const connect = useCallback(async () => {
-    if (!FOLDER_BACKEND_AVAILABLE || !window.showDirectoryPicker) return false;
+    // The phone app has no folder to pick (`storageBackends.ts`).
+    if (__NATIVE_BUILD__ || !FOLDER_BACKEND_AVAILABLE) return false;
+    if (!window.showDirectoryPicker) return false;
     log.info("folder: opening the directory picker…");
     let picked: FileSystemDirectoryHandle;
     try {
@@ -129,6 +131,7 @@ export function useFolderBackend(
   }, []);
 
   const reconnect = useCallback(async () => {
+    if (__NATIVE_BUILD__) return false;
     const stored = await loadDirectoryHandle();
     if (!stored) return connect();
     if ((await ensurePermission(stored, true)) === "granted") {

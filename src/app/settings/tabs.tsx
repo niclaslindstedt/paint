@@ -45,7 +45,7 @@ import {
   type SyncBackendId,
   type SyncEngine,
 } from "../useSyncEngine.ts";
-import { DROPBOX_IN_BUILD, offeredBackends } from "../storageBackends.ts";
+import { offeredBackends } from "../storageBackends.ts";
 import { DefaultsSection } from "./defaults.tsx";
 import { LanguagePicker } from "./shared.tsx";
 
@@ -266,11 +266,12 @@ export function StorageTab({
     icloud: sync.icloudAvailable,
   }).map((value) => ({ value, label: backendLabels[value] }));
 
-  const pickedFolder = picked === "folder";
+  const pickedFolder = !__NATIVE_BUILD__ && picked === "folder";
   const pickedICloud = picked === "icloud";
-  // A build without Dropbox (the phone app) never picks it: the stored choice
-  // reads as this device there, and the constant folds the branch away.
-  const pickedCloud = DROPBOX_IN_BUILD && picked === "dropbox" ? picked : null;
+  // A build without Dropbox or a folder (the phone app) never picks either: the
+  // stored choice reads as this device there, and the define, tested in place,
+  // folds both panels away.
+  const pickedCloud = !__NATIVE_BUILD__ && picked === "dropbox" ? picked : null;
   // Unconfigured backends are hidden above, so this only fires for a backend
   // persisted by an earlier build that had the key and this one doesn't — still
   // worth explaining rather than leaving the picker silently stuck.
@@ -311,7 +312,11 @@ export function StorageTab({
 
   return (
     <div>
-      <p className="mb-3 text-xs text-muted">{t("settings.storage.intro")}</p>
+      <p className="mb-3 text-xs text-muted">
+        {__NATIVE_BUILD__
+          ? t("settings.storage.introPhone")
+          : t("settings.storage.intro")}
+      </p>
 
       <Section title={t("settings.storage.backendTitle")}>
         <SegmentedControl<SyncBackendId>
@@ -508,7 +513,11 @@ export function StorageTab({
       )}
 
       <Section title={t("settings.storage.exportTitle")}>
-        <p className="text-xs text-muted">{t("settings.storage.exportHint")}</p>
+        <p className="text-xs text-muted">
+          {__NATIVE_BUILD__
+            ? t("settings.storage.exportHintPhone")
+            : t("settings.storage.exportHint")}
+        </p>
         <div className="flex flex-wrap gap-2">
           <Button variant="secondary" onClick={exportJson}>
             {t("canvas.exportJson")}
@@ -654,9 +663,13 @@ export function DeveloperTab({
           actually useful for: standing in front of a deploy wanting to know
           whether this tab has seen it yet. That is a developer's question, so
           it is on the developer's tab. */}
-      <Section title={t("settings.developer.updatesTitle")}>
-        <UpdateCheck pwa={pwa} />
-      </Section>
+      {/* The phone app updates through the App Store, with no service worker
+          to ask, so it has no Updates section. */}
+      {!__NATIVE_BUILD__ && (
+        <Section title={t("settings.developer.updatesTitle")}>
+          <UpdateCheck pwa={pwa} />
+        </Section>
+      )}
 
       <Section title={t("settings.developer.loggingTitle")}>
         <ToggleRow
@@ -725,12 +738,20 @@ export function DeveloperTab({
           <dd className="font-mono text-fg">{__BUILD_COMMIT__}</dd>
           <dt className="text-muted">{t("settings.developer.modeLabel")}</dt>
           <dd className="font-mono text-fg">{__BUILD_NUMBER__}</dd>
-          <dt className="text-muted">{t("settings.developer.displayLabel")}</dt>
-          <dd className="font-mono text-fg">
-            {standalone
-              ? t("settings.developer.installedPwa")
-              : t("settings.developer.browserTab")}
-          </dd>
+          {/* Installed web app or browser tab — neither describes the phone
+              app, which leaves the row out. */}
+          {!__NATIVE_BUILD__ && (
+            <>
+              <dt className="text-muted">
+                {t("settings.developer.displayLabel")}
+              </dt>
+              <dd className="font-mono text-fg">
+                {standalone
+                  ? t("settings.developer.installedPwa")
+                  : t("settings.developer.browserTab")}
+              </dd>
+            </>
+          )}
         </dl>
       </Section>
     </div>

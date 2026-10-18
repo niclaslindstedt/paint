@@ -203,6 +203,17 @@ What's new). The lazy import in `src/App.tsx` tests the raw `__NATIVE_BUILD__`,
 `noWhatsNew` in `vite.config.ts` fails a phone build that still reaches a `.md`,
 and `tests/changelogBuilt_test.ts` builds both apps to check it. The website
 and the desktop app keep What's new.
+The phone build offers neither Dropbox nor a local folder — a WebView has no
+directory picker — and a stored choice of either opens on this device
+(`src/app/storageBackends.ts`). Every Dropbox and folder gate, here and in
+`useSyncEngine.ts`, `useFolderBackend.ts`, `useLayerSave.ts` and the Storage
+tab, tests the raw `__NATIVE_BUILD__` where it stands, never
+`DROPBOX_IN_BUILD`, so the minifier drops the code rather than keeping it dead
+(`tests/storageBackends_test.ts` builds both apps to check it). Where a
+string would name a browser or a folder, the phone build reads its own
+`…Phone` catalog entry (the Storage intro and export hint, the clipboard
+prompt), and the Developer tab leaves out its Updates section and its display
+row.
 The phone app's privacy page and documents name no other edition of it (the
 owner's decision) — no website, web host, browser, PWA or localStorage, no
 local folder: everything comes inside the download, nothing is sent on launch,

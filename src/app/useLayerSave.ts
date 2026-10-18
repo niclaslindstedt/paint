@@ -77,10 +77,12 @@ export type LayerCredentials = {
 /** Which backend to file layers through, given what is connected. Pure, so the
  *  engine can memo it without knowing what a byte store is. */
 export function layerBackendFor(creds: LayerCredentials): LayerBackend {
-  if (creds.backend === "dropbox" && creds.dropbox) {
+  // The phone app has neither (`storageBackends.ts`); the gates test the
+  // define in place so that bundle drops both transports.
+  if (!__NATIVE_BUILD__ && creds.backend === "dropbox" && creds.dropbox) {
     return { kind: "dropbox", ...creds.dropbox };
   }
-  if (creds.backend === "folder" && creds.folder) {
+  if (!__NATIVE_BUILD__ && creds.backend === "folder" && creds.folder) {
     return { kind: "folder", ...creds.folder };
   }
   if (creds.backend === "icloud" && creds.icloud) {
@@ -94,11 +96,14 @@ export function layerBackendFor(creds: LayerCredentials): LayerBackend {
  *  to the `drawings/` tree at save time. */
 function transportFor(backend: LayerBackend): ByteFileStore | null {
   if (!backend) return null;
-  if (backend.kind === "dropbox") {
+  if (!__NATIVE_BUILD__ && backend.kind === "dropbox") {
     return dropboxByteFileStore(backend.auth, backend.appKey);
   }
   if (backend.kind === "icloud") return icloudByteFileStore(backend.host);
-  return folderFileStore(backend.handle, backend.onPermissionLost);
+  if (!__NATIVE_BUILD__ && backend.kind === "folder") {
+    return folderFileStore(backend.handle, backend.onPermissionLost);
+  }
+  return null;
 }
 
 /**

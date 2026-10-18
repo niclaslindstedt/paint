@@ -100,6 +100,9 @@ export const en = {
     clipboardAgain: "Look again",
     clipboardAsk: "Your browser asks before a page may read the clipboard.",
     clipboardWaiting: "Confirm the paste when your browser asks for it.",
+    // The phone app's own words: no browser is in sight there.
+    clipboardAskPhone: "Your device asks before an app may read the clipboard.",
+    clipboardWaitingPhone: "Confirm the paste when your device asks for it.",
     clipboardEmpty: "There's no picture on the clipboard.",
     create: "Create",
   },
@@ -1162,6 +1165,9 @@ export const en = {
     storage: {
       intro:
         "Your drawings live on this device. Connect a folder or a cloud drive to keep them in step across devices.",
+      // The phone app offers no folder (a WebView has no directory picker).
+      introPhone:
+        "Your drawings live on this device. Connect a cloud drive to keep them in step across devices.",
       backendTitle: "Where drawings are kept",
       backendThisDevice: "This device",
       backendFolder: "Local folder",
@@ -1190,6 +1196,8 @@ export const en = {
       unlockHint: "Enter the passphrase to read the encrypted cloud copy.",
       exportTitle: "Export",
       exportHint: "Download the whole document as JSON, or this page as a PNG.",
+      exportHintPhone:
+        "Save the whole document as JSON, or this page as a PNG.",
     },
     // Settings → Performance: the trades that buy smoothness with memory or
     // with work done in the background. Named as trades, because the same
