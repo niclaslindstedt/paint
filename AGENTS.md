@@ -203,6 +203,15 @@ What's new). The lazy import in `src/App.tsx` tests the raw `__NATIVE_BUILD__`,
 `noWhatsNew` in `vite.config.ts` fails a phone build that still reaches a `.md`,
 and `tests/changelogBuilt_test.ts` builds both apps to check it. The website
 and the desktop app keep What's new.
+The phone app's privacy page and documents name no other edition of it (the
+owner's decision) — no website, web host, browser, PWA or localStorage, no
+local folder: everything comes inside the download, nothing is sent on launch,
+and the only traffic is the iCloud Drive sync the user turns on.
+`src/app/PrivacyPage.tsx` tests the raw `__NATIVE_BUILD__` at every use site
+so the other wording leaves the bundle, `phoneOnlyHtml` in `vite.config.ts`
+strips the shell's HTML comments and share tags, and
+`tests/privacyPage_test.ts` pins both sides. No build says "no account": the
+copy says there is nothing to sign up for (the owner's decision).
 An app build also says its store listing's name where the website says
 "Paint" — `APP_DISPLAY_NAME`, which names the phone app under its icon too
 (`appDisplayName` in `brand.ts`, `__APP_NAME__`); the website ignores it.

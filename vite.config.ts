@@ -25,11 +25,13 @@ const PRIVACY_ROUTE = {
   path: "/privacy/",
   title: "Privacy — Paint",
   description:
-    "Paint privacy: local-first by default — no account, no cookies, no " +
-    "analytics, no tracking. Optional " +
     // The phone app offers no Dropbox (see `src/app/storageBackends.ts`).
-    (process.env.VITE_NATIVE_BUILD === "on" ? "iCloud Drive" : "Dropbox") +
-    " sync only when you connect it.",
+    process.env.VITE_NATIVE_BUILD === "on"
+      ? "Paint privacy: local-first by default — nothing to sign up for, no " +
+        "cookies, no analytics, no tracking. Optional iCloud Drive sync only " +
+        "when you turn it on."
+      : "Paint privacy: local-first by default — no sign-up, no cookies, no " +
+        "analytics, no tracking. Optional Dropbox sync only when you connect it.",
   ogType: "article",
 } as const;
 
@@ -245,6 +247,39 @@ function dropboxWords(keep: boolean): Plugin {
   };
 }
 
+// The phone app's documents name no other edition of the app. `index.html` is
+// written for the website: its HTML comments talk about the installed PWA and
+// the web edition, its description calls the app a PWA, and its share tags
+// describe a link to the website. Nothing on a phone reads any of it, so the
+// phone build's `index.html` and `privacy/` alias ship without the comments and
+// the share tags, and with "app" for "PWA" in the description. Runs after the
+// privacy alias, which still needs the share tags to splice into.
+function phoneOnlyHtml(): Plugin {
+  return {
+    name: "phone-only-html",
+    apply: "build",
+    enforce: "post",
+    generateBundle(_options, bundle) {
+      for (const file of Object.values(bundle)) {
+        if (file.type !== "asset" || !file.fileName.endsWith(".html")) {
+          continue;
+        }
+        file.source = String(file.source)
+          .replace(/[ \t]*<!--[\s\S]*?-->\n?/g, "")
+          .replace(
+            /[ \t]*<meta\b[^>]*\b(?:property="og:|name="twitter:)[^>]*>\n?/g,
+            "",
+          )
+          .replace(/\n(?:[ \t]*\n)+/g, "\n")
+          .replace(
+            /(<meta\s+name="description"\s+content="[^"]*?)\bPWA\b/,
+            "$1app",
+          );
+      }
+    },
+  };
+}
+
 // The phone app has no What's new (`src/app/changelogBuilt.ts`, the owner's
 // decision — its version history is the App Store's What's New), so neither the
 // CHANGELOG nor a feature doc may reach its bundle. What imports them folds away
@@ -351,5 +386,7 @@ export default defineConfig({
     dropboxWords(!nativeBuild),
     ...(nativeBuild ? [noWhatsNew()] : []),
     emitPrivacyAlias(!appBuild),
+    // After the privacy alias, so it still finds the tags it splices into.
+    ...(nativeBuild ? [phoneOnlyHtml()] : []),
   ],
 });

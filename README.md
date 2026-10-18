@@ -212,7 +212,7 @@ the same [`oss-framework`](https://github.com/niclaslindstedt/oss-framework).
   than a flatten. The same layers are written to your cloud backend as browsable
   files when you press the disk button. See
   [`docs/features/file-format.md`](docs/features/file-format.md).
-- **Local-first.** No account, no server, works offline. Sync to a folder,
+- **Local-first.** Nothing to sign up for, no server, works offline. Sync to a folder,
   Dropbox (on the website and the desktop app) or — in the App Store app —
   iCloud Drive, only if you ask for it,
   optionally encrypted. A

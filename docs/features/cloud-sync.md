@@ -1,7 +1,7 @@
 # Cloud sync
 
 Paint is local-first: the working copy always lives in this browser's IndexedDB,
-and everything works with no account and no network. Sync is opt-in, and it is a
+and everything works with no sign-in and no network. Sync is opt-in, and it is a
 _copy_ of that document being pushed somewhere you chose.
 
 ## Backends

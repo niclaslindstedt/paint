@@ -2,7 +2,7 @@
 // Standalone privacy policy, served at `/privacy` (see `main.tsx`'s path switch
 // and the `emit-privacy-alias` plugin in `vite.config.ts`), and linked from the
 // side menu's About dropdown. Paint is local-first — by default no backend, no
-// account, no analytics — but it also ships optional storage backends (a local
+// sign-up, no analytics — but it also ships optional storage backends (a local
 // folder, Dropbox) that send drawings off the browser only when
 // the user explicitly connects one, so this policy covers both cases. It is
 // English-only by design (a legal page, not chrome).
@@ -10,24 +10,26 @@ import { type ReactNode } from "react";
 
 import { ArrowLeftIcon } from "@niclaslindstedt/oss-framework/components";
 
-// Whether this is the website's copy of the page. The phone and desktop apps
-// carry their own copy, and an app carries no link back to the source (by owner
-// decision): no issue tracker, no security advisories, no commit history,
-// not the web edition's address. The flags are compile-time constants, so in
-// an app build the website's wording is folded out of the bundle rather than
-// hidden; the app's says the same thing without them.
-const WEBSITE = !__NATIVE_BUILD__ && !__SHELL_BUILD__;
-
-// Whether this copy describes Dropbox. The phone app offers none (see
-// `storageBackends.ts`), so its policy names only the backends it has; the
-// website and the desktop app keep the Dropbox wording.
-const DROPBOX = !__NATIVE_BUILD__;
+// The phone and desktop apps carry their own copy, and an app carries no link
+// back to the source (by owner decision): no issue tracker, no security
+// advisories, no commit history, not the web edition's address. The phone app
+// offers no Dropbox (see `storageBackends.ts`) and no local folder (a WebView
+// has no directory picker, so the option is never offered there), so its
+// policy names only the backends it has. Nor does it name any other edition of
+// the app — no website, no web host and its server logs, no browser, no PWA,
+// no localStorage: everything the app runs comes inside the download, it sends
+// nothing when it starts, and the only traffic is the iCloud Drive sync the
+// reader turns on.
+//
+// Every gate tests the raw `__NATIVE_BUILD__` / `__SHELL_BUILD__` defines at
+// the use site rather than a constant derived from them: what one build's copy
+// says has to leave the other builds' bundles, not ride along in them as dead
+// code.
 
 // Last meaningful change to the policy text below. Bump this whenever the
 // wording is edited — it renders verbatim at the top of the page and is the
-// only line readers have to look at to see how fresh the policy is. The phone
-// app's copy changed on its own when it stopped naming Dropbox.
-const LAST_UPDATED = DROPBOX ? "2026-09-23" : "2026-10-17";
+// only line readers have to look at to see how fresh the policy is.
+const LAST_UPDATED = "2026-10-18";
 
 export function PrivacyPage() {
   return (
@@ -50,45 +52,66 @@ export function PrivacyPage() {
         </header>
 
         <Section title="Summary">
-          <p>
-            <span className="text-meta">{__APP_NAME__}</span> is a local-first
-            sketchpad served as a static site{" "}
-            {WEBSITE ? (
-              <>
-                at <span className="text-path">paint.niclaslindstedt.se</span>
-              </>
-            ) : (
-              "on the web"
-            )}
-            . It runs entirely in your browser. There is no backend of our own,
-            no account, no cookies, and no analytics or tracking. By default
-            your drawings are stored only on your device and never leave it. You
-            may optionally connect a cloud backend (
-            {DROPBOX
-              ? "Dropbox, or iCloud Drive in the App Store app"
-              : "iCloud Drive, in the App Store app"}
-            ) to sync your drawings across your own devices — in that case, and
-            only then, they are sent to that one provider at your explicit
-            request. The project authors never receive your drawings in any
-            configuration.
-          </p>
+          {__NATIVE_BUILD__ ? (
+            <p>
+              <span className="text-meta">{__APP_NAME__}</span> is a local-first
+              sketchpad. The app and every file it runs come inside the
+              download, and it runs entirely on your device: it sends nothing
+              when it starts, and the only network traffic it ever causes is the
+              sync you turn on yourself. There is no server of our own, nothing
+              to sign up for, no cookies, and no analytics or tracking. By
+              default your drawings are stored only on your device and never
+              leave it. On iPhone and iPad you may optionally turn on your own
+              iCloud Drive to sync your drawings across your own Apple devices —
+              in that case, and only then, they are kept by Apple under your
+              Apple Account. The project authors never receive your drawings in
+              any configuration.
+            </p>
+          ) : (
+            <p>
+              <span className="text-meta">{__APP_NAME__}</span> is a local-first
+              sketchpad served as a static site{" "}
+              {!__SHELL_BUILD__ ? (
+                <>
+                  at <span className="text-path">paint.niclaslindstedt.se</span>
+                </>
+              ) : (
+                "on the web"
+              )}
+              . It runs entirely in your browser. There is no backend of our
+              own, nothing to sign up for, no cookies, and no analytics or
+              tracking. By default your drawings are stored only on your device
+              and never leave it. You may optionally connect a cloud backend
+              (Dropbox, or iCloud Drive in the App Store app) to sync your
+              drawings across your own devices — in that case, and only then,
+              they are sent to that one provider at your explicit request. The
+              project authors never receive your drawings in any configuration.
+            </p>
+          )}
         </Section>
 
         <Section title="What the app stores">
-          <p>
-            On your device, inside your browser&apos;s{" "}
-            <code className="text-meta">IndexedDB</code> and{" "}
-            <code className="text-meta">localStorage</code>{" "}
-            {WEBSITE ? (
-              <>
-                for the origin{" "}
-                <span className="text-path">paint.niclaslindstedt.se</span>
-              </>
-            ) : (
-              "for the app's own origin"
-            )}
-            , the app keeps:
-          </p>
+          {__NATIVE_BUILD__ ? (
+            <p>
+              On your device, inside the app&apos;s own private storage, the app
+              keeps:
+            </p>
+          ) : (
+            <p>
+              On your device, inside your browser&apos;s{" "}
+              <code className="text-meta">IndexedDB</code> and{" "}
+              <code className="text-meta">localStorage</code>{" "}
+              {!__SHELL_BUILD__ ? (
+                <>
+                  for the origin{" "}
+                  <span className="text-path">paint.niclaslindstedt.se</span>
+                </>
+              ) : (
+                "for the app's own origin"
+              )}
+              , the app keeps:
+            </p>
+          )}
           <ul className="ml-5 list-disc space-y-1">
             <li>
               Your drawings — every mark as vector geometry, together with each
@@ -101,7 +124,7 @@ export function PrivacyPage() {
               optional tools are switched on, the last-used ink and stroke
               width, and how the sidebar opens.
             </li>
-            {DROPBOX ? (
+            {!__NATIVE_BUILD__ ? (
               <li>
                 Which storage backend you&apos;ve chosen, and — if you&apos;ve
                 connected Dropbox — the OAuth access and refresh tokens for that
@@ -113,12 +136,20 @@ export function PrivacyPage() {
               <li>Which storage backend you&apos;ve chosen.</li>
             )}
           </ul>
-          <p>
-            This data is stored as plain JSON on your own device. Clearing your
-            browser&apos;s site data for this origin erases it permanently — if
-            you have not connected a cloud backend, there is no copy elsewhere
-            to restore from.
-          </p>
+          {__NATIVE_BUILD__ ? (
+            <p>
+              This data is stored as plain JSON on your own device. Deleting the
+              app erases it permanently — if you have not turned on iCloud
+              Drive, there is no copy elsewhere to restore from.
+            </p>
+          ) : (
+            <p>
+              This data is stored as plain JSON on your own device. Clearing
+              your browser&apos;s site data for this origin erases it
+              permanently — if you have not connected a cloud backend, there is
+              no copy elsewhere to restore from.
+            </p>
+          )}
         </Section>
 
         <Section title="Storage backends">
@@ -127,21 +158,31 @@ export function PrivacyPage() {
             you choose where your drawings are kept:
           </p>
           <ul className="ml-5 list-disc space-y-1">
-            <li>
-              <strong className="text-fg-bright">This device</strong> (the
-              default) — your drawings stay in your browser&apos;s{" "}
-              <code className="text-meta">IndexedDB</code> and are never
-              transmitted anywhere.
-            </li>
-            <li>
-              <strong className="text-fg-bright">Local folder</strong> — your
-              drawings are written as a file to a folder you pick on this
-              device, using the browser&apos;s File System Access API. The data
-              stays on your device; the folder-access grant is remembered in
-              your browser&apos;s IndexedDB so the app can reopen the folder
-              without asking again.
-            </li>
-            {DROPBOX && (
+            {__NATIVE_BUILD__ ? (
+              <li>
+                <strong className="text-fg-bright">This device</strong> (the
+                default) — your drawings stay in the app&apos;s own storage on
+                this device and are never transmitted anywhere.
+              </li>
+            ) : (
+              <li>
+                <strong className="text-fg-bright">This device</strong> (the
+                default) — your drawings stay in your browser&apos;s{" "}
+                <code className="text-meta">IndexedDB</code> and are never
+                transmitted anywhere.
+              </li>
+            )}
+            {!__NATIVE_BUILD__ && (
+              <li>
+                <strong className="text-fg-bright">Local folder</strong> — your
+                drawings are written as a file to a folder you pick on this
+                device, using the browser&apos;s File System Access API. The
+                data stays on your device; the folder-access grant is remembered
+                in your browser&apos;s IndexedDB so the app can reopen the
+                folder without asking again.
+              </li>
+            )}
+            {!__NATIVE_BUILD__ && (
               <li>
                 <strong className="text-fg-bright">Dropbox</strong> — only when
                 you explicitly connect it, your drawings are stored in your
@@ -153,13 +194,15 @@ export function PrivacyPage() {
               </li>
             )}
             <li>
-              <strong className="text-fg-bright">iCloud Drive</strong> — in the
-              App Store app only, and only when you choose it: your drawings are
-              stored in the app&apos;s folder in your own iCloud Drive, which
-              you can open in the Files app, and Apple syncs them between your
-              devices signed in to the same Apple Account. Your data is then
-              also subject to Apple&apos;s privacy policy. You can disconnect at
-              any time; the files stay in your iCloud Drive.
+              <strong className="text-fg-bright">iCloud Drive</strong> —{" "}
+              {__NATIVE_BUILD__
+                ? "on iPhone and iPad, and only when you choose it:"
+                : "in the App Store app only, and only when you choose it:"}{" "}
+              your drawings are stored in the app&apos;s folder in your own
+              iCloud Drive, which you can open in the Files app, and Apple syncs
+              them between your devices signed in to the same Apple Account.
+              Your data is then also subject to Apple&apos;s privacy policy. You
+              can disconnect at any time; the files stay in your iCloud Drive.
             </li>
           </ul>
           <p>
@@ -177,31 +220,51 @@ export function PrivacyPage() {
         </Section>
 
         <Section title="Network requests">
-          <p>
-            With the default <em>This device</em> backend — or the{" "}
-            <em>Local folder</em> backend — the app makes no third-party network
-            calls. The only requests your browser makes are to fetch the
-            app&apos;s own static files (HTML, JavaScript, CSS, fonts, and
-            icons) from its origin, and once loaded it works fully offline as an
-            installed PWA.{" "}
-            {DROPBOX &&
-              "The one exception is the cloud backends: if — and only if — you connect Dropbox, the app talks to that provider's API to read and write your drawings. "}
-            iCloud Drive needs no request from the app at all: it writes to a
-            folder on the device, and the system syncs it. No fonts, analytics
-            scripts, error-reporting services, or advertising networks are ever
-            loaded.
-          </p>
+          {__NATIVE_BUILD__ ? (
+            <p>
+              With no sync turned on, the app makes no network request at all —
+              not when it starts, and not while you use it. Everything it runs
+              (its code, fonts, and icons) comes inside the download, so it
+              works fully offline. The only network traffic is the sync you turn
+              on: iCloud Drive, through your own Apple Account. Even that needs
+              no request from the app itself — it writes to a folder on the
+              device, and the system syncs it. No analytics scripts,
+              error-reporting services, or advertising networks are ever loaded.
+            </p>
+          ) : (
+            <p>
+              With the default <em>This device</em> backend — or the{" "}
+              <em>Local folder</em> backend — the app makes no third-party
+              network calls. The only requests your browser makes are to fetch
+              the app&apos;s own static files (HTML, JavaScript, CSS, fonts, and
+              icons) from its origin, and once loaded it works fully offline as
+              an installed PWA.{" "}
+              {!__NATIVE_BUILD__ &&
+                "The one exception is the cloud backends: if — and only if — you connect Dropbox, the app talks to that provider's API to read and write your drawings. "}
+              iCloud Drive needs no request from the app at all: it writes to a
+              folder on the device, and the system syncs it. No fonts, analytics
+              scripts, error-reporting services, or advertising networks are
+              ever loaded.
+            </p>
+          )}
         </Section>
 
         <Section title="Cookies">
-          <p>
-            The app sets no cookies. All persistence uses{" "}
-            <code className="text-meta">IndexedDB</code> and{" "}
-            <code className="text-meta">localStorage</code>.
-          </p>
+          {__NATIVE_BUILD__ ? (
+            <p>
+              The app sets no cookies. Everything it keeps is in its own storage
+              on the device and in the storage location you chose.
+            </p>
+          ) : (
+            <p>
+              The app sets no cookies. All persistence uses{" "}
+              <code className="text-meta">IndexedDB</code> and{" "}
+              <code className="text-meta">localStorage</code>.
+            </p>
+          )}
         </Section>
 
-        <Section title="Web analytics">
+        <Section title={__NATIVE_BUILD__ ? "Analytics" : "Web analytics"}>
           <p>
             None. The app does not load any analytics or behavioural-tracking
             SDK, and the project authors collect no usage statistics from it.
@@ -209,22 +272,30 @@ export function PrivacyPage() {
         </Section>
 
         <Section title="Server logs">
-          <p>
-            The website is served by{" "}
-            <strong className="text-fg-bright">GitHub Pages</strong>. GitHub may
-            collect standard request metadata (IP address, user agent, request
-            path) for operating the service. This is covered by{" "}
-            <a
-              href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement"
-              className="text-link hover:underline"
-            >
-              GitHub&apos;s privacy statement
-            </a>
-            . The app from the App Store or Google Play carries its own copy of
-            the site and serves it on the device, so opening it sends no such
-            request. The project authors do not run an additional logging
-            service.
-          </p>
+          {__NATIVE_BUILD__ ? (
+            <p>
+              There are none. The app has no server of ours to talk to:
+              everything it runs comes inside the download, so opening it sends
+              no request, and there is nothing to log.
+            </p>
+          ) : (
+            <p>
+              The website is served by{" "}
+              <strong className="text-fg-bright">GitHub Pages</strong>. GitHub
+              may collect standard request metadata (IP address, user agent,
+              request path) for operating the service. This is covered by{" "}
+              <a
+                href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement"
+                className="text-link hover:underline"
+              >
+                GitHub&apos;s privacy statement
+              </a>
+              . The app from the App Store or Google Play carries its own copy
+              of the site and serves it on the device, so opening it sends no
+              such request. The project authors do not run an additional logging
+              service.
+            </p>
+          )}
         </Section>
 
         <Section title="Children">
@@ -236,7 +307,7 @@ export function PrivacyPage() {
 
         <Section title="Changes to this policy">
           <p>
-            {WEBSITE &&
+            {!(__NATIVE_BUILD__ || __SHELL_BUILD__) &&
               "Material changes are tracked in the public commit history of the source repository. "}
             The <em>Last updated</em> date at the top of this page reflects the
             most recent edit. Should a future version add another optional
@@ -256,7 +327,7 @@ export function PrivacyPage() {
         </Section>
 
         <Section title="Contact">
-          {WEBSITE ? (
+          {!(__NATIVE_BUILD__ || __SHELL_BUILD__) ? (
             <p>
               For security reports, see{" "}
               <a
