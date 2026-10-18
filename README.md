@@ -341,8 +341,9 @@ Both packaging targets forward `ARGS` to `tauri build`, e.g.
   at its foot holds new
   drawing (which asks for the page size first), new folder, the archive, and the
   cloud sync glyph, in one row; the
-  footer below it (foldable behind a chevron) holds Donate (on the website only), About — What's new,
-  the source, the privacy policy — and Settings. Checking for updates by hand is
+  footer below it (foldable behind a chevron) holds Donate (on the website only), About — What's new
+  (not in the phone app, whose version history is the App Store's), the source,
+  the privacy policy — and Settings. Checking for updates by hand is
   on Settings → Developer; the service worker finds a new build without being
   asked.
 - **Toolbar** — two bands: the enabled tools fill the left, wrapping over two

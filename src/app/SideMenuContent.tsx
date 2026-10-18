@@ -39,6 +39,7 @@ import type {
 } from "@niclaslindstedt/oss-framework/namespaces";
 import { useDragDrop } from "@niclaslindstedt/oss-framework/sidebar";
 
+import { CHANGELOG_BUILT } from "./changelogBuilt.ts";
 import { DONATE_URL } from "./donate.ts";
 import { CanvasIcon } from "./icons.tsx";
 import { useT } from "./i18n/index.ts";
@@ -707,9 +708,10 @@ export function SideMenuContent({
       )}
 
       {/* The About dropdown — portalled and positioned by the framework's
-          `FloatingPanel`. "What's new" opens the changelog dialog; Source (the
-          website only) is an external link wearing the build label as its
-          subtitle; Privacy is the
+          `FloatingPanel`. "What's new" opens the changelog dialog (not in the
+          phone app, `CHANGELOG_BUILT` — its version history is the App
+          Store's); Source (the website only) is an external link wearing the
+          build label as its subtitle; Privacy is the
           standalone policy page the build emits at `/privacy/`. */}
       <FloatingPanel
         open={aboutOpen}
@@ -718,15 +720,17 @@ export function SideMenuContent({
         placement={ABOUT_PLACEMENT}
         className="py-1"
       >
-        <FooterRow
-          icon={<SparklesIcon className="h-5 w-5" />}
-          onClick={() => {
-            setAboutOpen(false);
-            onOpenChangelog();
-          }}
-        >
-          {t("menu.whatsNew")}
-        </FooterRow>
+        {CHANGELOG_BUILT && (
+          <FooterRow
+            icon={<SparklesIcon className="h-5 w-5" />}
+            onClick={() => {
+              setAboutOpen(false);
+              onOpenChangelog();
+            }}
+          >
+            {t("menu.whatsNew")}
+          </FooterRow>
+        )}
         {SOURCE_URL && (
           <FooterLink
             icon={<ExternalLinkIcon className="h-5 w-5" />}

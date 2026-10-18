@@ -1644,4 +1644,6 @@ browser and the build plugin import — the one value both sides must agree on.
 There is no server and no prerender, so everything on the entry path is
 downloaded before the first paint. The settings dialog, the cloud-setup prompt,
 the changelog payload, and the Swedish catalog are all behind `import()`; check
-before adding a static import to `App.tsx`.
+before adding a static import to `App.tsx`. (The phone app has no changelog
+payload at all: that `import()` is gated on the raw `__NATIVE_BUILD__` —
+`src/app/changelogBuilt.ts`.)

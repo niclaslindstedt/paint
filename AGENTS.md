@@ -195,6 +195,14 @@ page's issue tracker, advisories and commit history, the web edition's
 address, the Open Graph tags naming it, `CNAME` and `og.png`, and GitHub links
 in the What's new markdown (`websiteOnly` in `vite.config.ts`) — and both
 bundle scripts refuse a webroot that still contains `niclaslindstedt`.
+The phone build has no What's new either (`src/app/changelogBuilt.ts`, the
+owner's decision): its version history is the App Store's What's New, so the
+About dropdown has no What's new row and neither the dialog, the CHANGELOG nor
+any feature doc is in its bundle (a feature doc is only reachable through
+What's new). The lazy import in `src/App.tsx` tests the raw `__NATIVE_BUILD__`,
+`noWhatsNew` in `vite.config.ts` fails a phone build that still reaches a `.md`,
+and `tests/changelogBuilt_test.ts` builds both apps to check it. The website
+and the desktop app keep What's new.
 An app build also says its store listing's name where the website says
 "Paint" — `APP_DISPLAY_NAME`, which names the phone app under its icon too
 (`appDisplayName` in `brand.ts`, `__APP_NAME__`); the website ignores it.
@@ -330,15 +338,15 @@ changelog payload, and the cloud-setup prompt are all behind `import()` already.
 
 ## Documentation sync points
 
-| When you change…                     | Update…                                                                                                   |
-| ------------------------------------ | --------------------------------------------------------------------------------------------------------- |
-| the stroke / drawing model           | `docs/architecture.md`, `tests/migrations_test.ts`, a migration step in `src/app/migrations.ts`           |
-| the tool set or the plugin interface | `docs/features/plugins.md`, `docs/architecture.md`, `tests/plugins_test.ts`, `README.md`                  |
-| sync backends / encryption           | `docs/features/cloud-sync.md`, `docs/configuration.md`                                                    |
-| the settings surface                 | `docs/getting-started.md`                                                                                 |
-| the desktop shell                    | `tauri/README.md`, `docs/features/desktop-app.md`, `tauri/shell/tests/`                                   |
-| the phone wrapper                    | `native/README.md`, `native/RELEASING.md`                                                                 |
-| user-visible features                | a `.changes/unreleased/` changeset fragment + `docs/features/*.md` (the in-app "What's new" renders both) |
+| When you change…                     | Update…                                                                                                                                                                |
+| ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| the stroke / drawing model           | `docs/architecture.md`, `tests/migrations_test.ts`, a migration step in `src/app/migrations.ts`                                                                        |
+| the tool set or the plugin interface | `docs/features/plugins.md`, `docs/architecture.md`, `tests/plugins_test.ts`, `README.md`                                                                               |
+| sync backends / encryption           | `docs/features/cloud-sync.md`, `docs/configuration.md`                                                                                                                 |
+| the settings surface                 | `docs/getting-started.md`                                                                                                                                              |
+| the desktop shell                    | `tauri/README.md`, `docs/features/desktop-app.md`, `tauri/shell/tests/`                                                                                                |
+| the phone wrapper                    | `native/README.md`, `native/RELEASING.md`                                                                                                                              |
+| user-visible features                | a `.changes/unreleased/` changeset fragment + `docs/features/*.md` (the in-app "What's new" renders both — on the website and the desktop app; the phone app has none) |
 
 ## Changelog and feature docs
 

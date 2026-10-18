@@ -41,7 +41,11 @@ picker. The app never asks what it is running inside.
 Two things are decided at build time instead (`scripts/web-build.mts`).
 `scripts/bundle-web.mjs` builds the site with `VITE_NATIVE_BUILD=on`, which is
 about the channel: it compiles out the sidebar's Donate row — a payment link
-outside Apple's is an App Store rejection (guideline 3.1.1). And with
+outside Apple's is an App Store rejection (guideline 3.1.1) — and What's new:
+the phone app's version history is the App Store's What's New, so the About
+dropdown has no What's new row, and neither the dialog, the CHANGELOG nor a
+feature doc is in the bundle (`src/app/changelogBuilt.ts`; the build fails if
+one is reached). Its build label stays on Settings → Developer. And with
 `VITE_SHELL_BUILD=on`, the desktop shell's flag, which is about the medium: the
 site ships inside the binary, so it is built without a service worker and
 without the in-app update prompt — a new version arrives from the store. The

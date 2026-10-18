@@ -14,12 +14,9 @@ Settings → Storage picks where the document is kept:
 | **Local folder** | A folder you pick on this computer (Chromium's File System Access API).                         |
 | **iCloud Drive** | A `paint-<namespace>.json` file in a **Paint** folder in iCloud Drive — the App Store app only. |
 
-<!-- dropbox -->
-
 In the browser and the desktop app there is one more: **Dropbox**, the same
 file in the app's Dropbox app folder, offered when the build carries its app key
 (see [configuration](../configuration.md)).
-<!-- /dropbox -->
 
 A backend only appears in the picker when it can be connected — iCloud Drive in
 the App Store app, where the native shell provides it. An unavailable backend is

@@ -80,11 +80,18 @@ const CloudSetupModal = lazy(() =>
     default: m.CloudSetupModal,
   })),
 );
-const ChangelogPanel = lazy(() =>
-  import("./app/ChangelogPanel.tsx").then((m) => ({
-    default: m.ChangelogPanel,
-  })),
-);
+// What's new is the website's and the desktop app's alone
+// (`./app/changelogBuilt.ts`): the phone app's version history is the App
+// Store's What's New. The test is the raw define, not `CHANGELOG_BUILT`, so the
+// import is gone before the bundler decides which chunks exist, and the dialog,
+// the CHANGELOG and the feature docs never reach the phone bundle.
+const ChangelogPanel = __NATIVE_BUILD__
+  ? null
+  : lazy(() =>
+      import("./app/ChangelogPanel.tsx").then((m) => ({
+        default: m.ChangelogPanel,
+      })),
+    );
 // The archive is the second top-level view, and most sessions never open it —
 // so it stays off the first-paint path like the dialogs above.
 const ArchiveScreen = lazy(() =>
@@ -768,8 +775,9 @@ export function App() {
       />
 
       {/* The "What's new" dialog — opened from the sidebar footer. The app
-          inlines the CHANGELOG and the feature docs at build time. */}
-      {changelogOpen && (
+          inlines the CHANGELOG and the feature docs at build time; the phone
+          app has none. */}
+      {ChangelogPanel && changelogOpen && (
         <Suspense fallback={null}>
           <ChangelogPanel
             open={changelogOpen}
